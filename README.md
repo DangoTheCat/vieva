@@ -1,6 +1,6 @@
 # 🎙️ AIVES - Smart Oral Exam System
 > **Hệ thống Thi Vấn đáp Thông minh Ứng dụng Trí tuệ Nhân tạo**  
-> *Môn học: SWD392 — Trình bày Báo cáo Milestone 2*
+> *Môn học: SWD392 — Trình bày Báo cáo Milestone 1*
 
 [![Course](https://img.shields.io/badge/Course-SWD392-blue.svg?style=for-the-badge)](https://fpt.edu.vn)
 [![Milestone](https://img.shields.io/badge/Milestone-2%20APPROVED-success.svg?style=for-the-badge)]()
