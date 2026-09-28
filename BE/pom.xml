@@ -15,8 +15,8 @@
 	<description>AIVES - AI-based Voice Interview and Evaluation System</description>
 	<properties>
 		<java.version>17</java.version>
+		<lombok.version>1.18.38</lombok.version>
 		<spring-ai.version>1.0.0</spring-ai.version>
-		<jjwt.version>0.12.6</jjwt.version>
 		<cloudinary.version>1.39.0</cloudinary.version>
 	</properties>
 	<dependencies>
@@ -40,21 +40,8 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-api</artifactId>
-			<version>${jjwt.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-impl</artifactId>
-			<version>${jjwt.version}</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-jackson</artifactId>
-			<version>${jjwt.version}</version>
-			<scope>runtime</scope>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 
 		<!-- Persistence & Database -->
@@ -141,6 +128,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
