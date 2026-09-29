@@ -24,6 +24,7 @@ public class User {
     private UserStatus status;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant deletedAt;
 
     @Builder.Default
     private Set<UserRole> userRoles = new HashSet<>();
@@ -40,5 +41,27 @@ public class User {
                 .assignedBy(assignedBy)
                 .build();
         userRoles.add(userRole);
+    }
+
+    public boolean isDeleted() {
+        return status == UserStatus.DELETED || deletedAt != null;
+    }
+
+    public boolean hasRole(String roleCode) {
+        if (userRoles == null || roleCode == null) {
+            return false;
+        }
+        return userRoles.stream()
+                .anyMatch(ur -> ur.getRole() != null && roleCode.equalsIgnoreCase(ur.getRole().getRoleCode()));
+    }
+
+    public boolean isAdmin() {
+        return hasRole("ROLE_ADMIN") || hasRole("ADMIN");
+    }
+
+    public void clearRoles() {
+        if (userRoles != null) {
+            userRoles.clear();
+        }
     }
 }

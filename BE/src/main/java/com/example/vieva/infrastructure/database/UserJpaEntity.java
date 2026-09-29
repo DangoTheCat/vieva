@@ -25,10 +25,10 @@ public class UserJpaEntity implements Persistable<UUID> {
     @Column(name = "user_id", updatable = false, nullable = false)
     private UUID userId;
 
-    @Column(name = "email", nullable = false, unique = true, length = 255)
+    @Column(name = "email", nullable = false, length = 255)
     private String email;
 
-    @Column(name = "user_code", nullable = false, unique = true, length = 50)
+    @Column(name = "user_code", nullable = false, length = 50)
     private String userCode;
 
     @Column(name = "full_name", nullable = false, length = 150)
@@ -44,6 +44,9 @@ public class UserJpaEntity implements Persistable<UUID> {
     @Column(name = "status", nullable = false, length = 20)
     private UserStatus status;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -53,6 +56,7 @@ public class UserJpaEntity implements Persistable<UUID> {
     private Instant updatedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @org.hibernate.annotations.BatchSize(size = 50)
     @Builder.Default
     private Set<UserRoleJpaEntity> userRoles = new HashSet<>();
 
