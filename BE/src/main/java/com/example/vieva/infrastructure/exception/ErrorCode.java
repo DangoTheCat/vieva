@@ -13,7 +13,9 @@ public enum ErrorCode {
     INVALID_KEY("1005", "Invalid message key", HttpStatus.BAD_REQUEST),
     INVALID_REQUEST("1006", "Invalid request parameters", HttpStatus.BAD_REQUEST),
     USER_INACTIVE("1007", "User account is not active", HttpStatus.FORBIDDEN),
-    ROLE_NOT_FOUND("1008", "Default role not found", HttpStatus.INTERNAL_SERVER_ERROR);
+    ROLE_NOT_FOUND("1008", "Default role not found", HttpStatus.INTERNAL_SERVER_ERROR),
+    INCORRECT_PASSWORD("1009", "Incorrect old password", HttpStatus.BAD_REQUEST),
+    PASSWORD_UNCHANGED("1010", "New password must be different from old password", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;

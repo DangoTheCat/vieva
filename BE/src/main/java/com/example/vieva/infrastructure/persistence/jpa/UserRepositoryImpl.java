@@ -7,8 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -34,6 +36,13 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> findByUserCode(String userCode) {
         return userJpaRepository.findByUserCode(userCode)
                 .map(userMapper::toDomain);
+    }
+
+    @Override
+    public List<User> findAll() {
+        return userJpaRepository.findAll().stream()
+                .map(userMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

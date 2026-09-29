@@ -66,6 +66,7 @@ public class UserPersistenceMapper {
                 .status(domain.getStatus())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
+                .isNew(domain.getCreatedAt() == null)
                 .build();
 
         if (domain.getUserRoles() != null && !domain.getUserRoles().isEmpty()) {
