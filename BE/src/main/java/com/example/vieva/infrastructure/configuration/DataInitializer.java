@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.configuration;
 
-import com.example.vieva.domain.entity.Role;
-import com.example.vieva.domain.repository.RoleRepository;
+import com.example.vieva.application.ports.output.RoleRepository;
+import com.example.vieva.domain.entities.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
