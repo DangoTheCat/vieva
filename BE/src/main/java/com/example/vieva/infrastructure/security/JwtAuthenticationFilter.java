@@ -3,6 +3,7 @@ package com.example.vieva.infrastructure.security;
 import com.example.vieva.application.ports.output.TokenProviderPort;
 import com.example.vieva.application.usecases.user.UserService;
 import com.example.vieva.domain.entities.User;
+import com.example.vieva.domain.entities.UserStatus;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,12 +42,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UUID userId = tokenProvider.getUserIdFromToken(token);
                 Optional<User> userOptional = userService.getById(userId);
 
-                if (userOptional.isPresent()) {
+                if (userOptional.isPresent() && userOptional.get().getStatus() == UserStatus.ACTIVE) {
                     User user = userOptional.get();
                     Set<SimpleGrantedAuthority> authorities = user.getUserRoles() != null
                             ? user.getUserRoles().stream()
-                            .filter(ur -> ur.getRole() != null)
-                            .map(ur -> new SimpleGrantedAuthority(ur.getRole().getRoleCode()))
+                            .filter(ur -> ur.getRole() != null && StringUtils.hasText(ur.getRole().getRoleCode()))
+                            .map(ur -> {
+                                String code = ur.getRole().getRoleCode();
+                                return new SimpleGrantedAuthority(code.startsWith("ROLE_") ? code : "ROLE_" + code);
+                            })
                             .collect(Collectors.toSet())
                             : Set.of();
 

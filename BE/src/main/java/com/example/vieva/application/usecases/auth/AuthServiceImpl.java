@@ -76,12 +76,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new AppException(ErrorCode.USER_INACTIVE);
-        }
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new AppException(ErrorCode.USER_INACTIVE);
         }
 
         String token = tokenProvider.generateToken(user.getUserId(), user.getEmail());
@@ -100,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
         return AuthResult.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
-                .expiresIn(86400)
+                .expiresIn(tokenProvider.getExpirationInSeconds())
                 .userId(user.getUserId())
                 .email(user.getEmail())
                 .userCode(user.getUserCode())

@@ -79,6 +79,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.domain.entities.User) and authentication.principal.userId == #id) or authentication.name == #id.toString()")
     public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
         User user = userService.getById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));

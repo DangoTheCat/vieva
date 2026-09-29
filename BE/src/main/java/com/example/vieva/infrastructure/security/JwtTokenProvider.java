@@ -125,6 +125,7 @@ public class JwtTokenProvider implements TokenProviderPort {
         }
     }
 
+    @Override
     public long getExpirationInSeconds() {
         return expirationHours * 3600;
     }
