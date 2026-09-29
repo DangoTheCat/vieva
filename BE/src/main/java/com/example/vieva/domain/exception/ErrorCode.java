@@ -14,7 +14,14 @@ public enum ErrorCode {
     USER_INACTIVE("1007", "User account is not active", 403),
     ROLE_NOT_FOUND("1008", "Default role not found", 500),
     INCORRECT_PASSWORD("1009", "Incorrect old password", 400),
-    PASSWORD_UNCHANGED("1010", "New password must be different from old password", 400);
+    PASSWORD_UNCHANGED("1010", "New password must be different from old password", 400),
+    CANNOT_DELETE_SELF("1011", "You cannot delete your own account", 400),
+    CANNOT_DEMOTE_SELF("1012", "You cannot demote your own admin role", 400),
+    CANNOT_DELETE_LAST_ADMIN("1013", "Cannot delete the last administrator in the system", 400),
+    CANNOT_DEMOTE_LAST_ADMIN("1014", "Cannot demote the last administrator in the system", 400),
+    USER_CODE_EXISTED("1015", "User code already exists", 400),
+    CANNOT_LOCK_SELF("1016", "You cannot lock or deactivate your own account", 400),
+    CANNOT_LOCK_LAST_ADMIN("1017", "Cannot lock or deactivate the last active administrator", 400);
 
     private final String code;
     private final String message;

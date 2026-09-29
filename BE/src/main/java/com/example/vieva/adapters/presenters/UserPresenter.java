@@ -1,5 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
+import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.domain.entities.User;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ public class UserPresenter {
                         .collect(Collectors.toSet())
                         : Collections.emptySet())
                 .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
@@ -38,5 +40,20 @@ public class UserPresenter {
         return users.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    public PageResponse<UserDto> toPageResponse(PagedResult<User> pagedResult) {
+        if (pagedResult == null) {
+            return null;
+        }
+        return PageResponse.<UserDto>builder()
+                .content(toDtoList(pagedResult.getContent()))
+                .page(pagedResult.getPage())
+                .size(pagedResult.getSize())
+                .totalElements(pagedResult.getTotalElements())
+                .totalPages(pagedResult.getTotalPages())
+                .isFirst(pagedResult.isFirst())
+                .isLast(pagedResult.isLast())
+                .build();
     }
 }
