@@ -1,14 +1,9 @@
-package com.example.vieva.adapters.gateways;
+package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.input.UserSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.infrastructure.database.RoleJpaEntity;
-import com.example.vieva.infrastructure.database.UserJpaEntity;
-import com.example.vieva.infrastructure.database.UserJpaRepository;
-import com.example.vieva.infrastructure.database.UserPersistenceMapper;
-import com.example.vieva.infrastructure.database.UserRoleJpaEntity;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -23,6 +18,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -43,21 +39,14 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return userJpaRepository.findByEmailAndDeletedAtIsNull(email)
+        return userJpaRepository.findByEmail(email)
                 .map(userMapper::toDomain);
     }
 
     @Override
     public Optional<User> findByUserCode(String userCode) {
-        return userJpaRepository.findByUserCodeAndDeletedAtIsNull(userCode)
+        return userJpaRepository.findByUserCode(userCode)
                 .map(userMapper::toDomain);
-    }
-
-    @Override
-    public List<User> findAll() {
-        return userJpaRepository.findAllActive().stream()
-                .map(userMapper::toDomain)
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -74,17 +63,18 @@ public class UserRepositoryImpl implements UserRepository {
         Specification<UserJpaEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // 1. Filter out soft-deleted users
+            // Defensive soft-delete filter in addition to @SQLRestriction
             predicates.add(cb.isNull(root.get("deletedAt")));
 
-            // 2. Filter by status if specified
+            // 1. Filter by status if specified
             if (criteria.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
             }
 
-            // 3. Filter by role if specified
+            // 2. Filter by role if specified
             if (StringUtils.hasText(criteria.getRole())) {
-                String roleCode = criteria.getRole().trim().toUpperCase();
+                // Use Locale.ROOT for locale-independent case conversion
+                String roleCode = criteria.getRole().trim().toUpperCase(Locale.ROOT);
                 String roleWithPrefix = roleCode.startsWith("ROLE_") ? roleCode : "ROLE_" + roleCode;
 
                 Join<UserJpaEntity, UserRoleJpaEntity> userRoleJoin = root.join("userRoles", JoinType.INNER);
@@ -100,10 +90,11 @@ public class UserRepositoryImpl implements UserRepository {
                 }
             }
 
-            // 4. Filter by search keyword across email, fullName, userCode (escaped)
+            // 3. Filter by search keyword across email, fullName, userCode (escaped)
             String escapedKeyword = criteria.getEscapedKeyword();
             if (StringUtils.hasText(escapedKeyword)) {
-                String pattern = "%" + escapedKeyword.toLowerCase() + "%";
+                // Use Locale.ROOT for locale-independent case conversion
+                String pattern = "%" + escapedKeyword.toLowerCase(Locale.ROOT) + "%";
                 Predicate emailLike = cb.like(cb.lower(root.get("email")), pattern, '\\');
                 Predicate fullNameLike = cb.like(cb.lower(root.get("fullName")), pattern, '\\');
                 Predicate userCodeLike = cb.like(cb.lower(root.get("userCode")), pattern, '\\');
@@ -128,39 +119,28 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public long countActiveAdmins() {
-        return userJpaRepository.countActiveAdmins();
+    @Transactional
+    public long countActiveAdminsForUpdate() {
+        // Acquires PESSIMISTIC_WRITE (SELECT FOR UPDATE) on entity rows — avoids PostgreSQL aggregate lock error
+        return userJpaRepository.findActiveAdminsForUpdate().stream()
+                .map(UserJpaEntity::getUserId)
+                .distinct()
+                .count();
     }
 
     @Override
     public boolean existsByEmail(String email) {
-        return userJpaRepository.existsByEmailAndDeletedAtIsNull(email);
+        return userJpaRepository.existsByEmail(email);
     }
 
     @Override
     public boolean existsByUserCode(String userCode) {
-        return userJpaRepository.existsByUserCodeAndDeletedAtIsNull(userCode);
-    }
-
-    @Override
-    public boolean existsByEmailAndUserIdNot(String email, UUID userId) {
-        return userJpaRepository.existsByEmailAndUserIdNotAndDeletedAtIsNull(email, userId);
-    }
-
-    @Override
-    public boolean existsByUserCodeAndUserIdNot(String userCode, UUID userId) {
-        return userJpaRepository.existsByUserCodeAndUserIdNotAndDeletedAtIsNull(userCode, userId);
+        return userJpaRepository.existsByUserCode(userCode);
     }
 
     @Override
     @Transactional
     public User save(User user) {
         return userMapper.toDomain(userJpaRepository.save(userMapper.toEntity(user)));
-    }
-
-    @Override
-    @Transactional
-    public void deleteById(UUID userId) {
-        userJpaRepository.deleteById(userId);
     }
 }

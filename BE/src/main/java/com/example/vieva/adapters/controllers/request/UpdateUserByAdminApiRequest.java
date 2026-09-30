@@ -29,5 +29,6 @@ public class UpdateUserByAdminApiRequest {
 
     private UserStatus status;
 
+    @Size(max = 20, message = "Cannot assign more than 20 roles at once")
     private Set<String> roleCodes;
 }

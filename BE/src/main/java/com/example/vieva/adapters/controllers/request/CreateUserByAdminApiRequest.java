@@ -24,6 +24,7 @@ public class CreateUserByAdminApiRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
+    @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;
 
     @NotBlank(message = "Password is required")
@@ -43,5 +44,6 @@ public class CreateUserByAdminApiRequest {
 
     private UserStatus status;
 
+    @Size(max = 20, message = "Cannot assign more than 20 roles at once")
     private Set<String> roleCodes;
 }
