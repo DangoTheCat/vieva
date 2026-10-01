@@ -2,6 +2,7 @@ package com.example.vieva.adapters.controllers.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,5 +21,6 @@ public class AssignLecturerApiRequest {
     private UUID subjectId;
 
     @NotEmpty(message = "At least one lecturer ID must be provided")
+    @Size(max = 100, message = "At most 100 lecturer IDs may be assigned in one request")
     private List<UUID> lecturerIds;
 }

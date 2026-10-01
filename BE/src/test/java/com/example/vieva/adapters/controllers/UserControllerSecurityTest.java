@@ -1,4 +1,4 @@
-package com.example.vieva.presentation.controller;
+package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.usecases.user.AdminUserService;

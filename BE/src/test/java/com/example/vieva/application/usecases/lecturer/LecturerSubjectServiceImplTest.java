@@ -2,6 +2,7 @@ package com.example.vieva.application.usecases.lecturer;
 
 import com.example.vieva.application.ports.input.AssignLecturerRequest;
 import com.example.vieva.application.ports.output.AuditEventRepository;
+import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.UserRepository;
@@ -37,6 +38,9 @@ class LecturerSubjectServiceImplTest {
 
     @Mock
     private AuditEventRepository auditEventRepository;
+
+    @Mock
+    private JsonSerializerPort jsonSerializer;
 
     @InjectMocks
     private LecturerSubjectServiceImpl lecturerSubjectService;
@@ -81,8 +85,8 @@ class LecturerSubjectServiceImplTest {
                 .build();
 
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
-        when(userRepository.findById(lecturerId)).thenReturn(Optional.of(sampleLecturer));
-        when(lecturerSubjectRepository.findActiveAssignment(lecturerId, subjectId)).thenReturn(Optional.empty());
+        when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(sampleLecturer));
+        when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of());
         when(lecturerSubjectRepository.save(any(LecturerSubject.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         List<LecturerSubject> result = lecturerSubjectService.assignLecturersToSubject(request, adminId);
@@ -110,7 +114,7 @@ class LecturerSubjectServiceImplTest {
                 .build();
 
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
-        when(userRepository.findById(lecturerId)).thenReturn(Optional.of(regularUser));
+        when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(regularUser));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
                 .isInstanceOf(AppException.class)
@@ -135,8 +139,8 @@ class LecturerSubjectServiceImplTest {
                 .build();
 
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
-        when(userRepository.findById(lecturerId)).thenReturn(Optional.of(sampleLecturer));
-        when(lecturerSubjectRepository.findActiveAssignment(lecturerId, subjectId)).thenReturn(Optional.of(existing));
+        when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(sampleLecturer));
+        when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of(existing));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
                 .isInstanceOf(AppException.class)

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,17 @@ public class LecturerSubjectRepositoryImpl implements LecturerSubjectRepository 
     public Optional<LecturerSubject> findActiveAssignment(UUID lecturerId, UUID subjectId) {
         return jpaRepository.findByLecturerIdAndSubject_SubjectIdAndIsActiveTrueAndRevokedAtIsNull(lecturerId, subjectId)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<LecturerSubject> findActiveAssignments(UUID subjectId, Collection<UUID> lecturerIds) {
+        if (subjectId == null || lecturerIds == null || lecturerIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository
+                .findBySubject_SubjectIdAndLecturerIdInAndIsActiveTrueAndRevokedAtIsNull(subjectId, lecturerIds).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

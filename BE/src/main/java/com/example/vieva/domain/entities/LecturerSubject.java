@@ -21,4 +21,9 @@ public class LecturerSubject {
     private Instant assignedAt;
     private UUID assignedBy;
     private Instant revokedAt;
+
+    public void revoke() {
+        this.isActive = false;
+        this.revokedAt = Instant.now();
+    }
 }

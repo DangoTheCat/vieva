@@ -26,6 +26,7 @@ public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
     private final AuditEventRepository auditEventRepository;
+    private final com.example.vieva.application.ports.output.JsonSerializerPort jsonSerializer;
 
     @Override
     public Subject createSubject(CreateSubjectRequest request, UUID currentAdminId) {
@@ -60,8 +61,11 @@ public class SubjectServiceImpl implements SubjectService {
                 .actionType("SUBJECT_CREATED")
                 .entityType("SUBJECT")
                 .entityId(saved.getSubjectId().toString())
-                .newValuesJson(String.format("{\"code\":\"%s\",\"name\":\"%s\",\"status\":\"%s\"}",
-                        saved.getSubjectCode(), saved.getSubjectName(), saved.getStatus()))
+                .newValuesJson(jsonSerializer.serialize(java.util.Map.of(
+                        "code", saved.getSubjectCode(),
+                        "name", saved.getSubjectName(),
+                        "status", saved.getStatus().name()
+                )))
                 .createdAt(Instant.now())
                 .build());
 
@@ -73,20 +77,7 @@ public class SubjectServiceImpl implements SubjectService {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
 
-        if (StringUtils.hasText(request.getSubjectName())) {
-            subject.setSubjectName(request.getSubjectName().trim());
-        }
-        if (request.getDescription() != null) {
-            subject.setDescription(request.getDescription().trim());
-        }
-        if (request.getCredits() != null && request.getCredits() > 0) {
-            subject.setCredits(request.getCredits());
-        }
-        if (request.getStatus() != null) {
-            subject.setStatus(request.getStatus());
-        }
-
-        subject.setUpdatedAt(Instant.now());
+        subject.update(request.getSubjectName(), request.getDescription(), request.getCredits(), request.getStatus());
         Subject updated = subjectRepository.save(subject);
 
         auditEventRepository.save(AuditEvent.builder()
@@ -95,8 +86,11 @@ public class SubjectServiceImpl implements SubjectService {
                 .actionType("SUBJECT_UPDATED")
                 .entityType("SUBJECT")
                 .entityId(updated.getSubjectId().toString())
-                .newValuesJson(String.format("{\"name\":\"%s\",\"status\":\"%s\",\"credits\":%d}",
-                        updated.getSubjectName(), updated.getStatus(), updated.getCredits()))
+                .newValuesJson(jsonSerializer.serialize(java.util.Map.of(
+                        "name", updated.getSubjectName(),
+                        "status", updated.getStatus().name(),
+                        "credits", updated.getCredits()
+                )))
                 .createdAt(Instant.now())
                 .build());
 
@@ -108,8 +102,7 @@ public class SubjectServiceImpl implements SubjectService {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
 
-        subject.setStatus(SubjectStatus.INACTIVE);
-        subject.setUpdatedAt(Instant.now());
+        subject.deactivate();
         subjectRepository.save(subject);
 
         auditEventRepository.save(AuditEvent.builder()
@@ -118,7 +111,7 @@ public class SubjectServiceImpl implements SubjectService {
                 .actionType("SUBJECT_DEACTIVATED")
                 .entityType("SUBJECT")
                 .entityId(subject.getSubjectId().toString())
-                .newValuesJson("{\"status\":\"INACTIVE\"}")
+                .newValuesJson(jsonSerializer.serialize(java.util.Map.of("status", "INACTIVE")))
                 .createdAt(Instant.now())
                 .build());
     }

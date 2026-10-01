@@ -3,7 +3,6 @@ package com.example.vieva.infrastructure.database;
 import com.example.vieva.domain.entities.Subject;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Component

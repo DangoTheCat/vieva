@@ -73,4 +73,16 @@ public class User {
             userRoles.clear();
         }
     }
+
+    public void delete() {
+        this.status = UserStatus.DELETED;
+        this.deletedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public void updatePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.passwordChangedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
 }

@@ -8,6 +8,7 @@ import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.ports.output.AuditEventRepository;
+import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.domain.entities.AuditEvent;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
@@ -21,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,6 +38,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoderPort passwordEncoder;
     private final AuditEventRepository auditEventRepository;
+    private final JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -103,8 +108,10 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .actionType("USER_CREATED")
                 .entityType("USER")
                 .entityId(savedUser.getUserId().toString())
-                .newValuesJson(String.format("{\"email\":\"%s\",\"userCode\":\"%s\",\"status\":\"%s\"}",
-                        savedUser.getEmail(), savedUser.getUserCode(), savedUser.getStatus()))
+                .newValuesJson(jsonSerializer.serialize(Map.of(
+                        "email", savedUser.getEmail(),
+                        "userCode", savedUser.getUserCode(),
+                        "status", savedUser.getStatus().name())))
                 .createdAt(Instant.now())
                 .build());
 
@@ -134,8 +141,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // Rule: ADMIN cannot lock / deactivate the last active ADMIN
         // Use FOR UPDATE lock to serialize concurrent demote attempts
-        if (isTargetAdmin && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
-            if (userRepository.countActiveAdminsForUpdate() <= 1) {
+        if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE
+                && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
+            if (userRepository.countActiveAdmins() <= 1) {
                 throw new AppException(ErrorCode.CANNOT_LOCK_LAST_ADMIN);
             }
         }
@@ -150,9 +158,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // Rule: ADMIN cannot demote the last ADMIN
         // Use FOR UPDATE lock to serialize concurrent demote attempts
-        if (isTargetAdmin && request.getRoleCodes() != null) {
+        if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE && request.getRoleCodes() != null) {
             boolean willRemainAdmin = willHaveAdminRole(request.getRoleCodes());
-            if (!willRemainAdmin && userRepository.countActiveAdminsForUpdate() <= 1) {
+            if (!willRemainAdmin && userRepository.countActiveAdmins() <= 1) {
                 throw new AppException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
             }
         }
@@ -184,7 +192,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .actionType("USER_UPDATED")
                 .entityType("USER")
                 .entityId(updatedUser.getUserId().toString())
-                .newValuesJson(String.format("{\"status\":\"%s\"}", updatedUser.getStatus()))
+                .newValuesJson(jsonSerializer.serialize(Map.of("status", updatedUser.getStatus().name())))
                 .createdAt(Instant.now())
                 .build());
 
@@ -209,13 +217,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         // Rule: ADMIN cannot delete the last active ADMIN
         // Use FOR UPDATE lock to serialize concurrent delete attempts at the DB level
         if (user.isAdmin() && user.getStatus() == UserStatus.ACTIVE
-                && userRepository.countActiveAdminsForUpdate() <= 1) {
+                && userRepository.countActiveAdmins() <= 1) {
             throw new AppException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
         }
 
-        user.setStatus(UserStatus.DELETED);
-        user.setDeletedAt(Instant.now());
-        user.setUpdatedAt(Instant.now());
+        user.delete();
         userRepository.save(user);
 
         auditEventRepository.save(AuditEvent.builder()
@@ -224,7 +230,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .actionType("USER_DELETED")
                 .entityType("USER")
                 .entityId(user.getUserId().toString())
-                .newValuesJson("{\"status\":\"DELETED\"}")
+                .newValuesJson(jsonSerializer.serialize(Map.of("status", UserStatus.DELETED.name())))
                 .createdAt(Instant.now())
                 .build());
     }
@@ -242,9 +248,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        user.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
-        user.setPasswordChangedAt(Instant.now());
-        user.setUpdatedAt(Instant.now());
+        user.updatePassword(passwordEncoder.encode(newPassword.trim()));
         userRepository.save(user);
 
         auditEventRepository.save(AuditEvent.builder()
@@ -253,48 +257,74 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .actionType("USER_PASSWORD_RESET")
                 .entityType("USER")
                 .entityId(user.getUserId().toString())
-                .newValuesJson("{\"passwordReset\":true}")
+                .newValuesJson(jsonSerializer.serialize(Map.of("passwordReset", true)))
                 .createdAt(Instant.now())
                 .build());
     }
 
     /**
-     * Resolve a set of role codes to Role entities.
-     * Uses a single findByRoleCode per unique code (not in a large unbounded loop).
+     * Resolve a set of role codes to Role entities using a single batched query
+     * (never one query per code — Rule 4: database queries inside loops).
      * Null/blank codes in the set are silently skipped.
+     * If no code resolves, falls back to the default role.
      *
      * @param roleCodes set of role code strings (max 20 enforced at controller layer)
      */
     private Set<Role> resolveRoles(Set<String> roleCodes) {
-        Set<Role> roles = new HashSet<>();
-        if (roleCodes == null || roleCodes.isEmpty()) {
-            Role defaultRole = roleRepository.findByRoleCode("ROLE_USER")
-                    .or(() -> roleRepository.findByRoleCode("USER"))
-                    .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-            roles.add(defaultRole);
-            return roles;
+        Set<String> requested = new LinkedHashSet<>();
+        if (roleCodes != null) {
+            for (String code : roleCodes) {
+                // Guard: skip null or blank entries before calling trim()
+                if (StringUtils.hasText(code)) {
+                    requested.add(code.trim());
+                }
+            }
         }
 
-        for (String code : roleCodes) {
-            // Guard: skip null or blank entries before calling trim()
-            if (!StringUtils.hasText(code)) {
-                continue;
+        if (requested.isEmpty()) {
+            Set<Role> defaultRoles = new LinkedHashSet<>();
+            defaultRoles.add(findDefaultRole());
+            return defaultRoles;
+        }
+
+        // One batched lookup covering every exact code and its ROLE_/unprefixed variant.
+        Set<String> candidates = new HashSet<>();
+        for (String cleanCode : requested) {
+            candidates.add(cleanCode);
+            candidates.add(roleCodeVariant(cleanCode));
+        }
+        Map<String, Role> rolesByCode = new HashMap<>();
+        for (Role role : roleRepository.findByRoleCodesIn(candidates)) {
+            rolesByCode.put(role.getRoleCode(), role);
+        }
+
+        Set<Role> roles = new LinkedHashSet<>();
+        for (String cleanCode : requested) {
+            Role role = rolesByCode.get(cleanCode);
+            if (role == null) {
+                role = rolesByCode.get(roleCodeVariant(cleanCode));
             }
-            String cleanCode = code.trim();
-            Role role = roleRepository.findByRoleCode(cleanCode)
-                    .or(() -> roleRepository.findByRoleCode(cleanCode.startsWith("ROLE_") ? cleanCode.substring(5) : "ROLE_" + cleanCode))
-                    .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+            if (role == null) {
+                throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+            }
             roles.add(role);
         }
 
-        if (roles.isEmpty()) {
-            Role defaultRole = roleRepository.findByRoleCode("ROLE_USER")
-                    .or(() -> roleRepository.findByRoleCode("USER"))
-                    .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-            roles.add(defaultRole);
-        }
-
         return roles;
+    }
+
+    /**
+     * Returns the alternate spelling of a role code tried when the primary code is not found:
+     * {@code ADMIN} &harr; {@code ROLE_ADMIN}.
+     */
+    private String roleCodeVariant(String cleanCode) {
+        return cleanCode.startsWith("ROLE_") ? cleanCode.substring(5) : "ROLE_" + cleanCode;
+    }
+
+    private Role findDefaultRole() {
+        return roleRepository.findByRoleCode("ROLE_USER")
+                .or(() -> roleRepository.findByRoleCode("USER"))
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     /**
