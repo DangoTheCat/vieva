@@ -4,3 +4,5 @@ target/
 .vscode/
 *.iml
 *.log
+# Environment secrets — never commit
+.env

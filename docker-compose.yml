@@ -5,29 +5,31 @@ services:
     container_name: vieva-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      # Bind to localhost only — do NOT expose DB to external interfaces
+      - "127.0.0.1:5432:5432"
     environment:
-      POSTGRES_DB: vieva_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-vieva_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d vieva_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-vieva_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # pgAdmin for web-based PostgreSQL management (Optional)
+  # pgAdmin for web-based PostgreSQL management (Optional — disable in production)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: vieva-pgadmin
     restart: unless-stopped
     ports:
-      - "5050:80"
+      # Bind to localhost only — never expose pgAdmin externally
+      - "127.0.0.1:5050:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@vieva.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?PGADMIN_EMAIL env var is required}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD env var is required}
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,9 +48,11 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: vieva_db
-      DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_NAME: ${DB_NAME:-vieva_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET env var is required}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-test-dummy-key}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}

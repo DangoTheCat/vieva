@@ -4,6 +4,7 @@ import com.example.vieva.domain.entities.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.domain.Persistable;
 
@@ -13,7 +14,13 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
+// Unique constraints are managed via Flyway partial indexes (WHERE deleted_at IS NULL)
+// to support soft-delete email/userCode reuse. DO NOT add @Table uniqueConstraints here
+// as they would create full (non-partial) constraints conflicting with the partial indexes.
 @Table(name = "users")
+// Apply soft-delete filter at the Hibernate level — all queries via this entity
+// automatically append WHERE deleted_at IS NULL (except native SQL queries).
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -47,6 +54,9 @@ public class UserJpaEntity implements Persistable<UUID> {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    @Column(name = "password_changed_at")
+    private Instant passwordChangedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -54,6 +64,14 @@ public class UserJpaEntity implements Persistable<UUID> {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    /**
+     * Optimistic locking — prevents lost updates and fixes the
+     * last-admin check-then-act race condition.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @org.hibernate.annotations.BatchSize(size = 50)
@@ -80,3 +98,4 @@ public class UserJpaEntity implements Persistable<UUID> {
         this.isNew = false;
     }
 }
+

@@ -12,9 +12,11 @@ import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -51,7 +53,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public User createUser(CreateUserByAdminRequest request, UUID currentAdminId) {
-        String email = request.getEmail().trim().toLowerCase();
+        String email = new Email(request.getEmail()).getValue();
         if (userRepository.existsByEmail(email)) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -115,8 +117,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot lock / deactivate the last active ADMIN
+        // Use FOR UPDATE lock to serialize concurrent demote attempts
         if (isTargetAdmin && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
-            if (userRepository.countActiveAdmins() <= 1) {
+            if (userRepository.countActiveAdminsForUpdate() <= 1) {
                 throw new AppException(ErrorCode.CANNOT_LOCK_LAST_ADMIN);
             }
         }
@@ -130,9 +133,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot demote the last ADMIN
+        // Use FOR UPDATE lock to serialize concurrent demote attempts
         if (isTargetAdmin && request.getRoleCodes() != null) {
             boolean willRemainAdmin = willHaveAdminRole(request.getRoleCodes());
-            if (!willRemainAdmin && userRepository.countActiveAdmins() <= 1) {
+            if (!willRemainAdmin && userRepository.countActiveAdminsForUpdate() <= 1) {
                 throw new AppException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
             }
         }
@@ -175,7 +179,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot delete the last active ADMIN
-        if (user.isAdmin() && userRepository.countActiveAdmins() <= 1) {
+        // Use FOR UPDATE lock to serialize concurrent delete attempts at the DB level
+        if (user.isAdmin() && user.getStatus() == UserStatus.ACTIVE
+                && userRepository.countActiveAdminsForUpdate() <= 1) {
             throw new AppException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
         }
 
@@ -185,6 +191,13 @@ public class AdminUserServiceImpl implements AdminUserService {
         userRepository.save(user);
     }
 
+    /**
+     * Resolve a set of role codes to Role entities.
+     * Uses a single findByRoleCode per unique code (not in a large unbounded loop).
+     * Null/blank codes in the set are silently skipped.
+     *
+     * @param roleCodes set of role code strings (max 20 enforced at controller layer)
+     */
     private Set<Role> resolveRoles(Set<String> roleCodes) {
         Set<Role> roles = new HashSet<>();
         if (roleCodes == null || roleCodes.isEmpty()) {
@@ -196,7 +209,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         for (String code : roleCodes) {
-            if (code == null || code.trim().isEmpty()) {
+            // Guard: skip null or blank entries before calling trim()
+            if (!StringUtils.hasText(code)) {
                 continue;
             }
             String cleanCode = code.trim();
@@ -216,9 +230,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         return roles;
     }
 
+    /**
+     * Check if the new set of role codes includes an admin role.
+     * Null codes in the set are filtered out before calling trim().
+     */
     private boolean willHaveAdminRole(Set<String> roleCodes) {
-        return roleCodes.stream().anyMatch(code ->
-                "ROLE_ADMIN".equalsIgnoreCase(code.trim()) || "ADMIN".equalsIgnoreCase(code.trim())
-        );
+        if (roleCodes == null) return false;
+        return roleCodes.stream()
+                .filter(code -> code != null)   // guard: skip null entries
+                .anyMatch(code ->
+                        "ROLE_ADMIN".equalsIgnoreCase(code.trim()) || "ADMIN".equalsIgnoreCase(code.trim())
+                );
     }
 }

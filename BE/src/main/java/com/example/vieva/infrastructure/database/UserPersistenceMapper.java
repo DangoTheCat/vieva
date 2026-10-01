@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -41,6 +43,7 @@ public class UserPersistenceMapper {
                 .phoneNumber(entity.getPhoneNumber())
                 .status(entity.getStatus())
                 .deletedAt(entity.getDeletedAt())
+                .passwordChangedAt(entity.getPasswordChangedAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .userRoles(roles)
@@ -61,22 +64,31 @@ public class UserPersistenceMapper {
                 .phoneNumber(domain.getPhoneNumber())
                 .status(domain.getStatus())
                 .deletedAt(domain.getDeletedAt())
+                .passwordChangedAt(domain.getPasswordChangedAt())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .isNew(domain.getCreatedAt() == null)
                 .build();
 
         if (domain.getUserRoles() != null && !domain.getUserRoles().isEmpty()) {
+            // Batch-load all roles in a single query to avoid N+1
+            Set<Integer> roleIds = domain.getUserRoles().stream()
+                    .map(ur -> ur.getRoleId() != null ? ur.getRoleId()
+                            : (ur.getRole() != null ? ur.getRole().getRoleId() : null))
+                    .filter(id -> id != null)
+                    .collect(Collectors.toSet());
+
+            Map<Integer, RoleJpaEntity> roleCache = roleJpaRepository.findAllById(roleIds)
+                    .stream()
+                    .collect(Collectors.toMap(RoleJpaEntity::getRoleId, Function.identity()));
+
             Set<UserRoleJpaEntity> roleEntities = domain.getUserRoles().stream()
                     .map(ur -> {
-                        Integer roleId = ur.getRoleId() != null ? ur.getRoleId() :
-                                (ur.getRole() != null ? ur.getRole().getRoleId() : null);
+                        Integer roleId = ur.getRoleId() != null ? ur.getRoleId()
+                                : (ur.getRole() != null ? ur.getRole().getRoleId() : null);
                         UserRoleId compositeId = new UserRoleId(domain.getUserId(), roleId);
 
-                        RoleJpaEntity roleEntity = null;
-                        if (roleId != null) {
-                            roleEntity = roleJpaRepository.findById(roleId).orElse(null);
-                        }
+                        RoleJpaEntity roleEntity = roleId != null ? roleCache.get(roleId) : null;
                         if (roleEntity == null && ur.getRole() != null) {
                             roleEntity = roleMapper.toEntity(ur.getRole());
                         }
@@ -96,3 +108,4 @@ public class UserPersistenceMapper {
         return entity;
     }
 }
+

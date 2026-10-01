@@ -1,9 +1,7 @@
-package com.example.vieva.adapters.gateways;
+package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.domain.entities.Role;
-import com.example.vieva.infrastructure.database.RoleJpaRepository;
-import com.example.vieva.infrastructure.database.RolePersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,12 +15,6 @@ public class RoleRepositoryImpl implements RoleRepository {
 
     private final RoleJpaRepository roleJpaRepository;
     private final RolePersistenceMapper roleMapper;
-
-    @Override
-    public Optional<Role> findById(Integer roleId) {
-        return roleJpaRepository.findById(roleId)
-                .map(roleMapper::toDomain);
-    }
 
     @Override
     public Optional<Role> findByRoleCode(String roleCode) {

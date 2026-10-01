@@ -25,6 +25,7 @@ public class User {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;
+    private Instant passwordChangedAt;
 
     @Builder.Default
     private Set<UserRole> userRoles = new HashSet<>();

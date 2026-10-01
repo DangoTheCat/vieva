@@ -1,9 +1,11 @@
 package com.example.vieva.presentation.controller;
 
-import com.example.vieva.domain.entity.User;
-import com.example.vieva.domain.service.UserService;
-import com.example.vieva.infrastructure.persistence.jpa.RoleJpaRepository;
-import com.example.vieva.infrastructure.persistence.jpa.UserJpaRepository;
+import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.usecases.user.AdminUserService;
+import com.example.vieva.application.usecases.user.UserService;
+import com.example.vieva.domain.entities.User;
+import com.example.vieva.infrastructure.database.RoleJpaRepository;
+import com.example.vieva.infrastructure.database.UserJpaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,12 +19,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "jwt.secret=test-secret-at-least-32-characters-long-key",
+        "spring.datasource.password=testpassword",
+        "spring.flyway.enabled=false"
+})
 @AutoConfigureMockMvc
 class UserControllerSecurityTest {
 
@@ -37,6 +44,9 @@ class UserControllerSecurityTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private AdminUserService adminUserService;
 
     @Test
     @DisplayName("GET /api/v1/users: unauthenticated request returns 401")
@@ -68,12 +78,13 @@ class UserControllerSecurityTest {
                 .email("admin@vieva.edu.vn")
                 .fullName("System Admin")
                 .build();
-        when(userService.getAllUsers()).thenReturn(List.of(user));
+        PagedResult<User> pagedResult = PagedResult.of(List.of(user), 0, 20, 1);
+        when(adminUserService.getUsers(any())).thenReturn(pagedResult);
 
         mockMvc.perform(get("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].email").value("admin@vieva.edu.vn"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].email").value("admin@vieva.edu.vn"));
     }
 }

@@ -12,6 +12,7 @@ import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResult register(RegisterRequest request) {
-        String email = request.getEmail().trim().toLowerCase();
+        String email = new Email(request.getEmail()).getValue();
 
         if (userRepository.existsByEmail(email)) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -71,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthResult login(LoginRequest request) {
-        String email = request.getEmail().trim().toLowerCase();
+        String email = new Email(request.getEmail()).getValue();
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));

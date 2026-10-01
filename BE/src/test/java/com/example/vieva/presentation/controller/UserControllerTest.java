@@ -1,12 +1,20 @@
 package com.example.vieva.presentation.controller;
 
-import com.example.vieva.application.dto.ChangePasswordRequest;
-import com.example.vieva.application.dto.UpdateProfileRequest;
-import com.example.vieva.domain.entity.User;
-import com.example.vieva.domain.service.UserService;
-import com.example.vieva.infrastructure.exception.AppException;
-import com.example.vieva.infrastructure.exception.ErrorCode;
-import com.example.vieva.infrastructure.exception.GlobalExceptionHandler;
+import com.example.vieva.adapters.controllers.UserController;
+import com.example.vieva.adapters.controllers.request.ChangePasswordApiRequest;
+import com.example.vieva.adapters.controllers.request.UpdateProfileApiRequest;
+import com.example.vieva.adapters.presenters.PageResponse;
+import com.example.vieva.adapters.presenters.UserDto;
+import com.example.vieva.adapters.presenters.UserPresenter;
+import com.example.vieva.application.ports.input.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.usecases.user.AdminUserService;
+import com.example.vieva.application.usecases.user.UserService;
+import com.example.vieva.domain.entities.User;
+import com.example.vieva.domain.exception.AppException;
+import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.infrastructure.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +33,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -41,6 +50,12 @@ class UserControllerTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private AdminUserService adminUserService;
+
+    @Mock
+    private UserPresenter userPresenter;
 
     @InjectMocks
     private UserController userController;
@@ -86,7 +101,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/users/me: updates profile successfully")
     void updateProfile_Success() throws Exception {
-        UpdateProfileRequest request = UpdateProfileRequest.builder()
+        UpdateProfileApiRequest request = UpdateProfileApiRequest.builder()
                 .fullName("Nguyen Van A Updated")
                 .phoneNumber("0987654321")
                 .build();
@@ -103,7 +118,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/users/me: returns 401 when user is not authenticated")
     void updateProfile_Unauthenticated() throws Exception {
-        UpdateProfileRequest request = UpdateProfileRequest.builder()
+        UpdateProfileApiRequest request = UpdateProfileApiRequest.builder()
                 .fullName("Nguyen Van A")
                 .build();
 
@@ -120,7 +135,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/users/me: returns 400 when phoneNumber format is invalid")
     void updateProfile_InvalidPhoneFormat() throws Exception {
-        UpdateProfileRequest request = UpdateProfileRequest.builder()
+        UpdateProfileApiRequest request = UpdateProfileApiRequest.builder()
                 .phoneNumber("not-a-valid-phone-12345678901234567890")
                 .build();
 
@@ -136,7 +151,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/users/me: returns 400 when phoneNumber exceeds 11 digits")
     void updateProfile_PhoneExceeds11Digits_ReturnsBadRequest() throws Exception {
-        UpdateProfileRequest request = UpdateProfileRequest.builder()
+        UpdateProfileApiRequest request = UpdateProfileApiRequest.builder()
                 .phoneNumber("012345678901")
                 .build();
 
@@ -152,7 +167,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/users/me: successfully updates with 11-digit phoneNumber")
     void updateProfile_11DigitsPhone_Success() throws Exception {
-        UpdateProfileRequest request = UpdateProfileRequest.builder()
+        UpdateProfileApiRequest request = UpdateProfileApiRequest.builder()
                 .phoneNumber("01234567890")
                 .build();
 
@@ -168,7 +183,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/users/me: returns 400 when fullName exceeds 50 characters")
     void updateProfile_FullNameExceeds50Characters_ReturnsBadRequest() throws Exception {
-        UpdateProfileRequest request = UpdateProfileRequest.builder()
+        UpdateProfileApiRequest request = UpdateProfileApiRequest.builder()
                 .fullName("A".repeat(51))
                 .build();
 
@@ -184,7 +199,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PUT /api/v1/users/me/password: changes password successfully")
     void changePassword_Success() throws Exception {
-        ChangePasswordRequest request = ChangePasswordRequest.builder()
+        ChangePasswordApiRequest request = ChangePasswordApiRequest.builder()
                 .oldPassword("oldPassword123")
                 .newPassword("newPassword456")
                 .build();
@@ -201,7 +216,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PUT /api/v1/users/me/password: returns 400 when old password is incorrect")
     void changePassword_IncorrectOldPassword() throws Exception {
-        ChangePasswordRequest request = ChangePasswordRequest.builder()
+        ChangePasswordApiRequest request = ChangePasswordApiRequest.builder()
                 .oldPassword("wrongPassword")
                 .newPassword("newPassword456")
                 .build();
@@ -219,7 +234,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PUT /api/v1/users/me/password: returns 400 when new password is too short (< 6 characters)")
     void changePassword_PasswordTooShort() throws Exception {
-        ChangePasswordRequest request = ChangePasswordRequest.builder()
+        ChangePasswordApiRequest request = ChangePasswordApiRequest.builder()
                 .oldPassword("oldPassword123")
                 .newPassword("12345")
                 .build();
@@ -234,7 +249,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/users: returns all users successfully")
+    @DisplayName("GET /api/v1/users: returns paged users successfully")
     void getAllUsers_Success() throws Exception {
         User user1 = User.builder()
                 .userId(UUID.randomUUID())
@@ -247,15 +262,28 @@ class UserControllerTest {
                 .fullName("User Two")
                 .build();
 
-        when(userService.getAllUsers()).thenReturn(java.util.List.of(user1, user2));
+        PagedResult<User> pagedResult = PagedResult.of(List.of(user1, user2), 0, 20, 2);
+        when(adminUserService.getUsers(any())).thenReturn(pagedResult);
+        when(userPresenter.toPageResponse(any())).thenReturn(
+                PageResponse.<UserDto>builder()
+                        .content(List.of(
+                                UserDto.builder().email("user1@example.com").build(),
+                                UserDto.builder().email("user2@example.com").build()
+                        ))
+                        .page(0)
+                        .size(20)
+                        .totalElements(2)
+                        .totalPages(1)
+                        .build()
+        );
 
         mockMvc.perform(get("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].email").value("user1@example.com"))
-                .andExpect(jsonPath("$[1].email").value("user2@example.com"));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].email").value("user1@example.com"))
+                .andExpect(jsonPath("$.content[1].email").value("user2@example.com"));
 
-        verify(userService).getAllUsers();
+        verify(adminUserService).getUsers(any());
     }
 }

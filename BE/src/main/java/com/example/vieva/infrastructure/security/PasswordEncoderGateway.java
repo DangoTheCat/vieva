@@ -1,4 +1,4 @@
-package com.example.vieva.adapters.gateways;
+package com.example.vieva.infrastructure.security;
 
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import lombok.RequiredArgsConstructor;
@@ -6,10 +6,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class PasswordEncoderGateway implements PasswordEncoderPort {
 
     private final PasswordEncoder passwordEncoder;
+
+    public PasswordEncoderGateway(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public String encode(CharSequence rawPassword) {

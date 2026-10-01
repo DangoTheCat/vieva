@@ -18,6 +18,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -44,6 +46,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 if (userOptional.isPresent() && userOptional.get().getStatus() == UserStatus.ACTIVE) {
                     User user = userOptional.get();
+
+                    // Check if token was issued before the user changed password (revocation)
+                    if (user.getPasswordChangedAt() != null) {
+                        Instant tokenIssuedAt = tokenProvider.getIssuedAtFromToken(token);
+                        if (tokenIssuedAt == null || tokenIssuedAt.isBefore(user.getPasswordChangedAt().truncatedTo(ChronoUnit.SECONDS))) {
+                            log.warn("JWT token rejected: issued before user {} changed password (revoked)", userId);
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                    }
+
                     Set<SimpleGrantedAuthority> authorities = user.getUserRoles() != null
                             ? user.getUserRoles().stream()
                             .filter(ur -> ur.getRole() != null && StringUtils.hasText(ur.getRole().getRoleCode()))

@@ -1,12 +1,14 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.dto.ChangePasswordRequest;
-import com.example.vieva.application.dto.UpdateProfileRequest;
-import com.example.vieva.domain.entity.User;
-import com.example.vieva.domain.entity.UserStatus;
-import com.example.vieva.domain.repository.UserRepository;
-import com.example.vieva.infrastructure.exception.AppException;
-import com.example.vieva.infrastructure.exception.ErrorCode;
+import com.example.vieva.application.ports.input.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.ports.output.PasswordEncoderPort;
+import com.example.vieva.application.ports.output.UserRepository;
+import com.example.vieva.application.usecases.user.UserServiceImpl;
+import com.example.vieva.domain.entities.User;
+import com.example.vieva.domain.entities.UserStatus;
+import com.example.vieva.domain.exception.AppException;
+import com.example.vieva.domain.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -32,7 +33,7 @@ class UserServiceImplTest {
     private UserRepository userRepository;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private PasswordEncoderPort passwordEncoder;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -143,7 +144,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("changePassword: successfully changes password when old password matches")
+    @DisplayName("changePassword: successfully changes password and sets passwordChangedAt")
     void changePassword_Success() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("oldPass123", "hashed-old-password")).thenReturn(true);
@@ -158,6 +159,7 @@ class UserServiceImplTest {
         userService.changePassword(userId, request);
 
         assertThat(sampleUser.getPasswordHash()).isEqualTo("hashed-new-password");
+        assertThat(sampleUser.getPasswordChangedAt()).isNotNull();
         verify(userRepository).save(sampleUser);
     }
 
@@ -212,32 +214,5 @@ class UserServiceImplTest {
                 .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
 
         verify(userRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("getAllUsers: returns all users from repository")
-    void getAllUsers_Success() {
-        User user2 = User.builder()
-                .userId(UUID.randomUUID())
-                .email("test2@example.com")
-                .build();
-        when(userRepository.findAll()).thenReturn(java.util.List.of(sampleUser, user2));
-
-        java.util.List<User> result = userService.getAllUsers();
-
-        assertThat(result).hasSize(2);
-        assertThat(result).containsExactly(sampleUser, user2);
-        verify(userRepository).findAll();
-    }
-
-    @Test
-    @DisplayName("getAllUsers: returns empty list when no users exist")
-    void getAllUsers_Empty() {
-        when(userRepository.findAll()).thenReturn(java.util.Collections.emptyList());
-
-        java.util.List<User> result = userService.getAllUsers();
-
-        assertThat(result).isEmpty();
-        verify(userRepository).findAll();
     }
 }
