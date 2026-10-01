@@ -1,4 +1,4 @@
-package com.example.vieva.presentation.controller;
+package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.usecases.user.AdminUserService;
@@ -41,6 +41,15 @@ class UserControllerSecurityTest {
 
     @MockitoBean
     private UserJpaRepository userJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.AuditEventJpaRepository auditEventJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.SubjectJpaRepository subjectJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.LecturerSubjectJpaRepository lecturerSubjectJpaRepository;
 
     @MockitoBean
     private UserService userService;

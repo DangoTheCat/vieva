@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -35,6 +36,16 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> findById(UUID userId) {
         return userJpaRepository.findById(userId)
                 .map(userMapper::toDomain);
+    }
+
+    @Override
+    public List<User> findAllByIds(Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userJpaRepository.findByUserIdIn(userIds).stream()
+                .map(userMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -120,7 +131,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional
-    public long countActiveAdminsForUpdate() {
+    public long countActiveAdmins() {
         // Acquires PESSIMISTIC_WRITE (SELECT FOR UPDATE) on entity rows — avoids PostgreSQL aggregate lock error
         return userJpaRepository.findActiveAdminsForUpdate().stream()
                 .map(UserJpaEntity::getUserId)

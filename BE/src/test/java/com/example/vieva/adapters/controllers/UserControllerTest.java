@@ -1,6 +1,5 @@
-package com.example.vieva.presentation.controller;
+package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.adapters.controllers.UserController;
 import com.example.vieva.adapters.controllers.request.ChangePasswordApiRequest;
 import com.example.vieva.adapters.controllers.request.UpdateProfileApiRequest;
 import com.example.vieva.adapters.presenters.PageResponse;

@@ -21,4 +21,13 @@ public class LecturerSubject {
     private Instant assignedAt;
     private UUID assignedBy;
     private Instant revokedAt;
+
+    public boolean isRevoked() {
+        return !Boolean.TRUE.equals(this.isActive) || this.revokedAt != null;
+    }
+
+    public void revoke() {
+        this.isActive = false;
+        this.revokedAt = Instant.now();
+    }
 }

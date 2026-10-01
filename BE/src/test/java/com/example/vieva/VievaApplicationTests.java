@@ -19,6 +19,15 @@ class VievaApplicationTests {
     @MockitoBean
     private UserJpaRepository userJpaRepository;
 
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.AuditEventJpaRepository auditEventJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.SubjectJpaRepository subjectJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.LecturerSubjectJpaRepository lecturerSubjectJpaRepository;
+
 	@Test
 	void contextLoads() {
 	}
