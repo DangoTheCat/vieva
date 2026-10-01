@@ -60,6 +60,14 @@ public class User {
         return hasRole("ROLE_ADMIN") || hasRole("ADMIN");
     }
 
+    public boolean isLecturer() {
+        return hasRole("ROLE_LECTURER") || hasRole("LECTURER");
+    }
+
+    public boolean isStudent() {
+        return hasRole("ROLE_STUDENT") || hasRole("STUDENT");
+    }
+
     public void clearRoles() {
         if (userRoles != null) {
             userRoles.clear();

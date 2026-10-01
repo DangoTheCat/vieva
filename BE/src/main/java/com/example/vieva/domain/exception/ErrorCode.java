@@ -21,7 +21,14 @@ public enum ErrorCode {
     CANNOT_DEMOTE_LAST_ADMIN("1014", "Cannot demote the last administrator in the system"),
     USER_CODE_EXISTED("1015", "User code already exists"),
     CANNOT_LOCK_SELF("1016", "You cannot lock or deactivate your own account"),
-    CANNOT_LOCK_LAST_ADMIN("1017", "Cannot lock or deactivate the last active administrator");
+    CANNOT_LOCK_LAST_ADMIN("1017", "Cannot lock or deactivate the last active administrator"),
+    SUBJECT_NOT_FOUND("1018", "Subject not found"),
+    SUBJECT_CODE_EXISTED("1019", "Subject code already exists"),
+    NOT_A_LECTURER("1020", "User does not have LECTURER role"),
+    CANNOT_ASSIGN_INACTIVE_USER("1021", "Cannot assign inactive user"),
+    CANNOT_ASSIGN_INACTIVE_SUBJECT("1022", "Cannot assign to inactive subject"),
+    CANNOT_ASSIGN_DUPLICATE("1023", "Lecturer is already actively assigned to this subject"),
+    ASSIGNMENT_NOT_FOUND("1024", "Lecturer subject assignment not found");
 
     private final String code;
     private final String message;

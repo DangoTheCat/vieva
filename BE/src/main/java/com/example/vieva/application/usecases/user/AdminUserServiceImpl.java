@@ -7,6 +7,8 @@ import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
+import com.example.vieva.application.ports.output.AuditEventRepository;
+import com.example.vieva.domain.entities.AuditEvent;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
@@ -31,6 +33,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoderPort passwordEncoder;
+    private final AuditEventRepository auditEventRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -92,7 +95,20 @@ public class AdminUserServiceImpl implements AdminUserService {
             user.addRole(role, currentAdminId);
         }
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        auditEventRepository.save(AuditEvent.builder()
+                .auditId(UUID.randomUUID())
+                .actorId(currentAdminId)
+                .actionType("USER_CREATED")
+                .entityType("USER")
+                .entityId(savedUser.getUserId().toString())
+                .newValuesJson(String.format("{\"email\":\"%s\",\"userCode\":\"%s\",\"status\":\"%s\"}",
+                        savedUser.getEmail(), savedUser.getUserCode(), savedUser.getStatus()))
+                .createdAt(Instant.now())
+                .build());
+
+        return savedUser;
     }
 
     @Override
@@ -160,7 +176,19 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         user.setUpdatedAt(Instant.now());
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+
+        auditEventRepository.save(AuditEvent.builder()
+                .auditId(UUID.randomUUID())
+                .actorId(currentAdminId)
+                .actionType("USER_UPDATED")
+                .entityType("USER")
+                .entityId(updatedUser.getUserId().toString())
+                .newValuesJson(String.format("{\"status\":\"%s\"}", updatedUser.getStatus()))
+                .createdAt(Instant.now())
+                .build());
+
+        return updatedUser;
     }
 
     @Override
@@ -189,6 +217,45 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setDeletedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
+
+        auditEventRepository.save(AuditEvent.builder()
+                .auditId(UUID.randomUUID())
+                .actorId(currentAdminId)
+                .actionType("USER_DELETED")
+                .entityType("USER")
+                .entityId(user.getUserId().toString())
+                .newValuesJson("{\"status\":\"DELETED\"}")
+                .createdAt(Instant.now())
+                .build());
+    }
+
+    @Override
+    public void resetPassword(UUID targetUserId, String newPassword, UUID currentAdminId) {
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.isDeleted()) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        if (!StringUtils.hasText(newPassword) || newPassword.trim().length() < 6) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
+        user.setPasswordChangedAt(Instant.now());
+        user.setUpdatedAt(Instant.now());
+        userRepository.save(user);
+
+        auditEventRepository.save(AuditEvent.builder()
+                .auditId(UUID.randomUUID())
+                .actorId(currentAdminId)
+                .actionType("USER_PASSWORD_RESET")
+                .entityType("USER")
+                .entityId(user.getUserId().toString())
+                .newValuesJson("{\"passwordReset\":true}")
+                .createdAt(Instant.now())
+                .build());
     }
 
     /**
