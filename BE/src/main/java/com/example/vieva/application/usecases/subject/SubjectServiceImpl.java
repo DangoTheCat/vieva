@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -34,7 +37,7 @@ public class SubjectServiceImpl implements SubjectService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        String normalizedCode = request.getSubjectCode().trim().toUpperCase();
+        String normalizedCode = request.getSubjectCode().trim().toUpperCase(Locale.ROOT);
         if (subjectRepository.existsBySubjectCode(normalizedCode)) {
             throw new AppException(ErrorCode.SUBJECT_CODE_EXISTED);
         }
@@ -55,17 +58,18 @@ public class SubjectServiceImpl implements SubjectService {
 
         Subject saved = subjectRepository.save(subject);
 
+        Map<String, Object> auditValues = new HashMap<>();
+        auditValues.put("code", saved.getSubjectCode());
+        auditValues.put("name", saved.getSubjectName());
+        auditValues.put("status", saved.getStatus() != null ? saved.getStatus().name() : null);
+
         auditEventRepository.save(AuditEvent.builder()
                 .auditId(UUID.randomUUID())
                 .actorId(currentAdminId)
                 .actionType("SUBJECT_CREATED")
                 .entityType("SUBJECT")
                 .entityId(saved.getSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(java.util.Map.of(
-                        "code", saved.getSubjectCode(),
-                        "name", saved.getSubjectName(),
-                        "status", saved.getStatus().name()
-                )))
+                .newValuesJson(jsonSerializer.serialize(auditValues))
                 .createdAt(Instant.now())
                 .build());
 
@@ -80,17 +84,18 @@ public class SubjectServiceImpl implements SubjectService {
         subject.update(request.getSubjectName(), request.getDescription(), request.getCredits(), request.getStatus());
         Subject updated = subjectRepository.save(subject);
 
+        Map<String, Object> auditValues = new HashMap<>();
+        auditValues.put("name", updated.getSubjectName());
+        auditValues.put("status", updated.getStatus() != null ? updated.getStatus().name() : null);
+        auditValues.put("credits", updated.getCredits());
+
         auditEventRepository.save(AuditEvent.builder()
                 .auditId(UUID.randomUUID())
                 .actorId(currentAdminId)
                 .actionType("SUBJECT_UPDATED")
                 .entityType("SUBJECT")
                 .entityId(updated.getSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(java.util.Map.of(
-                        "name", updated.getSubjectName(),
-                        "status", updated.getStatus().name(),
-                        "credits", updated.getCredits()
-                )))
+                .newValuesJson(jsonSerializer.serialize(auditValues))
                 .createdAt(Instant.now())
                 .build());
 
@@ -105,13 +110,16 @@ public class SubjectServiceImpl implements SubjectService {
         subject.deactivate();
         subjectRepository.save(subject);
 
+        Map<String, Object> auditValues = new HashMap<>();
+        auditValues.put("status", SubjectStatus.INACTIVE.name());
+
         auditEventRepository.save(AuditEvent.builder()
                 .auditId(UUID.randomUUID())
                 .actorId(currentAdminId)
                 .actionType("SUBJECT_DEACTIVATED")
                 .entityType("SUBJECT")
                 .entityId(subject.getSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(java.util.Map.of("status", "INACTIVE")))
+                .newValuesJson(jsonSerializer.serialize(auditValues))
                 .createdAt(Instant.now())
                 .build());
     }

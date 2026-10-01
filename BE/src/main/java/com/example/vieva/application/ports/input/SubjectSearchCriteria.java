@@ -50,4 +50,17 @@ public class SubjectSearchCriteria {
     public int getSanitizedPage() {
         return Math.max(page, 0);
     }
+
+    /**
+     * Escape SQL LIKE special characters (% and _) to avoid wildcard injections.
+     */
+    public String getEscapedKeyword() {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return null;
+        }
+        return keyword.trim()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+    }
 }

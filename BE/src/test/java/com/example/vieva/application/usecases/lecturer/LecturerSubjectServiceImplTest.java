@@ -168,4 +168,26 @@ class LecturerSubjectServiceImplTest {
         verify(lecturerSubjectRepository).save(existing);
         verify(auditEventRepository).save(any());
     }
+
+    @Test
+    @DisplayName("revokeAssignment should throw ASSIGNMENT_NOT_FOUND when assignment is already inactive or revoked")
+    void revokeAssignment_alreadyRevoked_throwsNotFound() {
+        UUID assignmentId = UUID.randomUUID();
+        LecturerSubject alreadyRevoked = LecturerSubject.builder()
+                .lecturerSubjectId(assignmentId)
+                .lecturerId(lecturerId)
+                .subjectId(subjectId)
+                .isActive(false)
+                .revokedAt(java.time.Instant.now())
+                .build();
+
+        when(lecturerSubjectRepository.findById(assignmentId)).thenReturn(Optional.of(alreadyRevoked));
+
+        assertThatThrownBy(() -> lecturerSubjectService.revokeAssignment(assignmentId, adminId))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSIGNMENT_NOT_FOUND);
+
+        verify(lecturerSubjectRepository, never()).save(any());
+        verify(auditEventRepository, never()).save(any());
+    }
 }

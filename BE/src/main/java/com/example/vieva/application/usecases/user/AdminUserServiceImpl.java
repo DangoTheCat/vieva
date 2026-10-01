@@ -102,16 +102,18 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         User savedUser = userRepository.save(user);
 
+        Map<String, Object> auditValues = new HashMap<>();
+        auditValues.put("email", savedUser.getEmail());
+        auditValues.put("userCode", savedUser.getUserCode());
+        auditValues.put("status", savedUser.getStatus() != null ? savedUser.getStatus().name() : null);
+
         auditEventRepository.save(AuditEvent.builder()
                 .auditId(UUID.randomUUID())
                 .actorId(currentAdminId)
                 .actionType("USER_CREATED")
                 .entityType("USER")
                 .entityId(savedUser.getUserId().toString())
-                .newValuesJson(jsonSerializer.serialize(Map.of(
-                        "email", savedUser.getEmail(),
-                        "userCode", savedUser.getUserCode(),
-                        "status", savedUser.getStatus().name())))
+                .newValuesJson(jsonSerializer.serialize(auditValues))
                 .createdAt(Instant.now())
                 .build());
 
@@ -248,7 +250,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        user.updatePassword(passwordEncoder.encode(newPassword.trim()));
+        user.updatePassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         auditEventRepository.save(AuditEvent.builder()

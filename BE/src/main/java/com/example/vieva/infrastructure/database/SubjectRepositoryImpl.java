@@ -72,10 +72,11 @@ public class SubjectRepositoryImpl implements SubjectRepository {
                 predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
             }
 
-            if (StringUtils.hasText(criteria.getKeyword())) {
-                String pattern = "%" + criteria.getKeyword().trim().toLowerCase(Locale.ROOT) + "%";
-                Predicate codeMatch = cb.like(cb.lower(root.get("subjectCode")), pattern);
-                Predicate nameMatch = cb.like(cb.lower(root.get("subjectName")), pattern);
+            String escapedKeyword = criteria.getEscapedKeyword();
+            if (StringUtils.hasText(escapedKeyword)) {
+                String pattern = "%" + escapedKeyword.toLowerCase(Locale.ROOT) + "%";
+                Predicate codeMatch = cb.like(cb.lower(root.get("subjectCode")), pattern, '\\');
+                Predicate nameMatch = cb.like(cb.lower(root.get("subjectName")), pattern, '\\');
                 predicates.add(cb.or(codeMatch, nameMatch));
             }
 

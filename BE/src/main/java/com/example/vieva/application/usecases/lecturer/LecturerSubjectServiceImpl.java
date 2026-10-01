@@ -101,15 +101,17 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
             LecturerSubject saved = lecturerSubjectRepository.save(assignment);
             assignedList.add(saved);
 
+            Map<String, Object> auditValues = new java.util.HashMap<>();
+            auditValues.put("subjectId", subject.getSubjectId() != null ? subject.getSubjectId().toString() : null);
+            auditValues.put("lecturerId", lecturerId != null ? lecturerId.toString() : null);
+
             auditEventRepository.save(AuditEvent.builder()
                     .auditId(UUID.randomUUID())
                     .actorId(currentAdminId)
                     .actionType("LECTURER_ASSIGNED")
                     .entityType("LECTURER_SUBJECT")
                     .entityId(saved.getLecturerSubjectId().toString())
-                    .newValuesJson(jsonSerializer.serialize(Map.of(
-                            "subjectId", subject.getSubjectId().toString(),
-                            "lecturerId", lecturerId.toString())))
+                    .newValuesJson(jsonSerializer.serialize(auditValues))
                     .createdAt(Instant.now())
                     .build());
         }
@@ -122,8 +124,15 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
         LecturerSubject assignment = lecturerSubjectRepository.findById(assignmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND));
 
+        if (assignment.isRevoked()) {
+            throw new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND);
+        }
+
         assignment.revoke();
         lecturerSubjectRepository.save(assignment);
+
+        Map<String, Object> auditValues = new java.util.HashMap<>();
+        auditValues.put("isActive", false);
 
         auditEventRepository.save(AuditEvent.builder()
                 .auditId(UUID.randomUUID())
@@ -131,7 +140,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
                 .actionType("LECTURER_ASSIGNMENT_REVOKED")
                 .entityType("LECTURER_SUBJECT")
                 .entityId(assignment.getLecturerSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(Map.of("isActive", false)))
+                .newValuesJson(jsonSerializer.serialize(auditValues))
                 .createdAt(Instant.now())
                 .build());
     }

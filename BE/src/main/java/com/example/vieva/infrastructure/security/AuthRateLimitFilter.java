@@ -72,13 +72,16 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         Bucket bucket = buckets.get(ip);
         if (bucket == null) {
             synchronized (bucketCreateLock) {
-                if (buckets.size() >= MAX_BUCKETS) {
-                    var it = buckets.keySet().iterator();
-                    if (it.hasNext()) {
-                        buckets.remove(it.next());
+                bucket = buckets.get(ip);
+                if (bucket == null) {
+                    if (buckets.size() >= MAX_BUCKETS) {
+                        var it = buckets.keySet().iterator();
+                        if (it.hasNext()) {
+                            buckets.remove(it.next());
+                        }
                     }
+                    bucket = buckets.computeIfAbsent(ip, k -> newBucket());
                 }
-                bucket = buckets.computeIfAbsent(ip, k -> newBucket());
             }
         }
 
