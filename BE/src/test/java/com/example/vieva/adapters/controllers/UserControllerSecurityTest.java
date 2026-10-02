@@ -52,6 +52,30 @@ class UserControllerSecurityTest {
     private com.example.vieva.infrastructure.database.LecturerSubjectJpaRepository lecturerSubjectJpaRepository;
 
     @MockitoBean
+    private com.example.vieva.infrastructure.database.CourseDocumentJpaRepository courseDocumentJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.DocumentChunkJpaRepository documentChunkJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.QuestionJpaRepository questionJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.QuestionVersionJpaRepository questionVersionJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.QuestionSourceJpaRepository questionSourceJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.RubricJpaRepository rubricJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.RubricCriterionJpaRepository rubricCriterionJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.TopicJpaRepository topicJpaRepository;
+
+    @MockitoBean
     private UserService userService;
 
     @MockitoBean

@@ -27,4 +27,16 @@ public class CourseDocument {
     private Integer totalChunks;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant deletedAt;
+
+    /**
+     * Domain lifecycle transition: mark the document as failed with a reason.
+     * Keeps the failure invariant (status + message + timestamp) inside the entity
+     * instead of spreading setters across services/schedulers.
+     */
+    public void markFailed(String reason) {
+        this.indexingStatus = DocumentIndexingStatus.FAILED;
+        this.errorMessage = reason;
+        this.updatedAt = Instant.now();
+    }
 }

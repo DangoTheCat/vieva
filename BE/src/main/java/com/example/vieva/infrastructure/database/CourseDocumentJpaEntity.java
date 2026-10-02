@@ -73,6 +73,9 @@ public class CourseDocumentJpaEntity implements Persistable<UUID> {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @Transient
     @Builder.Default
     private boolean isNew = true;

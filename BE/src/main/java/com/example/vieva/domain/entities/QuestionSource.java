@@ -19,9 +19,25 @@ public class QuestionSource {
     private UUID questionSourceId;
     private UUID questionVersionId;
     private UUID chunkId;
+    private String documentName;
     private String citationQuote;
     private BigDecimal similarityScore;
     private Instant createdAt;
+
+    /**
+     * Verifies that the citationQuote actually exists as a substring inside the source chunk content.
+     * Whitespace is normalized to prevent formatting/indentation mismatches.
+     */
+    public void validateCitationGrounding(String chunkContent) {
+        if (chunkContent == null || this.citationQuote == null || this.citationQuote.isBlank()) {
+            throw new IllegalArgumentException("Citation quote or source chunk content is empty");
+        }
+        String normalizedChunk = chunkContent.replaceAll("\\s+", " ").trim().toLowerCase();
+        String normalizedQuote = this.citationQuote.replaceAll("\\s+", " ").trim().toLowerCase();
+        if (!normalizedChunk.contains(normalizedQuote)) {
+            throw new IllegalArgumentException("Citation quote does not match source document chunk content");
+        }
+    }
 
     /**
      * Enforces the rule documented on this class: an AI-generated (RAG) question may only be
