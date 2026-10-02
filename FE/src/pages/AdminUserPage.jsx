@@ -131,12 +131,11 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     } catch (err) {
       const msg = getErrorMessage(err);
       setFetchError(msg);
-      // Hardening: Fallback to mock users seamlessly so reviewer never sees a blank screen
-      setUsers(INITIAL_MOCK_USERS);
+      setUsers([]);
       setPageData({
         page: 0,
         size: 10,
-        totalElements: INITIAL_MOCK_USERS.length,
+        totalElements: 0,
         totalPages: 1,
         isFirst: true,
         isLast: true

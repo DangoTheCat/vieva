@@ -15,8 +15,38 @@ import { Activity, Mic2, Mic, MicOff, Volume2, ShieldCheck, CheckCircle2, Radio,
 function AppContent() {
   const { currentUser, isLoading } = useAuth();
 
-  // Navigation state: 'admin-users', 'login', 'register', 'telemetry', 'voice-lab'
-  const [currentView, setCurrentView] = useState('admin-users');
+  // Navigation state with Hash Routing support (#admin-users, #login, #register, #telemetry, #voice-lab, #profile)
+  const [currentView, setCurrentView] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'profile') return 'admin-users';
+    return ['admin-users', 'login', 'register', 'telemetry', 'voice-lab'].includes(hash) ? hash : 'admin-users';
+  });
+
+  // Sync state with URL hash & Auto-open Profile Modal on #profile
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'profile') {
+        setProfileModalState({ isOpen: true, tab: 'info' });
+        setCurrentView('admin-users');
+      } else if (['admin-users', 'login', 'register', 'telemetry', 'voice-lab'].includes(hash)) {
+        setCurrentView(hash);
+      }
+    };
+
+    // Check initial hash on mount
+    if (window.location.hash.replace('#', '') === 'profile') {
+      setProfileModalState({ isOpen: true, tab: 'info' });
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleNavigate = (view) => {
+    window.location.hash = view;
+    setCurrentView(view);
+  };
 
   // Modals state
   const [profileModalState, setProfileModalState] = useState({ isOpen: false, tab: 'info' });
@@ -48,7 +78,7 @@ function AppContent() {
   if (currentView === 'login') {
     return (
       <>
-        <LoginPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
+        <LoginPage onNavigate={(view) => handleNavigate(view)} showToast={showToast} />
         <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
@@ -57,7 +87,7 @@ function AppContent() {
   if (currentView === 'register') {
     return (
       <>
-        <RegisterPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
+        <RegisterPage onNavigate={(view) => handleNavigate(view)} showToast={showToast} />
         <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
@@ -69,7 +99,7 @@ function AppContent() {
       {/* GLOBAL TOP NAV */}
       <Navbar
         currentTab={currentView}
-        onNavigate={(view) => setCurrentView(view)}
+        onNavigate={(view) => handleNavigate(view)}
         onOpenAddUser={() => setIsQuickAddOpen(true)}
         onOpenProfile={(tab) => setProfileModalState({ isOpen: true, tab })}
         onOpenMatrix={() => setIsMatrixOpen(true)}
@@ -81,7 +111,7 @@ function AppContent() {
         {/* LEFT PERSISTENT SIDEBAR */}
         <Sidebar
           currentTab={currentView}
-          onNavigate={(view) => setCurrentView(view)}
+          onNavigate={(view) => handleNavigate(view)}
           onOpenMatrix={() => setIsMatrixOpen(true)}
         />
 
