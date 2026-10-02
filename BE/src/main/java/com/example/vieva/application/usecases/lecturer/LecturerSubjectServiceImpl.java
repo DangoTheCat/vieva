@@ -15,6 +15,7 @@ import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,8 +117,14 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
         }
 
         // Batched persistence: 2 round-trips total instead of 2 per lecturer (Rule 4).
-        List<LecturerSubject> assignedList = lecturerSubjectRepository.saveAll(assignmentsToSave);
-        auditEventRepository.saveAll(auditEventsToSave);
+        final List<LecturerSubject> assignedList;
+        try {
+            assignedList = lecturerSubjectRepository.saveAll(assignmentsToSave);
+            auditEventRepository.saveAll(auditEventsToSave);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent assign won the race (partial unique index uq_lecturer_subject)
+            throw new AppException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
+        }
 
         return assignedList;
     }

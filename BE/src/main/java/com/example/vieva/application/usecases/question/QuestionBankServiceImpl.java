@@ -34,6 +34,7 @@ import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,7 +75,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> new AppException(ErrorCode.TOPIC_NOT_FOUND));
 
-        if (!topic.getSubjectId().equals(subjectId)) {
+        if (!Objects.equals(topic.getSubjectId(), subjectId)) {
             throw new AppException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
         }
 
@@ -99,6 +100,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 request.getCustomPrompt(),
                 chunks
         );
+
+        if (generatedItems == null || generatedItems.isEmpty()) {
+            throw new AppException(ErrorCode.INSUFFICIENT_CONTEXT,
+                    "AI không sinh được câu hỏi từ tài liệu đã cung cấp");
+        }
 
         List<Question> questionsToSave = new ArrayList<>();
         List<QuestionVersion> versionsToSave = new ArrayList<>();
@@ -237,7 +243,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> new AppException(ErrorCode.TOPIC_NOT_FOUND));
 
-        if (!topic.getSubjectId().equals(subjectId)) {
+        if (!Objects.equals(topic.getSubjectId(), subjectId)) {
             throw new AppException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
         }
 
@@ -338,10 +344,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
         // Copy-on-Write: create new version
         UUID newVersionId = UUID.randomUUID();
+        Integer baseVersionNumber = activeApproved.getVersionNumber();
         QuestionVersion newDraft = QuestionVersion.builder()
                 .questionVersionId(newVersionId)
                 .questionId(questionId)
-                .versionNumber(activeApproved.getVersionNumber() + 1)
+                .versionNumber(baseVersionNumber != null ? baseVersionNumber + 1 : 2)
                 .questionContent(activeApproved.getQuestionContent())
                 .referenceAnswer(activeApproved.getReferenceAnswer())
                 .bloomLevel(activeApproved.getBloomLevel())
@@ -350,7 +357,14 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .createdBy(lecturerId)
                 .createdAt(Instant.now())
                 .build();
-        QuestionVersion savedDraft = questionVersionRepository.save(newDraft);
+        QuestionVersion savedDraft;
+        try {
+            savedDraft = questionVersionRepository.save(newDraft);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent create-draft won the race (partial unique index uq_question_draft_per_question)
+            throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS,
+                    "Câu hỏi này đã có một bản nháp DRAFT đang chờ duyệt. Vui lòng duyệt hoặc xóa bản nháp cũ trước.");
+        }
 
         // Copy Rubric & Criteria
         Optional<Rubric> oldRubricOpt = rubricRepository.findByQuestionVersionId(activeApproved.getQuestionVersionId());
@@ -413,7 +427,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
 
-        if (!version.getQuestionId().equals(questionId)) {
+        if (!Objects.equals(version.getQuestionId(), questionId)) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "QuestionVersion does not belong to Question");
         }
 
@@ -476,7 +490,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
 
-        if (!version.getQuestionId().equals(questionId)) {
+        if (!Objects.equals(version.getQuestionId(), questionId)) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
@@ -518,13 +532,15 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             for (QuestionSource s : sources) {
                 if (s.getChunkId() != null) {
                     DocumentChunk chunk = chunksById.get(s.getChunkId());
-                    if (chunk != null) {
-                        try {
-                            s.validateCitationGrounding(chunk.getContent());
-                        } catch (IllegalArgumentException e) {
-                            throw new AppException(ErrorCode.INVALID_CITATION_QUOTE,
-                                    "Đoạn trích dẫn không khớp với văn bản tài liệu gốc: " + s.getCitationQuote());
-                        }
+                    if (chunk == null) {
+                        throw new AppException(ErrorCode.INVALID_CITATION_QUOTE,
+                                "Không tìm thấy đoạn tài liệu gốc cho trích dẫn: " + s.getCitationQuote());
+                    }
+                    try {
+                        s.validateCitationGrounding(chunk.getContent());
+                    } catch (IllegalArgumentException e) {
+                        throw new AppException(ErrorCode.INVALID_CITATION_QUOTE,
+                                "Đoạn trích dẫn không khớp với văn bản tài liệu gốc: " + s.getCitationQuote());
                     }
                 }
             }
@@ -549,7 +565,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
 
-        if (!version.getQuestionId().equals(questionId)) {
+        if (!Objects.equals(version.getQuestionId(), questionId)) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
@@ -572,7 +588,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
 
-        if (!version.getQuestionId().equals(questionId)) {
+        if (!Objects.equals(version.getQuestionId(), questionId)) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 

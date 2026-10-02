@@ -67,7 +67,7 @@ class DocumentIndexingServiceImplTest {
         byte[] content = "dummy pdf content".getBytes();
         String filename = "syllabus.pdf";
         String mimeType = "application/pdf";
-        String fileUrl = "https://cloudinary.com/files/syllabus.pdf";
+        String fileUrl = "https://example.com/files/syllabus.pdf";
 
         when(fileStorage.uploadFile(eq(filename), eq(content), eq(mimeType))).thenReturn(fileUrl);
         when(courseDocumentRepository.save(any(CourseDocument.class))).thenAnswer(invocation -> {

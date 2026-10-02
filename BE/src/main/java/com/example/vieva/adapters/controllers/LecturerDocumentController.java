@@ -39,7 +39,7 @@ public class LecturerDocumentController {
         UUID userId = resolveUserId(currentUser);
 
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT);
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Uploaded file must not be empty");
         }
 
         try {

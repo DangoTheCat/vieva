@@ -6,7 +6,6 @@ import com.example.vieva.application.ports.output.GeneratedCriterionItem;
 import com.example.vieva.application.ports.output.GeneratedQuestionItem;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 public class OpenAiQuestionGeneratorGateway implements AiQuestionGeneratorPort {
 
     private final ChatModel chatModel;
-    private final ObjectMapper objectMapper;
 
     public record AiCriterionDto(
             @JsonPropertyDescription("Criterion title e.g. Concept Accuracy") String criterionName,
@@ -36,7 +34,7 @@ public class OpenAiQuestionGeneratorGateway implements AiQuestionGeneratorPort {
     ) {}
 
     public record AiQuestionDto(
-            @JsonPropertyDescription("Clear, spoken question text suitable for TTS") String questionContent,
+            @JsonPropertyDescription("Clear, conversational question text") String questionContent,
             @JsonPropertyDescription("Authoritative reference answer") String referenceAnswer,
             @JsonPropertyDescription("Cognitive Bloom level") String bloomLevel,
             @JsonPropertyDescription("Exact verbatim quote from the provided context chunks") String citationQuote,
@@ -51,9 +49,8 @@ public class OpenAiQuestionGeneratorGateway implements AiQuestionGeneratorPort {
             @JsonPropertyDescription("List of generated questions") List<AiQuestionDto> questions
     ) {}
 
-    public OpenAiQuestionGeneratorGateway(@Autowired(required = false) ChatModel chatModel, ObjectMapper objectMapper) {
+    public OpenAiQuestionGeneratorGateway(@Autowired(required = false) ChatModel chatModel) {
         this.chatModel = chatModel;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
     }
 
     @Override
@@ -94,7 +91,7 @@ public class OpenAiQuestionGeneratorGateway implements AiQuestionGeneratorPort {
                     STRICT REQUIREMENTS:
                     1. Every question and answer must be strictly derived from the Context below. Do not hallucinate or use outside knowledge.
                     2. For each question, you MUST provide an exact verbatim quote from one of the context chunks in 'citationQuote', and specify its 1-based chunk index in 'chunkIndexRef'.
-                    3. The question text will be spoken to the student via Text-to-Speech (TTS), so it must be clear and conversational.
+                    3. The question text must be clear and conversational.
                     4. Each question must include a detailed Rubric. The sum of criteria maxPoints MUST EQUAL totalPoints exactly.
                     5. Return the result strictly conforming to the JSON schema below.
 
