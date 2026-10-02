@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isLiveBackendReachable, setIsLiveBackendReachable] = useState(true);
 
-  // Check initial connection and refresh current user profile
+  // Check initial connection and refresh current user profile from BE /api/v1/users/me
   useEffect(() => {
     async function initAuth() {
       const existingToken = apiClient.getToken();
@@ -26,30 +26,23 @@ export function AuthProvider({ children }) {
           setCurrentUser(profile);
           localStorage.setItem('aives_user', JSON.stringify(profile));
           setIsLiveBackendReachable(true);
+          setIsDemoMode(false);
         } catch (err) {
-          // If 401 or network error
           if (err.status === 401) {
             handleLogout();
           } else {
-            // Network unreachable, keep offline user if any
             setIsLiveBackendReachable(false);
           }
         }
       } else {
-        // If not logged in, set default initial admin for instant UX exploration
-        if (!currentUser) {
-          const defaultAdmin = INITIAL_MOCK_USERS[0];
-          setCurrentUser(defaultAdmin);
-          localStorage.setItem('aives_user', JSON.stringify(defaultAdmin));
-          setIsDemoMode(true);
-        }
+        // No token: user can login/register on live BE
+        setIsLiveBackendReachable(true);
       }
       setIsLoading(false);
     }
 
     initAuth();
 
-    // Listen to 401 unauthenticated events
     const handleUnauthorized = () => {
       handleLogout();
     };
@@ -59,7 +52,6 @@ export function AuthProvider({ children }) {
 
   const handleLogin = async (credentials) => {
     if (isDemoMode) {
-      // Demo login
       const matched = INITIAL_MOCK_USERS.find(u => u.email.toLowerCase() === credentials.email.toLowerCase()) || {
         userId: '11111111-1111-1111-1111-111111111111',
         email: credentials.email,
@@ -76,7 +68,9 @@ export function AuthProvider({ children }) {
       return { user: matched, accessToken: 'demo-jwt-token' };
     }
 
+    // Real BE API call: POST /api/v1/auth/login
     const data = await authApi.login(credentials);
+    apiClient.setToken(data.accessToken);
     setToken(data.accessToken);
     setCurrentUser(data.user);
     localStorage.setItem('aives_user', JSON.stringify(data.user));
@@ -103,7 +97,9 @@ export function AuthProvider({ children }) {
       return { user: newUser, accessToken: 'demo-jwt-token' };
     }
 
+    // Real BE API call: POST /api/v1/auth/register
     const data = await authApi.register(payload);
+    apiClient.setToken(data.accessToken);
     setToken(data.accessToken);
     setCurrentUser(data.user);
     localStorage.setItem('aives_user', JSON.stringify(data.user));
@@ -114,20 +110,21 @@ export function AuthProvider({ children }) {
 
   const handleLogout = () => {
     authApi.logout();
+    apiClient.setToken(null);
     setToken(null);
     setCurrentUser(null);
     localStorage.removeItem('aives_user');
   };
 
   const refreshProfile = async () => {
-    if (isDemoMode || !token) return;
+    if (isDemoMode || !apiClient.getToken()) return;
     try {
       const updated = await userApi.getCurrentUser();
       setCurrentUser(updated);
       localStorage.setItem('aives_user', JSON.stringify(updated));
       setIsLiveBackendReachable(true);
     } catch (err) {
-      console.error('Failed to refresh profile', err);
+      console.error('Failed to refresh profile from BE', err);
     }
   };
 

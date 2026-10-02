@@ -17,14 +17,16 @@ export const ERROR_MESSAGES = {
   '1015': 'Mã người dùng (User Code / MSSV) đã tồn tại. Vui lòng chọn mã khác.',
   '1016': 'Bạn không thể tự khóa hoặc vô hiệu hóa tài khoản của chính mình.',
   '1017': 'Không thể khóa hoặc vô hiệu hóa quản trị viên (Admin) đang hoạt động duy nhất.',
-  '4090': 'Xung đột dữ liệu đồng thời. Tài nguyên đã được cập nhật bởi phiên làm việc khác. Vui lòng tải lại.'
+  '4090': 'Xung đột dữ liệu đồng thời. Tài nguyên đã được cập nhật bởi phiên làm việc khác. Vui lòng tải lại.',
+  '401': 'Phiên đăng nhập chưa có hoặc đã hết hạn. Vui lòng bấm Đăng nhập để kết nối Backend.',
+  '403': 'Tài khoản chưa có quyền Administrator. Vui lòng đăng nhập tài khoản Admin.'
 };
 
 export function getErrorMessage(error) {
   if (!error) return 'Đã xảy ra lỗi không xác định.';
   if (typeof error === 'string') return error;
 
-  const code = error.code || (error.response?.data?.code);
+  const code = String(error.code || error.status || error.response?.data?.code || '');
   if (code && ERROR_MESSAGES[code]) {
     return ERROR_MESSAGES[code];
   }
