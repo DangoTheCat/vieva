@@ -10,7 +10,6 @@ import java.util.UUID;
 public interface RubricRepository {
     Rubric save(Rubric rubric);
     List<Rubric> saveAll(List<Rubric> rubrics);
-    Optional<Rubric> findById(UUID rubricId);
     Optional<Rubric> findByQuestionVersionId(UUID questionVersionId);
     List<Rubric> findByQuestionVersionIds(Collection<UUID> questionVersionIds);
     void deleteByQuestionVersionId(UUID questionVersionId);

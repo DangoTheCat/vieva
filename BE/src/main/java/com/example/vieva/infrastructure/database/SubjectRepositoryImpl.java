@@ -44,6 +44,16 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
+    public List<Subject> findAllByIds(java.util.Collection<UUID> subjectIds) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            return List.of();
+        }
+        return subjectJpaRepository.findAllById(subjectIds).stream()
+                .map(subjectMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<Subject> findBySubjectCode(String subjectCode) {
         return subjectJpaRepository.findBySubjectCode(subjectCode)
                 .map(subjectMapper::toDomain);

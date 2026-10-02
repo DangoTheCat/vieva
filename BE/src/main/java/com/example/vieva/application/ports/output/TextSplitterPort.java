@@ -3,9 +3,8 @@ package com.example.vieva.application.ports.output;
 import java.util.List;
 
 /**
- * Output port for splitting document text into chunks.
- * Keeps framework-specific splitters (Spring AI, LangChain, ...) out of application logic.
+ * Splits extracted sections into overlapping, token-bounded chunks (sizes come from configuration).
  */
 public interface TextSplitterPort {
-    List<String> split(String text);
+    List<TextChunk> split(List<ParsedSection> sections);
 }

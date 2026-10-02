@@ -24,6 +24,7 @@ public class CourseDocumentDto {
     private DocumentIndexingStatus indexingStatus;
     private String errorMessage;
     private Integer totalChunks;
+    private Integer indexAttempts;
     private Instant createdAt;
     private Instant updatedAt;
 }

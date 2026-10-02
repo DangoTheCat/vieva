@@ -4,11 +4,10 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.UUID;
 
 /**
- * Minh chứng xuất xứ ngữ cảnh sinh câu hỏi của AI; câu AI APPROVED bắt buộc có >= 1 source.
+ * Minh chứng xuất xứ ngữ cảnh sinh câu hỏi của AI (BR-03): đoạn tài liệu + trích dẫn.
  */
 @Getter
 @Setter
@@ -19,40 +18,42 @@ public class QuestionSource {
     private UUID questionSourceId;
     private UUID questionVersionId;
     private UUID chunkId;
+    private UUID documentId;
     private String documentName;
     private String citationQuote;
     private BigDecimal similarityScore;
+    private Integer sourceOrder;
     private Instant createdAt;
 
     /**
-     * Verifies that the citationQuote actually exists as a substring inside the source chunk content.
-     * Whitespace is normalized to prevent formatting/indentation mismatches.
+     * True when the citation quote appears verbatim (whitespace/case-insensitive) in the chunk content.
      */
-    public void validateCitationGrounding(String chunkContent) {
-        if (chunkContent == null || this.citationQuote == null || this.citationQuote.isBlank()) {
-            throw new IllegalArgumentException("Citation quote or source chunk content is empty");
+    public static boolean isGroundedIn(String citationQuote, String chunkContent) {
+        if (chunkContent == null || citationQuote == null || citationQuote.isBlank()) {
+            return false;
         }
-        String normalizedChunk = chunkContent.replaceAll("\\s+", " ").trim().toLowerCase();
-        String normalizedQuote = this.citationQuote.replaceAll("\\s+", " ").trim().toLowerCase();
-        if (!normalizedChunk.contains(normalizedQuote)) {
-            throw new IllegalArgumentException("Citation quote does not match source document chunk content");
-        }
+        return normalize(chunkContent).contains(normalize(citationQuote));
     }
 
-    /**
-     * Enforces the rule documented on this class: an AI-generated (RAG) question may only be
-     * APPROVED when it has at least one citation source. Call this before marking a version APPROVED.
-     *
-     * @throws IllegalArgumentException when an AI_RAG question is approved without any source
-     */
-    public static void validateRequiredForAiApproved(QuestionGenerationMode generationMode,
-                                                     QuestionApprovalStatus approvalStatus,
-                                                     Collection<QuestionSource> sources) {
-        if (generationMode == QuestionGenerationMode.AI_RAG
-                && approvalStatus == QuestionApprovalStatus.APPROVED
-                && (sources == null || sources.isEmpty())) {
-            throw new IllegalArgumentException(
-                    "An AI_RAG question must have at least one source before it can be APPROVED");
-        }
+    public boolean isGroundedIn(String chunkContent) {
+        return isGroundedIn(citationQuote, chunkContent);
+    }
+
+    public QuestionSource copyTo(UUID newVersionId) {
+        return QuestionSource.builder()
+                .questionSourceId(UUID.randomUUID())
+                .questionVersionId(newVersionId)
+                .chunkId(chunkId)
+                .documentId(documentId)
+                .documentName(documentName)
+                .citationQuote(citationQuote)
+                .similarityScore(similarityScore)
+                .sourceOrder(sourceOrder)
+                .createdAt(Instant.now())
+                .build();
+    }
+
+    private static String normalize(String value) {
+        return value.replaceAll("\\s+", " ").trim().toLowerCase();
     }
 }

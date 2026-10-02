@@ -3,6 +3,8 @@ package com.example.vieva.infrastructure.database;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
@@ -42,6 +44,11 @@ public class RubricCriterionJpaEntity implements Persistable<UUID> {
 
     @Column(name = "achievement_descriptors", columnDefinition = "TEXT", nullable = false)
     private String achievementDescriptors;
+
+    /** JSON array of {label, description, score}. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "performance_levels", columnDefinition = "jsonb")
+    private String performanceLevels;
 
     @Builder.Default
     @Column(name = "order_index", nullable = false)

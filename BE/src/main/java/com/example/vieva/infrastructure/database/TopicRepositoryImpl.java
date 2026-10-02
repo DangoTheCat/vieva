@@ -5,6 +5,7 @@ import com.example.vieva.domain.entities.Topic;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,16 @@ public class TopicRepositoryImpl implements TopicRepository {
     public Optional<Topic> findById(UUID topicId) {
         return jpaRepository.findById(topicId)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Topic> findAllByIds(Collection<UUID> topicIds) {
+        if (topicIds == null || topicIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findAllById(topicIds).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

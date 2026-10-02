@@ -4,10 +4,13 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Khung Rubric đánh giá; quan hệ 1:1 với QuestionVersion; APPROVED bắt buộc có Rubric hợp lệ.
+ * Khung Rubric đánh giá; quan hệ 1:1 với QuestionVersion.
+ * BR-02: total_points = Σ max_points of the criteria, no extra weighting.
  */
 @Getter
 @Setter
@@ -15,6 +18,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Rubric {
+    public static final String DEFAULT_NAME = "Rubric đánh giá";
+
     private UUID rubricId;
     private UUID questionVersionId;
     private String rubricName;
@@ -23,27 +28,60 @@ public class Rubric {
     private Instant createdAt;
     private Instant updatedAt;
 
-    /**
-     * Enforces that the sum of all criteria maxPoints must equal this rubric's totalPoints.
-     *
-     * @throws IllegalArgumentException when totalPoints is missing or the sum doesn't match
-     */
-    public void validateTotalPoints(java.util.Collection<RubricCriterion> criteria) {
-        if (this.totalPoints == null) {
-            throw new IllegalArgumentException("Rubric totalPoints must not be null");
+    public static Rubric create(UUID questionVersionId, String name, String description) {
+        Instant now = Instant.now();
+        return Rubric.builder()
+                .rubricId(UUID.randomUUID())
+                .questionVersionId(questionVersionId)
+                .rubricName(name == null || name.isBlank() ? DEFAULT_NAME : name.trim())
+                .description(description)
+                .totalPoints(BigDecimal.ZERO)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+    }
+
+    public static BigDecimal sumOf(Collection<RubricCriterion> criteria) {
+        if (criteria == null) {
+            return BigDecimal.ZERO;
         }
-        BigDecimal sum = BigDecimal.ZERO;
-        if (criteria != null) {
-            for (RubricCriterion criterion : criteria) {
-                if (criterion == null || criterion.getMaxPoints() == null) {
-                    throw new IllegalArgumentException("Criterion maxPoints must not be null");
-                }
-                sum = sum.add(criterion.getMaxPoints());
-            }
+        return criteria.stream()
+                .filter(Objects::nonNull)
+                .map(RubricCriterion::getMaxPoints)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** Recomputes total_points from the criteria (UC1.7). */
+    public void recalculateTotal(Collection<RubricCriterion> criteria) {
+        this.totalPoints = sumOf(criteria);
+        this.updatedAt = Instant.now();
+    }
+
+    public boolean totalMatches(Collection<RubricCriterion> criteria) {
+        return totalPoints != null && sumOf(criteria).compareTo(totalPoints) == 0;
+    }
+
+    public void rename(String name, String newDescription) {
+        if (name != null && !name.isBlank()) {
+            this.rubricName = name.trim();
         }
-        if (sum.compareTo(this.totalPoints) != 0) {
-            throw new IllegalArgumentException(
-                    "Sum of criterion maxPoints (" + sum + ") must equal rubric totalPoints (" + this.totalPoints + ")");
+        if (newDescription != null) {
+            this.description = newDescription.trim();
         }
+        this.updatedAt = Instant.now();
+    }
+
+    public Rubric copyTo(UUID newVersionId) {
+        Instant now = Instant.now();
+        return Rubric.builder()
+                .rubricId(UUID.randomUUID())
+                .questionVersionId(newVersionId)
+                .rubricName(rubricName)
+                .totalPoints(totalPoints)
+                .description(description)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
     }
 }

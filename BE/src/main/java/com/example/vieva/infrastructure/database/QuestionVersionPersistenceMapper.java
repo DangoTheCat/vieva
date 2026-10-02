@@ -19,13 +19,19 @@ public class QuestionVersionPersistenceMapper {
                 .questionContent(entity.getQuestionContent())
                 .referenceAnswer(entity.getReferenceAnswer())
                 .bloomLevel(entity.getBloomLevel())
+                .bloomConfirmed(entity.isBloomConfirmed())
                 .generationMode(entity.getGenerationMode())
                 .approvalStatus(entity.getApprovalStatus())
+                .parentVersionId(entity.getParentVersionId())
+                .generationRequestId(entity.getGenerationRequestId())
+                .regenerationCount(entity.getRegenerationCount())
                 .reviewedBy(entity.getReviewedBy())
                 .reviewedAt(entity.getReviewedAt())
                 .rejectionReason(entity.getRejectionReason())
                 .createdBy(entity.getCreatedBy())
                 .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .version(entity.getVersion())
                 .build();
     }
 
@@ -47,13 +53,20 @@ public class QuestionVersionPersistenceMapper {
                 .questionContent(domain.getQuestionContent())
                 .referenceAnswer(domain.getReferenceAnswer())
                 .bloomLevel(domain.getBloomLevel())
+                .bloomConfirmed(domain.isBloomConfirmed())
                 .generationMode(domain.getGenerationMode())
                 .approvalStatus(domain.getApprovalStatus())
+                .parentVersionId(domain.getParentVersionId())
+                .generationRequestId(domain.getGenerationRequestId())
+                .regenerationCount(domain.getRegenerationCount())
                 .reviewedBy(domain.getReviewedBy())
                 .reviewedAt(domain.getReviewedAt())
                 .rejectionReason(domain.getRejectionReason())
                 .createdBy(domain.getCreatedBy())
                 .createdAt(domain.getCreatedAt())
+                .updatedAt(domain.getUpdatedAt())
+                // Carrying the lock token makes merge() reject stale writes (BR-08).
+                .version(domain.getVersion())
                 .isNew(domain.getCreatedAt() == null)
                 .build();
     }

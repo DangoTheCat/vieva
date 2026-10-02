@@ -7,5 +7,6 @@ import java.util.UUID;
  * Keeps the Spring ApplicationEventPublisher out of application logic.
  */
 public interface DomainEventPublisherPort {
-    void publishDocumentUploaded(UUID documentId, byte[] fileBytes);
+    /** Fired inside the upload/retry transaction; indexing starts after commit. */
+    void publishDocumentIndexingRequested(UUID documentId);
 }

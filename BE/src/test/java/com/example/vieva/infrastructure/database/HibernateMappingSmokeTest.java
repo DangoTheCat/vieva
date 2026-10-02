@@ -25,6 +25,7 @@ class HibernateMappingSmokeTest {
             DocumentChunkJpaEntity.class,
             LecturerSubjectJpaEntity.class,
             QuestionJpaEntity.class,
+            QuestionGenerationRequestJpaEntity.class,
             QuestionSourceJpaEntity.class,
             QuestionVersionJpaEntity.class,
             RubricCriterionJpaEntity.class,

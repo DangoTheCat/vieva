@@ -41,6 +41,13 @@ public class QuestionSourceJpaEntity implements Persistable<UUID> {
     @JoinColumn(name = "chunk_id")
     private DocumentChunkJpaEntity chunk;
 
+    @Column(name = "document_id")
+    private UUID documentId;
+
+    @Builder.Default
+    @Column(name = "source_order", nullable = false)
+    private Integer sourceOrder = 1;
+
     @Column(name = "document_name", length = 255)
     private String documentName;
 

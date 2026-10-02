@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * UC1.1: upload (202 — indexing runs asynchronously), status polling, retry of FAILED indexing.
+ */
 @RestController
 @RequestMapping("/api/v1/lecturer")
 @RequiredArgsConstructor
@@ -30,26 +33,18 @@ public class LecturerDocumentController {
     private final CourseDocumentPresenter presenter;
 
     @PostMapping(value = "/subjects/{subjectId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId)")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
     public ResponseEntity<CourseDocumentDto> uploadDocument(
             @PathVariable UUID subjectId,
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal User currentUser) {
-
-        UUID userId = resolveUserId(currentUser);
-
+        UUID userId = CurrentUser.id(currentUser);
         if (file == null || file.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Uploaded file must not be empty");
         }
-
         try {
-            String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document";
-            String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
-            byte[] bytes = file.getBytes();
-
             CourseDocument document = documentIndexingService.uploadDocument(
-                    subjectId, originalFilename, bytes, contentType, userId);
-
+                    subjectId, file.getOriginalFilename(), file.getBytes(), userId);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(presenter.toDto(document));
         } catch (IOException e) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Failed to read uploaded file");
@@ -57,34 +52,30 @@ public class LecturerDocumentController {
     }
 
     @GetMapping("/subjects/{subjectId}/documents")
-    @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId)")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
     public ResponseEntity<List<CourseDocumentDto>> getDocumentsBySubject(@PathVariable UUID subjectId) {
-        List<CourseDocument> documents = documentIndexingService.getDocumentsBySubject(subjectId);
-        return ResponseEntity.ok(presenter.toDtoList(documents));
+        return ResponseEntity.ok(presenter.toDtoList(documentIndexingService.getDocumentsBySubject(subjectId)));
     }
 
     @GetMapping("/documents/{documentId}")
-    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId)")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
     public ResponseEntity<CourseDocumentDto> getDocumentById(@PathVariable UUID documentId) {
-        CourseDocument document = documentIndexingService.getDocumentById(documentId);
-        return ResponseEntity.ok(presenter.toDto(document));
+        return ResponseEntity.ok(presenter.toDto(documentIndexingService.getDocumentById(documentId)));
+    }
+
+    @PostMapping("/documents/{documentId}/retry-index")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
+    public ResponseEntity<CourseDocumentDto> retryIndexing(@PathVariable UUID documentId,
+                                                           @AuthenticationPrincipal User currentUser) {
+        CourseDocument document = documentIndexingService.retryIndexing(documentId, CurrentUser.id(currentUser));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(presenter.toDto(document));
     }
 
     @DeleteMapping("/documents/{documentId}")
-    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId)")
-    public ResponseEntity<MessageResponse> deleteDocument(
-            @PathVariable UUID documentId,
-            @AuthenticationPrincipal User currentUser) {
-
-        UUID userId = resolveUserId(currentUser);
-        documentIndexingService.softDeleteDocument(documentId, userId);
+    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
+    public ResponseEntity<MessageResponse> deleteDocument(@PathVariable UUID documentId,
+                                                          @AuthenticationPrincipal User currentUser) {
+        documentIndexingService.softDeleteDocument(documentId, CurrentUser.id(currentUser));
         return ResponseEntity.ok(new MessageResponse("Document deleted successfully"));
-    }
-
-    private UUID resolveUserId(User currentUser) {
-        if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-        return currentUser.getUserId();
     }
 }

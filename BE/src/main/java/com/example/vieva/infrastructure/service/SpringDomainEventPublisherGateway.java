@@ -15,7 +15,7 @@ public class SpringDomainEventPublisherGateway implements DomainEventPublisherPo
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
-    public void publishDocumentUploaded(UUID documentId, byte[] fileBytes) {
-        eventPublisher.publishEvent(new DocumentUploadedEvent(documentId, fileBytes));
+    public void publishDocumentIndexingRequested(UUID documentId) {
+        eventPublisher.publishEvent(new DocumentUploadedEvent(documentId));
     }
 }

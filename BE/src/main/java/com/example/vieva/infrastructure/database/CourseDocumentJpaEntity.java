@@ -44,6 +44,9 @@ public class CourseDocumentJpaEntity implements Persistable<UUID> {
     @Column(name = "file_url", nullable = false, length = 1000)
     private String fileUrl;
 
+    @Column(name = "storage_key", length = 500)
+    private String storageKey;
+
     @Column(name = "file_size_bytes", nullable = false)
     private Long fileSizeBytes;
 
@@ -64,6 +67,10 @@ public class CourseDocumentJpaEntity implements Persistable<UUID> {
     @Builder.Default
     @Column(name = "total_chunks", nullable = false)
     private Integer totalChunks = 0;
+
+    @Builder.Default
+    @Column(name = "index_attempts", nullable = false)
+    private Integer indexAttempts = 0;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

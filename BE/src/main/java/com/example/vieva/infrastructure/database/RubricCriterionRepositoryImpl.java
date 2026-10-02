@@ -26,12 +26,20 @@ public class RubricCriterionRepositoryImpl implements RubricCriterionRepository 
 
     @Override
     public List<RubricCriterion> saveAll(List<RubricCriterion> criteria) {
+        if (criteria == null || criteria.isEmpty()) {
+            return List.of();
+        }
         List<RubricCriterionJpaEntity> entities = criteria.stream()
                 .map(mapper::toEntity)
                 .collect(Collectors.toList());
         return jpaRepository.saveAll(entities).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteById(UUID criterionId) {
+        jpaRepository.deleteById(criterionId);
     }
 
     @Override
@@ -46,7 +54,7 @@ public class RubricCriterionRepositoryImpl implements RubricCriterionRepository 
         if (rubricIds == null || rubricIds.isEmpty()) {
             return List.of();
         }
-        return jpaRepository.findByRubric_RubricIdIn(rubricIds).stream()
+        return jpaRepository.findByRubric_RubricIdInOrderByOrderIndexAsc(rubricIds).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }

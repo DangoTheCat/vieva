@@ -9,6 +9,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+/**
+ * Starts indexing only after the upload/retry transaction committed, so the worker always sees
+ * the UPLOADED row; runs on the application task executor.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -19,11 +23,11 @@ public class AsyncDocumentIndexingWorker {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onDocumentUploaded(DocumentUploadedEvent event) {
-        log.info("Triggering async indexing for document {}", event.documentId());
+        log.info("Starting async indexing for document {}", event.documentId());
         try {
-            documentIndexingService.indexDocument(event.documentId(), event.fileBytes());
+            documentIndexingService.indexDocument(event.documentId());
         } catch (Exception e) {
-            log.error("Async document indexing failed for {}", event.documentId(), e);
+            log.error("Async document indexing crashed for {}", event.documentId(), e);
         }
     }
 }
