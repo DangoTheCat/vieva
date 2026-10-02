@@ -29,6 +29,20 @@ public class LecturerSubjectRepositoryImpl implements LecturerSubjectRepository 
     }
 
     @Override
+    @Transactional
+    public List<LecturerSubject> saveAll(List<LecturerSubject> assignments) {
+        if (assignments == null || assignments.isEmpty()) {
+            return List.of();
+        }
+        List<LecturerSubjectJpaEntity> entities = assignments.stream()
+                .map(mapper::toEntity)
+                .collect(Collectors.toList());
+        return jpaRepository.saveAll(entities).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<LecturerSubject> findById(UUID id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }

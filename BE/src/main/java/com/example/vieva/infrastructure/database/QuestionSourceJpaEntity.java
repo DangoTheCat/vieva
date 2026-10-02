@@ -38,8 +38,11 @@ public class QuestionSourceJpaEntity implements Persistable<UUID> {
     private QuestionVersionJpaEntity questionVersion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chunk_id", nullable = false)
+    @JoinColumn(name = "chunk_id")
     private DocumentChunkJpaEntity chunk;
+
+    @Column(name = "document_name", length = 255)
+    private String documentName;
 
     @Column(name = "citation_quote", columnDefinition = "TEXT", nullable = false)
     private String citationQuote;

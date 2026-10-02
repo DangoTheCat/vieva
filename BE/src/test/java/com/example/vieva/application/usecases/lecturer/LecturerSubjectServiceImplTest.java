@@ -87,7 +87,7 @@ class LecturerSubjectServiceImplTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
         when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(sampleLecturer));
         when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of());
-        when(lecturerSubjectRepository.save(any(LecturerSubject.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(lecturerSubjectRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         List<LecturerSubject> result = lecturerSubjectService.assignLecturersToSubject(request, adminId);
 
@@ -95,8 +95,8 @@ class LecturerSubjectServiceImplTest {
         assertThat(result.get(0).getLecturerId()).isEqualTo(lecturerId);
         assertThat(result.get(0).getSubjectId()).isEqualTo(subjectId);
         assertThat(result.get(0).getIsActive()).isTrue();
-        verify(lecturerSubjectRepository).save(any(LecturerSubject.class));
-        verify(auditEventRepository).save(any());
+        verify(lecturerSubjectRepository).saveAll(any());
+        verify(auditEventRepository).saveAll(any());
     }
 
     @Test
@@ -120,7 +120,7 @@ class LecturerSubjectServiceImplTest {
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_A_LECTURER);
 
-        verify(lecturerSubjectRepository, never()).save(any());
+        verify(lecturerSubjectRepository, never()).saveAll(any());
     }
 
     @Test

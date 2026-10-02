@@ -69,7 +69,8 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
                 .map(LecturerSubject::getLecturerId)
                 .collect(Collectors.toSet());
 
-        List<LecturerSubject> assignedList = new ArrayList<>(lecturerIds.size());
+        List<LecturerSubject> assignmentsToSave = new ArrayList<>(lecturerIds.size());
+        List<AuditEvent> auditEventsToSave = new ArrayList<>(lecturerIds.size());
 
         for (UUID lecturerId : lecturerIds) {
             User user = usersById.get(lecturerId);
@@ -97,24 +98,26 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
                     .assignedAt(Instant.now())
                     .assignedBy(currentAdminId)
                     .build();
-
-            LecturerSubject saved = lecturerSubjectRepository.save(assignment);
-            assignedList.add(saved);
+            assignmentsToSave.add(assignment);
 
             Map<String, Object> auditValues = new java.util.HashMap<>();
             auditValues.put("subjectId", subject.getSubjectId() != null ? subject.getSubjectId().toString() : null);
             auditValues.put("lecturerId", lecturerId != null ? lecturerId.toString() : null);
 
-            auditEventRepository.save(AuditEvent.builder()
+            auditEventsToSave.add(AuditEvent.builder()
                     .auditId(UUID.randomUUID())
                     .actorId(currentAdminId)
                     .actionType("LECTURER_ASSIGNED")
                     .entityType("LECTURER_SUBJECT")
-                    .entityId(saved.getLecturerSubjectId().toString())
+                    .entityId(assignment.getLecturerSubjectId().toString())
                     .newValuesJson(jsonSerializer.serialize(auditValues))
                     .createdAt(Instant.now())
                     .build());
         }
+
+        // Batched persistence: 2 round-trips total instead of 2 per lecturer (Rule 4).
+        List<LecturerSubject> assignedList = lecturerSubjectRepository.saveAll(assignmentsToSave);
+        auditEventRepository.saveAll(auditEventsToSave);
 
         return assignedList;
     }
