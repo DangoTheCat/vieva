@@ -1,7 +1,6 @@
 package com.example.vieva.infrastructure.security;
 
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 

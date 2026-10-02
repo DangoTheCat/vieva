@@ -46,7 +46,6 @@ public class UserController {
         }
         // Fetch fresh from service — avoids self-invocation AOP bypass
         User user = userService.getById(currentUser.getUserId())
-                .filter(u -> !u.isDeleted())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
@@ -125,7 +124,6 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.domain.entities.User) and authentication.principal.userId == #id)")
     public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
         User user = userService.getById(id)
-                .filter(u -> !u.isDeleted())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         return ResponseEntity.ok(userPresenter.toDto(user));

@@ -6,7 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,6 +24,16 @@ public class RoleRepositoryImpl implements RoleRepository {
     public Optional<Role> findByRoleCode(String roleCode) {
         return roleJpaRepository.findByRoleCode(roleCode)
                 .map(roleMapper::toDomain);
+    }
+
+    @Override
+    public List<Role> findByRoleCodesIn(Collection<String> roleCodes) {
+        if (roleCodes == null || roleCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return roleJpaRepository.findByRoleCodeIn(roleCodes).stream()
+                .map(roleMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

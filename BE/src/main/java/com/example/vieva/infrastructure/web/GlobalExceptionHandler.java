@@ -123,7 +123,8 @@ public class GlobalExceptionHandler {
             return HttpStatus.INTERNAL_SERVER_ERROR;
         }
         return switch (errorCode) {
-            case USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case USER_NOT_FOUND, SUBJECT_NOT_FOUND, ASSIGNMENT_NOT_FOUND,
+                 DOCUMENT_NOT_FOUND, QUESTION_NOT_FOUND, QUESTION_VERSION_NOT_FOUND, TOPIC_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
             case UNAUTHORIZED, USER_INACTIVE -> HttpStatus.FORBIDDEN;
             case UNCATEGORIZED_EXCEPTION -> HttpStatus.INTERNAL_SERVER_ERROR;

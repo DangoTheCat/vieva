@@ -6,3 +6,10 @@ target/
 *.log
 # Environment secrets — never commit
 .env
+
+# Frontend dependencies and builds
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+

@@ -114,6 +114,17 @@ public class AdminUserController {
         return ResponseEntity.ok(new MessageResponse("User deleted successfully"));
     }
 
+    @PostMapping("/{id}/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentAdmin,
+            @Valid @RequestBody com.example.vieva.adapters.controllers.request.AdminResetPasswordApiRequest request) {
+
+        UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
+        adminUserService.resetPassword(id, request.getNewPassword(), currentAdminId);
+        return ResponseEntity.ok(new MessageResponse("User password has been reset successfully"));
+    }
+
     private UUID resolveCurrentAdminId(User currentAdmin) {
         if (currentAdmin == null) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);

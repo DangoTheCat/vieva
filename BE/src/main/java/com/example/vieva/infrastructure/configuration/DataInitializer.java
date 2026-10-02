@@ -22,6 +22,8 @@ public class DataInitializer {
         return args -> {
             initRoleIfNotExist("ROLE_USER", "Standard User", "Quyền người dùng thông thường");
             initRoleIfNotExist("ROLE_ADMIN", "Administrator", "Quản trị viên hệ thống");
+            initRoleIfNotExist("ROLE_LECTURER", "Lecturer", "Giảng viên phụ trách môn học và ngân hàng câu hỏi");
+            initRoleIfNotExist("ROLE_STUDENT", "Student", "Sinh viên tham gia thi vấn đáp");
         };
     }
 

@@ -19,23 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # pgAdmin for web-based PostgreSQL management (Optional — disable in production)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: vieva-pgadmin
-    restart: unless-stopped
-    ports:
-      # Bind to localhost only — never expose pgAdmin externally
-      - "127.0.0.1:5050:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?PGADMIN_EMAIL env var is required}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD env var is required}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-
   # Backend Spring Boot Application (Optional: can run in container or via local IDE)
   backend:
     build:
@@ -61,6 +44,17 @@ services:
       postgres:
         condition: service_healthy
 
+  # Frontend Web Client (React + Tailwind + Nginx)
+  frontend:
+    build:
+      context: ./FE
+      dockerfile: Dockerfile
+    container_name: vieva-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
-  pgadmin_data:

@@ -52,6 +52,13 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
+    /**
+     * Serializes the evict-then-insert path so a bucket created by one thread can never be
+     * evicted by another thread's size check (which would reset that IP's token count).
+     * The hot path (existing IP) stays lock-free.
+     */
+    private final Object bucketCreateLock = new Object();
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !request.getRequestURI().startsWith("/api/v1/auth/");
@@ -62,14 +69,21 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String ip = getClientIp(request);
-        // Evict one entry if full before inserting a new key to avoid IllegalStateException in compute
-        if (!buckets.containsKey(ip) && buckets.size() >= MAX_BUCKETS) {
-            var it = buckets.keySet().iterator();
-            if (it.hasNext()) {
-                buckets.remove(it.next());
+        Bucket bucket = buckets.get(ip);
+        if (bucket == null) {
+            synchronized (bucketCreateLock) {
+                bucket = buckets.get(ip);
+                if (bucket == null) {
+                    if (buckets.size() >= MAX_BUCKETS) {
+                        var it = buckets.keySet().iterator();
+                        if (it.hasNext()) {
+                            buckets.remove(it.next());
+                        }
+                    }
+                    bucket = buckets.computeIfAbsent(ip, k -> newBucket());
+                }
             }
         }
-        Bucket bucket = buckets.computeIfAbsent(ip, k -> newBucket());
 
         if (bucket.tryConsume(1)) {
             filterChain.doFilter(request, response);
