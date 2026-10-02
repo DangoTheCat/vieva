@@ -74,6 +74,14 @@ public class DocumentChunkRepositoryImpl implements DocumentChunkRepository {
         jpaRepository.deleteByDocumentId(documentId);
     }
 
+    @Override
+    public void deleteByDocumentIds(Collection<UUID> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return;
+        }
+        jpaRepository.deleteByDocumentIdIn(documentIds);
+    }
+
     private static Integer parsePage(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;

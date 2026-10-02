@@ -4,7 +4,7 @@
 -- Hibernate `ddl-auto=validate` can start successfully.
 --   subjects, topics, lecturer_subjects, course_documents, document_chunks,
 --   questions, question_versions, question_sources, rubrics, rubric_criteria,
---   speech_config_versions, audit_events
+--   audit_events
 -- ============================================================================
 
 -- pgvector extension is required for document_chunks.embedding vector(1536)
@@ -166,30 +166,6 @@ CREATE TABLE IF NOT EXISTS rubric_criteria (
 
 CREATE INDEX IF NOT EXISTS idx_criteria_rubric ON rubric_criteria (rubric_id);
 
--- ─── SPEECH_CONFIG_VERSIONS ─────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS speech_config_versions (
-    config_version_id      UUID         PRIMARY KEY,
-    version_code           VARCHAR(50)  NOT NULL,
-    language_locale        VARCHAR(20)  NOT NULL,
-    stt_provider           VARCHAR(50)  NOT NULL,
-    tts_provider           VARCHAR(50)  NOT NULL,
-    tts_voice_code         VARCHAR(50)  NOT NULL,
-    tts_speech_rate        NUMERIC(3, 2) NOT NULL DEFAULT 1.00,
-    tts_pitch              NUMERIC(3, 2) NOT NULL DEFAULT 1.00,
-    is_active              BOOLEAN      NOT NULL DEFAULT FALSE,
-    test_status            VARCHAR(20)  NOT NULL DEFAULT 'NOT_TESTED',
-    tested_at              TIMESTAMPTZ,
-    test_sample_transcript TEXT,
-    created_by             UUID         NOT NULL REFERENCES users (user_id),
-    created_at             TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    version                BIGINT       NOT NULL DEFAULT 0,
-    CONSTRAINT uq_speech_config_version_code UNIQUE (version_code)
-);
-
--- At most ONE active configuration per language (atomic activation guard).
-CREATE UNIQUE INDEX IF NOT EXISTS uq_speech_config_active
-    ON speech_config_versions (language_locale)
-    WHERE is_active;
 
 -- ─── AUDIT_EVENTS ───────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_events (

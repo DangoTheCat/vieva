@@ -24,6 +24,7 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,9 +124,10 @@ public class QuestionImportServiceImpl implements QuestionImportService {
 
         List<UUID> createdIds = new ArrayList<>();
         if (!dryRun && !valid.isEmpty()) {
+            createMissingTopics(subjectId, valid, topicsByName);
             List<NewDraft> drafts = new ArrayList<>();
             for (ParsedQuestion parsed : valid) {
-                Topic topic = resolveTopic(subjectId, parsed.topicName(), topicsByName);
+                Topic topic = isBlank(parsed.topicName()) ? null : topicsByName.get(key(parsed.topicName()));
                 Question question = Question.newDraftOwner(subjectId, topic == null ? null : topic.getTopicId(), actorId);
                 QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, parsed.content(),
                         parsed.answer(), parsed.bloomLevel(), QuestionGenerationMode.IMPORT, actorId);
@@ -250,24 +252,54 @@ public class QuestionImportServiceImpl implements QuestionImportService {
         return value;
     }
 
-    private Topic resolveTopic(UUID subjectId, String name, Map<String, Topic> topicsByName) {
-        if (isBlank(name)) {
-            return null;
+    /**
+     * Persists all new topics with a single batched save instead of one INSERT per
+     * distinct topic name inside the row loop (Rule 4). A concurrent import racing
+     * on the same topic name hits the unique index and is resolved by refreshing
+     * from the database (Rule 5).
+     */
+    private void createMissingTopics(UUID subjectId, List<ParsedQuestion> valid, Map<String, Topic> topicsByName) {
+        int nextOrder = topicsByName.values().stream()
+                .map(Topic::getOrderIndex)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0);
+        List<Topic> toCreate = new ArrayList<>();
+        for (ParsedQuestion parsed : valid) {
+            if (isBlank(parsed.topicName())) {
+                continue;
+            }
+            String topicKey = key(parsed.topicName());
+            if (!topicsByName.containsKey(topicKey)) {
+                nextOrder++;
+                Topic topic = Topic.builder()
+                        .topicId(UUID.randomUUID())
+                        .subjectId(subjectId)
+                        .topicName(parsed.topicName().trim())
+                        .orderIndex(nextOrder)
+                        .createdAt(Instant.now())
+                        .build();
+                topicsByName.put(topicKey, topic);
+                toCreate.add(topic);
+            }
         }
-        return topicsByName.computeIfAbsent(key(name), k -> {
-            int nextOrder = topicsByName.values().stream()
-                    .map(Topic::getOrderIndex)
-                    .filter(Objects::nonNull)
-                    .max(Integer::compareTo)
-                    .orElse(0) + 1;
-            return topicRepository.save(Topic.builder()
-                    .topicId(UUID.randomUUID())
-                    .subjectId(subjectId)
-                    .topicName(name.trim())
-                    .orderIndex(nextOrder)
-                    .createdAt(Instant.now())
-                    .build());
-        });
+        if (toCreate.isEmpty()) {
+            return;
+        }
+        try {
+            topicRepository.saveAll(toCreate);
+        } catch (DataIntegrityViolationException e) {
+            Map<String, Topic> fresh = topicRepository.findBySubjectId(subjectId).stream()
+                    .filter(topic -> topic.getTopicName() != null)
+                    .collect(Collectors.toMap(topic -> key(topic.getTopicName()), topic -> topic, (a, b) -> a));
+            topicsByName.putAll(fresh);
+            List<Topic> retry = toCreate.stream()
+                    .filter(topic -> !fresh.containsKey(key(topic.getTopicName())))
+                    .collect(Collectors.toList());
+            if (!retry.isEmpty()) {
+                topicRepository.saveAll(retry);
+            }
+        }
     }
 
     private void validateFile(String filename, byte[] content) {

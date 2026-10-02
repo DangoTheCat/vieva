@@ -26,6 +26,19 @@ public class TopicRepositoryImpl implements TopicRepository {
     }
 
     @Override
+    public List<Topic> saveAll(List<Topic> topics) {
+        if (topics == null || topics.isEmpty()) {
+            return List.of();
+        }
+        List<TopicJpaEntity> entities = topics.stream()
+                .map(mapper::toEntity)
+                .collect(Collectors.toList());
+        return jpaRepository.saveAll(entities).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<Topic> findById(UUID topicId) {
         return jpaRepository.findById(topicId)
                 .map(mapper::toDomain);

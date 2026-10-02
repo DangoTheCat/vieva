@@ -15,6 +15,7 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,7 +64,13 @@ public class AuthServiceImpl implements AuthService {
 
         user.addRole(defaultRole, newUserId);
 
-        User savedUser = userRepository.save(user);
+        final User savedUser;
+        try {
+            savedUser = userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent registration with the same email won the race (unique index)
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
         String token = tokenProvider.generateToken(savedUser.getUserId(), savedUser.getEmail());
 
         return toAuthResult(savedUser, token);

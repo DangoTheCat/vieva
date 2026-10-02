@@ -4,13 +4,11 @@ import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
  * Infrastructure Gateway implementing JsonSerializerPort using Jackson ObjectMapper.
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JacksonJsonSerializerGateway implements JsonSerializerPort {
@@ -25,8 +23,7 @@ public class JacksonJsonSerializerGateway implements JsonSerializerPort {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize object to JSON", e);
-            return "{}";
+            throw new IllegalStateException("Failed to serialize object to JSON", e);
         }
     }
 }

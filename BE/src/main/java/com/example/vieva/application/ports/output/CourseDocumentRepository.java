@@ -13,6 +13,8 @@ public interface CourseDocumentRepository {
     List<CourseDocument> saveAll(List<CourseDocument> docs);
     /** Excludes soft-deleted documents. */
     Optional<CourseDocument> findById(UUID id);
+    /** Same as {@link #findById} but takes a row write-lock (SELECT ... FOR UPDATE). */
+    Optional<CourseDocument> findByIdForUpdate(UUID id);
     /** Excludes soft-deleted documents. */
     List<CourseDocument> findAllByIds(Collection<UUID> ids);
     List<CourseDocument> findActiveBySubjectId(UUID subjectId);

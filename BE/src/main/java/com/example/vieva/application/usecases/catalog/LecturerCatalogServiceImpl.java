@@ -11,6 +11,7 @@ import com.example.vieva.domain.entities.Topic;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,14 +74,20 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
                 .filter(java.util.Objects::nonNull)
                 .max(Integer::compareTo)
                 .orElse(0) + 1;
-        Topic topic = topicRepository.save(Topic.builder()
-                .topicId(UUID.randomUUID())
-                .subjectId(subjectId)
-                .topicName(trimmed)
-                .description(description == null ? null : description.trim())
-                .orderIndex(nextOrder)
-                .createdAt(Instant.now())
-                .build());
+        Topic topic;
+        try {
+            topic = topicRepository.save(Topic.builder()
+                    .topicId(UUID.randomUUID())
+                    .subjectId(subjectId)
+                    .topicName(trimmed)
+                    .description(description == null ? null : description.trim())
+                    .orderIndex(nextOrder)
+                    .createdAt(Instant.now())
+                    .build());
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent creation with the same name won the race (unique index uq_topics_subject_lower_name)
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Topic '" + trimmed + "' already exists in this subject");
+        }
         auditor.record(actorId, "TOPIC_CREATED", QuestionBankAuditor.SUBJECT, subjectId,
                 Map.of("topicId", topic.getTopicId(), "topicName", trimmed));
         return topic;

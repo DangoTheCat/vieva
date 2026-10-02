@@ -46,6 +46,12 @@ public class CourseDocumentRepositoryImpl implements CourseDocumentRepository {
     }
 
     @Override
+    public Optional<CourseDocument> findByIdForUpdate(UUID id) {
+        return jpaRepository.lockById(id)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public List<CourseDocument> findActiveBySubjectId(UUID subjectId) {
         return jpaRepository.findBySubject_SubjectIdAndDeletedAtIsNullOrderByCreatedAtDesc(subjectId).stream()
                 .map(mapper::toDomain)

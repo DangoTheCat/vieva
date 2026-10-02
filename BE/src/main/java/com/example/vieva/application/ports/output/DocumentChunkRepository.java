@@ -19,4 +19,5 @@ public interface DocumentChunkRepository {
                                                 float[] queryEmbedding, double minSimilarity, int limit);
 
     void deleteByDocumentId(UUID documentId);
+    void deleteByDocumentIds(Collection<UUID> documentIds);
 }

@@ -17,6 +17,7 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -100,7 +101,13 @@ public class AdminUserServiceImpl implements AdminUserService {
             user.addRole(role, currentAdminId);
         }
 
-        User savedUser = userRepository.save(user);
+        final User savedUser;
+        try {
+            savedUser = userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent creation with the same email/userCode won the race (unique indexes)
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
 
         Map<String, Object> auditValues = new HashMap<>();
         auditValues.put("email", savedUser.getEmail());

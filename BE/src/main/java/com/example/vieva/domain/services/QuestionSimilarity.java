@@ -37,8 +37,9 @@ public final class QuestionSimilarity {
         }
         Set<String> intersection = new HashSet<>(a);
         intersection.retainAll(b);
+        // Both sets are non-empty here (checked above), so union >= 1.
         int union = a.size() + b.size() - intersection.size();
-        return union == 0 ? 0.0 : (double) intersection.size() / union;
+        return (double) intersection.size() / union;
     }
 
     public static boolean isNearDuplicate(String candidate, Collection<Set<String>> existingTokenSets, double threshold) {

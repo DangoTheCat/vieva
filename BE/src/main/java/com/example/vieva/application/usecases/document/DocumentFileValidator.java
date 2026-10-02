@@ -43,8 +43,13 @@ public final class DocumentFileValidator {
         }
         if (name.length() > MAX_NAME_LENGTH) {
             String extension = extensionOf(name);
-            String base = name.substring(0, MAX_NAME_LENGTH - extension.length() - 1);
-            name = extension.isEmpty() ? base : base + "." + extension;
+            int maxBase = Math.max(0, MAX_NAME_LENGTH - extension.length() - 1);
+            String base = name.substring(0, maxBase);
+            // Fall back to a hard truncate when there is no usable base
+            // (e.g. an extremely long extension would otherwise yield a negative index).
+            name = extension.isEmpty() || base.isEmpty()
+                    ? name.substring(0, MAX_NAME_LENGTH)
+                    : base + "." + extension;
         }
         return name;
     }

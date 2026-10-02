@@ -12,6 +12,7 @@ import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -56,7 +57,13 @@ public class SubjectServiceImpl implements SubjectService {
                 .updatedAt(Instant.now())
                 .build();
 
-        Subject saved = subjectRepository.save(subject);
+        final Subject saved;
+        try {
+            saved = subjectRepository.save(subject);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent creation with the same code won the race (unique index)
+            throw new AppException(ErrorCode.SUBJECT_CODE_EXISTED);
+        }
 
         Map<String, Object> auditValues = new HashMap<>();
         auditValues.put("code", saved.getSubjectCode());

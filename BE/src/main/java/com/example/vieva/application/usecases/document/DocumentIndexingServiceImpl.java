@@ -107,7 +107,9 @@ public class DocumentIndexingServiceImpl implements DocumentIndexingService {
     @Override
     public void indexDocument(UUID documentId) {
         CourseDocument document = transactionRunner.inNewTransaction(() -> {
-            CourseDocument doc = courseDocumentRepository.findById(documentId).orElse(null);
+            // Row write-lock: a concurrent worker/scheduler retry blocks here instead of
+            // both reading UPLOADED and indexing twice (Rule 5).
+            CourseDocument doc = courseDocumentRepository.findByIdForUpdate(documentId).orElse(null);
             if (doc == null || doc.getIndexingStatus() != DocumentIndexingStatus.UPLOADED) {
                 return null;
             }
@@ -211,11 +213,14 @@ public class DocumentIndexingServiceImpl implements DocumentIndexingService {
             doc.markFailed("Indexing was never picked up by a worker; retry the document");
             stale.add(doc);
         }
+        List<UUID> staleIds = new ArrayList<>(stale.size());
         for (CourseDocument doc : stale) {
-            documentChunkRepository.deleteByDocumentId(doc.getDocumentId());
+            staleIds.add(doc.getDocumentId());
             auditor.record(null, "DOCUMENT_INDEX_FAILED", QuestionBankAuditor.DOCUMENT, doc.getDocumentId(),
                     Map.of("reason", doc.getErrorMessage()));
         }
+        // One batched DELETE instead of one per stale document (Rule 4).
+        documentChunkRepository.deleteByDocumentIds(staleIds);
         courseDocumentRepository.saveAll(stale);
         return stale.size();
     }

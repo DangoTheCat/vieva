@@ -1,5 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,11 +14,16 @@ import java.util.UUID;
 @Repository
 public interface DocumentChunkJpaRepository extends JpaRepository<DocumentChunkJpaEntity, UUID> {
 
+    @EntityGraph(attributePaths = {"document"})
     List<DocumentChunkJpaEntity> findByDocument_DocumentIdOrderByChunkIndexAsc(UUID documentId);
 
     @Modifying
     @Query("DELETE FROM DocumentChunkJpaEntity c WHERE c.document.documentId = :documentId")
     void deleteByDocumentId(@Param("documentId") UUID documentId);
+
+    @Modifying
+    @Query("DELETE FROM DocumentChunkJpaEntity c WHERE c.document.documentId IN :documentIds")
+    void deleteByDocumentIdIn(@Param("documentIds") Collection<UUID> documentIds);
 
     /**
      * Cosine distance ({@code <=>}) uses the HNSW index; filters keep retrieval inside the subject,
