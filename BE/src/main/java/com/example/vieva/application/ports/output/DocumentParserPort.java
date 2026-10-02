@@ -1,7 +1,10 @@
 package com.example.vieva.application.ports.output;
 
-import java.io.InputStream;
+import java.util.List;
 
+/**
+ * Extracts text from a course document, split into sections that keep page/slide/heading metadata.
+ */
 public interface DocumentParserPort {
-    String extractText(InputStream inputStream);
+    List<ParsedSection> extract(byte[] content, String mimeType);
 }

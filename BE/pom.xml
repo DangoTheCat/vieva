@@ -18,6 +18,8 @@
 		<lombok.version>1.18.38</lombok.version>
 		<spring-ai.version>1.0.0</spring-ai.version>
 		<cloudinary.version>1.39.0</cloudinary.version>
+		<poi.version>5.4.0</poi.version>
+		<commons-csv.version>1.13.0</commons-csv.version>
 	</properties>
 	<dependencies>
 		<!-- Presentation & Validation -->
@@ -93,6 +95,18 @@
 			<version>${spring-ai.version}</version>
 		</dependency>
 
+		<!-- Question import (UC1.6): Excel + CSV. Versions aligned with the ones Tika already brings in. -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>${poi.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>${commons-csv.version}</version>
+		</dependency>
+
 		<!-- Cloudinary: Media & File Storage -->
 		<dependency>
 			<groupId>com.cloudinary</groupId>
@@ -122,6 +136,22 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Integration tests against a real PostgreSQL + pgvector (Docker required) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

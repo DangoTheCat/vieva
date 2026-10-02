@@ -1,10 +1,9 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.QuestionSearchCriteria;
+import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.domain.entities.Question;
-import com.example.vieva.domain.entities.QuestionStatus;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -16,10 +15,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,14 +27,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class QuestionRepositoryImpl implements QuestionRepository {
 
+    private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "questionCode");
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final QuestionJpaRepository jpaRepository;
     private final QuestionPersistenceMapper mapper;
 
     @Override
     public Question save(Question question) {
-        QuestionJpaEntity entity = mapper.toEntity(question);
-        QuestionJpaEntity saved = jpaRepository.save(entity);
-        return mapper.toDomain(saved);
+        return mapper.toDomain(jpaRepository.save(mapper.toEntity(question)));
     }
 
     @Override
@@ -52,98 +53,76 @@ public class QuestionRepositoryImpl implements QuestionRepository {
 
     @Override
     public Optional<Question> findById(UUID questionId) {
-        return jpaRepository.findById(questionId)
-                .map(mapper::toDomain);
+        return jpaRepository.findById(questionId).map(mapper::toDomain);
     }
 
     @Override
-    public Optional<Question> findByCode(String questionCode) {
-        return jpaRepository.findByQuestionCode(questionCode)
-                .map(mapper::toDomain);
+    public List<Question> findAllByIds(Collection<UUID> questionIds) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findAllById(questionIds).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public boolean existsByCode(String questionCode) {
-        return jpaRepository.existsByQuestionCode(questionCode);
-    }
-
-    @Override
-    public PagedResult<Question> search(QuestionSearchCriteria criteria) {
-        int pageNumber = Math.max(0, criteria.getPage());
-        int pageSize = criteria.getSize() > 0 ? criteria.getSize() : 20;
-        PageRequest pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("createdAt").descending());
+    public PagedResult<Question> searchBank(QuestionBankSearchCriteria criteria) {
+        int page = Math.max(0, criteria.page());
+        int size = criteria.size() > 0 ? Math.min(criteria.size(), MAX_PAGE_SIZE) : 20;
+        String sortField = criteria.sortBy() != null && SORTABLE.contains(criteria.sortBy()) ? criteria.sortBy() : "updatedAt";
+        Sort sort = criteria.sortAscending() ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
+        PageRequest pageRequest = PageRequest.of(page, size, sort.and(Sort.by("questionId")));
 
         Specification<QuestionJpaEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            // Only questions published through UC1.3 belong to the bank.
+            predicates.add(cb.isNotNull(root.get("currentApprovedVersionId")));
+            predicates.add(cb.equal(root.get("subject").get("subjectId"), criteria.subjectId()));
 
-            if (criteria.getSubjectId() != null) {
-                predicates.add(cb.equal(root.get("topic").get("subject").get("subjectId"), criteria.getSubjectId()));
+            if (criteria.topicId() != null) {
+                predicates.add(cb.equal(root.get("topic").get("topicId"), criteria.topicId()));
+            }
+            if (criteria.status() != null) {
+                predicates.add(cb.equal(root.get("status"), criteria.status()));
             }
 
-            if (criteria.getTopicId() != null) {
-                predicates.add(cb.equal(root.get("topic").get("topicId"), criteria.getTopicId()));
+            // Bloom and keyword are matched against the approved version in force.
+            if (criteria.bloomLevel() != null) {
+                Subquery<UUID> bloomMatches = query.subquery(UUID.class);
+                Root<QuestionVersionJpaEntity> version = bloomMatches.from(QuestionVersionJpaEntity.class);
+                bloomMatches.select(version.get("questionVersionId"))
+                        .where(cb.equal(version.get("bloomLevel"), criteria.bloomLevel()));
+                predicates.add(root.get("currentApprovedVersionId").in(bloomMatches));
             }
-
-            if (criteria.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
+            if (StringUtils.hasText(criteria.keyword())) {
+                String pattern = "%" + escapeLike(criteria.keyword().trim().toLowerCase()) + "%";
+                Subquery<UUID> textMatches = query.subquery(UUID.class);
+                Root<QuestionVersionJpaEntity> version = textMatches.from(QuestionVersionJpaEntity.class);
+                textMatches.select(version.get("questionVersionId"))
+                        .where(cb.or(
+                                cb.like(cb.lower(version.get("questionContent")), pattern, '\\'),
+                                cb.like(cb.lower(version.get("referenceAnswer")), pattern, '\\')));
+                predicates.add(cb.or(
+                        root.get("currentApprovedVersionId").in(textMatches),
+                        cb.like(cb.lower(root.get("questionCode")), pattern, '\\')));
             }
-
-            if (StringUtils.hasText(criteria.getKeyword())) {
-                String kw = "%" + criteria.getKeyword().trim().toLowerCase() + "%";
-                Predicate codeMatch = cb.like(cb.lower(root.get("questionCode")), kw);
-
-                Subquery<UUID> contentSubquery = query.subquery(UUID.class);
-                Root<QuestionVersionJpaEntity> vRoot = contentSubquery.from(QuestionVersionJpaEntity.class);
-                contentSubquery.select(vRoot.get("question").get("questionId"));
-                contentSubquery.where(cb.like(cb.lower(vRoot.get("questionContent")), kw));
-
-                predicates.add(cb.or(codeMatch, root.get("questionId").in(contentSubquery)));
-            }
-
-            if (criteria.getApprovalStatus() != null || criteria.getBloomLevel() != null) {
-                Subquery<UUID> versionSubquery = query.subquery(UUID.class);
-                Root<QuestionVersionJpaEntity> vRoot = versionSubquery.from(QuestionVersionJpaEntity.class);
-                versionSubquery.select(vRoot.get("question").get("questionId"));
-                List<Predicate> vPreds = new ArrayList<>();
-
-                if (criteria.getApprovalStatus() != null) {
-                    vPreds.add(cb.equal(vRoot.get("approvalStatus"), criteria.getApprovalStatus()));
-                }
-                if (criteria.getBloomLevel() != null) {
-                    vPreds.add(cb.equal(vRoot.get("bloomLevel"), criteria.getBloomLevel()));
-                }
-                versionSubquery.where(vPreds.toArray(new Predicate[0]));
-                predicates.add(root.get("questionId").in(versionSubquery));
-            }
-
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        Page<QuestionJpaEntity> entityPage = jpaRepository.findAll(spec, pageRequest);
-        List<Question> content = entityPage.getContent().stream()
+        Page<QuestionJpaEntity> result = jpaRepository.findAll(spec, pageRequest);
+        List<Question> content = result.getContent().stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
-
-        return PagedResult.<Question>builder()
-                .content(content)
-                .page(entityPage.getNumber())
-                .size(entityPage.getSize())
-                .totalElements(entityPage.getTotalElements())
-                .totalPages(entityPage.getTotalPages())
-                .build();
-    }
-
-    @Override
-    public void updateStatus(UUID questionId, QuestionStatus status) {
-        jpaRepository.findById(questionId).ifPresent(entity -> {
-            entity.setStatus(status);
-            entity.setUpdatedAt(Instant.now());
-            jpaRepository.save(entity);
-        });
+        return PagedResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
     }
 
     @Override
     public void deleteById(UUID questionId) {
         jpaRepository.deleteById(questionId);
+    }
+
+    static String escapeLike(String raw) {
+        return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

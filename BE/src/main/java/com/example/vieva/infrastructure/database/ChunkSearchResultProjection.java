@@ -8,5 +8,6 @@ public interface ChunkSearchResultProjection {
     String getDocumentName();
     Integer getChunkIndex();
     String getContent();
+    String getPageStart();
     Double getDistance();
 }

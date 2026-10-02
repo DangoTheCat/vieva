@@ -13,7 +13,9 @@ import java.util.UUID;
 @Repository
 public interface QuestionSourceJpaRepository extends JpaRepository<QuestionSourceJpaEntity, UUID> {
 
-    List<QuestionSourceJpaEntity> findByQuestionVersion_QuestionVersionId(UUID questionVersionId);
+    List<QuestionSourceJpaEntity> findByQuestionVersion_QuestionVersionIdOrderBySourceOrderAsc(UUID questionVersionId);
+
+    boolean existsByDocumentId(UUID documentId);
 
     List<QuestionSourceJpaEntity> findByQuestionVersion_QuestionVersionIdIn(Collection<UUID> questionVersionIds);
 

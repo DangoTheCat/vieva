@@ -25,6 +25,7 @@ public class CourseDocumentPresenter {
                 .indexingStatus(document.getIndexingStatus())
                 .errorMessage(document.getErrorMessage())
                 .totalChunks(document.getTotalChunks())
+                .indexAttempts(document.getIndexAttempts())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt())
                 .build();

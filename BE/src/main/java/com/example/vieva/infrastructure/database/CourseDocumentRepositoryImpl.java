@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,11 +53,13 @@ public class CourseDocumentRepositoryImpl implements CourseDocumentRepository {
     }
 
     @Override
-    public void softDelete(UUID documentId) {
-        jpaRepository.findById(documentId).ifPresent(entity -> {
-            entity.setDeletedAt(Instant.now());
-            jpaRepository.save(entity);
-        });
+    public List<CourseDocument> findAllByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findByDocumentIdInAndDeletedAtIsNull(ids).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

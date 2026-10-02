@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +17,8 @@ public interface CourseDocumentJpaRepository extends JpaRepository<CourseDocumen
     List<CourseDocumentJpaEntity> findBySubject_SubjectIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID subjectId);
 
     Optional<CourseDocumentJpaEntity> findByDocumentIdAndDeletedAtIsNull(UUID documentId);
+
+    List<CourseDocumentJpaEntity> findByDocumentIdInAndDeletedAtIsNull(Collection<UUID> documentIds);
 
     @Query("SELECT d FROM CourseDocumentJpaEntity d WHERE d.indexingStatus = com.example.vieva.domain.entities.DocumentIndexingStatus.INDEXING AND d.updatedAt < :threshold AND d.deletedAt IS NULL")
     List<CourseDocumentJpaEntity> findStaleIndexing(@Param("threshold") Instant threshold);

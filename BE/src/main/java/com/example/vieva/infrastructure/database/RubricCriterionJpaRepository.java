@@ -15,7 +15,7 @@ public interface RubricCriterionJpaRepository extends JpaRepository<RubricCriter
 
     List<RubricCriterionJpaEntity> findByRubric_RubricIdOrderByOrderIndexAsc(UUID rubricId);
 
-    List<RubricCriterionJpaEntity> findByRubric_RubricIdIn(Collection<UUID> rubricIds);
+    List<RubricCriterionJpaEntity> findByRubric_RubricIdInOrderByOrderIndexAsc(Collection<UUID> rubricIds);
 
     @Modifying
     @Query("DELETE FROM RubricCriterionJpaEntity c WHERE c.rubric.rubricId = :rubricId")

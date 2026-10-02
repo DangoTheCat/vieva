@@ -53,6 +53,9 @@ public class QuestionVersionJpaEntity implements Persistable<UUID> {
     @Column(name = "bloom_level", nullable = false, length = 20)
     private BloomLevel bloomLevel;
 
+    @Column(name = "bloom_confirmed", nullable = false)
+    private boolean bloomConfirmed;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "generation_mode", nullable = false, length = 20)
     private QuestionGenerationMode generationMode;
@@ -61,6 +64,15 @@ public class QuestionVersionJpaEntity implements Persistable<UUID> {
     @Builder.Default
     @Column(name = "approval_status", nullable = false, length = 20)
     private QuestionApprovalStatus approvalStatus = QuestionApprovalStatus.DRAFT;
+
+    @Column(name = "parent_version_id")
+    private UUID parentVersionId;
+
+    @Column(name = "generation_request_id")
+    private UUID generationRequestId;
+
+    @Column(name = "regeneration_count", nullable = false)
+    private int regenerationCount;
 
     @Column(name = "reviewed_by")
     private UUID reviewedBy;
@@ -78,16 +90,16 @@ public class QuestionVersionJpaEntity implements Persistable<UUID> {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     /**
-     * Optimistic locking — prevents lost updates when two reviewers approve/reject
-     * the same version concurrently.
+     * Optimistic locking — prevents lost updates when two reviewers edit/approve/reject
+     * the same version concurrently (BR-08).
      */
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
-
-    @OneToOne(mappedBy = "questionVersion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private RubricJpaEntity rubric;
 
     @Transient
     @Builder.Default
@@ -101,6 +113,14 @@ public class QuestionVersionJpaEntity implements Persistable<UUID> {
     @Override
     public boolean isNew() {
         return isNew || createdAt == null;
+    }
+
+    @PrePersist
+    @PreUpdate
+    void ensureUpdatedAt() {
+        if (updatedAt == null) {
+            updatedAt = Instant.now();
+        }
     }
 
     @PostLoad

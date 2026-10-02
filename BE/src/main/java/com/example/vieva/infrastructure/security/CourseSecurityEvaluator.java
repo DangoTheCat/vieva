@@ -2,23 +2,26 @@ package com.example.vieva.infrastructure.security;
 
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
+import com.example.vieva.application.ports.output.QuestionGenerationRequestRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.Question;
+import com.example.vieva.domain.entities.QuestionGenerationRequest;
 import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.entities.Topic;
 import com.example.vieva.domain.entities.User;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
 import java.util.UUID;
 
-@Slf4j
+/**
+ * HTTP-level course-scoped RBAC used from {@code @PreAuthorize} (BR-06). Every lookup resolves the
+ * owning subject and checks an active lecturer assignment; ADMIN has global access.
+ * Unknown resources return {@code true} so the use case can answer 404 instead of a misleading 403.
+ * Write use cases re-check inside their transaction ({@code SubjectAccessGuard}).
+ */
 @Component("courseSecurityEvaluator")
 @RequiredArgsConstructor
 public class CourseSecurityEvaluator {
@@ -27,94 +30,69 @@ public class CourseSecurityEvaluator {
     private final CourseDocumentRepository courseDocumentRepository;
     private final QuestionRepository questionRepository;
     private final QuestionVersionRepository questionVersionRepository;
-    private final TopicRepository topicRepository;
+    private final QuestionGenerationRequestRepository generationRequestRepository;
 
     public boolean canAccessSubject(UUID subjectId, Authentication authentication) {
-        if (subjectId == null || authentication == null || !authentication.isAuthenticated()) {
+        if (subjectId == null || !isAuthenticated(authentication)) {
             return false;
         }
-
-        // 1. ADMIN has global access
         if (isAdmin(authentication)) {
             return true;
         }
-
-        // 2. LECTURER must be actively assigned to the subject
         UUID userId = extractUserId(authentication);
-        if (userId == null) {
-            return false;
-        }
-
-        return lecturerSubjectRepository.isLecturerAssignedToSubject(userId, subjectId);
+        return userId != null && lecturerSubjectRepository.isLecturerAssignedToSubject(userId, subjectId);
     }
 
     public boolean canAccessDocument(UUID documentId, Authentication authentication) {
-        if (documentId == null || authentication == null || !authentication.isAuthenticated()) {
+        if (documentId == null || !isAuthenticated(authentication)) {
             return false;
         }
-
-        if (isAdmin(authentication)) {
-            return true;
-        }
-
-        Optional<CourseDocument> docOpt = courseDocumentRepository.findById(documentId);
-        if (docOpt.isEmpty()) {
-            return false;
-        }
-
-        return canAccessSubject(docOpt.get().getSubjectId(), authentication);
+        return courseDocumentRepository.findById(documentId)
+                .map(CourseDocument::getSubjectId)
+                .map(subjectId -> canAccessSubject(subjectId, authentication))
+                .orElse(true);
     }
 
     public boolean canAccessQuestion(UUID questionId, Authentication authentication) {
-        if (questionId == null || authentication == null || !authentication.isAuthenticated()) {
+        if (questionId == null || !isAuthenticated(authentication)) {
             return false;
         }
-
-        if (isAdmin(authentication)) {
-            return true;
-        }
-
-        Optional<Question> questionOpt = questionRepository.findById(questionId);
-        if (questionOpt.isEmpty()) {
-            return false;
-        }
-
-        UUID topicId = questionOpt.get().getTopicId();
-        if (topicId == null) {
-            return false;
-        }
-
-        Optional<Topic> topicOpt = topicRepository.findById(topicId);
-        if (topicOpt.isEmpty()) {
-            return false;
-        }
-
-        return canAccessSubject(topicOpt.get().getSubjectId(), authentication);
+        return questionRepository.findById(questionId)
+                .map(Question::getSubjectId)
+                .map(subjectId -> canAccessSubject(subjectId, authentication))
+                .orElse(true);
     }
 
     public boolean canAccessQuestionVersion(UUID versionId, Authentication authentication) {
-        if (versionId == null || authentication == null || !authentication.isAuthenticated()) {
+        if (versionId == null || !isAuthenticated(authentication)) {
             return false;
         }
-
-        if (isAdmin(authentication)) {
-            return true;
-        }
-
-        Optional<QuestionVersion> versionOpt = questionVersionRepository.findById(versionId);
-        if (versionOpt.isEmpty()) {
-            return false;
-        }
-
-        return canAccessQuestion(versionOpt.get().getQuestionId(), authentication);
+        return questionVersionRepository.findById(versionId)
+                .map(QuestionVersion::getQuestionId)
+                .map(questionId -> canAccessQuestion(questionId, authentication))
+                .orElse(true);
     }
 
-    private boolean isAdmin(Authentication authentication) {
+    public boolean canAccessGenerationRequest(UUID requestId, Authentication authentication) {
+        if (requestId == null || !isAuthenticated(authentication)) {
+            return false;
+        }
+        return generationRequestRepository.findById(requestId)
+                .map(QuestionGenerationRequest::getSubjectId)
+                .map(subjectId -> canAccessSubject(subjectId, authentication))
+                .orElse(true);
+    }
+
+    private static boolean isAuthenticated(Authentication authentication) {
+        return authentication != null && authentication.isAuthenticated();
+    }
+
+    private static boolean isAdmin(Authentication authentication) {
         return authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
-    private UUID extractUserId(Authentication authentication) {
+    private static UUID extractUserId(Authentication authentication) {
         if (authentication.getPrincipal() instanceof User user) {
             return user.getUserId();
         }

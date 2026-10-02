@@ -1,28 +1,23 @@
 package com.example.vieva.application.ports.output;
 
 import com.example.vieva.domain.entities.Question;
-import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.entities.Rubric;
-import com.example.vieva.domain.entities.RubricCriterion;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Data
+/**
+ * UC1.4 detail: the version in force, the pending draft (if any) and the full history.
+ *
+ * @param currentVersion approved version in force, {@code null} when never approved
+ * @param pendingDraft   DRAFT version awaiting review, {@code null} when none
+ * @param history        all versions, newest first
+ */
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class QuestionDetailView {
-    private Question question;
-    private QuestionVersion activeVersion;
-    private QuestionVersion draftVersion;
-    private boolean hasPendingDraft;
-    private Rubric rubric;
-    private List<RubricCriterion> criteria;
-    private List<QuestionSource> sources;
-    private List<QuestionVersion> versionHistory;
+public record QuestionDetailView(
+        Question question,
+        QuestionVersionView currentVersion,
+        QuestionVersion pendingDraft,
+        List<QuestionVersion> history
+) {
 }

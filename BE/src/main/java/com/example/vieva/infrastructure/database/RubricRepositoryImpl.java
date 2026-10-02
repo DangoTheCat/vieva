@@ -4,6 +4,7 @@ import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.domain.entities.Rubric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,32 +17,27 @@ import java.util.stream.Collectors;
 public class RubricRepositoryImpl implements RubricRepository {
 
     private final RubricJpaRepository jpaRepository;
+    private final QuestionVersionJpaRepository questionVersionJpaRepository;
     private final RubricPersistenceMapper mapper;
 
     @Override
+    @Transactional
     public Rubric save(Rubric rubric) {
-        RubricJpaEntity entity = mapper.toEntity(rubric);
-        RubricJpaEntity saved = jpaRepository.save(entity);
-        return mapper.toDomain(saved);
+        return mapper.toDomain(jpaRepository.save(toEntity(rubric)));
     }
 
     @Override
+    @Transactional
     public List<Rubric> saveAll(List<Rubric> rubrics) {
         if (rubrics == null || rubrics.isEmpty()) {
             return List.of();
         }
         List<RubricJpaEntity> entities = rubrics.stream()
-                .map(mapper::toEntity)
+                .map(this::toEntity)
                 .collect(Collectors.toList());
         return jpaRepository.saveAll(entities).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Optional<Rubric> findById(UUID rubricId) {
-        return jpaRepository.findById(rubricId)
-                .map(mapper::toDomain);
     }
 
     @Override
@@ -63,5 +59,14 @@ public class RubricRepositoryImpl implements RubricRepository {
     @Override
     public void deleteByQuestionVersionId(UUID questionVersionId) {
         jpaRepository.deleteByVersionId(questionVersionId);
+    }
+
+    /** The owning version is versioned (@Version): reference it instead of an id-only stub. */
+    private RubricJpaEntity toEntity(Rubric rubric) {
+        RubricJpaEntity entity = mapper.toEntity(rubric);
+        if (rubric.getQuestionVersionId() != null) {
+            entity.setQuestionVersion(questionVersionJpaRepository.getReferenceById(rubric.getQuestionVersionId()));
+        }
+        return entity;
     }
 }

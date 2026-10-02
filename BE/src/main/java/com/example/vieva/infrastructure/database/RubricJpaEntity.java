@@ -2,15 +2,12 @@ package com.example.vieva.infrastructure.database;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -49,11 +46,6 @@ public class RubricJpaEntity implements Persistable<UUID> {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    @OneToMany(mappedBy = "rubric", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @BatchSize(size = 50)
-    @Builder.Default
-    private List<RubricCriterionJpaEntity> criteria = new ArrayList<>();
 
     @Transient
     @Builder.Default
