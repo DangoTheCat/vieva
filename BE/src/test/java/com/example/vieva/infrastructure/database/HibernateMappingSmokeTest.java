@@ -21,6 +21,7 @@ class HibernateMappingSmokeTest {
             RoleJpaEntity.class,
             UserRoleJpaEntity.class,
             AuditEventJpaEntity.class,
+            AiRuleJpaEntity.class,
             CourseDocumentJpaEntity.class,
             DocumentChunkJpaEntity.class,
             LecturerSubjectJpaEntity.class,
@@ -30,7 +31,6 @@ class HibernateMappingSmokeTest {
             QuestionVersionJpaEntity.class,
             RubricCriterionJpaEntity.class,
             RubricJpaEntity.class,
-            SpeechConfigVersionJpaEntity.class,
             SubjectJpaEntity.class,
             TopicJpaEntity.class
     };

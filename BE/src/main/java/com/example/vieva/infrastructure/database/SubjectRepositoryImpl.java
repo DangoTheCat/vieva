@@ -4,6 +4,7 @@ import com.example.vieva.application.ports.input.SubjectSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.domain.entities.Subject;
+import com.example.vieva.domain.entities.SubjectStatus;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -62,6 +63,13 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     @Override
     public boolean existsBySubjectCode(String subjectCode) {
         return subjectJpaRepository.existsBySubjectCode(subjectCode);
+    }
+
+    @Override
+    public List<Subject> findAllByStatus(SubjectStatus status) {
+        return subjectJpaRepository.findByStatusOrderBySubjectCodeAsc(status).stream()
+                .map(subjectMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

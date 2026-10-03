@@ -108,6 +108,7 @@ class DocumentIndexingServiceImplTest {
             return inv.getArgument(0);
         });
         when(documentRepository.findById(any())).thenAnswer(inv -> Optional.ofNullable(stored.get()));
+        when(documentRepository.findByIdForUpdate(any())).thenAnswer(inv -> Optional.ofNullable(stored.get()));
     }
 
     private CourseDocument uploadedDocument() {

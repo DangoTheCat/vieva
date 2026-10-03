@@ -63,7 +63,8 @@ public enum ErrorCode {
     CRITERION_NOT_FOUND("1056", "Rubric criterion not found"),
     IMPORT_FILE_INVALID("1057", "Import file is invalid"),
     IMPORT_LIMIT_EXCEEDED("1058", "Import file exceeds the configured limits"),
-    SUBJECT_INACTIVE("1059", "Subject is not active");
+    SUBJECT_INACTIVE("1059", "Subject is not active"),
+    AI_RULE_NOT_FOUND("1060", "Active AI rule not found");
 
     private final String code;
     private final String message;

@@ -88,7 +88,7 @@ class QuestionImportServiceImplTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(Subject.builder().subjectId(subjectId).build()));
         when(topicRepository.findBySubjectId(subjectId)).thenReturn(List.of(
                 Topic.builder().topicId(UUID.randomUUID()).subjectId(subjectId).topicName("Giao dịch").orderIndex(1).build()));
-        when(topicRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(topicRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
     }
 
     private static byte[] csv(String body) {
@@ -120,7 +120,7 @@ class QuestionImportServiceImplTest {
                         org.assertj.core.groups.Tuple.tuple(5, "criterion_description", "Q3"),
                         org.assertj.core.groups.Tuple.tuple(5, "criterion_max_score", "Q3"));
         verify(versionRepository, never()).saveAll(anyList());
-        verify(topicRepository, never()).save(any());
+        verify(topicRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -144,7 +144,9 @@ class QuestionImportServiceImplTest {
         assertThat(rubrics.getValue()).extracting(r -> r.getTotalPoints().stripTrailingZeros().toPlainString())
                 .containsExactly("10", "2.5");
         // "giao dịch" matches the existing topic case-insensitively; "Chỉ mục" is created once.
-        verify(topicRepository, times(1)).save(any());
+        ArgumentCaptor<List<Topic>> topics = ArgumentCaptor.forClass(List.class);
+        verify(topicRepository, times(1)).saveAll(topics.capture());
+        assertThat(topics.getValue()).extracting(Topic::getTopicName).containsExactly("Chỉ mục");
         verify(auditEventRepository).save(any());
     }
 

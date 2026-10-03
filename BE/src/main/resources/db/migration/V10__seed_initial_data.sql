@@ -1,9 +1,12 @@
 -- ============================================================================
--- V9: Baseline seed data for development and evaluation testing
+-- V10: Baseline seed data for development and evaluation testing
 -- Creates default roles, administrator, lecturers, student, sample subjects,
 -- lecturer assignments, topics, course document with chunks, questions,
 -- rubrics, and criteria.
 -- ============================================================================
+
+-- crypt() / gen_salt() below need pgcrypto
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 1. Roles
 INSERT INTO roles (role_id, role_code, role_name, description) VALUES
@@ -54,7 +57,7 @@ ON CONFLICT (lecturer_subject_id) DO NOTHING;
 -- 6. Topics
 INSERT INTO topics (topic_id, subject_id, topic_name, order_index, description) VALUES
     ('e0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'Onion Architecture & Domain-Driven Design', 1, 'Cấu trúc phân tầng đồng tâm, phân lập Domain Core, Application Services và Adapter Infrastructure.'),
-    ('e0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000002', 'Microservices & Distributed Systems Pattern', 2, 'Giao dịch phân tán, Saga Pattern, Transactional Outbox Pattern và CQRS.'),
+    ('e0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001', 'Microservices & Distributed Systems Pattern', 2, 'Giao dịch phân tán, Saga Pattern, Transactional Outbox Pattern và CQRS.'),
     ('e0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000003', 'Real-time Protocols & WebSockets STOMP', 3, 'Giao thức truyền phát âm thanh hai chiều, STOMP frames, cơ chế Reconnect 60s và heartbeat.'),
     ('e0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', 'C# Language Fundamentals & OOP', 1, 'Kế thừa, đa hình, interface, abstract class, record types và pattern matching trong C#.'),
     ('e0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000002', 'LINQ & Entity Framework Core', 2, 'Kỹ thuật truy vấn dữ liệu với LINQ to Entities, tối ưu hóa IQueryable, AsNoTracking và Migration.'),
