@@ -44,6 +44,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
                                                    AuthRateLimitFilter authRateLimitFilter,
+                                                   AiRateLimitFilter aiRateLimitFilter,
                                                    ObjectMapper objectMapper) throws Exception {
         http
                 .cors(Customizer.withDefaults())
@@ -80,7 +81,8 @@ public class SecurityConfig {
                         })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(aiRateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

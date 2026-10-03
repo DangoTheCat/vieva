@@ -59,7 +59,8 @@ public class SubjectServiceImpl implements SubjectService {
 
         final Subject saved;
         try {
-            saved = subjectRepository.save(subject);
+            // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique index)
+            saved = subjectRepository.saveAndFlush(subject);
         } catch (DataIntegrityViolationException e) {
             // Concurrent creation with the same code won the race (unique index)
             throw new AppException(ErrorCode.SUBJECT_CODE_EXISTED);

@@ -39,6 +39,24 @@ public class TopicRepositoryImpl implements TopicRepository {
     }
 
     @Override
+    public Topic saveAndFlush(Topic topic) {
+        return mapper.toDomain(jpaRepository.saveAndFlush(mapper.toEntity(topic)));
+    }
+
+    @Override
+    public List<Topic> saveAllAndFlush(List<Topic> topics) {
+        if (topics == null || topics.isEmpty()) {
+            return List.of();
+        }
+        List<TopicJpaEntity> entities = topics.stream()
+                .map(mapper::toEntity)
+                .collect(Collectors.toList());
+        return jpaRepository.saveAllAndFlush(entities).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<Topic> findById(UUID topicId) {
         return jpaRepository.findById(topicId)
                 .map(mapper::toDomain);
@@ -57,6 +75,16 @@ public class TopicRepositoryImpl implements TopicRepository {
     @Override
     public List<Topic> findBySubjectId(UUID subjectId) {
         return jpaRepository.findBySubject_SubjectIdOrderByOrderIndexAsc(subjectId).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Topic> findBySubjectIds(Collection<UUID> subjectIds) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findBySubject_SubjectIdIn(subjectIds).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
