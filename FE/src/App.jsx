@@ -5,6 +5,8 @@ import { Sidebar } from './components/common/Sidebar';
 import { Toast } from './components/common/Toast';
 import { VoiceWaveform } from './components/common/VoiceWaveform';
 import { AdminUserPage } from './pages/AdminUserPage';
+import { AdminSubjectPage } from './pages/AdminSubjectPage';
+import { LecturerQuestionBankPage } from './pages/LecturerQuestionBankPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfileModal } from './components/profile/ProfileModal';
@@ -44,20 +46,19 @@ function AppContent() {
     );
   }
 
-  // Standalone Auth Screens (No Admin Navbar/Sidebar)
-  if (currentView === 'login') {
+  // Require authentication: if not logged in, present login or register screen
+  if (!currentUser) {
+    if (currentView === 'register') {
+      return (
+        <>
+          <RegisterPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
+          <Toast toast={toast} onClose={() => setToast(null)} />
+        </>
+      );
+    }
     return (
       <>
         <LoginPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
-        <Toast toast={toast} onClose={() => setToast(null)} />
-      </>
-    );
-  }
-
-  if (currentView === 'register') {
-    return (
-      <>
-        <RegisterPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
         <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
@@ -90,6 +91,18 @@ function AppContent() {
           {currentView === 'admin-users' && (
             <AdminUserPage
               onOpenMatrix={() => setIsMatrixOpen(true)}
+              showToast={showToast}
+            />
+          )}
+
+          {currentView === 'admin-subjects' && (
+            <AdminSubjectPage
+              showToast={showToast}
+            />
+          )}
+
+          {currentView === 'lecturer-questions' && (
+            <LecturerQuestionBankPage
               showToast={showToast}
             />
           )}
