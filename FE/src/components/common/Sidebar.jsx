@@ -48,7 +48,33 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
             }`}
           >
             <Users className="w-4 h-4 text-sky-400" />
-            <span>Phân Quyền RBAC</span>
+            <span>Phân Quyền Người Dùng</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('admin-subjects')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+              currentTab === 'admin-subjects'
+                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
+                : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-sky-400" />
+            <span>Quản Lý Môn Học</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('lecturer-questions')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+              currentTab === 'lecturer-questions'
+                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
+                : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
+            }`}
+          >
+            <Database className="w-4 h-4 text-emerald-400" />
+            <span>Ngân Hàng Câu Hỏi &amp; RAG</span>
           </button>
 
           <button
@@ -77,41 +103,6 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
             <span>Voice &amp; Speech Lab</span>
           </button>
         </nav>
-
-        {/* Fast Role Simulator (For testing RBAC in Demo Mode) */}
-        {isDemoMode && (
-          <div className="pt-4 border-t border-slate-800 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">Giả Lập Vai Trò</span>
-              <span className="text-amber-400 font-mono text-[10px]">Demo Switch</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-              <button
-                type="button"
-                onClick={() => setDemoRole('ROLE_ADMIN')}
-                className={`py-1.5 px-2 rounded-xl text-center font-bold border transition ${
-                  currentUser?.roles?.includes('ROLE_ADMIN')
-                    ? 'bg-purple-900/40 text-purple-300 border-purple-500/50 shadow-xs'
-                    : 'bg-slate-800/60 text-slate-400 border-slate-700 hover:text-white'
-                }`}
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoRole('ROLE_USER')}
-                className={`py-1.5 px-2 rounded-xl text-center font-bold border transition ${
-                  !currentUser?.roles?.includes('ROLE_ADMIN')
-                    ? 'bg-sky-900/40 text-sky-300 border-sky-500/50 shadow-xs'
-                    : 'bg-slate-800/60 text-slate-400 border-slate-700 hover:text-white'
-                }`}
-              >
-                Standard User
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
     </aside>
