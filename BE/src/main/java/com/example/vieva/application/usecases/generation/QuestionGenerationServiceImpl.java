@@ -77,6 +77,11 @@ import java.util.stream.Collectors;
 public class QuestionGenerationServiceImpl implements QuestionGenerationService {
 
     private static final int MAX_ISSUES = 50;
+    /**
+     * Upper bound for LLM-returned candidates validated per attempt: the model controls
+     * the list size, so an unbounded response must not drive unbounded O(C×E) validation.
+     */
+    private static final int MAX_CANDIDATES_PER_ATTEMPT = 200;
 
     private final QuestionGenerationRequestRepository generationRequestRepository;
     private final QuestionVersionRepository questionVersionRepository;
@@ -376,6 +381,13 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                 feedback);
     }
 
+    private static Set<BloomLevel> computeStillNeeded(Map<BloomLevel, Integer> missing) {
+        return missing.entrySet().stream()
+                .filter(e -> e.getValue() > 0)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
     private GenerationResult runAndPersist(QuestionGenerationRequest request, Context context,
                                            BloomDistribution wanted, UUID actorId) {
         List<String> existing = questionVersionRepository.findActiveContentsBySubject(request.getSubjectId());
@@ -423,12 +435,16 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                 continue;
             }
             int index = 0;
+            Set<BloomLevel> stillNeeded = computeStillNeeded(missing);
             for (GeneratedQuestionCandidate candidate : candidates) {
+                if (index >= MAX_CANDIDATES_PER_ATTEMPT) {
+                    issues.add("Attempt " + attempt + ": candidate list truncated at " + MAX_CANDIDATES_PER_ATTEMPT);
+                    break;
+                }
+                if (stillNeeded.isEmpty()) {
+                    break;
+                }
                 index++;
-                Set<BloomLevel> stillNeeded = missing.entrySet().stream()
-                        .filter(e -> e.getValue() > 0)
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toSet());
                 Outcome result = GeneratedQuestionValidator.validate(candidate, context.byRef(), stillNeeded,
                         existingTokens, settings.getDuplicateThreshold());
                 if (result.valid()) {
@@ -436,6 +452,7 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                     accepted.add(question);
                     missing.merge(question.bloomLevel(), -1, Integer::sum);
                     existingTokens.add(QuestionSimilarity.tokens(question.content()));
+                    stillNeeded = computeStillNeeded(missing);
                 } else {
                     rejected++;
                     issues.add("Attempt " + attempt + ", item " + index + ": " + String.join("; ", result.reasons()));

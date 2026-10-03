@@ -1,9 +1,11 @@
 package com.example.vieva.infrastructure.database;
 
+import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -24,6 +26,7 @@ public interface CourseDocumentJpaRepository extends JpaRepository<CourseDocumen
 
     /** Row write-lock used by the async indexing worker to claim a document exactly once. */
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "5000"))
     @Query("SELECT d FROM CourseDocumentJpaEntity d WHERE d.documentId = :documentId AND d.deletedAt IS NULL")
     Optional<CourseDocumentJpaEntity> lockById(@Param("documentId") UUID documentId);
 

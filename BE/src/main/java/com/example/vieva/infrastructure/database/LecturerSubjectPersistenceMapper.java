@@ -32,8 +32,11 @@ public class LecturerSubjectPersistenceMapper {
             return null;
         }
 
+        // Reference (proxy, no SELECT) instead of findById: the subject was validated
+        // upstream, and this mapper runs inside saveAll loops where per-row SELECTs
+        // would turn the batch into N+1 (Rule 4).
         SubjectJpaEntity subjectEntity = domain.getSubjectId() != null
-                ? subjectJpaRepository.findById(domain.getSubjectId()).orElse(null)
+                ? subjectJpaRepository.getReferenceById(domain.getSubjectId())
                 : null;
 
         return LecturerSubjectJpaEntity.builder()
