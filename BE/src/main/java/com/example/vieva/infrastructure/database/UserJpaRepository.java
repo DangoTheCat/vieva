@@ -1,7 +1,5 @@
 package com.example.vieva.infrastructure.database;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -10,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +19,9 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID>, J
     // findById is inherited — @SQLRestriction filters deleted users automatically
     @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
     Optional<UserJpaEntity> findById(UUID id);
+
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    List<UserJpaEntity> findByUserIdIn(Collection<UUID> userIds);
 
     @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
     Optional<UserJpaEntity> findByEmail(String email);

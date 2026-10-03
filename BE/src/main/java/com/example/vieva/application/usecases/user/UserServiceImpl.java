@@ -24,13 +24,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> getById(UUID userId) {
-        return userRepository.findById(userId);
+        return userRepository.findById(userId)
+                .filter(u -> !u.isDeleted());
     }
 
     @Override
     @Transactional
     public User updateProfile(UUID userId, UpdateProfileRequest request) {
-        User user = userRepository.findById(userId)
+        User user = getById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (request.getFullName() != null) {
@@ -53,7 +54,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void changePassword(UUID userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
+        User user = getById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {

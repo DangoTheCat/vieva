@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { adminUserApi } from '../api/adminUserApi';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorCodes';
-import { INITIAL_MOCK_USERS } from '../utils/mockData';
 import { UserTable } from '../components/users/UserTable';
 import { UserFilterBar } from '../components/users/UserFilterBar';
 import { CreateUserModal } from '../components/users/CreateUserModal';
@@ -62,52 +61,6 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     setIsLoading(true);
     setFetchError('');
     try {
-      if (isDemoMode) {
-        // Filter mock users locally in demo mode
-        let filtered = [...INITIAL_MOCK_USERS];
-        if (keyword.trim()) {
-          const kw = keyword.toLowerCase();
-          filtered = filtered.filter(u =>
-            (u.fullName && u.fullName.toLowerCase().includes(kw)) ||
-            (u.email && u.email.toLowerCase().includes(kw)) ||
-            (u.userCode && u.userCode.toLowerCase().includes(kw))
-          );
-        }
-        if (role) {
-          filtered = filtered.filter(u => u.roles?.includes(role));
-        }
-        if (status) {
-          filtered = filtered.filter(u => u.status === status);
-        }
-        // Sorting
-        filtered.sort((a, b) => {
-          let valA = a[sortBy] || '';
-          let valB = b[sortBy] || '';
-          if (sortDirection === 'ASC') {
-            return valA > valB ? 1 : -1;
-          } else {
-            return valA < valB ? 1 : -1;
-          }
-        });
-
-        const total = filtered.length;
-        const totalPages = Math.max(1, Math.ceil(total / size));
-        const paged = filtered.slice(page * size, (page + 1) * size);
-
-        setUsers(paged);
-        setPageData({
-          page,
-          size,
-          totalElements: total,
-          totalPages,
-          isFirst: page === 0,
-          isLast: page >= totalPages - 1
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Live Backend fetch
       const result = await adminUserApi.getUsers({
         keyword: keyword.trim() || undefined,
         role: role || undefined,
@@ -120,12 +73,12 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
 
       setUsers(result.content || []);
       setPageData({
-        page: result.page,
-        size: result.size,
-        totalElements: result.totalElements,
-        totalPages: result.totalPages,
-        isFirst: result.isFirst,
-        isLast: result.isLast
+        page: result.page || 0,
+        size: result.size || size,
+        totalElements: result.totalElements || 0,
+        totalPages: result.totalPages || 1,
+        isFirst: result.isFirst ?? (page === 0),
+        isLast: result.isLast ?? true
       });
       setReconnectCountdown(60);
     } catch (err) {
@@ -134,7 +87,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
       setUsers([]);
       setPageData({
         page: 0,
-        size: 10,
+        size,
         totalElements: 0,
         totalPages: 1,
         isFirst: true,
@@ -143,7 +96,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     } finally {
       setIsLoading(false);
     }
-  }, [keyword, role, status, page, size, sortBy, sortDirection, isDemoMode]);
+  }, [keyword, role, status, page, size, sortBy, sortDirection]);
 
   // Debounced fetch on filter/search change
   useEffect(() => {

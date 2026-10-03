@@ -19,4 +19,6 @@ public interface AdminUserService {
     User updateUser(UUID targetUserId, UpdateUserByAdminRequest request, UUID currentAdminId);
 
     void deleteUser(UUID targetUserId, UUID currentAdminId);
+
+    void resetPassword(UUID targetUserId, String newPassword, UUID currentAdminId);
 }

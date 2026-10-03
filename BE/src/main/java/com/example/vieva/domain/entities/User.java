@@ -61,9 +61,29 @@ public class User {
         return hasRole("ROLE_ADMIN") || hasRole("ADMIN");
     }
 
+    public boolean isLecturer() {
+        return hasRole("ROLE_LECTURER") || hasRole("LECTURER");
+    }
+
+    public boolean isStudent() {
+        return hasRole("ROLE_STUDENT") || hasRole("STUDENT");
+    }
+
     public void clearRoles() {
         if (userRoles != null) {
             userRoles.clear();
         }
+    }
+
+    public void delete() {
+        this.status = UserStatus.DELETED;
+        this.deletedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public void updatePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.passwordChangedAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 }
