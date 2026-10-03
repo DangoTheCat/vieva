@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../api/authApi';
 import { userApi } from '../api/userApi';
 import { apiClient } from '../api/client';
-import { INITIAL_MOCK_USERS } from '../utils/mockData';
 
 const AuthContext = createContext(null);
 
@@ -36,13 +35,9 @@ export function AuthProvider({ children }) {
           }
         }
       } else {
-        // If not logged in, set default initial admin for instant UX exploration
-        if (!currentUser) {
-          const defaultAdmin = INITIAL_MOCK_USERS[0];
-          setCurrentUser(defaultAdmin);
-          localStorage.setItem('aives_user', JSON.stringify(defaultAdmin));
-          setIsDemoMode(true);
-        }
+        // If not logged in, ensure currentUser is null so LoginPage is presented
+        setCurrentUser(null);
+        localStorage.removeItem('aives_user');
       }
       setIsLoading(false);
     }
@@ -58,24 +53,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   const handleLogin = async (credentials) => {
-    if (isDemoMode) {
-      // Demo login
-      const matched = INITIAL_MOCK_USERS.find(u => u.email.toLowerCase() === credentials.email.toLowerCase()) || {
-        userId: '11111111-1111-1111-1111-111111111111',
-        email: credentials.email,
-        userCode: 'USR-DEMO',
-        fullName: credentials.email.split('@')[0],
-        phoneNumber: '0901234567',
-        status: 'ACTIVE',
-        roles: credentials.email.includes('admin') ? ['ROLE_ADMIN'] : ['ROLE_USER'],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      setCurrentUser(matched);
-      localStorage.setItem('aives_user', JSON.stringify(matched));
-      return { user: matched, accessToken: 'demo-jwt-token' };
-    }
-
     const data = await authApi.login(credentials);
     setToken(data.accessToken);
     setCurrentUser(data.user);
@@ -86,23 +63,6 @@ export function AuthProvider({ children }) {
   };
 
   const handleRegister = async (payload) => {
-    if (isDemoMode) {
-      const newUser = {
-        userId: crypto.randomUUID ? crypto.randomUUID() : 'demo-' + Date.now(),
-        email: payload.email,
-        userCode: 'USR-' + Math.floor(100000 + Math.random() * 900000),
-        fullName: payload.fullName,
-        phoneNumber: payload.phoneNumber,
-        status: 'ACTIVE',
-        roles: ['ROLE_USER'],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      setCurrentUser(newUser);
-      localStorage.setItem('aives_user', JSON.stringify(newUser));
-      return { user: newUser, accessToken: 'demo-jwt-token' };
-    }
-
     const data = await authApi.register(payload);
     setToken(data.accessToken);
     setCurrentUser(data.user);
@@ -120,7 +80,7 @@ export function AuthProvider({ children }) {
   };
 
   const refreshProfile = async () => {
-    if (isDemoMode || !token) return;
+    if (!token) return;
     try {
       const updated = await userApi.getCurrentUser();
       setCurrentUser(updated);
@@ -131,13 +91,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const setDemoRole = (role) => {
-    setIsDemoMode(true);
-    let target = INITIAL_MOCK_USERS.find(u => u.roles.includes(role));
-    if (!target) target = INITIAL_MOCK_USERS[0];
-    setCurrentUser(target);
-    localStorage.setItem('aives_user', JSON.stringify(target));
-  };
+  const setDemoRole = () => {};
 
   const isAdmin = currentUser?.roles?.some(r => r === 'ROLE_ADMIN' || r === 'ADMIN') ?? false;
 

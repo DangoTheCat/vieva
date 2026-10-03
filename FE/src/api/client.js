@@ -38,8 +38,10 @@ class ApiClient {
       });
     }
 
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
     const headers = {
-      'Content-Type': 'application/json',
+      ...(!isFormData && { 'Content-Type': 'application/json' }),
       ...options.headers,
     };
 
@@ -54,8 +56,10 @@ class ApiClient {
       ...options,
     };
 
-    if (options.body && typeof options.body === 'object') {
+    if (options.body && typeof options.body === 'object' && !isFormData) {
       config.body = JSON.stringify(options.body);
+    } else if (isFormData) {
+      config.body = options.body;
     }
 
     try {
@@ -63,6 +67,13 @@ class ApiClient {
 
       if (response.status === 204) {
         return null;
+      }
+
+      if (options.responseType === 'blob') {
+        if (!response.ok) {
+          throw new ApiError('Tải tệp tin thất bại', `${response.status}`, response.status, null);
+        }
+        return await response.blob();
       }
 
       const contentType = response.headers.get('content-type');
@@ -103,20 +114,24 @@ class ApiClient {
     return this.request(endpoint, { method: 'GET', params });
   }
 
-  post(endpoint, body = {}) {
-    return this.request(endpoint, { method: 'POST', body });
+  getBlob(endpoint, params = {}) {
+    return this.request(endpoint, { method: 'GET', params, responseType: 'blob' });
   }
 
-  put(endpoint, body = {}) {
-    return this.request(endpoint, { method: 'PUT', body });
+  post(endpoint, body = {}, options = {}) {
+    return this.request(endpoint, { method: 'POST', body, ...options });
   }
 
-  patch(endpoint, body = {}) {
-    return this.request(endpoint, { method: 'PATCH', body });
+  put(endpoint, body = {}, options = {}) {
+    return this.request(endpoint, { method: 'PUT', body, ...options });
   }
 
-  delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
+  patch(endpoint, body = {}, options = {}) {
+    return this.request(endpoint, { method: 'PATCH', body, ...options });
+  }
+
+  delete(endpoint, options = {}) {
+    return this.request(endpoint, { method: 'DELETE', ...options });
   }
 }
 
