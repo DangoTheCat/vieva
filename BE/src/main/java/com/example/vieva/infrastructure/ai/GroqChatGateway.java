@@ -44,6 +44,11 @@ public class GroqChatGateway implements AiChatPort {
     private final int maxRetries;
     private final Duration baseBackoff;
 
+    /** Upper bound for retries; also keeps the exponential backoff shift (1L << attempt) in range. */
+    private static final int MAX_RETRIES_CAP = 10;
+    /** Caps the backoff multiplier so a misconfigured retry count cannot overflow the sleep duration. */
+    private static final int MAX_BACKOFF_SHIFT = 10;
+
     @Autowired
     public GroqChatGateway(
             RestClient.Builder restClientBuilder,
@@ -56,6 +61,10 @@ public class GroqChatGateway implements AiChatPort {
     }
 
     GroqChatGateway(RestClient restClient, String model, int maxRetries, Duration baseBackoff) {
+        if (maxRetries < 0 || maxRetries > MAX_RETRIES_CAP) {
+            throw new IllegalStateException(
+                    "vieva.ai.groq.max-retries must be between 0 and " + MAX_RETRIES_CAP);
+        }
         this.restClient = restClient;
         this.model = model;
         this.maxRetries = maxRetries;
@@ -107,7 +116,7 @@ public class GroqChatGateway implements AiChatPort {
                 log.warn("Groq call failed: {}", e.getClass().getSimpleName());
                 throw new AiServiceException("LLM provider call failed", e);
             }
-            sleep(baseBackoff.multipliedBy(1L << attempt));
+            sleep(baseBackoff.multipliedBy(1L << Math.min(attempt, MAX_BACKOFF_SHIFT)));
         }
     }
 
