@@ -287,7 +287,8 @@ public class QuestionImportServiceImpl implements QuestionImportService {
             return;
         }
         try {
-            topicRepository.saveAll(toCreate);
+            // Flush forces the INSERTs now so a concurrent duplicate surfaces here (unique index)
+            topicRepository.saveAllAndFlush(toCreate);
         } catch (DataIntegrityViolationException e) {
             Map<String, Topic> fresh = topicRepository.findBySubjectId(subjectId).stream()
                     .filter(topic -> topic.getTopicName() != null)
@@ -297,7 +298,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
                     .filter(topic -> !fresh.containsKey(key(topic.getTopicName())))
                     .collect(Collectors.toList());
             if (!retry.isEmpty()) {
-                topicRepository.saveAll(retry);
+                topicRepository.saveAllAndFlush(retry);
             }
         }
     }

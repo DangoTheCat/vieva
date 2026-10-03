@@ -76,7 +76,8 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
                 .orElse(0) + 1;
         Topic topic;
         try {
-            topic = topicRepository.save(Topic.builder()
+            // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique index)
+            topic = topicRepository.saveAndFlush(Topic.builder()
                     .topicId(UUID.randomUUID())
                     .subjectId(subjectId)
                     .topicName(trimmed)
