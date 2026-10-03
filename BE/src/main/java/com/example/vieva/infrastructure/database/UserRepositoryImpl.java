@@ -154,4 +154,10 @@ public class UserRepositoryImpl implements UserRepository {
     public User save(User user) {
         return userMapper.toDomain(userJpaRepository.save(userMapper.toEntity(user)));
     }
+
+    @Override
+    @Transactional
+    public User saveAndFlush(User user) {
+        return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
+    }
 }

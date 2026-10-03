@@ -19,4 +19,9 @@ public interface UserRepository {
     boolean existsByEmail(String email);
     boolean existsByUserCode(String userCode);
     User save(User user);
+    /**
+     * Forces SQL execution inside the call, so unique-index violations surface here
+     * instead of at transaction commit (concurrent-registration handling).
+     */
+    User saveAndFlush(User user);
 }

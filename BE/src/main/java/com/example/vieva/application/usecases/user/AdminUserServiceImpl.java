@@ -103,7 +103,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         final User savedUser;
         try {
-            savedUser = userRepository.save(user);
+            // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique indexes)
+            savedUser = userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             // Concurrent creation with the same email/userCode won the race (unique indexes)
             throw new AppException(ErrorCode.USER_EXISTED);
