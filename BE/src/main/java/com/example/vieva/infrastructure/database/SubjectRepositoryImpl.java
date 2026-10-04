@@ -39,6 +39,14 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
+    @Transactional
+    public Subject saveAndFlush(Subject subject) {
+        SubjectJpaEntity entity = subjectMapper.toEntity(subject);
+        SubjectJpaEntity saved = subjectJpaRepository.saveAndFlush(entity);
+        return subjectMapper.toDomain(saved);
+    }
+
+    @Override
     public Optional<Subject> findById(UUID subjectId) {
         return subjectJpaRepository.findById(subjectId)
                 .map(subjectMapper::toDomain);

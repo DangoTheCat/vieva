@@ -11,6 +11,11 @@ import java.util.UUID;
 
 public interface SubjectRepository {
     Subject save(Subject subject);
+    /**
+     * Forces SQL execution inside the call, so unique-index violations surface here
+     * instead of at transaction commit (concurrent-creation handling).
+     */
+    Subject saveAndFlush(Subject subject);
     Optional<Subject> findById(UUID subjectId);
     List<Subject> findAllByIds(Collection<UUID> subjectIds);
     Optional<Subject> findBySubjectCode(String subjectCode);

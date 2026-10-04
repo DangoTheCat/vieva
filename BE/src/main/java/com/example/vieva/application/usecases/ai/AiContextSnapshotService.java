@@ -12,8 +12,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Builds the academic context block injected at the top of AI system prompts: active subjects with
@@ -63,8 +67,16 @@ public class AiContextSnapshotService {
         if (subjects.isEmpty()) {
             sb.append("- Chưa có môn học nào đang mở.\n");
         }
+        // One batched topic lookup for all subjects instead of one query per subject (Rule 4: N+1).
+        List<UUID> subjectIds = new ArrayList<>(subjects.size());
         for (Subject subject : subjects) {
-            appendSubject(sb, subject, topicRepository.findBySubjectId(subject.getSubjectId()));
+            subjectIds.add(subject.getSubjectId());
+        }
+        Map<UUID, List<Topic>> topicsBySubject = topicRepository.findBySubjectIds(subjectIds).stream()
+                .collect(Collectors.groupingBy(Topic::getSubjectId));
+        for (Subject subject : subjects) {
+            List<Topic> topics = topicsBySubject.getOrDefault(subject.getSubjectId(), List.of());
+            appendSubject(sb, subject, topics);
         }
 
         for (AiRule rule : aiRuleRepository.findActiveByType(AiRuleType.CONTEXT_FILTER)) {

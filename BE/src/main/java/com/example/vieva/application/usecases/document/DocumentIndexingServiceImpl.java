@@ -219,10 +219,33 @@ public class DocumentIndexingServiceImpl implements DocumentIndexingService {
             auditor.record(null, "DOCUMENT_INDEX_FAILED", QuestionBankAuditor.DOCUMENT, doc.getDocumentId(),
                     Map.of("reason", doc.getErrorMessage()));
         }
+        // Re-read statuses: skip documents that concurrently reached READY (or were deleted)
+        // after our read, so saveAll cannot overwrite fresh progress (Rule 5).
+        List<CourseDocument> fresh = courseDocumentRepository.findAllByIds(staleIds);
+        List<CourseDocument> toFail = new ArrayList<>(stale.size());
+        for (CourseDocument doc : stale) {
+            boolean stillStale = false;
+            for (CourseDocument current : fresh) {
+                if (current.getDocumentId().equals(doc.getDocumentId())
+                        && current.getIndexingStatus() != DocumentIndexingStatus.READY) {
+                    stillStale = true;
+                    break;
+                }
+            }
+            if (stillStale) {
+                toFail.add(doc);
+            } else {
+                log.info("Skip failing stale document {}: concurrently progressed or deleted", doc.getDocumentId());
+            }
+        }
         // One batched DELETE instead of one per stale document (Rule 4).
-        documentChunkRepository.deleteByDocumentIds(staleIds);
-        courseDocumentRepository.saveAll(stale);
-        return stale.size();
+        List<UUID> toFailIds = new ArrayList<>(toFail.size());
+        for (CourseDocument doc : toFail) {
+            toFailIds.add(doc.getDocumentId());
+        }
+        documentChunkRepository.deleteByDocumentIds(toFailIds);
+        courseDocumentRepository.saveAll(toFail);
+        return toFail.size();
     }
 
     private void markIndexingFailed(UUID documentId, String reason) {

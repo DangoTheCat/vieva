@@ -66,7 +66,8 @@ public class AuthServiceImpl implements AuthService {
 
         final User savedUser;
         try {
-            savedUser = userRepository.save(user);
+            // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique index)
+            savedUser = userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             // Concurrent registration with the same email won the race (unique index)
             throw new AppException(ErrorCode.USER_EXISTED);
