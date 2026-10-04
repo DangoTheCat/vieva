@@ -75,11 +75,12 @@ public class GroqChatGateway implements AiChatPort {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("vieva.ai.groq.api-key (GROQ_API_KEY) is required when vieva.ai.chat.provider=groq");
         }
+        String cleanBaseUrl = baseUrl != null ? baseUrl.strip().replaceAll("/chat/completions/?$", "").replaceAll("/+$", "") : "";
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(timeout);
         requestFactory.setReadTimeout(timeout);
         return builder
-                .baseUrl(baseUrl)
+                .baseUrl(cleanBaseUrl)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .requestFactory(requestFactory)
                 .build();
