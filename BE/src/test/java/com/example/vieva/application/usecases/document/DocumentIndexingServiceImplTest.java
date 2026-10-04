@@ -277,6 +277,7 @@ class DocumentIndexingServiceImplTest {
         indexing.startIndexing();
         when(documentRepository.findStaleIndexingDocuments(any())).thenReturn(new ArrayList<>(List.of(indexing)));
         when(documentRepository.findStaleUploadedDocuments(any())).thenReturn(List.of());
+        when(documentRepository.findAllByIds(any())).thenReturn(List.of(indexing));
         assertThat(service.failStaleDocuments(java.time.Instant.now(), java.time.Instant.now())).isEqualTo(1);
         assertThat(indexing.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.FAILED);
     }
