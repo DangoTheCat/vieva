@@ -421,7 +421,7 @@ export function AdminSubjectPage({ showToast }) {
       {/* CREATE / EDIT SUBJECT MODAL */}
       {isEditModalOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in"
           role="dialog"
         >
           <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-modal-entry flex flex-col">
@@ -536,7 +536,7 @@ export function AdminSubjectPage({ showToast }) {
       {/* ASSIGN LECTURERS MODAL */}
       {isAssignModalOpen && activeSubjectForAssign && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in"
           role="dialog"
         >
           <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-modal-entry flex flex-col">

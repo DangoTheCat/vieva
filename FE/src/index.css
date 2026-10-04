@@ -33,6 +33,17 @@
   background-size: 20px 20px;
 }
 
+/* Tech Navy Grid Mesh Background (Matching AIVES Exam Portal reference image) */
+.dark-tech-grid {
+  background-color: #081026;
+  background-image:
+    radial-gradient(circle at 20% 25%, rgba(14, 165, 233, 0.28) 0%, transparent 50%),
+    radial-gradient(circle at 80% 60%, rgba(37, 99, 235, 0.24) 0%, transparent 55%),
+    linear-gradient(to right, rgba(14, 165, 233, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14, 165, 233, 0.16) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+}
+
 /* Custom Academic Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
