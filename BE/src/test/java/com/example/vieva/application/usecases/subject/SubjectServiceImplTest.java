@@ -72,14 +72,14 @@ class SubjectServiceImplTest {
                 .build();
 
         when(subjectRepository.existsBySubjectCode("SWD392")).thenReturn(false);
-        when(subjectRepository.save(any(Subject.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subjectRepository.saveAndFlush(any(Subject.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Subject result = subjectService.createSubject(request, adminId);
 
         assertThat(result).isNotNull();
         assertThat(result.getSubjectCode()).isEqualTo("SWD392");
         assertThat(result.getSubjectName()).isEqualTo("Software Architecture & Design");
-        verify(subjectRepository).save(any(Subject.class));
+        verify(subjectRepository).saveAndFlush(any(Subject.class));
         verify(auditEventRepository).save(any());
     }
 

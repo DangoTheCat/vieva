@@ -145,7 +145,7 @@ class QuestionImportServiceImplTest {
                 .containsExactly("10", "2.5");
         // "giao dịch" matches the existing topic case-insensitively; "Chỉ mục" is created once.
         ArgumentCaptor<List<Topic>> topics = ArgumentCaptor.forClass(List.class);
-        verify(topicRepository, times(1)).saveAll(topics.capture());
+        verify(topicRepository, times(1)).saveAllAndFlush(topics.capture());
         assertThat(topics.getValue()).extracting(Topic::getTopicName).containsExactly("Chỉ mục");
         verify(auditEventRepository).save(any());
     }

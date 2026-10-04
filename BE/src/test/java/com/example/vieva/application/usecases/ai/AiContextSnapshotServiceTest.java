@@ -37,8 +37,8 @@ class AiContextSnapshotServiceTest {
         when(subjectRepository.findAllByStatus(SubjectStatus.ACTIVE)).thenReturn(List.of(Subject.builder()
                 .subjectId(subjectId).subjectCode("SWD392").subjectName("Kiến trúc phần mềm")
                 .description("Clean Architecture").credits(3).build()));
-        when(topicRepository.findBySubjectId(subjectId)).thenReturn(List.of(
-                Topic.builder().topicName("Onion Architecture").description("Phân tầng đồng tâm").build()));
+        when(topicRepository.findBySubjectIds(List.of(subjectId))).thenReturn(List.of(
+                Topic.builder().subjectId(subjectId).topicName("Onion Architecture").description("Phân tầng đồng tâm").build()));
         when(aiRuleRepository.findActiveByType(AiRuleType.CONTEXT_FILTER)).thenReturn(List.of(
                 AiRule.builder().ruleCode("EXAM_REGULATIONS").promptContent("Cửa sổ cứu vớt mất mạng: 60 giây").build()));
     }
