@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  ShieldCheck, 
-  UserPlus, 
-  User, 
-  Key, 
-  LogOut, 
-  ChevronDown, 
+import {
+  ShieldCheck,
+  UserPlus,
+  User,
+  Key,
+  LogOut,
+  ChevronDown,
   Mic2,
   Table2,
   Bot
@@ -16,6 +16,7 @@ import { VoiceWaveform } from './VoiceWaveform';
 export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssistant, onNavigate, currentTab }) {
   const { currentUser, logout, isDemoMode, setIsDemoMode, isLiveBackendReachable, isAdmin, isLecturer } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isTroubleshootOpen, setIsTroubleshootOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -49,61 +50,165 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
       .toUpperCase();
   };
 
+  // If on calibration view, render the AIVES Calibration Wizard Header (Placed AFTER hooks to respect React Rules of Hooks)
+  if (currentTab === 'calibration') {
+    return (
+      <>
+        <header className="h-16 bg-[#0B132B] text-white px-6 flex items-center justify-between shrink-0 shadow-lg border-b border-slate-800 sticky top-0 z-40 select-none">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => onNavigate && onNavigate('discover')}
+              className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-sm hover:opacity-90 transition cursor-pointer border-none outline-none"
+            >
+              🎓
+            </button>
+            <div>
+              <h1 className="font-heading font-extrabold text-sm text-white tracking-tight">
+                AIVES Calibration Wizard
+              </h1>
+              <p className="text-[11px] text-slate-400">
+                Bước chuẩn bị bắt buộc trước khi vào phòng thi chính thức
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsTroubleshootOpen(true)}
+            className="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <span>⚙ Trợ Giúp Kỹ Thuật (Modal)</span>
+          </button>
+        </header>
+
+        {/* TROUBLESHOOTING MODAL */}
+        {isTroubleshootOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/75 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-slate-800 animate-modal-entry">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 className="font-bold text-base text-slate-900">Trợ Giúp Xử Lý Thiết Bị</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsTroubleshootOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 cursor-pointer focus:outline-none"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs text-slate-600 leading-relaxed font-normal">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="font-bold text-slate-900 mb-0.5">1. Không nghe thấy tiếng?</p>
+                  <p>Kiểm tra nút âm lượng của máy tính hoặc tai nghe đã cắm chặt jack 3.5mm / Bluetooth.</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="font-bold text-slate-900 mb-0.5">2. Trình duyệt chặn quyền truy cập?</p>
+                  <p>Nhấp vào biểu tượng ổ khóa bên trái thanh địa chỉ URL để cấp quyền Microphone và Camera.</p>
+                </div>
+              </div>
+
+              <div className="pt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => setIsTroubleshootOpen(false)}
+                  className="px-5 py-2 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer"
+                >
+                  Đã Hiểu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <header className="bg-sidebarBg text-white border-b border-slate-700/80 sticky top-0 z-40 shadow-md">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        
+      <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+
         {/* Left: Brand & Nav Links */}
         <div className="flex items-center gap-6">
-          <div 
+          <div
             onClick={() => onNavigate('admin-users')}
             className="flex items-center gap-3 cursor-pointer group select-none"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onNavigate('admin-users')}
           >
-            <div className="w-10 h-10 rounded-xl bg-sky-600/90 border border-sky-400/40 flex items-center justify-center text-white shadow-md shadow-sky-900/30 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-6 h-6 text-sky-200" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-heading font-extrabold text-lg text-white tracking-tight">
-                  AIVES Admin Center
-                </span>
-                <span className="bg-sky-500/20 text-sky-300 text-[10px] font-mono px-2 py-0.5 rounded border border-sky-400/30">
-                  RBAC
-                </span>
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 border border-cyan-400/30 group-hover:scale-105 transition-transform">
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
               </div>
-              <p className="text-[11px] text-slate-400">Course-Scoped Role Based Access Control</p>
+              <span className="font-heading font-black text-2xl tracking-tight text-white">aives.</span>
             </div>
           </div>
 
           {/* Desktop Navigation Tabs */}
-          {isAdmin && (
           <nav className="hidden lg:flex items-center gap-1.5 text-xs">
-            <button
-              onClick={() => onNavigate('admin-users')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${
-                currentTab === 'admin-users'
-                  ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
-              }`}
-            >
-              Phân Quyền (RBAC)
-            </button>
-            <button
-              onClick={onOpenMatrix}
-              className="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-sidebarHover border border-transparent transition-colors"
-            >
-              Ma Trận Quyền
-            </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => onNavigate('admin-users')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-users'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                    }`}
+                >
+                  Phân Quyền (RBAC)
+                </button>
+                <button
+                  onClick={() => onNavigate('admin-voice-lab')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                    }`}
+                >
+                  Voice &amp; Speech Lab
+                </button>
+              </>
+            )}
+
+            {(isAdmin || isLecturer) && (
+              <>
+                <button
+                  onClick={() => onNavigate('lecturer-docs-rag')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-docs-rag'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                    }`}
+                >
+                  Tài Liệu RAG
+                </button>
+                <button
+                  onClick={() => onNavigate('lecturer-questions')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-questions'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                    }`}
+                >
+                  Question Studio
+                </button>
+                <button
+                  onClick={() => onNavigate('lecturer-grading-queue')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-grading-queue' || currentTab === 'lecturer-review-regrading'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                    }`}
+                >
+                  Hàng Đợi Chấm
+                </button>
+              </>
+            )}
           </nav>
-          )}
         </div>
 
         {/* Right: Actions, AI Engine Status, Mode Switch, Profile Dropdown */}
         <div className="flex items-center gap-3">
-          
+
           {/* Real-time Voice Audio Activity (GSAP 60 FPS) */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[11px]">
             <Mic2 className="w-3.5 h-3.5 text-sky-400" />
@@ -112,38 +217,10 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
             <span className="text-[10px] text-emerald-400 font-bold font-mono">Ready</span>
           </div>
 
-          {/* Backend Connection Status Badge */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[11px]">
-            {isDemoMode ? (
-              <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="font-semibold">Demo Mode</span>
-              </span>
-            ) : isLiveBackendReachable ? (
-              <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="font-semibold">BE Live (8080)</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-rose-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                <span className="font-semibold">BE Offline</span>
-              </span>
-            )}
-
-            <button
-              onClick={() => setIsDemoMode(!isDemoMode)}
-              className="ml-1 text-[10px] font-medium text-slate-400 hover:text-white underline transition"
-              title="Nhấn để chuyển đổi chế độ Live BE / Demo Mode"
-            >
-              {isDemoMode ? 'Bật Live BE' : 'Bật Demo'}
-            </button>
-          </div>
-
           {/* AI Assistant */}
           <button
             onClick={onOpenAssistant}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
           >
             <Bot className="w-4 h-4 text-sky-400" />
             <span className="hidden sm:inline">Trợ Lý AI</span>
@@ -151,13 +228,13 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
 
           {/* Quick Action: Thêm Người Dùng */}
           {isAdmin && (
-          <button
-            onClick={onOpenAddUser}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">Thêm Người Dùng</span>
-          </button>
+            <button
+              onClick={onOpenAddUser}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Thêm Người Dùng</span>
+            </button>
           )}
 
           <div className="h-6 w-px bg-slate-700 hidden sm:block"></div>
@@ -166,22 +243,22 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-xl hover:bg-slate-800/80 border border-slate-700/80 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs group cursor-pointer"
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
             >
-              <div className="w-7 h-7 rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-300 font-bold text-xs flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/40 text-white font-heading font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
                 {getInitials(currentUser?.fullName)}
               </div>
-              <div className="hidden xl:block text-left text-xs">
-                <p className="font-bold text-white leading-none truncate max-w-[130px]">
-                  {currentUser?.fullName || 'SysAdmin Center'}
+              <div className="text-left leading-tight">
+                <p className="font-heading font-bold text-xs text-white group-hover:text-sky-300 transition truncate max-w-[140px]">
+                  {currentUser?.fullName || 'Người Dùng AIVES'}
                 </p>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                  {isAdmin ? 'Super Administrator' : isLecturer ? 'Lecturer' : 'Standard User'}
+                <p className="text-[10px] font-semibold text-slate-400 mt-0.5 tracking-wide">
+                  {isAdmin ? 'Ban Khảo Thí' : isLecturer ? 'Giảng Viên' : 'Sinh Viên'}
                 </p>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-white ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}
