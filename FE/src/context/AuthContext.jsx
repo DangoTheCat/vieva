@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
   const setDemoRole = () => {};
 
   const isAdmin = currentUser?.roles?.some(r => r === 'ROLE_ADMIN' || r === 'ADMIN') ?? false;
+  const isLecturer = currentUser?.roles?.some(r => r === 'ROLE_LECTURER' || r === 'LECTURER') ?? false;
 
   return (
     <AuthContext.Provider
@@ -102,6 +103,7 @@ export function AuthProvider({ children }) {
         token,
         isLoading,
         isAdmin,
+        isLecturer,
         isDemoMode,
         isLiveBackendReachable,
         setIsDemoMode,

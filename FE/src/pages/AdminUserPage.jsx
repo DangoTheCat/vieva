@@ -8,6 +8,7 @@ import { CreateUserModal } from '../components/users/CreateUserModal';
 import { EditUserModal } from '../components/users/EditUserModal';
 import { UserDetailModal } from '../components/users/UserDetailModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
+import { ResetPasswordModal } from '../components/users/ResetPasswordModal';
 import { 
   ShieldCheck, 
   Users, 
@@ -54,6 +55,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
+  const [resettingUser, setResettingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch users function
@@ -77,8 +79,8 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         size: result.size || size,
         totalElements: result.totalElements || 0,
         totalPages: result.totalPages || 1,
-        isFirst: result.isFirst ?? (page === 0),
-        isLast: result.isLast ?? true
+        isFirst: result.first ?? (page === 0),
+        isLast: result.last ?? true
       });
       setReconnectCountdown(60);
     } catch (err) {
@@ -353,6 +355,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         onViewUser={(user) => setViewingUser(user)}
         onEditUser={(user) => setEditingUser(user)}
         onDeleteUser={(user) => setDeletingUser(user)}
+        onResetPassword={(user) => setResettingUser(user)}
         onResetFilters={handleResetFilters}
       />
 
@@ -388,6 +391,12 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeletingUser(null)}
+      />
+
+      <ResetPasswordModal
+        user={resettingUser}
+        onClose={() => setResettingUser(null)}
+        showToast={showToast}
       />
 
     </div>

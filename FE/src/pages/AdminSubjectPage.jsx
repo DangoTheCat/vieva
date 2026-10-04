@@ -603,18 +603,21 @@ export function AdminSubjectPage({ showToast }) {
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {activeSubjectAssignments.map(asg => (
-                      <div 
+                    {activeSubjectAssignments.map(asg => {
+                      // BE LecturerSubjectDto only carries lecturerId; resolve name from loaded lecturer list
+                      const lecturer = lecturers.find(l => l.userId === asg.lecturerId);
+                      return (
+                      <div
                         key={asg.lecturerSubjectId}
                         className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
-                            {asg.lecturerName ? asg.lecturerName.charAt(0) : 'L'}
+                            {lecturer?.fullName ? lecturer.fullName.charAt(0) : 'L'}
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-900">{asg.lecturerName || 'Giảng viên'}</p>
-                            <p className="text-[11px] text-slate-500 font-mono">{asg.lecturerEmail || 'Đã phân công'}</p>
+                            <p className="text-xs font-bold text-slate-900">{lecturer?.fullName || 'Giảng viên'}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">{lecturer?.email || asg.lecturerId}</p>
                           </div>
                         </div>
 
@@ -627,7 +630,8 @@ export function AdminSubjectPage({ showToast }) {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

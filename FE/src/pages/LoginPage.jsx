@@ -66,7 +66,8 @@ export function LoginPage({ onNavigate, showToast }) {
       setIsModalOpen(false);
       onNavigate('admin-users');
     } catch (err) {
-      const msg = getErrorMessage(err);
+      // BE answers wrong credentials with 401 / 1003, which the generic map reads as "session expired"
+      const msg = err.code === '1003' ? 'Email hoặc mật khẩu không chính xác.' : getErrorMessage(err);
       setErrorMsg(msg);
       showToast({ type: 'error', message: msg });
     } finally {

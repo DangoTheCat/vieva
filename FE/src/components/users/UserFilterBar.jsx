@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Filter, ArrowUpDown, X, RotateCcw } from 'lucide-react';
+import { ROLE_OPTIONS } from '../../utils/roles';
 
 export function UserFilterBar({
   keyword,
@@ -57,8 +58,9 @@ export function UserFilterBar({
           aria-label="Lọc theo vai trò"
         >
           <option value="">Tất cả vai trò</option>
-          <option value="ROLE_ADMIN">Quản Trị Viên (Admin)</option>
-          <option value="ROLE_USER">Người Dùng (Lecturer / Student)</option>
+          {ROLE_OPTIONS.map(({ code, description }) => (
+            <option key={code} value={code}>{description} ({code})</option>
+          ))}
         </select>
 
         {/* Status Filter */}

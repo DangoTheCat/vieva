@@ -81,7 +81,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
 
       await userApi.updateProfile({
         fullName: fullName.trim(),
-        phoneNumber: phoneNumber ? phoneNumber.trim() : null
+        phoneNumber: phoneNumber.trim()
       });
 
       await refreshProfile();
@@ -237,7 +237,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                 ref={fullNameInputRef}
                 type="text"
                 required
-                maxLength={150}
+                maxLength={50}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nguyễn Văn A"

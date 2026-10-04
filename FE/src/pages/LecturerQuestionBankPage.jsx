@@ -53,6 +53,105 @@ const BLOOM_LEVELS = [
   { value: 'CREATE', label: '6. Sáng Tạo (Create)', color: 'bg-purple-50 text-purple-700 border-purple-200' }
 ];
 
+// Split total 30/40/30 over REMEMBER/UNDERSTAND/APPLY; BE requires the sum to equal total exactly
+const BLOOM_SPLIT = [['UNDERSTAND', 0.4], ['REMEMBER', 0.3], ['APPLY', 0.3]];
+
+function buildBloomDistribution(total) {
+  const dist = {};
+  let assigned = 0;
+  BLOOM_SPLIT.forEach(([level, ratio]) => {
+    dist[level] = Math.floor(total * ratio);
+    assigned += dist[level];
+  });
+  for (let i = 0; assigned < total; i = (i + 1) % BLOOM_SPLIT.length) {
+    dist[BLOOM_SPLIT[i][0]] += 1;
+    assigned += 1;
+  }
+  return dist;
+}
+
+// Rubric criteria rules mirror BE CriterionRequest: name + description required, maxScore > 0
+function validateCriteria(criteria) {
+  if (criteria.length === 0) return 'Rubric cần ít nhất 1 tiêu chí.';
+  if (criteria.some(c => !c.name?.trim() || !c.description?.trim())) {
+    return 'Mỗi tiêu chí rubric cần có tên và mô tả.';
+  }
+  if (criteria.some(c => !(Number(c.maxScore) > 0))) {
+    return 'Điểm tối đa của mỗi tiêu chí phải lớn hơn 0.';
+  }
+  return null;
+}
+
+function toRubricPayload(criteria) {
+  return {
+    totalScore: criteria.reduce((sum, c) => sum + Number(c.maxScore), 0),
+    criteria: criteria.map((c, idx) => ({
+      name: c.name.trim(),
+      description: c.description.trim(),
+      maxScore: Number(c.maxScore),
+      levels: c.levels,
+      orderIndex: idx + 1
+    }))
+  };
+}
+
+function RubricCriteriaEditor({ criteria, onChange }) {
+  const updateAt = (idx, patch) => onChange(criteria.map((c, i) => i === idx ? { ...c, ...patch } : c));
+
+  return (
+    <>
+      <div className="space-y-2">
+        {criteria.map((crit, idx) => (
+          <div key={idx} className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Tên tiêu chí (VD: Tính đúng đắn)"
+                value={crit.name}
+                onChange={(e) => updateAt(idx, { name: e.target.value })}
+                className="flex-1 px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <input
+                type="number"
+                min="0.5"
+                step="0.5"
+                max="999.99"
+                value={crit.maxScore}
+                onChange={(e) => updateAt(idx, { maxScore: e.target.value })}
+                className="w-16 px-2 py-1.5 rounded-lg text-xs border border-slate-200 font-mono font-bold text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <button
+                type="button"
+                onClick={() => onChange(criteria.filter((_, i) => i !== idx))}
+                disabled={criteria.length <= 1}
+                className="p-1.5 text-slate-400 hover:text-rose-600 disabled:opacity-30"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Mô tả tiêu chí (bắt buộc)"
+              value={crit.description}
+              onChange={(e) => updateAt(idx, { description: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg text-[11px] border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange([...criteria, { name: 'Tiêu chí bổ sung', description: '', maxScore: 2 }])}
+        className="text-xs font-bold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1"
+      >
+        <Plus className="w-3.5 h-3.5" />
+        <span>Thêm tiêu chí chấm</span>
+      </button>
+    </>
+  );
+}
+
 export function LecturerQuestionBankPage({ showToast }) {
   const { currentUser } = useAuth();
 
@@ -95,8 +194,8 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [manualExpectedAnswer, setManualExpectedAnswer] = useState('');
   const [manualBloom, setManualBloom] = useState('UNDERSTAND');
   const [manualCriteria, setManualCriteria] = useState([
-    { criterionName: 'Nội dung cốt lõi', description: 'Đáp ứng đúng trọng tâm câu hỏi', maxScore: 5 },
-    { criterionName: 'Lập luận và minh họa', description: 'Đưa ra ví dụ hoặc phân tích mở rộng', maxScore: 5 }
+    { name: 'Nội dung cốt lõi', description: 'Đáp ứng đúng trọng tâm câu hỏi', maxScore: 5 },
+    { name: 'Lập luận và minh họa', description: 'Đưa ra ví dụ hoặc phân tích mở rộng', maxScore: 5 }
   ]);
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
 
@@ -107,6 +206,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [genTotalQuestions, setGenTotalQuestions] = useState(3);
   const [genLecturerNote, setGenLecturerNote] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [failedGenRequest, setFailedGenRequest] = useState(null);
 
   // Import Modal State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -118,6 +218,14 @@ export function LecturerQuestionBankPage({ showToast }) {
   // Confirm delete / action targets
   const [deleteDocTarget, setDeleteDocTarget] = useState(null);
   const [deleteDraftTarget, setDeleteDraftTarget] = useState(null);
+  const [archiveQuestionTarget, setArchiveQuestionTarget] = useState(null);
+
+  // Question detail modal: null | { isLoading, detail, history }
+  const [questionDetail, setQuestionDetail] = useState(null);
+
+  // Edit draft modal: null | { version, content, expectedAnswer, bloomLevel, criteria }
+  const [editDraft, setEditDraft] = useState(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   // Reject Modal State
   const [rejectVersionTarget, setRejectVersionTarget] = useState(null);
@@ -295,9 +403,9 @@ export function LecturerQuestionBankPage({ showToast }) {
       return;
     }
 
-    const totalScore = manualCriteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0);
-    if (totalScore <= 0) {
-      showToast({ type: 'error', message: 'Tổng điểm rubric phải lớn hơn 0.' });
+    const rubricError = validateCriteria(manualCriteria);
+    if (rubricError) {
+      showToast({ type: 'error', message: rubricError });
       return;
     }
 
@@ -308,14 +416,7 @@ export function LecturerQuestionBankPage({ showToast }) {
         content: manualContent.trim(),
         expectedAnswer: manualExpectedAnswer.trim(),
         bloomLevel: manualBloom,
-        rubric: {
-          totalScore,
-          criteria: manualCriteria.map(c => ({
-            name: c.criterionName,
-            description: c.description,
-            maxScore: Number(c.maxScore)
-          }))
-        }
+        rubric: toRubricPayload(manualCriteria)
       };
 
       await questionBankApi.createManualQuestion(selectedSubjectId, payload);
@@ -344,6 +445,35 @@ export function LecturerQuestionBankPage({ showToast }) {
     }
   };
 
+  // Question detail + version history
+  const handleOpenQuestionDetail = async (questionId) => {
+    setQuestionDetail({ isLoading: true });
+    try {
+      const [detail, history] = await Promise.all([
+        questionBankApi.getQuestionDetail(questionId),
+        questionBankApi.getHistory(questionId)
+      ]);
+      setQuestionDetail({ isLoading: false, detail, history: Array.isArray(history) ? history : [] });
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+      setQuestionDetail(null);
+    }
+  };
+
+  // Archive question
+  const handleConfirmArchive = async () => {
+    if (!archiveQuestionTarget) return;
+    try {
+      await questionBankApi.archiveQuestion(archiveQuestionTarget.questionId);
+      showToast({ type: 'success', message: 'Đã lưu trữ câu hỏi (ARCHIVED).' });
+      loadBank();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setArchiveQuestionTarget(null);
+    }
+  };
+
   // Trigger RAG Generation
   const handleTriggerAiGeneration = async () => {
     if (genDocumentIds.length === 0) {
@@ -353,24 +483,50 @@ export function LecturerQuestionBankPage({ showToast }) {
 
     setIsGeneratingAi(true);
     try {
+      const total = Number(genTotalQuestions);
       const payload = {
         subjectId: selectedSubjectId,
         topicId: genTopicId || null,
         documentIds: genDocumentIds,
-        totalQuestions: Number(genTotalQuestions),
-        bloomDistribution: {
-          REMEMBER: Math.ceil(genTotalQuestions * 0.3),
-          UNDERSTAND: Math.floor(genTotalQuestions * 0.4),
-          APPLY: Math.floor(genTotalQuestions * 0.3)
-        },
+        totalQuestions: total,
+        bloomDistribution: buildBloomDistribution(total),
         lecturerNote: genLecturerNote.trim()
       };
 
       const res = await questionGenerationApi.generate(payload);
-      showToast({ type: 'success', message: `Đã sinh thành công ${res.createdQuestionsCount || genTotalQuestions} câu hỏi AI RAG!` });
+      handleGenerationResult(res);
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  // BE runs generation synchronously and may return PARTIAL / FAILED with 201
+  const handleGenerationResult = (res) => {
+    if (res?.status === 'COMPLETED') {
+      setFailedGenRequest(null);
+      showToast({ type: 'success', message: `Đã sinh thành công ${res.generatedCount} câu hỏi AI RAG!` });
       setIsAiGenModalOpen(false);
       setActiveTab('review');
       loadReviewQueue();
+      return;
+    }
+    setFailedGenRequest(res);
+    if (res?.status === 'PARTIAL') {
+      showToast({ type: 'warning', message: `Chỉ sinh được ${res.generatedCount}/${res.totalQuestions} câu hỏi. Có thể thử lại phần còn thiếu.` });
+      loadReviewQueue();
+    } else {
+      showToast({ type: 'error', message: res?.errorMessage || 'Sinh câu hỏi thất bại. Vui lòng thử lại.' });
+    }
+  };
+
+  const handleRetryGeneration = async () => {
+    if (!failedGenRequest) return;
+    setIsGeneratingAi(true);
+    try {
+      const res = await questionGenerationApi.retry(failedGenRequest.generationRequestId);
+      handleGenerationResult(res);
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     } finally {
@@ -383,7 +539,7 @@ export function LecturerQuestionBankPage({ showToast }) {
     try {
       await questionBankApi.confirmBloom(version.versionId, {
         bloomLevel: version.bloomLevel,
-        expectedVersion: version.version
+        expectedVersion: version.lockVersion
       });
       setReviewVersions(prev => prev.map(v => v.versionId === version.versionId ? { ...v, bloomConfirmed: true } : v));
       showToast({ type: 'success', message: 'Đã thẩm định và xác nhận cấp độ nhận thức Bloom.' });
@@ -396,7 +552,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   const handleApproveVersion = async (version) => {
     try {
       await questionBankApi.approveVersion(version.versionId, {
-        expectedVersion: version.version
+        expectedVersion: version.lockVersion
       });
       showToast({ type: 'success', message: 'Phê duyệt thành công! Câu hỏi đã được đưa vào Ngân Hàng Đề Thi.' });
       loadReviewQueue();
@@ -412,7 +568,7 @@ export function LecturerQuestionBankPage({ showToast }) {
     try {
       await questionBankApi.rejectVersion(rejectVersionTarget.versionId, {
         reason: rejectReason.trim(),
-        expectedVersion: rejectVersionTarget.version
+        expectedVersion: rejectVersionTarget.lockVersion
       });
       showToast({ type: 'success', message: 'Đã chuyển bản nháp sang trạng thái từ chối (REJECTED).' });
       loadReviewQueue();
@@ -444,7 +600,7 @@ export function LecturerQuestionBankPage({ showToast }) {
     try {
       await questionBankApi.regenerateQuestion(regenVersionTarget.versionId, {
         feedback: regenFeedback.trim(),
-        expectedVersion: regenVersionTarget.version
+        expectedVersion: regenVersionTarget.lockVersion
       });
       showToast({ type: 'success', message: 'AI đã tạo lại câu hỏi thành công theo yêu cầu của bạn!' });
       loadReviewQueue();
@@ -453,6 +609,53 @@ export function LecturerQuestionBankPage({ showToast }) {
     } finally {
       setRegenVersionTarget(null);
       setRegenFeedback('');
+    }
+  };
+
+  // Edit DRAFT content + rubric in one PUT (UpdateDraftRequest accepts rubric)
+  const handleOpenEditDraft = (version) => {
+    setEditDraft({
+      version,
+      content: version.content || '',
+      expectedAnswer: version.expectedAnswer || '',
+      bloomLevel: version.bloomLevel || 'UNDERSTAND',
+      criteria: (version.rubric?.criteria || []).map(c => ({
+        name: c.name || '',
+        description: c.description || '',
+        maxScore: c.maxScore,
+        levels: c.levels
+      }))
+    });
+  };
+
+  const handleSaveDraft = async (e) => {
+    e.preventDefault();
+    if (!editDraft.content.trim() || !editDraft.expectedAnswer.trim()) {
+      showToast({ type: 'error', message: 'Vui lòng nhập nội dung câu hỏi và đáp án mong đợi.' });
+      return;
+    }
+    const rubricError = validateCriteria(editDraft.criteria);
+    if (rubricError) {
+      showToast({ type: 'error', message: rubricError });
+      return;
+    }
+
+    setIsSavingDraft(true);
+    try {
+      const updated = await questionBankApi.updateDraft(editDraft.version.versionId, {
+        content: editDraft.content.trim(),
+        expectedAnswer: editDraft.expectedAnswer.trim(),
+        bloomLevel: editDraft.bloomLevel,
+        rubric: toRubricPayload(editDraft.criteria),
+        expectedVersion: editDraft.version.lockVersion
+      });
+      setReviewVersions(prev => prev.map(v => v.versionId === updated.versionId ? updated : v));
+      showToast({ type: 'success', message: 'Đã lưu thay đổi bản nháp.' });
+      setEditDraft(null);
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
@@ -486,7 +689,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       if (isDryRun) {
         showToast({ type: 'success', message: 'Thẩm định tệp dữ liệu hoàn tất! Xem báo cáo bên dưới.' });
       } else {
-        showToast({ type: 'success', message: `Đã nhập thành công ${report.importedCount || 0} câu hỏi vào Hàng đợi duyệt!` });
+        showToast({ type: 'success', message: `Đã nhập thành công ${report.createdQuestions || 0} câu hỏi vào Hàng đợi duyệt!` });
         loadReviewQueue();
       }
     } catch (err) {
@@ -698,7 +901,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       <th className="py-3 px-4">Dung Lượng</th>
                       <th className="py-3 px-4">Trạng Thái RAG</th>
                       <th className="py-3 px-4">Số Đoạn (Chunks)</th>
-                      <th className="py-3 px-4">Tóm Tắt Nội Dung</th>
+                      <th className="py-3 px-4">Ghi Chú Lập Chỉ Mục</th>
                       <th className="py-3 px-4 text-right">Thao Tác</th>
                     </tr>
                   </thead>
@@ -745,7 +948,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                         </td>
                         <td className="py-3.5 px-4">
                           <p className="text-[11px] text-slate-500 line-clamp-2 max-w-sm">
-                            {doc.extractedTextSummary || 'Chưa có tóm tắt...'}
+                            {doc.errorMessage || `Số lần lập chỉ mục: ${doc.indexAttempts || 0}`}
                           </p>
                         </td>
                         <td className="py-3.5 px-4 text-right space-x-1">
@@ -872,7 +1075,8 @@ export function LecturerQuestionBankPage({ showToast }) {
           ) : (
             <div className="space-y-4">
               {bankQuestions.map((q) => {
-                const bloomMeta = BLOOM_LEVELS.find(b => b.value === q.bloomLevel) || BLOOM_LEVELS[0];
+                const cv = q.currentVersion || {};
+                const bloomMeta = BLOOM_LEVELS.find(b => b.value === cv.bloomLevel) || BLOOM_LEVELS[0];
                 const isExpanded = !!expandedExpectedAnswers[q.questionId];
 
                 return (
@@ -892,15 +1096,26 @@ export function LecturerQuestionBankPage({ showToast }) {
                           {bloomMeta.label}
                         </span>
 
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          APPROVED
-                        </span>
+                        {q.status === 'ARCHIVED' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-300">
+                            ARCHIVED
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            APPROVED
+                          </span>
+                        )}
+                        {q.hasPendingDraft && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                            CÓ BẢN NHÁP
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Question Content */}
                     <div className="text-xs text-slate-900 font-semibold leading-relaxed">
-                      {q.content}
+                      {cv.content}
                     </div>
 
                     {/* Collapsible Expected Answer */}
@@ -918,17 +1133,17 @@ export function LecturerQuestionBankPage({ showToast }) {
                         <div className="mt-2.5 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-700 space-y-2.5 animate-modal-entry">
                           <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đáp Án Mong Đợi:</p>
-                            <p className="leading-relaxed font-medium">{q.expectedAnswer}</p>
+                            <p className="leading-relaxed font-medium">{cv.expectedAnswer}</p>
                           </div>
 
-                          {q.rubric && q.rubric.criteria && (
+                          {cv.rubric && cv.rubric.criteria && (
                             <div className="pt-2 border-t border-slate-200">
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
-                                <span>Ma Trận Rubric Chấm Điểm ({q.rubric.criteria.length} tiêu chí):</span>
-                                <span className="text-sky-600 font-extrabold">Tổng điểm: {q.rubric.totalScore || 10}đ</span>
+                                <span>Ma Trận Rubric Chấm Điểm ({cv.rubric.criteria.length} tiêu chí):</span>
+                                <span className="text-sky-600 font-extrabold">Tổng điểm: {cv.rubric.totalScore || 10}đ</span>
                               </p>
                               <div className="space-y-1.5">
-                                {q.rubric.criteria.map((crit, idx) => (
+                                {cv.rubric.criteria.map((crit, idx) => (
                                   <div key={crit.criterionId || idx} className="flex items-center justify-between text-[11px] p-2 bg-white rounded-lg border border-slate-200">
                                     <div>
                                       <span className="font-bold text-slate-800">{crit.name}</span>
@@ -953,12 +1168,33 @@ export function LecturerQuestionBankPage({ showToast }) {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => handleCreateDraftFromApproved(q.questionId)}
-                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5"
+                          onClick={() => handleOpenQuestionDetail(q.questionId)}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         >
-                          <Edit3 className="w-3.5 h-3.5 text-sky-600" />
-                          <span>Tạo Bản Nháp Mới (Copy-on-Write)</span>
+                          <Layers className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Chi Tiết &amp; Lịch Sử</span>
                         </button>
+                        {q.status !== 'ARCHIVED' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleCreateDraftFromApproved(q.questionId)}
+                              disabled={q.hasPendingDraft}
+                              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-sky-600" />
+                              <span>Tạo Bản Nháp Mới (Copy-on-Write)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setArchiveQuestionTarget(q)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition focus:outline-none focus:ring-2 focus:ring-sky-500"
+                              title="Lưu trữ câu hỏi (Archive)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1063,7 +1299,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           {v.topicName || 'Chủ đề học phần'}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-md font-mono font-bold bg-slate-100 text-slate-600">
-                          Origin: {v.generationMode || 'MANUAL'}
+                          Origin: {v.origin || 'MANUAL'}
                         </span>
                       </div>
 
@@ -1091,13 +1327,13 @@ export function LecturerQuestionBankPage({ showToast }) {
                         </span>
 
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                          v.approvalStatus === 'APPROVED'
+                          v.status === 'APPROVED'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : v.approvalStatus === 'REJECTED'
+                            : v.status === 'REJECTED'
                             ? 'bg-rose-50 text-rose-700 border border-rose-200'
                             : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}>
-                          {v.approvalStatus}
+                          {v.status}
                         </span>
                       </div>
                     </div>
@@ -1119,7 +1355,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 space-y-1.5">
                         <div className="flex items-center gap-1.5 text-indigo-700 font-bold text-[11px]">
                           <BookOpen className="w-3.5 h-3.5" />
-                          <span>Cơ Sở Đối Chiếu Giáo Trình (Grounding Evidence Chunk #{v.sources[0].chunkIndex}):</span>
+                          <span>Cơ Sở Đối Chiếu Giáo Trình (Grounding Evidence Chunk #{v.sources[0].order}):</span>
                         </div>
                         <p className="text-[11px] text-slate-600 italic bg-white p-2.5 rounded-lg border border-indigo-100/60 leading-relaxed">
                           "{v.sources[0].citationQuote}"
@@ -1151,7 +1387,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                     {/* Action Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
                       <div className="flex items-center gap-2">
-                        {v.generationMode === 'AI_RAG' && v.approvalStatus === 'DRAFT' && (
+                        {v.origin === 'AI_RAG' && v.status === 'DRAFT' && (
                           <button
                             type="button"
                             onClick={() => { setRegenVersionTarget(v); setRegenFeedback(''); }}
@@ -1162,7 +1398,18 @@ export function LecturerQuestionBankPage({ showToast }) {
                           </button>
                         )}
 
-                        {v.approvalStatus === 'DRAFT' && (
+                        {v.status === 'DRAFT' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditDraft(v)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-sky-600" />
+                            <span>Chỉnh Sửa</span>
+                          </button>
+                        )}
+
+                        {v.status === 'DRAFT' && (
                           <button
                             type="button"
                             onClick={() => setDeleteDraftTarget(v)}
@@ -1174,7 +1421,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                         )}
                       </div>
 
-                      {v.approvalStatus === 'DRAFT' && (
+                      {v.status === 'DRAFT' && (
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -1352,10 +1599,31 @@ export function LecturerQuestionBankPage({ showToast }) {
                 />
               </div>
 
+              {failedGenRequest && (
+                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-800 space-y-1">
+                  <p className="font-bold">
+                    Lần sinh gần nhất: {failedGenRequest.status} ({failedGenRequest.generatedCount}/{failedGenRequest.totalQuestions} câu)
+                  </p>
+                  {failedGenRequest.errorMessage && <p>{failedGenRequest.errorMessage}</p>}
+                  {failedGenRequest.issues?.map((issue, idx) => <p key={idx}>• {issue}</p>)}
+                </div>
+              )}
+
               <div className="pt-2 flex justify-end gap-2">
+                {failedGenRequest && (
+                  <button
+                    type="button"
+                    onClick={handleRetryGeneration}
+                    disabled={isGeneratingAi}
+                    className="px-4 py-2 rounded-xl border border-amber-300 text-amber-800 bg-amber-50 text-xs font-bold hover:bg-amber-100 transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Thử Lại Phần Thiếu</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setIsAiGenModalOpen(false)}
+                  onClick={() => { setIsAiGenModalOpen(false); setFailedGenRequest(null); }}
                   disabled={isGeneratingAi}
                   className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
                 >
@@ -1455,50 +1723,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   </span>
                 </div>
 
-                <div className="space-y-2">
-                  {manualCriteria.map((crit, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
-                      <input
-                        type="text"
-                        placeholder="Tên tiêu chí (VD: Tính đúng đắn)"
-                        value={crit.criterionName}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setManualCriteria(prev => prev.map((c, i) => i === idx ? { ...c, criterionName: val } : c));
-                        }}
-                        className="flex-1 px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 font-medium"
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={crit.maxScore}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setManualCriteria(prev => prev.map((c, i) => i === idx ? { ...c, maxScore: val } : c));
-                        }}
-                        className="w-16 px-2 py-1.5 rounded-lg text-xs border border-slate-200 font-mono font-bold text-center"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setManualCriteria(prev => prev.filter((_, i) => i !== idx))}
-                        disabled={manualCriteria.length <= 1}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 disabled:opacity-30"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setManualCriteria(prev => [...prev, { criterionName: 'Tiêu chí bổ sung', description: '', maxScore: 2 }])}
-                  className="text-xs font-bold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Thêm tiêu chí chấm</span>
-                </button>
+                <RubricCriteriaEditor criteria={manualCriteria} onChange={setManualCriteria} />
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
@@ -1591,10 +1816,22 @@ export function LecturerQuestionBankPage({ showToast }) {
               {importReport && (
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs space-y-1 animate-modal-entry">
                   <p className="font-bold text-emerald-800">Báo Cáo Kết Quả Nhập:</p>
-                  <p className="text-emerald-700">Tổng dòng đọc được: {importReport.totalRows || 0}</p>
-                  <p className="text-emerald-700">Dòng hợp lệ: {importReport.validCount || 0}</p>
-                  {importReport.errorCount > 0 && (
-                    <p className="text-rose-600 font-semibold">Lỗi cấu trúc: {importReport.errorCount} dòng</p>
+                  <p className="text-emerald-700">Tổng dòng đọc được: {importReport.totalRows || 0} ({importReport.totalQuestions || 0} câu hỏi)</p>
+                  <p className="text-emerald-700">Câu hỏi hợp lệ: {importReport.validQuestions || 0}</p>
+                  {!importReport.dryRun && (
+                    <p className="text-emerald-700">Đã tạo: {importReport.createdQuestions || 0} câu hỏi</p>
+                  )}
+                  {importReport.invalidQuestions > 0 && (
+                    <p className="text-rose-600 font-semibold">Câu hỏi lỗi: {importReport.invalidQuestions}</p>
+                  )}
+                  {importReport.errors?.length > 0 && (
+                    <ul className="mt-1 max-h-32 overflow-y-auto space-y-0.5 text-[11px] text-rose-700">
+                      {importReport.errors.map((er, idx) => (
+                        <li key={idx}>
+                          Dòng {er.row}{er.column ? ` • ${er.column}` : ''}{er.questionRef ? ` • ${er.questionRef}` : ''}: {er.message}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               )}
@@ -1729,6 +1966,179 @@ export function LecturerQuestionBankPage({ showToast }) {
         onConfirm={handleConfirmDeleteDraft}
         onCancel={() => setDeleteDraftTarget(null)}
       />
+
+      {/* CONFIRM ARCHIVE QUESTION */}
+      <ConfirmModal
+        isOpen={!!archiveQuestionTarget}
+        title="Lưu Trữ Câu Hỏi?"
+        message={`Câu hỏi "${archiveQuestionTarget?.questionCode}" sẽ chuyển sang ARCHIVED và không còn được dùng cho ca thi mới.`}
+        confirmText="Lưu Trữ"
+        cancelText="Hủy Bỏ"
+        isDanger={true}
+        onConfirm={handleConfirmArchive}
+        onCancel={() => setArchiveQuestionTarget(null)}
+      />
+
+      {/* ========================================================================= */}
+      {/* MODAL: CHỈNH SỬA BẢN NHÁP (CONTENT + RUBRIC)                               */}
+      {/* ========================================================================= */}
+      {editDraft && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">
+                Chỉnh Sửa Bản Nháp {editDraft.version.questionCode}
+              </h3>
+              <button onClick={() => setEditDraft(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDraft} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
+                <select
+                  value={editDraft.bloomLevel}
+                  onChange={(e) => setEditDraft(d => ({ ...d, bloomLevel: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium cursor-pointer"
+                >
+                  {BLOOM_LEVELS.map(b => (
+                    <option key={b.value} value={b.value}>{b.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nội Dung Câu Hỏi <span className="text-rose-500">*</span></label>
+                <textarea
+                  rows="3"
+                  required
+                  maxLength={4000}
+                  value={editDraft.content}
+                  onChange={(e) => setEditDraft(d => ({ ...d, content: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-rose-500">*</span></label>
+                <textarea
+                  rows="3"
+                  required
+                  maxLength={8000}
+                  value={editDraft.expectedAnswer}
+                  onChange={(e) => setEditDraft(d => ({ ...d, expectedAnswer: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                />
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-800">Tiêu Chí Chấm Điểm Rubric</h4>
+                  <span className="font-mono text-xs font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                    Tổng: {editDraft.criteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
+                  </span>
+                </div>
+                <RubricCriteriaEditor
+                  criteria={editDraft.criteria}
+                  onChange={(criteria) => setEditDraft(d => ({ ...d, criteria }))}
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditDraft(null)}
+                  disabled={isSavingDraft}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDraft}
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSavingDraft && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                  <span>Lưu Bản Nháp</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CHI TIẾT CÂU HỎI & LỊCH SỬ PHIÊN BẢN                                */}
+      {/* ========================================================================= */}
+      {questionDetail && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">
+                Chi Tiết Câu Hỏi {questionDetail.detail?.questionCode || ''}
+              </h3>
+              <button onClick={() => setQuestionDetail(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {questionDetail.isLoading ? (
+              <SkeletonCard />
+            ) : (
+              <div className="space-y-4 text-xs">
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                    {questionDetail.detail.status}
+                  </span>
+                  {questionDetail.detail.pendingDraft && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                      Bản nháp đang chờ: v{questionDetail.detail.pendingDraft.versionNumber}
+                    </span>
+                  )}
+                </div>
+
+                {questionDetail.detail.currentVersion && (
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Phiên bản hiện hành v{questionDetail.detail.currentVersion.versionNumber}
+                    </p>
+                    <p className="font-semibold text-slate-900 leading-relaxed">{questionDetail.detail.currentVersion.content}</p>
+                    <p className="text-slate-700 leading-relaxed">{questionDetail.detail.currentVersion.expectedAnswer}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Lịch Sử Phiên Bản ({questionDetail.history.length})
+                  </p>
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
+                    {questionDetail.history.map(h => (
+                      <div key={h.versionId} className="p-3 flex items-start justify-between gap-3">
+                        <div className="space-y-0.5 min-w-0">
+                          <p className="font-bold text-slate-800">
+                            v{h.versionNumber} • {h.origin} • {h.bloomLevel}
+                          </p>
+                          <p className="text-slate-600 line-clamp-2">{h.content}</p>
+                          {h.rejectReason && <p className="text-rose-600">Lý do từ chối: {h.rejectReason}</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                            {h.status}
+                          </span>
+                          <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                            {h.createdAt ? new Date(h.createdAt).toLocaleString('vi-VN') : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

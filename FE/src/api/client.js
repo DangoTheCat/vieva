@@ -89,7 +89,8 @@ class ApiClient {
         const errorCode = data?.code || `${response.status}`;
         const errorMessage = data?.message || response.statusText || 'Yêu cầu thất bại';
         
-        if (response.status === 401) {
+        // A 401 from /auth/* means bad credentials, not an expired session
+        if (response.status === 401 && !endpoint.startsWith('/auth/')) {
           window.dispatchEvent(new CustomEvent('aives:unauthorized'));
         }
 

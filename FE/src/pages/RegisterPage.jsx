@@ -171,7 +171,7 @@ export function RegisterPage({ onNavigate, showToast }) {
               <input
                 type="text"
                 required
-                maxLength={150}
+                maxLength={50}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nguyễn Văn A"

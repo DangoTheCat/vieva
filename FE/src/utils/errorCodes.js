@@ -68,15 +68,32 @@ export const ERROR_MESSAGES = {
   '1057': 'Tệp nhập dữ liệu (Excel/CSV) không đúng cấu trúc mẫu quy định.',
   '1058': 'Số lượng câu hỏi trong tệp nhập vượt quá giới hạn tối đa cho phép.',
 
-  // Concurrency & Database
-  '4090': 'Xung đột dữ liệu đồng thời. Tài nguyên đã được cập nhật bởi phiên làm việc khác. Vui lòng tải lại.'
+  // AI rules
+  '1060': 'Chưa có cấu hình AI rule đang hoạt động. Vui lòng liên hệ quản trị viên.',
+
+  // Rate limiting
+  '4290': 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.',
+  '4291': 'Đã vượt giới hạn số yêu cầu AI. Vui lòng thử lại sau.'
 };
+
+// Codes whose BE message carries specifics (field names, Bloom sums) that the static text would hide
+const PREFER_BACKEND_MESSAGE = new Set(['1006', '1052']);
 
 export function getErrorMessage(error) {
   if (!error) return 'Đã xảy ra lỗi không xác định.';
   if (typeof error === 'string') return error;
 
   const code = error.code || (error.response?.data?.code);
+
+  const fieldErrors = error.data?.errors;
+  if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+    return fieldErrors.map(fe => `${fe.field}: ${fe.message}`).join('; ');
+  }
+
+  if (PREFER_BACKEND_MESSAGE.has(code) && error.data?.message) {
+    return error.data.message;
+  }
+
   if (code && ERROR_MESSAGES[code]) {
     return ERROR_MESSAGES[code];
   }

@@ -1,8 +1,7 @@
 import React from 'react';
 import { 
   Users, 
-  Activity, 
-  Mic2, 
+  Database, 
   Table2, 
   ShieldCheck, 
   GraduationCap, 
@@ -12,7 +11,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
-  const { isDemoMode, setDemoRole, currentUser } = useAuth();
+  const { isAdmin, isLecturer } = useAuth();
 
   return (
     <aside className="w-64 shrink-0 hidden md:block bg-sidebarBg text-slate-300 p-4 border-r border-slate-800 select-none">
@@ -38,70 +37,53 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
 
         {/* Navigation Menu */}
         <nav className="space-y-1 text-xs">
-          <button
-            type="button"
-            onClick={() => onNavigate('admin-users')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-              currentTab === 'admin-users'
-                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
-                : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
-            }`}
-          >
-            <Users className="w-4 h-4 text-sky-400" />
-            <span>Phân Quyền Người Dùng</span>
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                type="button"
+                onClick={() => onNavigate('admin-users')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                  currentTab === 'admin-users'
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
+                    : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
+                }`}
+              >
+                <Users className="w-4 h-4 text-sky-400" />
+                <span>Phân Quyền Người Dùng</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => onNavigate('admin-subjects')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-              currentTab === 'admin-subjects'
-                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
-                : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
-            }`}
-          >
-            <BookOpen className="w-4 h-4 text-sky-400" />
-            <span>Quản Lý Môn Học</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('admin-subjects')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                  currentTab === 'admin-subjects'
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
+                    : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-sky-400" />
+                <span>Quản Lý Môn Học</span>
+              </button>
+            </>
+          )}
 
-          <button
-            type="button"
-            onClick={() => onNavigate('lecturer-questions')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-              currentTab === 'lecturer-questions'
-                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
-                : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
-            }`}
-          >
-            <Database className="w-4 h-4 text-emerald-400" />
-            <span>Ngân Hàng Câu Hỏi &amp; RAG</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('telemetry')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-              currentTab === 'telemetry'
-                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 font-bold'
-                : 'text-slate-400 hover:bg-sidebarHover hover:text-white border-transparent'
-            }`}
-          >
-            <Activity className="w-4 h-4 text-slate-400" />
-            <span>Live Telemetry Hub</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('voice-lab')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-              currentTab === 'voice-lab'
-                ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 font-bold'
-                : 'text-slate-400 hover:bg-sidebarHover hover:text-white border-transparent'
-            }`}
-          >
-            <Mic2 className="w-4 h-4 text-slate-400" />
-            <span>Voice &amp; Speech Lab</span>
-          </button>
+          {(isLecturer || isAdmin) && (
+            <>
+              <button
+                type="button"
+                onClick={() => onNavigate('lecturer-questions')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all border text-left focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                  currentTab === 'lecturer-questions'
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-400/30'
+                    : 'text-slate-300 hover:bg-sidebarHover hover:text-white border-transparent'
+                }`}
+              >
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span>Ngân Hàng Câu Hỏi &amp; RAG</span>
+              </button>
+            </>
+          )}
+          {/* Telemetry & Voice Lab hidden until BE exposes WebSocket/speech endpoints */}
         </nav>
 
       </div>

@@ -8,12 +8,13 @@ import {
   LogOut, 
   ChevronDown, 
   Mic2,
-  Table2
+  Table2,
+  Bot
 } from 'lucide-react';
 import { VoiceWaveform } from './VoiceWaveform';
 
-export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate, currentTab }) {
-  const { currentUser, logout, isDemoMode, setIsDemoMode, isLiveBackendReachable } = useAuth();
+export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssistant, onNavigate, currentTab }) {
+  const { currentUser, logout, isDemoMode, setIsDemoMode, isLiveBackendReachable, isAdmin, isLecturer } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -78,6 +79,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
           </div>
 
           {/* Desktop Navigation Tabs */}
+          {isAdmin && (
           <nav className="hidden lg:flex items-center gap-1.5 text-xs">
             <button
               onClick={() => onNavigate('admin-users')}
@@ -96,6 +98,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
               Ma Trận Quyền
             </button>
           </nav>
+          )}
         </div>
 
         {/* Right: Actions, AI Engine Status, Mode Switch, Profile Dropdown */}
@@ -137,7 +140,17 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
             </button>
           </div>
 
+          {/* AI Assistant */}
+          <button
+            onClick={onOpenAssistant}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          >
+            <Bot className="w-4 h-4 text-sky-400" />
+            <span className="hidden sm:inline">Trợ Lý AI</span>
+          </button>
+
           {/* Quick Action: Thêm Người Dùng */}
+          {isAdmin && (
           <button
             onClick={onOpenAddUser}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400"
@@ -145,6 +158,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">Thêm Người Dùng</span>
           </button>
+          )}
 
           <div className="h-6 w-px bg-slate-700 hidden sm:block"></div>
 
@@ -164,7 +178,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                   {currentUser?.fullName || 'SysAdmin Center'}
                 </p>
                 <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                  {currentUser?.roles?.includes('ROLE_ADMIN') ? 'Super Administrator' : 'Standard User'}
+                  {isAdmin ? 'Super Administrator' : isLecturer ? 'Lecturer' : 'Standard User'}
                 </p>
               </div>
               <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />

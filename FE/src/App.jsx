@@ -12,10 +12,11 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ProfileModal } from './components/profile/ProfileModal';
 import { RbacMatrixModal } from './components/users/RbacMatrixModal';
 import { CreateUserModal } from './components/users/CreateUserModal';
+import { AiAssistantPanel } from './components/common/AiAssistantPanel';
 import { Activity, Mic2, Mic, MicOff, Volume2, ShieldCheck, CheckCircle2, Radio, Server, ArrowLeft } from 'lucide-react';
 
 function AppContent() {
-  const { currentUser, isLoading } = useAuth();
+  const { currentUser, isLoading, isAdmin, isLecturer } = useAuth();
 
   // Navigation state: 'admin-users', 'login', 'register', 'telemetry', 'voice-lab'
   const [currentView, setCurrentView] = useState('admin-users');
@@ -24,6 +25,7 @@ function AppContent() {
   const [profileModalState, setProfileModalState] = useState({ isOpen: false, tab: 'info' });
   const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   // Global Toast state
   const [toast, setToast] = useState(null);
@@ -45,6 +47,13 @@ function AppContent() {
       </div>
     );
   }
+
+  // Views each role may open (mirrors BE SecurityConfig); anything else falls back to the role's home view
+  const allowedViews = [
+    ...(isAdmin ? ['admin-users', 'admin-subjects'] : []),
+    ...(isAdmin || isLecturer ? ['lecturer-questions'] : [])
+  ];
+  const activeView = allowedViews.includes(currentView) ? currentView : (allowedViews[0] || 'home');
 
   // Require authentication: if not logged in, present login or register screen
   if (!currentUser) {
@@ -69,11 +78,12 @@ function AppContent() {
       
       {/* GLOBAL TOP NAV */}
       <Navbar
-        currentTab={currentView}
+        currentTab={activeView}
         onNavigate={(view) => setCurrentView(view)}
         onOpenAddUser={() => setIsQuickAddOpen(true)}
         onOpenProfile={(tab) => setProfileModalState({ isOpen: true, tab })}
         onOpenMatrix={() => setIsMatrixOpen(true)}
+        onOpenAssistant={() => setIsAssistantOpen(true)}
       />
 
       {/* MAIN CONTAINER WITH SIDEBAR */}
@@ -81,34 +91,45 @@ function AppContent() {
         
         {/* LEFT PERSISTENT SIDEBAR */}
         <Sidebar
-          currentTab={currentView}
+          currentTab={activeView}
           onNavigate={(view) => setCurrentView(view)}
           onOpenMatrix={() => setIsMatrixOpen(true)}
         />
 
         {/* CENTER MAIN CANVAS */}
         <main className="flex-1 canvas-dot-grid py-8 px-4 sm:px-8 overflow-y-auto">
-          {currentView === 'admin-users' && (
+          {activeView === 'admin-users' && (
             <AdminUserPage
               onOpenMatrix={() => setIsMatrixOpen(true)}
               showToast={showToast}
             />
           )}
 
-          {currentView === 'admin-subjects' && (
+          {activeView === 'admin-subjects' && (
             <AdminSubjectPage
               showToast={showToast}
             />
           )}
 
-          {currentView === 'lecturer-questions' && (
+          {activeView === 'lecturer-questions' && (
             <LecturerQuestionBankPage
               showToast={showToast}
             />
           )}
 
+          {activeView === 'home' && (
+            <div className="bg-white p-10 rounded-2xl border border-slate-200/90 text-center max-w-lg mx-auto mt-10">
+              <h1 className="font-heading font-extrabold text-lg text-slate-900">
+                Xin chào {currentUser.fullName || ''}
+              </h1>
+              <p className="text-xs text-slate-500 mt-2">
+                Tài khoản của bạn chưa có phân hệ quản trị nào. Bạn có thể cập nhật hồ sơ hoặc hỏi Trợ Lý AI.
+              </p>
+            </div>
+          )}
+
           {/* TELEMETRY HUB SCREEN */}
-          {currentView === 'telemetry' && (
+          {activeView === 'telemetry' && (
             <div className="space-y-6 animate-modal-entry">
               <div className="flex items-center justify-between">
                 <div>
@@ -201,7 +222,7 @@ function AppContent() {
           )}
 
           {/* VOICE & SPEECH LAB SCREEN */}
-          {currentView === 'voice-lab' && (
+          {activeView === 'voice-lab' && (
             <div className="space-y-6 animate-modal-entry">
               <div className="flex items-center justify-between">
                 <div>
@@ -370,6 +391,11 @@ function AppContent() {
           showToast({ type: 'success', message: 'Tạo tài khoản thành công!' });
         }}
         showToast={showToast}
+      />
+
+      <AiAssistantPanel
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
       />
 
       {/* TOAST NOTIFICATION CONTAINER */}

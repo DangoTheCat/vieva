@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Edit3, Trash2, Shield, Lock, ShieldCheck, ChevronLeft, ChevronRight, UserX, Copy, Check } from 'lucide-react';
+import { Eye, Edit3, Trash2, Shield, Lock, ShieldCheck, ChevronLeft, ChevronRight, UserX, Copy, Check, KeyRound } from 'lucide-react';
 import { TableSkeletonRows } from '../common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,6 +11,7 @@ export function UserTable({
   onViewUser,
   onEditUser,
   onDeleteUser,
+  onResetPassword,
   onResetFilters
 }) {
   const { currentUser } = useAuth();
@@ -232,6 +233,15 @@ export function UserTable({
                         aria-label="Chỉnh sửa người dùng"
                       >
                         <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => onResetPassword(user)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-slate-600 hover:text-amber-600 transition focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        title="Đặt lại mật khẩu"
+                        aria-label="Đặt lại mật khẩu"
+                      >
+                        <KeyRound className="w-4 h-4" />
                       </button>
 
                       <button

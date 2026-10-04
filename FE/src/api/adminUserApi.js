@@ -40,5 +40,14 @@ export const adminUserApi = {
    */
   async deleteUser(id) {
     return apiClient.delete(`/admin/users/${id}`);
+  },
+
+  /**
+   * @param {string} id
+   * @param {string} newPassword
+   * @returns {Promise<{ message: string }>}
+   */
+  async resetPassword(id, newPassword) {
+    return apiClient.post(`/admin/users/${id}/reset-password`, { newPassword });
   }
 };

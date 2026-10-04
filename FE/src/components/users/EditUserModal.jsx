@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
+import { ROLE_OPTIONS } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
 import { useAuth } from '../../context/AuthContext';
 import { Edit3, X, ShieldAlert, Check, AlertTriangle } from 'lucide-react';
@@ -89,7 +90,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
     try {
       const payload = {
         fullName: fullName.trim(),
-        phoneNumber: phoneNumber ? phoneNumber.trim() : null,
+        phoneNumber: phoneNumber.trim(),
         status,
         roleCodes: selectedRoles
       };
@@ -232,43 +233,31 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
           <div>
             <label className="block font-bold text-slate-700 mb-1.5">Phân Quyền Vai Trò Hệ Thống (Roles):</label>
             <div className="grid grid-cols-2 gap-2">
-              <label
-                onClick={() => toggleRole('ROLE_USER')}
-                className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer select-none transition ${
-                  selectedRoles.includes('ROLE_USER')
-                    ? 'border-sky-500 bg-sky-50 text-sky-900 font-semibold'
-                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded flex items-center justify-center border ${
-                  selectedRoles.includes('ROLE_USER') ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300'
-                }`}>
-                  {selectedRoles.includes('ROLE_USER') && <Check className="w-3 h-3" />}
-                </div>
-                <div>
-                  <p className="text-xs">ROLE_USER</p>
-                  <p className="text-[10px] text-slate-400">Giảng viên / Sinh viên</p>
-                </div>
-              </label>
-
-              <label
-                onClick={() => toggleRole('ROLE_ADMIN')}
-                className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer select-none transition ${
-                  selectedRoles.includes('ROLE_ADMIN')
-                    ? 'border-purple-500 bg-purple-50 text-purple-900 font-semibold'
-                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded flex items-center justify-center border ${
-                  selectedRoles.includes('ROLE_ADMIN') ? 'bg-purple-600 border-purple-600 text-white' : 'border-slate-300'
-                }`}>
-                  {selectedRoles.includes('ROLE_ADMIN') && <Check className="w-3 h-3" />}
-                </div>
-                <div>
-                  <p className="text-xs">ROLE_ADMIN</p>
-                  <p className="text-[10px] text-slate-400">Quản trị viên hệ thống</p>
-                </div>
-              </label>
+              {ROLE_OPTIONS.map(({ code, description }) => {
+                const isChecked = selectedRoles.includes(code);
+                const isAdminRole = code === 'ROLE_ADMIN';
+                return (
+                  <label
+                    key={code}
+                    onClick={() => toggleRole(code)}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer select-none transition ${
+                      isChecked
+                        ? isAdminRole ? 'border-purple-500 bg-purple-50 text-purple-900 font-semibold' : 'border-sky-500 bg-sky-50 text-sky-900 font-semibold'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${
+                      isChecked ? (isAdminRole ? 'bg-purple-600 border-purple-600 text-white' : 'bg-sky-600 border-sky-600 text-white') : 'border-slate-300'
+                    }`}>
+                      {isChecked && <Check className="w-3 h-3" />}
+                    </div>
+                    <div>
+                      <p className="text-xs">{code}</p>
+                      <p className="text-[10px] text-slate-400">{description}</p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
 

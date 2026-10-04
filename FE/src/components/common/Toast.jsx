@@ -2,18 +2,19 @@ import React, { useEffect } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 export function Toast({ toast, onClose }) {
-  if (!toast) return null;
+  const { type = 'info', message, title, duration = 4000 } = toast || {};
 
-  const { type = 'info', message, title, duration = 4000 } = toast;
-
+  // Hook must run before the early return (Rules of Hooks)
   useEffect(() => {
-    if (duration > 0) {
+    if (toast && duration > 0) {
       const timer = setTimeout(() => {
         onClose();
       }, duration);
       return () => clearTimeout(timer);
     }
   }, [toast, duration, onClose]);
+
+  if (!toast) return null;
 
   const styles = {
     success: {
