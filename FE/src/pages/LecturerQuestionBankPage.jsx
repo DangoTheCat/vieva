@@ -1455,7 +1455,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: TẠO CHỦ ĐỀ MỚI                                                      */}
       {/* ========================================================================= */}
       {isCreateTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-heading font-extrabold text-sm text-slate-900">Thêm Chủ Đề Đề Cương</h3>
@@ -1512,7 +1512,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: THIẾT LẬP RAG AI SINH CÂU HỎI                                      */}
       {/* ========================================================================= */}
       {isAiGenModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
           <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs">
@@ -1648,7 +1648,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: SOẠN CÂU HỎI THỦ CÔNG KÈM RUBRIC BUILDER                          */}
       {/* ========================================================================= */}
       {isManualQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
           <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-heading font-extrabold text-sm text-slate-900">Soạn Câu Hỏi Mới Kèm Ma Trận Rubric</h3>
@@ -1753,7 +1753,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: NHẬP CÂU HỎI TỪ EXCEL / CSV (UC1.6)                                */}
       {/* ========================================================================= */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
           <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
@@ -1863,7 +1863,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: TỪ CHỐI BẢN NHÁP (REJECT MODAL)                                    */}
       {/* ========================================================================= */}
       {rejectVersionTarget && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry">
             <h3 className="font-heading font-extrabold text-sm text-slate-900">Từ Chối Phê Duyệt Câu Hỏi</h3>
             <p className="text-xs text-slate-500">
@@ -1904,7 +1904,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: TẠO LẠI CÂU HỎI AI (REGENERATE WITH FEEDBACK)                       */}
       {/* ========================================================================= */}
       {regenVersionTarget && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry">
             <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs">
               <Sparkles className="w-4 h-4" />
@@ -1983,7 +1983,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: CHỈNH SỬA BẢN NHÁP (CONTENT + RUBRIC)                               */}
       {/* ========================================================================= */}
       {editDraft && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
           <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-heading font-extrabold text-sm text-slate-900">
@@ -2072,7 +2072,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: CHI TIẾT CÂU HỎI & LỊCH SỬ PHIÊN BẢN                                */}
       {/* ========================================================================= */}
       {questionDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
           <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-heading font-extrabold text-sm text-slate-900">
