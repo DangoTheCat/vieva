@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
@@ -7,6 +7,17 @@ import { VoiceWaveform } from './components/common/VoiceWaveform';
 import { AdminUserPage } from './pages/AdminUserPage';
 import { AdminSubjectPage } from './pages/AdminSubjectPage';
 import { LecturerQuestionBankPage } from './pages/LecturerQuestionBankPage';
+import { AdminVoiceLabPage } from './pages/AdminVoiceLabPage';
+import { LecturerGradingQueuePage } from './pages/LecturerGradingQueuePage';
+import { LecturerReviewRegradingPage } from './pages/LecturerReviewRegradingPage';
+import { LecturerDocsRagPage } from './pages/LecturerDocsRagPage';
+import { DiscoverPage } from './pages/DiscoverPage';
+import { SpaceDetailPage } from './pages/SpaceDetailPage';
+import { OralExamRoomPage } from './pages/OralExamRoomPage';
+import { RubricStudioPage } from './pages/RubricStudioPage';
+import { CalibrationPage } from './pages/CalibrationPage';
+import { ReconnectGuardPage } from './pages/ReconnectGuardPage';
+import { StudentSubmissionSuccessPage } from './pages/StudentSubmissionSuccessPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfileModal } from './components/profile/ProfileModal';
@@ -18,8 +29,34 @@ import { Activity, Mic2, Mic, MicOff, Volume2, ShieldCheck, CheckCircle2, Radio,
 function AppContent() {
   const { currentUser, isLoading, isAdmin, isLecturer } = useAuth();
 
-  // Navigation state: 'admin-users', 'login', 'register', 'telemetry', 'voice-lab'
-  const [currentView, setCurrentView] = useState('admin-users');
+  // Helper to parse current view from URL hash (#admin-users -> admin-users)
+  const getHashView = () => {
+    const hash = window.location.hash.replace(/^#\/?/, '');
+    if (hash === 'register' || hash === 'login') return hash;
+    return hash || '';
+  };
+
+  const [currentView, setCurrentViewState] = useState(getHashView);
+
+  // Synchronize internal view state and browser URL hash
+  const setCurrentView = (view) => {
+    setCurrentViewState(view);
+    if (window.location.hash !== `#${view}`) {
+      window.location.hash = `#${view}`;
+    }
+  };
+
+  // Sync state when user clicks browser back/forward or modifies URL hash
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (hash) {
+        setCurrentViewState(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Modals state
   const [profileModalState, setProfileModalState] = useState({ isOpen: false, tab: 'info' });
@@ -39,6 +76,34 @@ function AppContent() {
     setToast(toastData);
   };
 
+  // Views each role may open (mirrors BE SecurityConfig); anything else falls back to the role's home view
+  const allowedViews = [
+    ...(isAdmin ? ['admin-users', 'admin-subjects', 'admin-voice-lab'] : []),
+    ...(isAdmin || isLecturer ? ['lecturer-questions', 'lecturer-docs-rag', 'lecturer-grading-queue', 'lecturer-review-regrading'] : []),
+    'discover',
+    'calibration',
+    'exam-room',
+    'submission-success',
+    'exam-success'
+  ];
+
+  const defaultRoleHome = isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover';
+  const activeView = allowedViews.includes(currentView) ? currentView : defaultRoleHome;
+
+  // Keep browser URL hash synchronized with activeView (must be before any early return)
+  useEffect(() => {
+    if (isLoading) return;
+    if (!currentUser) {
+      if (currentView === 'register' && window.location.hash !== '#register') {
+        window.location.hash = '#register';
+      } else if (currentView !== 'register' && window.location.hash !== '#login') {
+        window.location.hash = '#login';
+      }
+    } else if (activeView && window.location.hash !== `#${activeView}`) {
+      window.location.hash = `#${activeView}`;
+    }
+  }, [isLoading, currentUser, activeView, currentView]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white space-y-3 flex-col">
@@ -47,13 +112,6 @@ function AppContent() {
       </div>
     );
   }
-
-  // Views each role may open (mirrors BE SecurityConfig); anything else falls back to the role's home view
-  const allowedViews = [
-    ...(isAdmin ? ['admin-users', 'admin-subjects'] : []),
-    ...(isAdmin || isLecturer ? ['lecturer-questions'] : [])
-  ];
-  const activeView = allowedViews.includes(currentView) ? currentView : (allowedViews[0] || 'home');
 
   // Require authentication: if not logged in, present login or register screen
   if (!currentUser) {
@@ -75,7 +133,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-canvasBg text-slate-800 antialiased font-sans selection:bg-sky-500 selection:text-white">
-      
+
       {/* GLOBAL TOP NAV */}
       <Navbar
         currentTab={activeView}
@@ -87,14 +145,16 @@ function AppContent() {
       />
 
       {/* MAIN CONTAINER WITH SIDEBAR */}
-      <div className="flex-1 flex max-w-[1440px] w-full mx-auto">
-        
+      <div className="flex-1 flex w-full">
+
         {/* LEFT PERSISTENT SIDEBAR */}
-        <Sidebar
-          currentTab={activeView}
-          onNavigate={(view) => setCurrentView(view)}
-          onOpenMatrix={() => setIsMatrixOpen(true)}
-        />
+        {activeView !== 'calibration' && activeView !== 'exam-room' && (
+          <Sidebar
+            currentTab={activeView}
+            onNavigate={(view) => setCurrentView(view)}
+            onOpenMatrix={() => setIsMatrixOpen(true)}
+          />
+        )}
 
         {/* CENTER MAIN CANVAS */}
         <main className="flex-1 canvas-dot-grid py-8 px-4 sm:px-8 overflow-y-auto">
@@ -113,6 +173,81 @@ function AppContent() {
 
           {activeView === 'lecturer-questions' && (
             <LecturerQuestionBankPage
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'lecturer-docs-rag' && (
+            <LecturerDocsRagPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'lecturer-grading-queue' && (
+            <LecturerGradingQueuePage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'lecturer-review-regrading' && (
+            <LecturerReviewRegradingPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {(activeView === 'admin-voice-lab' || activeView === 'voice-lab') && (
+            <AdminVoiceLabPage
+              showToast={showToast}
+            />
+          )}
+
+          {(activeView === 'discover' || activeView === 'home') && (
+            <DiscoverPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'space-detail' && (
+            <SpaceDetailPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'exam-room' && (
+            <OralExamRoomPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'rubric-studio' && (
+            <RubricStudioPage
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'calibration' && (
+            <CalibrationPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {(activeView === 'submission-success' || activeView === 'exam-success') && (
+            <StudentSubmissionSuccessPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'reconnect' && (
+            <ReconnectGuardPage
+              onNavigate={(view) => setCurrentView(view)}
               showToast={showToast}
             />
           )}
@@ -267,11 +402,10 @@ function AppContent() {
                           message: isMicTesting ? 'Đã tắt thử nghiệm micro.' : 'Đang thu tín hiệu micro ảo (60 FPS)!'
                         });
                       }}
-                      className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition active:scale-95 ${
-                        isMicTesting
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-600/20'
-                          : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sm shadow-sky-600/20'
-                      }`}
+                      className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition active:scale-95 ${isMicTesting
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-600/20'
+                        : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sm shadow-sky-600/20'
+                        }`}
                     >
                       {isMicTesting ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                       <span>{isMicTesting ? 'Dừng Kiểm Tra' : 'Bật Thử Micro'}</span>
@@ -327,11 +461,10 @@ function AppContent() {
                   <div className="space-y-3 text-xs">
                     <label
                       onClick={() => setSelectedVoiceModel('vi-VN-SophiaNeural')}
-                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
-                        selectedVoiceModel === 'vi-VN-SophiaNeural'
-                          ? 'border-sky-500 bg-sky-50/50 shadow-xs'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${selectedVoiceModel === 'vi-VN-SophiaNeural'
+                        ? 'border-sky-500 bg-sky-50/50 shadow-xs'
+                        : 'border-slate-200 hover:bg-slate-50'
+                        }`}
                     >
                       <div>
                         <p className="font-bold text-slate-900">Dr. Sophia (Giọng Nữ Tiêu Chuẩn Học Thuật)</p>
@@ -344,11 +477,10 @@ function AppContent() {
 
                     <label
                       onClick={() => setSelectedVoiceModel('vi-VN-MarcusNeural')}
-                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
-                        selectedVoiceModel === 'vi-VN-MarcusNeural'
-                          ? 'border-sky-500 bg-sky-50/50 shadow-xs'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${selectedVoiceModel === 'vi-VN-MarcusNeural'
+                        ? 'border-sky-500 bg-sky-50/50 shadow-xs'
+                        : 'border-slate-200 hover:bg-slate-50'
+                        }`}
                     >
                       <div>
                         <p className="font-bold text-slate-900">Prof. Marcus (Giọng Nam Trầm Hỏi Xoáy)</p>
