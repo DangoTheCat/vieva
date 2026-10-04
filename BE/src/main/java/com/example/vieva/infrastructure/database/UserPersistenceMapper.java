@@ -46,6 +46,7 @@ public class UserPersistenceMapper {
                 .passwordChangedAt(entity.getPasswordChangedAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .version(entity.getVersion())
                 .userRoles(roles)
                 .build();
     }
@@ -67,6 +68,7 @@ public class UserPersistenceMapper {
                 .passwordChangedAt(domain.getPasswordChangedAt())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
+                .version(domain.getVersion())
                 .isNew(domain.getCreatedAt() == null)
                 .build();
 
