@@ -131,11 +131,11 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
         {/* Left: Brand & Nav Links */}
         <div className="flex items-center gap-6">
           <div
-            onClick={() => onNavigate('admin-users')}
+            onClick={() => onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
             className="flex items-center gap-3 cursor-pointer group select-none"
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && onNavigate('admin-users')}
+            onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
           >
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 border border-cyan-400/30 group-hover:scale-105 transition-transform">
@@ -168,38 +168,6 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
                     }`}
                 >
                   Voice &amp; Speech Lab
-                </button>
-              </>
-            )}
-
-            {(isAdmin || isLecturer) && (
-              <>
-                <button
-                  onClick={() => onNavigate('lecturer-docs-rag')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-docs-rag'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
-                    }`}
-                >
-                  Tài Liệu RAG
-                </button>
-                <button
-                  onClick={() => onNavigate('lecturer-questions')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-questions'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
-                    }`}
-                >
-                  Question Studio
-                </button>
-                <button
-                  onClick={() => onNavigate('lecturer-grading-queue')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-grading-queue' || currentTab === 'lecturer-review-regrading'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
-                    }`}
-                >
-                  Hàng Đợi Chấm
                 </button>
               </>
             )}

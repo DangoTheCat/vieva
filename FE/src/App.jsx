@@ -4,6 +4,7 @@ import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { Toast } from './components/common/Toast';
 import { VoiceWaveform } from './components/common/VoiceWaveform';
+import { AdminOperationsPage } from './pages/AdminOperationsPage';
 import { AdminUserPage } from './pages/AdminUserPage';
 import { AdminSubjectPage } from './pages/AdminSubjectPage';
 import { LecturerQuestionBankPage } from './pages/LecturerQuestionBankPage';
@@ -11,6 +12,7 @@ import { AdminVoiceLabPage } from './pages/AdminVoiceLabPage';
 import { LecturerGradingQueuePage } from './pages/LecturerGradingQueuePage';
 import { LecturerReviewRegradingPage } from './pages/LecturerReviewRegradingPage';
 import { LecturerDocsRagPage } from './pages/LecturerDocsRagPage';
+import { LecturerDashboardPage } from './pages/LecturerDashboardPage';
 import { DiscoverPage } from './pages/DiscoverPage';
 import { SpaceDetailPage } from './pages/SpaceDetailPage';
 import { OralExamRoomPage } from './pages/OralExamRoomPage';
@@ -78,16 +80,25 @@ function AppContent() {
 
   // Views each role may open (mirrors BE SecurityConfig); anything else falls back to the role's home view
   const allowedViews = [
-    ...(isAdmin ? ['admin-users', 'admin-subjects', 'admin-voice-lab'] : []),
-    ...(isAdmin || isLecturer ? ['lecturer-questions', 'lecturer-docs-rag', 'lecturer-grading-queue', 'lecturer-review-regrading'] : []),
+    ...(isAdmin ? ['admin-dashboard', 'admin-users', 'admin-subjects', 'admin-voice-lab'] : []),
+    ...(isAdmin || isLecturer ? [
+      'lecturer-dashboard',
+      'lecturer-questions', 
+      'lecturer-docs-rag', 
+      'lecturer-grading-queue', 
+      'lecturer-review-regrading',
+      'space-detail',
+      'rubric-studio'
+    ] : []),
     'discover',
     'calibration',
     'exam-room',
     'submission-success',
-    'exam-success'
+    'exam-success',
+    'reconnect'
   ];
 
-  const defaultRoleHome = isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover';
+  const defaultRoleHome = isAdmin ? 'admin-dashboard' : isLecturer ? 'lecturer-dashboard' : 'discover';
   const activeView = allowedViews.includes(currentView) ? currentView : defaultRoleHome;
 
   // Keep browser URL hash synchronized with activeView (must be before any early return)
@@ -158,6 +169,13 @@ function AppContent() {
 
         {/* CENTER MAIN CANVAS */}
         <main className="flex-1 canvas-dot-grid py-8 px-4 sm:px-8 overflow-y-auto">
+          {activeView === 'admin-dashboard' && (
+            <AdminOperationsPage
+              onNavigate={(view) => setCurrentView(view)}
+              showToast={showToast}
+            />
+          )}
+
           {activeView === 'admin-users' && (
             <AdminUserPage
               onOpenMatrix={() => setIsMatrixOpen(true)}
@@ -167,6 +185,13 @@ function AppContent() {
 
           {activeView === 'admin-subjects' && (
             <AdminSubjectPage
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'lecturer-dashboard' && (
+            <LecturerDashboardPage
+              onNavigate={(view) => setCurrentView(view)}
               showToast={showToast}
             />
           )}
