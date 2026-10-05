@@ -3,7 +3,7 @@ export const ERROR_MESSAGES = {
   '1001': 'Không tìm thấy người dùng trong hệ thống.',
   '1002': 'Email này đã tồn tại trên hệ thống. Vui lòng dùng email khác.',
   '1003': 'Phiên đăng nhập đã hết hạn hoặc chưa xác thực. Vui lòng đăng nhập lại.',
-  '1004': 'Bạn không có quyền thực hiện thao tác này (Yêu cầu quyền Administrator).',
+  '1004': 'Bạn không có quyền thực hiện thao tác này.',
   '1005': 'Mã thông điệp không hợp lệ.',
   '1006': 'Dữ liệu yêu cầu không hợp lệ. Vui lòng kiểm tra lại các trường thông tin.',
   '1007': 'Tài khoản người dùng đang bị khóa hoặc chưa kích hoạt.',

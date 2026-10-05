@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { userApi } from '../api/userApi';
 import { 
   Radio, 
   Mic, 
@@ -14,16 +16,31 @@ import {
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
 
 export function OralExamRoomPage({ onNavigate, showToast }) {
+  const { currentUser } = useAuth();
+  const [profile, setProfile] = useState(currentUser || null);
   const [secondsLeft, setSecondsLeft] = useState(522); // 08:42
   const [isSpeaking, setIsSpeaking] = useState(true);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
 
   useEffect(() => {
+    async function loadCandidateProfile() {
+      try {
+        const user = await userApi.getCurrentUser();
+        setProfile(user);
+      } catch (err) {
+        // Safe fallback
+      }
+    }
+    loadCandidateProfile();
+
     const interval = setInterval(() => {
       setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const studentName = profile?.fullName || currentUser?.fullName || 'Nguyễn Thị Mai';
+  const studentCode = profile?.userCode || currentUser?.userCode || 'SE160892';
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -62,7 +79,7 @@ export function OralExamRoomPage({ onNavigate, showToast }) {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Thí sinh: <strong>Nguyễn Thị Mai (SE160892)</strong> • Giám thị AI: <strong>Dr. Sophia</strong>
+              Thí sinh: <strong>{studentName} ({studentCode})</strong> • Giám thị AI: <strong>Dr. Sophia</strong>
             </p>
           </div>
         </div>
