@@ -79,13 +79,12 @@ export function AiAssistantPanel({ isOpen, onClose }) {
         )}
         {messages.map((m, idx) => (
           <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] px-3 py-2 rounded-2xl leading-relaxed whitespace-pre-wrap ${
-              m.role === 'user'
+            <div className={`max-w-[85%] px-3 py-2 rounded-2xl leading-relaxed whitespace-pre-wrap ${m.role === 'user'
                 ? 'bg-sky-600 text-white'
                 : m.role === 'error'
-                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                : 'bg-white text-slate-800 border border-slate-200'
-            }`}>
+                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                  : 'bg-white text-slate-800 border border-slate-200'
+              }`}>
               {m.text}
             </div>
           </div>
