@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { userApi } from '../api/userApi';
 import { 
   CheckCircle2, 
   Lock, 
@@ -11,10 +12,23 @@ import {
 
 export function StudentSubmissionSuccessPage({ onNavigate, showToast }) {
   const { currentUser } = useAuth();
+  const [profile, setProfile] = useState(currentUser || null);
   const [isCopied, setIsCopied] = useState(false);
 
-  const studentName = currentUser?.fullName || 'Nguyen Van B';
-  const studentCode = currentUser?.userCode || 'SE160982';
+  useEffect(() => {
+    async function syncStudentData() {
+      try {
+        const freshUser = await userApi.getCurrentUser();
+        setProfile(freshUser);
+      } catch (err) {
+        // Safe fallback
+      }
+    }
+    syncStudentData();
+  }, []);
+
+  const studentName = profile?.fullName || currentUser?.fullName || 'Nguyen Van B';
+  const studentCode = profile?.userCode || currentUser?.userCode || 'SE160982';
 
   const sha256Hash = 'e3b8c44298fc1c149afbt4c8996tb92427ae41e4649b934ca495991b7852b855';
 
