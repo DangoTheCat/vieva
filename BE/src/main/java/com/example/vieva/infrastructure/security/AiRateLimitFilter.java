@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Rate-limiting filter for AI-costly endpoints (LLM chat, question generation,
+ * Rate-limiting filter for AI-costly endpoints (question generation,
  * document upload/indexing, bulk import). AI calls cost money and time, so only
  * state-changing requests under these prefixes are throttled; reads stay free.
  *
@@ -38,9 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class AiRateLimitFilter extends OncePerRequestFilter {
 
-    /** POST prefixes whose requests consume AI budget (chat, generate, retry, import, upload). */
+    /** POST prefixes whose requests consume AI budget (generate, retry, import, upload). */
     private static final List<String> AI_POST_PREFIXES = List.of(
-            "/api/v1/ai/assistant/chat",
             "/api/v1/lecturer/question-generation-requests",
             "/api/v1/lecturer/question-versions/",
             "/api/v1/lecturer/subjects/",

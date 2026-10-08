@@ -27,10 +27,9 @@ class DocumentPipelineAdaptersTest {
     private final TikaFileTypeDetectorGateway detector = new TikaFileTypeDetectorGateway();
 
     @Test
-    @DisplayName("chunks respect the token budget, overlap and keep page ranges")
-    void splitterOverlapAndPages() {
-        // ~27 tokens per sentence: 4 sentences per chunk, the last one repeated as overlap
-        TokenTextSplitterGateway splitter = new TokenTextSplitterGateway(120, 40, 5);
+    @DisplayName("library splitter keeps page and section metadata")
+    void splitterPages() {
+        TokenTextSplitterGateway splitter = new TokenTextSplitterGateway(120, 5);
         StringBuilder page1 = new StringBuilder();
         StringBuilder page2 = new StringBuilder();
         for (int i = 1; i <= 12; i++) {
@@ -42,25 +41,20 @@ class DocumentPipelineAdaptersTest {
                 new ParsedSection(page2.toString(), 2, "Chỉ mục")));
 
         assertThat(chunks).hasSizeGreaterThan(3);
-        assertThat(chunks).allMatch(c -> c.tokenCount() <= 120 + 5);
+        assertThat(chunks).allMatch(c -> c.tokenCount() <= 120);
         assertThat(chunks.get(0).pageStart()).isEqualTo(1);
         assertThat(chunks.get(0).sectionTitle()).isEqualTo("Giao dịch");
         assertThat(chunks.get(chunks.size() - 1).pageEnd()).isEqualTo(2);
-        assertThat(chunks).anyMatch(c -> c.pageStart() == 1 && c.pageEnd() == 2);
-        // overlap: the last sentence of a chunk is repeated at the start of the next one
-        for (int i = 0; i + 1 < chunks.size(); i++) {
-            String[] sentences = chunks.get(i).text().split("(?<=\\.)\\s+");
-            assertThat(chunks.get(i + 1).text()).startsWith(sentences[sentences.length - 1]);
-        }
+        assertThat(chunks).allMatch(c -> c.pageStart().equals(c.pageEnd()));
     }
 
     @Test
     void splitterHardSplitsVeryLongSentences() {
-        TokenTextSplitterGateway splitter = new TokenTextSplitterGateway(50, 10, 5);
+        TokenTextSplitterGateway splitter = new TokenTextSplitterGateway(50, 5);
         String longSentence = "từ ".repeat(400);
         List<TextChunk> chunks = splitter.split(List.of(new ParsedSection(longSentence, null, null)));
-        assertThat(chunks).hasSizeGreaterThan(5).allMatch(c -> c.tokenCount() <= 55);
-        assertThatThrownBy(() -> new TokenTextSplitterGateway(100, 100, 5)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(chunks).hasSizeGreaterThan(5).allMatch(c -> c.tokenCount() <= 52);
+        assertThatThrownBy(() -> new TokenTextSplitterGateway(0, 5)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

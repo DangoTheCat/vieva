@@ -65,7 +65,6 @@ import static org.awaitility.Awaitility.await;
         "vieva.storage.provider=local",
         "vieva.rag.min-similarity=0.0",
         "vieva.rag.chunk-size-tokens=120",
-        "vieva.rag.chunk-overlap-tokens=30",
         "vieva.documents.max-index-attempts=2"
 })
 @Testcontainers

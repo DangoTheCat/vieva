@@ -16,7 +16,7 @@ Ghi chú quan trọng:
 
 - **Flyway quản lý toàn bộ schema DB** (`BE/src/main/resources/db/migration`, từ `V0` đến `V11`). Hibernate chạy ở chế độ `ddl-auto=validate`, nghĩa là nó **không** tự tạo hoặc sửa bảng.
 - `V10__seed_initial_data.sql` tạo sẵn tài khoản, môn học, câu hỏi mẫu (xem mục 6).
-- AI mặc định chạy ở chế độ **mock** (offline, không cần API key). Chỉ cần key thật khi muốn test với OpenAI/Groq.
+- AI mặc định chạy ở chế độ **mock** (offline, không cần API key). Chỉ cần key thật khi muốn test với OpenAI.
 - BE theo Clean Architecture: `domain/` → `application/` (use case, port) → `adapters/` (controller) → `infrastructure/` (DB, security, AI, storage).
 
 ---
@@ -198,7 +198,6 @@ Mặc định mọi thứ chạy offline. Để bật dịch vụ thật, đặt
 | Mục đích | Biến môi trường |
 | --- | --- |
 | Sinh câu hỏi / embedding bằng OpenAI | `VIEVA_AI_PROVIDER=openai`, `OPENAI_API_KEY=sk-...` (tuỳ chọn `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL`) |
-| Trợ lý AI chat bằng Groq | `VIEVA_AI_CHAT_PROVIDER=groq`, `GROQ_API_KEY=...` (tuỳ chọn `GROQ_MODEL`) |
 | Lưu tài liệu lên Cloudinary | `VIEVA_STORAGE_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 | Thư mục lưu file local | `VIEVA_STORAGE_ROOT` (mặc định `./data/documents`) |
 
