@@ -1,11 +1,13 @@
 package com.example.vieva.adapters.presenters;
 
 import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -15,6 +17,7 @@ public class UserPresenter {
         if (user == null) {
             return null;
         }
+        Role role = user.getRole();
         return UserDto.builder()
                 .userId(user.getUserId())
                 .email(user.getEmail())
@@ -22,12 +25,9 @@ public class UserPresenter {
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
                 .status(user.getStatus())
-                .roles(user.getUserRoles() != null
-                        ? user.getUserRoles().stream()
-                        .filter(ur -> ur.getRole() != null)
-                        .map(ur -> ur.getRole().getRoleCode())
-                        .collect(Collectors.toSet())
-                        : Collections.emptySet())
+                .role(role != null ? role.getRoleCode() : null)
+                .roles(role != null ? Set.of(role.getRoleCode()) : Collections.emptySet())
+                .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

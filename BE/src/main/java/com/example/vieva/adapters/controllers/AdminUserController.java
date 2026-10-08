@@ -21,8 +21,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -78,7 +81,7 @@ public class AdminUserController {
                 .phoneNumber(apiRequest.getPhoneNumber())
                 .userCode(apiRequest.getUserCode())
                 .status(apiRequest.getStatus())
-                .roleCodes(apiRequest.getRoleCodes())
+                .roleCode(resolveRoleCode(apiRequest.getRoleCode(), apiRequest.getRoleCodes()))
                 .build();
 
         User createdUser = adminUserService.createUser(request, currentAdminId);
@@ -97,7 +100,7 @@ public class AdminUserController {
                 .fullName(apiRequest.getFullName())
                 .phoneNumber(apiRequest.getPhoneNumber())
                 .status(apiRequest.getStatus())
-                .roleCodes(apiRequest.getRoleCodes())
+                .roleCode(resolveRoleCode(apiRequest.getRoleCode(), apiRequest.getRoleCodes()))
                 .build();
 
         User updatedUser = adminUserService.updateUser(id, request, currentAdminId);
@@ -123,6 +126,28 @@ public class AdminUserController {
         UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
         adminUserService.resetPassword(id, request.getNewPassword(), currentAdminId);
         return ResponseEntity.ok(new MessageResponse("User password has been reset successfully"));
+    }
+
+    /**
+     * Accepts the single {@code roleCode} field, falling back to the deprecated {@code roleCodes}
+     * set for existing clients. An account has exactly one role, so more than one code is rejected.
+     */
+    private String resolveRoleCode(String roleCode, Set<String> legacyRoleCodes) {
+        if (StringUtils.hasText(roleCode)) {
+            return roleCode.trim();
+        }
+        if (legacyRoleCodes == null) {
+            return null;
+        }
+        List<String> codes = legacyRoleCodes.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .toList();
+        if (codes.size() > 1) {
+            throw new AppException(ErrorCode.MULTIPLE_ROLES_NOT_ALLOWED);
+        }
+        return codes.isEmpty() ? null : codes.get(0);
     }
 
     private UUID resolveCurrentAdminId(User currentAdmin) {

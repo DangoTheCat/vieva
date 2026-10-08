@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, Edit3, Trash2, Shield, Lock, ShieldCheck, ChevronLeft, ChevronRight, UserX, Copy, Check, KeyRound } from 'lucide-react';
 import { TableSkeletonRows } from '../common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
+import { getUserRole } from '../../utils/roles';
 
 export function UserTable({
   users,
@@ -117,7 +118,8 @@ export function UserTable({
             ) : (
               users.map((user) => {
                 const isSelf = user.userId === currentUser?.userId;
-                const isAdmin = user.roles?.some(r => r === 'ROLE_ADMIN' || r === 'ADMIN');
+                const userRole = getUserRole(user);
+                const isAdmin = userRole === 'ROLE_ADMIN';
                 const twoFa = get2FaInfo(user);
                 const isCopied = copiedId === user.userCode;
 
@@ -167,13 +169,25 @@ export function UserTable({
                           <ShieldCheck className="w-3 h-3 text-purple-600" />
                           <span>SUPER ADMINISTRATOR</span>
                         </span>
-                      ) : user.userCode?.startsWith('LEC') ? (
+                      ) : userRole === 'ROLE_LECTURER' ? (
                         <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-bold text-[10px] tracking-wide">
                           LECTURER / EXAMINER
                         </span>
-                      ) : (
+                      ) : userRole === 'ROLE_STUDENT' ? (
                         <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px] tracking-wide">
                           STUDENT / CANDIDATE
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full bg-white text-slate-500 border border-slate-200 font-bold text-[10px] tracking-wide">
+                          USER
+                        </span>
+                      )}
+                      {user.mustChangePassword && (
+                        <span
+                          className="ml-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]"
+                          title="Người dùng chưa đổi mật khẩu tạm thời do admin cấp"
+                        >
+                          Chờ đổi MK
                         </span>
                       )}
                     </td>

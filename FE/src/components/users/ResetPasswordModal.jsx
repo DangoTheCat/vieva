@@ -73,6 +73,7 @@ export function ResetPasswordModal({ user, onClose, showToast }) {
 
         <p className="text-xs text-slate-500">
           Đặt mật khẩu mới cho <span className="font-bold text-slate-800">{user.fullName}</span> ({user.email}).
+          Người dùng sẽ phải đổi mật khẩu này ở lần đăng nhập tiếp theo.
         </p>
 
         <div className="relative">

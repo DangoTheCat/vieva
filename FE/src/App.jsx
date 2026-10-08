@@ -22,13 +22,14 @@ import { ReconnectGuardPage } from './pages/ReconnectGuardPage';
 import { StudentSubmissionSuccessPage } from './pages/StudentSubmissionSuccessPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ForceChangePasswordPage } from './pages/ForceChangePasswordPage';
 import { ProfileModal } from './components/profile/ProfileModal';
 import { RbacMatrixModal } from './components/users/RbacMatrixModal';
 import { CreateUserModal } from './components/users/CreateUserModal';
 import { Activity, Mic2, Mic, MicOff, Volume2, ShieldCheck, CheckCircle2, Radio, Server, ArrowLeft } from 'lucide-react';
 
 function AppContent() {
-  const { currentUser, isLoading, isAdmin, isLecturer } = useAuth();
+  const { currentUser, isLoading, isAdmin, isLecturer, mustChangePassword } = useAuth();
 
   // Helper to parse current view from URL hash (#admin-users -> admin-users)
   const getHashView = () => {
@@ -135,6 +136,16 @@ function AppContent() {
     return (
       <>
         <LoginPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
+        <Toast toast={toast} onClose={() => setToast(null)} />
+      </>
+    );
+  }
+
+  // Admin-created account (or admin-reset password): replace the temporary password before anything else
+  if (mustChangePassword) {
+    return (
+      <>
+        <ForceChangePasswordPage showToast={showToast} />
         <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );

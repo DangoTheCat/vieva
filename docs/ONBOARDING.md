@@ -141,6 +141,8 @@ set -a; source ../.env; set +a
 ./mvnw spring-boot:run
 ```
 
+**Cảnh báo cho Git Bash trên Windows:** Git Bash tự đổi giá trị biến môi trường bắt đầu bằng `/` thành đường dẫn Windows. Ví dụ `OPENAI_EMBEDDING_PATH=/embeddings` bị đổi thành `C:/Program Files/Git/embeddings`, và BE báo lỗi `invalid URI scheme c` khi gọi AI. Trên Windows, hãy chạy BE bằng PowerShell hoặc IntelliJ.
+
 **IntelliJ IDEA:**
 
 1. Mở thư mục `BE/` dưới dạng Maven project.
@@ -198,8 +200,10 @@ Mặc định mọi thứ chạy offline. Để bật dịch vụ thật, đặt
 | Mục đích | Biến môi trường |
 | --- | --- |
 | Sinh câu hỏi / embedding bằng OpenAI | `VIEVA_AI_PROVIDER=openai`, `OPENAI_API_KEY=sk-...` (tuỳ chọn `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL`) |
+| Dùng Gemini thay OpenAI (endpoint OpenAI-compatible) | `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `OPENAI_CHAT_PATH=/chat/completions`, `OPENAI_EMBEDDING_PATH=/embeddings`, `OPENAI_CHAT_MODEL=gemini-3.5-flash-lite`, `OPENAI_EMBEDDING_MODEL=gemini-embedding-001`, `OPENAI_API_KEY=<Gemini key>` |
 | Lưu tài liệu lên Cloudinary | `VIEVA_STORAGE_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 | Thư mục lưu file local | `VIEVA_STORAGE_ROOT` (mặc định `./data/documents`) |
+| Gửi email thật khi admin tạo tài khoản | `VIEVA_MAIL_PROVIDER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` (Gmail: App Password), `MAIL_FROM`, `APP_LOGIN_URL`. Mặc định `log`: chỉ ghi log người nhận và tiêu đề, không gửi |
 
 Không bao giờ commit API key. Mỗi người tự xin key và để trong `.env` của mình.
 

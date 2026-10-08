@@ -64,7 +64,9 @@ public enum ErrorCode {
     IMPORT_FILE_INVALID("1057", "Import file is invalid"),
     IMPORT_LIMIT_EXCEEDED("1058", "Import file exceeds the configured limits"),
     SUBJECT_INACTIVE("1059", "Subject is not active"),
-    AI_RULE_NOT_FOUND("1060", "Active AI rule not found");
+    AI_RULE_NOT_FOUND("1060", "Active AI rule not found"),
+    MULTIPLE_ROLES_NOT_ALLOWED("1061", "An account can have only one role"),
+    PASSWORD_CHANGE_REQUIRED("1062", "You must change your password before using the system");
 
     private final String code;
     private final String message;

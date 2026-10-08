@@ -15,7 +15,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userCode, setUserCode] = useState('');
   const [status, setStatus] = useState('ACTIVE');
-  const [selectedRoles, setSelectedRoles] = useState(['ROLE_USER']);
+  const [selectedRole, setSelectedRole] = useState('ROLE_USER');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -39,18 +39,6 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
 
   if (!isOpen) return null;
 
-  const toggleRole = (role) => {
-    if (selectedRoles.includes(role)) {
-      if (selectedRoles.length === 1) {
-        showToast({ type: 'warning', message: 'Người dùng phải có ít nhất 1 vai trò hệ thống.' });
-        return;
-      }
-      setSelectedRoles(selectedRoles.filter(r => r !== role));
-    } else {
-      setSelectedRoles([...selectedRoles, role]);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -59,8 +47,9 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
       setFormError('Email không hợp lệ. Vui lòng nhập đúng định dạng email trường.');
       return;
     }
-    if (!password || password.length < 6) {
-      setFormError('Mật khẩu bắt buộc có tối thiểu 6 ký tự.');
+    // Password is optional: left blank, the BE generates a temporary one and emails it
+    if (password && password.length < 6) {
+      setFormError('Mật khẩu tạm thời phải có tối thiểu 6 ký tự (hoặc bỏ trống để hệ thống tự sinh).');
       return;
     }
     if (!fullName.trim()) {
@@ -76,12 +65,12 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
     try {
       const payload = {
         email: email.trim().toLowerCase(),
-        password,
+        password: password || null,
         fullName: fullName.trim(),
         phoneNumber: phoneNumber ? phoneNumber.trim() : null,
         userCode: userCode ? userCode.trim() : null,
         status,
-        roleCodes: selectedRoles
+        roleCode: selectedRole
       };
 
       if (isDemoMode) {
@@ -92,7 +81,9 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
           fullName: payload.fullName,
           phoneNumber: payload.phoneNumber,
           status: payload.status,
-          roles: payload.roleCodes,
+          role: payload.roleCode,
+          roles: [payload.roleCode],
+          mustChangePassword: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -104,7 +95,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
       }
 
       const created = await adminUserApi.createUser(payload);
-      showToast({ type: 'success', message: `Tạo thành công tài khoản cho ${created.fullName}!` });
+      showToast({ type: 'success', message: `Tạo thành công tài khoản cho ${created.fullName}! Email thông báo đã được gửi tới ${created.email}.` });
       onSuccess(created);
       resetForm();
       onClose();
@@ -125,7 +116,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
     setPhoneNumber('');
     setUserCode('');
     setStatus('ACTIVE');
-    setSelectedRoles(['ROLE_USER']);
+    setSelectedRole('ROLE_USER');
     setFormError('');
   };
 
@@ -182,15 +173,15 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Mật Khẩu Khởi Tạo (*):</label>
+              <label className="block font-bold text-slate-700 mb-1">Mật Khẩu Tạm Thời:</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  required
                   minLength={6}
+                  maxLength={72}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Tối thiểu 6 ký tự..."
+                  placeholder="Bỏ trống để tự sinh..."
                   className="w-full p-2.5 pr-8 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
                 />
                 <button
@@ -254,24 +245,30 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
             </div>
           </div>
 
-          {/* Role Checkboxes */}
+          <p className="text-[11px] text-slate-500 -mt-2">
+            Mật khẩu tạm thời được gửi qua email cho người dùng. Ở lần đăng nhập đầu tiên, họ phải đổi sang mật khẩu mới.
+          </p>
+
+          {/* Role Radio (an account has exactly one role) */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">Phân Quyền Vai Trò Hệ Thống (Roles):</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="block font-bold text-slate-700 mb-1.5">Vai Trò Hệ Thống (chọn 1):</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup">
               {ROLE_OPTIONS.map(({ code, description }) => {
-                const isChecked = selectedRoles.includes(code);
+                const isChecked = selectedRole === code;
                 const isAdminRole = code === 'ROLE_ADMIN';
                 return (
                   <label
                     key={code}
-                    onClick={() => toggleRole(code)}
+                    role="radio"
+                    aria-checked={isChecked}
+                    onClick={() => setSelectedRole(code)}
                     className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer select-none transition ${
                       isChecked
                         ? isAdminRole ? 'border-purple-500 bg-purple-50 text-purple-900 font-semibold' : 'border-sky-500 bg-sky-50 text-sky-900 font-semibold'
                         : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${
                       isChecked ? (isAdminRole ? 'bg-purple-600 border-purple-600 text-white' : 'bg-sky-600 border-sky-600 text-white') : 'border-slate-300'
                     }`}>
                       {isChecked && <Check className="w-3 h-3" />}

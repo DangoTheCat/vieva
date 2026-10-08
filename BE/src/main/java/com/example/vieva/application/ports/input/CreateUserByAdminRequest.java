@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
-
 /**
  * Application-layer input DTO for creating a user by Admin.
  * Pure Java — free from presentation/framework validation annotations.
@@ -18,10 +16,12 @@ import java.util.Set;
 @AllArgsConstructor
 public class CreateUserByAdminRequest {
     private String email;
+    /** Temporary password; generated when blank. The user must change it on first login. */
     private String password;
     private String fullName;
     private String phoneNumber;
     private String userCode;
     private UserStatus status;
-    private Set<String> roleCodes;
+    /** Single role code (an account has exactly one role). */
+    private String roleCode;
 }

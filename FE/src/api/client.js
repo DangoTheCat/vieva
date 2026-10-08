@@ -93,6 +93,10 @@ class ApiClient {
         if (response.status === 401 && !endpoint.startsWith('/auth/')) {
           window.dispatchEvent(new CustomEvent('aives:unauthorized'));
         }
+        // Admin-issued password not changed yet: BE blocks everything but the password change
+        if (response.status === 403 && errorCode === '1062') {
+          window.dispatchEvent(new CustomEvent('aives:password-change-required'));
+        }
 
         throw new ApiError(errorMessage, errorCode, response.status, data);
       }

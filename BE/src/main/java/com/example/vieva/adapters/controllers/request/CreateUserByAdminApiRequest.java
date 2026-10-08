@@ -27,8 +27,8 @@ public class CreateUserByAdminApiRequest {
     @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    /** Optional temporary password; the server generates one when omitted. */
+    @Size(min = 6, max = 72, message = "Password must be between 6 and 72 characters")
     private String password;
 
     @NotBlank(message = "Full name is required")
@@ -44,6 +44,13 @@ public class CreateUserByAdminApiRequest {
 
     private UserStatus status;
 
-    @Size(max = 20, message = "Cannot assign more than 20 roles at once")
+    @Size(max = 50, message = "Role code must not exceed 50 characters")
+    private String roleCode;
+
+    /**
+     * @deprecated Use {@link #roleCode}. Still accepted for existing clients, with at most one element.
+     */
+    @Deprecated
+    @Size(max = 1, message = "An account can have only one role")
     private Set<String> roleCodes;
 }

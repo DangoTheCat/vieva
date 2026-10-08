@@ -215,4 +215,23 @@ class UserServiceImplTest {
 
         verify(userRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("changePassword: clears the forced-change flag set for admin-created accounts")
+    void changePassword_ClearsMustChangePassword() {
+        sampleUser.setMustChangePassword(true);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches("temp-password", "hashed-old-password")).thenReturn(true);
+        when(passwordEncoder.matches("new-password", "hashed-old-password")).thenReturn(false);
+        when(passwordEncoder.encode("new-password")).thenReturn("hashed-new-password");
+
+        userService.changePassword(userId, ChangePasswordRequest.builder()
+                .oldPassword("temp-password")
+                .newPassword("new-password")
+                .build());
+
+        assertThat(sampleUser.isMustChangePassword()).isFalse();
+        assertThat(sampleUser.getPasswordHash()).isEqualTo("hashed-new-password");
+        verify(userRepository).save(sampleUser);
+    }
 }

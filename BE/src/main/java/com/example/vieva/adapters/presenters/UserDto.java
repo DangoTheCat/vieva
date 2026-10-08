@@ -21,7 +21,12 @@ public class UserDto {
     private String fullName;
     private String phoneNumber;
     private UserStatus status;
+    /** The account's single role code. */
+    private String role;
+    /** Same role as a one-element set; kept for existing clients. */
     private Set<String> roles;
+    /** True until the user replaces the password an admin set; the client must force a password change. */
+    private boolean mustChangePassword;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -105,10 +105,11 @@ export function LoginPage({ onNavigate, showToast }) {
         });
       }
       setIsModalOpen(false);
+      // The account's single role (from BE) decides the landing view, not the picked tab
       const effectiveRole = result.effectiveRole || result.user?.selectedRole || roleOverride;
-      const targetView = effectiveRole === 'ROLE_LECTURER' || selectedRole === 'lec'
+      const targetView = effectiveRole === 'ROLE_LECTURER'
         ? 'lecturer-questions'
-        : effectiveRole === 'ROLE_ADMIN' || selectedRole === 'adm'
+        : effectiveRole === 'ROLE_ADMIN'
           ? 'admin-users'
           : 'discover';
       onNavigate(targetView);

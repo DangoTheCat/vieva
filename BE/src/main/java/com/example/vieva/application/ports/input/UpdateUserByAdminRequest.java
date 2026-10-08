@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
-
 /**
  * Application-layer input DTO for updating a user by Admin.
  * Pure Java — free from presentation/framework validation annotations.
@@ -20,5 +18,6 @@ public class UpdateUserByAdminRequest {
     private String fullName;
     private String phoneNumber;
     private UserStatus status;
-    private Set<String> roleCodes;
+    /** Single role code (an account has exactly one role). */
+    private String roleCode;
 }

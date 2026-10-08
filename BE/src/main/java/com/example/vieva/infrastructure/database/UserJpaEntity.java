@@ -57,6 +57,9 @@ public class UserJpaEntity implements Persistable<UUID> {
     @Column(name = "password_changed_at")
     private Instant passwordChangedAt;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -29,6 +29,13 @@ public class UpdateUserByAdminApiRequest {
 
     private UserStatus status;
 
-    @Size(max = 20, message = "Cannot assign more than 20 roles at once")
+    @Size(max = 50, message = "Role code must not exceed 50 characters")
+    private String roleCode;
+
+    /**
+     * @deprecated Use {@link #roleCode}. Still accepted for existing clients, with at most one element.
+     */
+    @Deprecated
+    @Size(max = 1, message = "An account can have only one role")
     private Set<String> roleCodes;
 }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../api/authApi';
 import { userApi } from '../api/userApi';
 import { apiClient } from '../api/client';
+import { getUserRole } from '../utils/roles';
 
 const AuthContext = createContext(null);
 
@@ -35,7 +36,7 @@ export function AuthProvider({ children }) {
           const savedRole = localStorage.getItem('aives_user_role');
           const mergedUser = {
             ...profile,
-            selectedRole: savedRole || profile?.selectedRole || (currentUser?.selectedRole ?? 'ROLE_STUDENT')
+            selectedRole: getUserRole(profile) || savedRole || (currentUser?.selectedRole ?? 'ROLE_STUDENT')
           };
           setCurrentUser(mergedUser);
           localStorage.setItem('aives_user', JSON.stringify(mergedUser));
@@ -64,8 +65,16 @@ export function AuthProvider({ children }) {
     const handleUnauthorized = () => {
       handleLogout();
     };
+    // BE answers 403/1062 while an admin-issued password has not been changed yet
+    const handlePasswordChangeRequired = () => {
+      setCurrentUser(prev => prev ? { ...prev, mustChangePassword: true } : prev);
+    };
     window.addEventListener('aives:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('aives:unauthorized', handleUnauthorized);
+    window.addEventListener('aives:password-change-required', handlePasswordChangeRequired);
+    return () => {
+      window.removeEventListener('aives:unauthorized', handleUnauthorized);
+      window.removeEventListener('aives:password-change-required', handlePasswordChangeRequired);
+    };
   }, []);
 
   const handleLogin = async (credentials, roleOverride) => {
@@ -75,20 +84,22 @@ export function AuthProvider({ children }) {
 
     try {
       const data = await authApi.login(credentials);
-      if (selectedRole) {
-        localStorage.setItem('aives_user_role', selectedRole);
-        if (emailKey) localStorage.setItem(emailKey, selectedRole);
+      // An account has exactly one role: the BE role wins over the tab picked on the login page
+      const actualRole = getUserRole(data.user) || selectedRole;
+      if (actualRole) {
+        localStorage.setItem('aives_user_role', actualRole);
+        if (emailKey) localStorage.setItem(emailKey, actualRole);
       }
       const mergedUser = {
         ...(data.user || {}),
-        selectedRole: selectedRole
+        selectedRole: actualRole
       };
       setToken(data.accessToken);
       setCurrentUser(mergedUser);
       localStorage.setItem('aives_user', JSON.stringify(mergedUser));
       setIsDemoMode(false);
       setIsLiveBackendReachable(true);
-      return { ...data, user: mergedUser, effectiveRole: selectedRole };
+      return { ...data, user: mergedUser, effectiveRole: actualRole };
     } catch (err) {
       // If server error (500) or network unreachable, fallback to local offline mode for testing
       if (err.status === 500 || err.status === 502 || err.status === 503 || err.status === 504 || !err.status) {
@@ -180,7 +191,7 @@ export function AuthProvider({ children }) {
       const savedRole = localStorage.getItem('aives_user_role');
       const mergedUser = {
         ...updated,
-        selectedRole: savedRole || updated?.selectedRole || currentUser?.selectedRole || 'ROLE_STUDENT'
+        selectedRole: getUserRole(updated) || savedRole || currentUser?.selectedRole || 'ROLE_STUDENT'
       };
       setCurrentUser(mergedUser);
       localStorage.setItem('aives_user', JSON.stringify(mergedUser));
@@ -199,8 +210,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const isAdmin = currentUser?.roles?.some(r => r === 'ROLE_ADMIN' || r === 'ADMIN') || currentUser?.selectedRole === 'ROLE_ADMIN';
-  const isLecturer = currentUser?.roles?.some(r => r === 'ROLE_LECTURER' || r === 'LECTURER') || currentUser?.selectedRole === 'ROLE_LECTURER';
+  /**
+   * First login after an admin created the account (or reset its password):
+   * BE revokes the current token once the password changes, so sign out and ask for a fresh login.
+   */
+  const completeForcedPasswordChange = () => {
+    handleLogout();
+  };
+
+  // An account has exactly one role; the demo (offline) session has none and uses the picked tab
+  const effectiveRole = getUserRole(currentUser) || currentUser?.selectedRole;
+  const isAdmin = effectiveRole === 'ROLE_ADMIN';
+  const isLecturer = effectiveRole === 'ROLE_LECTURER';
+  const mustChangePassword = !!currentUser?.mustChangePassword && !isDemoMode;
 
   return (
     <AuthContext.Provider
@@ -210,6 +232,8 @@ export function AuthProvider({ children }) {
         isLoading,
         isAdmin,
         isLecturer,
+        mustChangePassword,
+        completeForcedPasswordChange,
         isDemoMode,
         isLiveBackendReachable,
         setIsDemoMode,

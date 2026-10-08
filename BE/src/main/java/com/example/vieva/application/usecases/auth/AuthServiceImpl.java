@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
                 .updatedAt(Instant.now())
                 .build();
 
-        user.addRole(defaultRole, newUserId);
+        user.assignRole(defaultRole, newUserId);
 
         final User savedUser;
         try {
@@ -117,6 +117,7 @@ public class AuthServiceImpl implements AuthService {
                 .phoneNumber(user.getPhoneNumber())
                 .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .roles(roles)
+                .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

@@ -258,7 +258,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Vai Trò Hệ Thống (Roles):</label>
+              <label className="block font-bold text-slate-700 mb-1">Vai Trò Hệ Thống:</label>
               <div className="flex flex-wrap gap-1.5">
                 {currentUser?.roles?.map((role, idx) => (
                   <span

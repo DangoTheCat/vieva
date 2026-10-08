@@ -8,6 +8,7 @@ import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.ports.output.AuditEventRepository;
+import com.example.vieva.application.ports.output.DomainEventPublisherPort;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.domain.entities.AuditEvent;
 import com.example.vieva.domain.entities.Role;
@@ -24,10 +25,8 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -40,6 +39,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PasswordEncoderPort passwordEncoder;
     private final AuditEventRepository auditEventRepository;
     private final JsonSerializerPort jsonSerializer;
+    private final DomainEventPublisherPort domainEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -82,7 +82,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        Set<Role> rolesToAssign = resolveRoles(request.getRoleCodes());
+        Role roleToAssign = resolveRole(request.getRoleCode());
+
+        // Admin-created accounts get a temporary password that must be changed on first login
+        String temporaryPassword = StringUtils.hasText(request.getPassword())
+                ? request.getPassword()
+                : TemporaryPasswordGenerator.generate();
 
         UUID newUserId = UUID.randomUUID();
         User user = User.builder()
@@ -90,16 +95,15 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .email(email)
                 .userCode(userCode)
                 .fullName(request.getFullName().trim())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .passwordHash(passwordEncoder.encode(temporaryPassword))
                 .phoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null)
                 .status(status)
+                .mustChangePassword(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
-        for (Role role : rolesToAssign) {
-            user.addRole(role, currentAdminId);
-        }
+        user.assignRole(roleToAssign, currentAdminId);
 
         final User savedUser;
         try {
@@ -114,6 +118,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         auditValues.put("email", savedUser.getEmail());
         auditValues.put("userCode", savedUser.getUserCode());
         auditValues.put("status", savedUser.getStatus() != null ? savedUser.getStatus().name() : null);
+        auditValues.put("role", roleToAssign.getRoleCode());
 
         auditEventRepository.save(AuditEvent.builder()
                 .auditId(UUID.randomUUID())
@@ -124,6 +129,10 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .newValuesJson(jsonSerializer.serialize(auditValues))
                 .createdAt(Instant.now())
                 .build());
+
+        // Sent after commit by the async email worker
+        domainEventPublisher.publishAccountCreated(savedUser.getEmail(), savedUser.getFullName(),
+                roleToAssign.getRoleCode(), temporaryPassword);
 
         return savedUser;
     }
@@ -159,8 +168,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot self-demote
-        if (targetUserId.equals(currentAdminId) && request.getRoleCodes() != null) {
-            boolean willRemainAdmin = willHaveAdminRole(request.getRoleCodes());
+        if (targetUserId.equals(currentAdminId) && request.getRoleCode() != null) {
+            boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin) {
                 throw new AppException(ErrorCode.CANNOT_DEMOTE_SELF);
             }
@@ -168,8 +177,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // Rule: ADMIN cannot demote the last ADMIN
         // Use FOR UPDATE lock to serialize concurrent demote attempts
-        if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE && request.getRoleCodes() != null) {
-            boolean willRemainAdmin = willHaveAdminRole(request.getRoleCodes());
+        if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE && request.getRoleCode() != null) {
+            boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin && userRepository.countActiveAdmins() <= 1) {
                 throw new AppException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
             }
@@ -185,12 +194,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (request.getStatus() != null) {
             user.setStatus(request.getStatus());
         }
-        if (request.getRoleCodes() != null) {
-            Set<Role> updatedRoles = resolveRoles(request.getRoleCodes());
-            user.clearRoles();
-            for (Role role : updatedRoles) {
-                user.addRole(role, currentAdminId);
-            }
+        if (request.getRoleCode() != null) {
+            // Replaces the current role: an account has exactly one
+            user.assignRole(resolveRole(request.getRoleCode()), currentAdminId);
         }
 
         user.setUpdatedAt(Instant.now());
@@ -258,7 +264,8 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        user.updatePassword(passwordEncoder.encode(newPassword));
+        // The admin knows this password, so the user must replace it on next login
+        user.issueTemporaryPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         auditEventRepository.save(AuditEvent.builder()
@@ -273,62 +280,18 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     /**
-     * Resolve a set of role codes to Role entities using a single batched query
-     * (never one query per code — Rule 4: database queries inside loops).
-     * Null/blank codes in the set are silently skipped.
-     * If no code resolves, falls back to the default role.
-     *
-     * @param roleCodes set of role code strings (max 20 enforced at controller layer)
+     * Resolve a single role code to its Role, accepting either spelling ({@code ADMIN} or {@code ROLE_ADMIN}).
+     * The canonical {@code ROLE_*} role wins over its legacy alias; a blank code falls back to the default role.
      */
-    private Set<Role> resolveRoles(Set<String> roleCodes) {
-        Set<String> requested = new LinkedHashSet<>();
-        if (roleCodes != null) {
-            for (String code : roleCodes) {
-                // Guard: skip null or blank entries before calling trim()
-                if (StringUtils.hasText(code)) {
-                    requested.add(code.trim());
-                }
-            }
+    private Role resolveRole(String roleCode) {
+        if (!StringUtils.hasText(roleCode)) {
+            return findDefaultRole();
         }
-
-        if (requested.isEmpty()) {
-            Set<Role> defaultRoles = new LinkedHashSet<>();
-            defaultRoles.add(findDefaultRole());
-            return defaultRoles;
-        }
-
-        // One batched lookup covering every exact code and its ROLE_/unprefixed variant.
-        Set<String> candidates = new HashSet<>();
-        for (String cleanCode : requested) {
-            candidates.add(cleanCode);
-            candidates.add(roleCodeVariant(cleanCode));
-        }
-        Map<String, Role> rolesByCode = new HashMap<>();
-        for (Role role : roleRepository.findByRoleCodesIn(candidates)) {
-            rolesByCode.put(role.getRoleCode(), role);
-        }
-
-        Set<Role> roles = new LinkedHashSet<>();
-        for (String cleanCode : requested) {
-            Role role = rolesByCode.get(cleanCode);
-            if (role == null) {
-                role = rolesByCode.get(roleCodeVariant(cleanCode));
-            }
-            if (role == null) {
-                throw new AppException(ErrorCode.ROLE_NOT_FOUND);
-            }
-            roles.add(role);
-        }
-
-        return roles;
-    }
-
-    /**
-     * Returns the alternate spelling of a role code tried when the primary code is not found:
-     * {@code ADMIN} &harr; {@code ROLE_ADMIN}.
-     */
-    private String roleCodeVariant(String cleanCode) {
-        return cleanCode.startsWith("ROLE_") ? cleanCode.substring(5) : "ROLE_" + cleanCode;
+        String cleanCode = roleCode.trim().toUpperCase(Locale.ROOT);
+        String canonicalCode = cleanCode.startsWith("ROLE_") ? cleanCode : "ROLE_" + cleanCode;
+        return roleRepository.findByRoleCode(canonicalCode)
+                .or(() -> roleRepository.findByRoleCode(canonicalCode.substring(5)))
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     private Role findDefaultRole() {
@@ -337,16 +300,8 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
     }
 
-    /**
-     * Check if the new set of role codes includes an admin role.
-     * Null codes in the set are filtered out before calling trim().
-     */
-    private boolean willHaveAdminRole(Set<String> roleCodes) {
-        if (roleCodes == null) return false;
-        return roleCodes.stream()
-                .filter(code -> code != null)   // guard: skip null entries
-                .anyMatch(code ->
-                        "ROLE_ADMIN".equalsIgnoreCase(code.trim()) || "ADMIN".equalsIgnoreCase(code.trim())
-                );
+    private boolean isAdminRoleCode(String roleCode) {
+        String code = roleCode.trim();
+        return "ROLE_ADMIN".equalsIgnoreCase(code) || "ADMIN".equalsIgnoreCase(code);
     }
 }

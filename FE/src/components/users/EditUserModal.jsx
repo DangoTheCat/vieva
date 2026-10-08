@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
-import { ROLE_OPTIONS } from '../../utils/roles';
+import { ROLE_OPTIONS, getUserRole } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
 import { useAuth } from '../../context/AuthContext';
 import { Edit3, X, ShieldAlert, Check, AlertTriangle } from 'lucide-react';
@@ -11,7 +11,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [status, setStatus] = useState('ACTIVE');
-  const [selectedRoles, setSelectedRoles] = useState(['ROLE_USER']);
+  const [selectedRole, setSelectedRole] = useState('ROLE_USER');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -23,7 +23,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
       setFullName(user.fullName || '');
       setPhoneNumber(user.phoneNumber || '');
       setStatus(user.status || 'ACTIVE');
-      setSelectedRoles(Array.isArray(user.roles) ? [...user.roles] : ['ROLE_USER']);
+      setSelectedRole(getUserRole(user) || 'ROLE_USER');
       setFormError('');
     }
   }, [user, isOpen]);
@@ -46,20 +46,13 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
 
   if (!isOpen || !user) return null;
 
-  const toggleRole = (role) => {
-    if (selectedRoles.includes(role)) {
-      if (selectedRoles.length === 1) {
-        showToast({ type: 'warning', message: 'Người dùng phải có ít nhất 1 vai trò hệ thống.' });
-        return;
-      }
-      if (isEditingSelf && role === 'ROLE_ADMIN') {
-        showToast({ type: 'warning', message: 'Bạn không thể tự hạ quyền Administrator của chính mình (Error 1012).' });
-        return;
-      }
-      setSelectedRoles(selectedRoles.filter(r => r !== role));
-    } else {
-      setSelectedRoles([...selectedRoles, role]);
+  // An account has exactly one role: picking a role replaces the current one
+  const selectRole = (role) => {
+    if (isEditingSelf && role !== 'ROLE_ADMIN') {
+      showToast({ type: 'warning', message: 'Bạn không thể tự hạ quyền Administrator của chính mình (Error 1012).' });
+      return;
     }
+    setSelectedRole(role);
   };
 
   const handleSubmit = async (e) => {
@@ -81,7 +74,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
       return;
     }
 
-    if (isEditingSelf && !selectedRoles.includes('ROLE_ADMIN')) {
+    if (isEditingSelf && selectedRole !== 'ROLE_ADMIN') {
       setFormError('Bạn không thể tự gỡ bỏ quyền Administrator của chính mình (Error 1012).');
       return;
     }
@@ -92,7 +85,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
         status,
-        roleCodes: selectedRoles
+        roleCode: selectedRole
       };
 
       if (isDemoMode) {
@@ -101,7 +94,8 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
           fullName: payload.fullName,
           phoneNumber: payload.phoneNumber,
           status: payload.status,
-          roles: payload.roleCodes,
+          role: payload.roleCode,
+          roles: [payload.roleCode],
           updatedAt: new Date().toISOString()
         };
         showToast({ type: 'success', message: `Cập nhật thông tin ${updated.fullName} thành công (Demo Mode)!` });
@@ -229,24 +223,26 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
             </div>
           </div>
 
-          {/* Role Checkboxes */}
+          {/* Role Radio (an account has exactly one role) */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">Phân Quyền Vai Trò Hệ Thống (Roles):</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="block font-bold text-slate-700 mb-1.5">Vai Trò Hệ Thống (chọn 1):</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup">
               {ROLE_OPTIONS.map(({ code, description }) => {
-                const isChecked = selectedRoles.includes(code);
+                const isChecked = selectedRole === code;
                 const isAdminRole = code === 'ROLE_ADMIN';
                 return (
                   <label
                     key={code}
-                    onClick={() => toggleRole(code)}
+                    role="radio"
+                    aria-checked={isChecked}
+                    onClick={() => selectRole(code)}
                     className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer select-none transition ${
                       isChecked
                         ? isAdminRole ? 'border-purple-500 bg-purple-50 text-purple-900 font-semibold' : 'border-sky-500 bg-sky-50 text-sky-900 font-semibold'
                         : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${
                       isChecked ? (isAdminRole ? 'bg-purple-600 border-purple-600 text-white' : 'bg-sky-600 border-sky-600 text-white') : 'border-slate-300'
                     }`}>
                       {isChecked && <Check className="w-3 h-3" />}

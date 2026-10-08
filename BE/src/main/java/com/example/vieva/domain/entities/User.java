@@ -28,13 +28,20 @@ public class User {
     private Instant passwordChangedAt;
     private Long version;
 
+    /** Set when an admin created the account or reset its password; cleared by the user's own password change. */
+    private boolean mustChangePassword;
+
     @Builder.Default
     private Set<UserRole> userRoles = new HashSet<>();
 
-    public void addRole(Role role, UUID assignedBy) {
+    /**
+     * An account has exactly one role: assigning a role replaces the current one.
+     */
+    public void assignRole(Role role, UUID assignedBy) {
         if (userRoles == null) {
             userRoles = new HashSet<>();
         }
+        userRoles.clear();
         UserRole userRole = UserRole.builder()
                 .userId(this.userId)
                 .roleId(role.getRoleId())
@@ -43,6 +50,18 @@ public class User {
                 .assignedBy(assignedBy)
                 .build();
         userRoles.add(userRole);
+    }
+
+    /** The account's single role, or null when none is assigned. */
+    public Role getRole() {
+        if (userRoles == null) {
+            return null;
+        }
+        return userRoles.stream()
+                .map(UserRole::getRole)
+                .filter(role -> role != null)
+                .findFirst()
+                .orElse(null);
     }
 
     public boolean isDeleted() {
@@ -69,21 +88,23 @@ public class User {
         return hasRole("ROLE_STUDENT") || hasRole("STUDENT");
     }
 
-    public void clearRoles() {
-        if (userRoles != null) {
-            userRoles.clear();
-        }
-    }
-
     public void delete() {
         this.status = UserStatus.DELETED;
         this.deletedAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
+    /** Password chosen by the user: lifts the forced-change requirement. */
     public void updatePassword(String passwordHash) {
         this.passwordHash = passwordHash;
         this.passwordChangedAt = Instant.now();
         this.updatedAt = Instant.now();
+        this.mustChangePassword = false;
+    }
+
+    /** Password set by an admin: the user must replace it on next login. */
+    public void issueTemporaryPassword(String passwordHash) {
+        updatePassword(passwordHash);
+        this.mustChangePassword = true;
     }
 }

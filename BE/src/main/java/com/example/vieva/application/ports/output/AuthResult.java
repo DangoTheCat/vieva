@@ -29,5 +29,6 @@ public class AuthResult {
     private String phoneNumber;
     private String status;
     private Set<String> roles;
+    private boolean mustChangePassword;
     private Instant createdAt;
 }

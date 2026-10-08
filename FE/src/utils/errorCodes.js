@@ -71,6 +71,10 @@ export const ERROR_MESSAGES = {
   // AI rules
   '1060': 'Chưa có cấu hình AI rule đang hoạt động. Vui lòng liên hệ quản trị viên.',
 
+  // Account rules
+  '1061': 'Mỗi tài khoản chỉ được có một vai trò.',
+  '1062': 'Bạn cần đổi mật khẩu trước khi sử dụng hệ thống.',
+
   // Rate limiting
   '4290': 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.',
   '4291': 'Đã vượt giới hạn số yêu cầu AI. Vui lòng thử lại sau.'

@@ -65,9 +65,7 @@ public class UserServiceImpl implements UserService {
             throw new AppException(ErrorCode.PASSWORD_UNCHANGED);
         }
 
-        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
-        user.setPasswordChangedAt(Instant.now());
-        user.setUpdatedAt(Instant.now());
+        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
 }

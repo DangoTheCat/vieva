@@ -23,7 +23,9 @@ public class AuthPresenter {
                 .status(result.getStatus() != null
                         ? com.example.vieva.domain.entities.UserStatus.valueOf(result.getStatus())
                         : null)
+                .role(result.getRoles() != null ? result.getRoles().stream().findFirst().orElse(null) : null)
                 .roles(result.getRoles())
+                .mustChangePassword(result.isMustChangePassword())
                 .createdAt(result.getCreatedAt())
                 .build();
 
