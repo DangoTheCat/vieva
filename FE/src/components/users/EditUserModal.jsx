@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
-import { ROLE_OPTIONS, getUserRole } from '../../utils/roles';
+import { ASSIGNABLE_ROLE_OPTIONS, getUserRole } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
 import { useAuth } from '../../context/AuthContext';
 import { Edit3, X, ShieldAlert, Check, AlertTriangle } from 'lucide-react';
@@ -11,11 +11,14 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [status, setStatus] = useState('ACTIVE');
-  const [selectedRole, setSelectedRole] = useState('ROLE_USER');
+  const [selectedRole, setSelectedRole] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
   const isEditingSelf = user?.userId === currentUser?.userId;
+  const originalRole = getUserRole(user);
+  // Self-registered ROLE_USER accounts keep that role until the admin picks an assignable one
+  const isUnassignableRole = !!originalRole && !ASSIGNABLE_ROLE_OPTIONS.some(({ code }) => code === originalRole);
   const fullNameInputRef = useRef(null);
 
   useEffect(() => {
@@ -23,7 +26,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
       setFullName(user.fullName || '');
       setPhoneNumber(user.phoneNumber || '');
       setStatus(user.status || 'ACTIVE');
-      setSelectedRole(getUserRole(user) || 'ROLE_USER');
+      setSelectedRole(getUserRole(user) || '');
       setFormError('');
     }
   }, [user, isOpen]);
@@ -85,7 +88,8 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
         status,
-        roleCode: selectedRole
+        // Only send the role when it changed, so editing a ROLE_USER account's other fields still works
+        roleCode: selectedRole && selectedRole !== originalRole ? selectedRole : null
       };
 
       if (isDemoMode) {
@@ -94,8 +98,8 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
           fullName: payload.fullName,
           phoneNumber: payload.phoneNumber,
           status: payload.status,
-          role: payload.roleCode,
-          roles: [payload.roleCode],
+          role: payload.roleCode || user.role,
+          roles: payload.roleCode ? [payload.roleCode] : user.roles,
           updatedAt: new Date().toISOString()
         };
         showToast({ type: 'success', message: `Cập nhật thông tin ${updated.fullName} thành công (Demo Mode)!` });
@@ -226,8 +230,13 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
           {/* Role Radio (an account has exactly one role) */}
           <div>
             <label className="block font-bold text-slate-700 mb-1.5">Vai Trò Hệ Thống (chọn 1):</label>
+            {isUnassignableRole && (
+              <p className="text-[11px] text-amber-700 mb-1.5">
+                Tài khoản đang có vai trò {originalRole} (tự đăng ký). Chọn một vai trò bên dưới để đổi, hoặc giữ nguyên.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2" role="radiogroup">
-              {ROLE_OPTIONS.map(({ code, description }) => {
+              {ASSIGNABLE_ROLE_OPTIONS.map(({ code, description }) => {
                 const isChecked = selectedRole === code;
                 const isAdminRole = code === 'ROLE_ADMIN';
                 return (

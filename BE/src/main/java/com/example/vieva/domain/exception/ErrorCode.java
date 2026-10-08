@@ -66,7 +66,8 @@ public enum ErrorCode {
     SUBJECT_INACTIVE("1059", "Subject is not active"),
     AI_RULE_NOT_FOUND("1060", "Active AI rule not found"),
     MULTIPLE_ROLES_NOT_ALLOWED("1061", "An account can have only one role"),
-    PASSWORD_CHANGE_REQUIRED("1062", "You must change your password before using the system");
+    PASSWORD_CHANGE_REQUIRED("1062", "You must change your password before using the system"),
+    ROLE_NOT_ASSIGNABLE("1063", "Admin can only assign the ADMIN, LECTURER or STUDENT role");
 
     private final String code;
     private final String message;

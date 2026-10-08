@@ -11,6 +11,8 @@ import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
+import com.example.vieva.domain.exception.AppException;
+import com.example.vieva.domain.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -126,5 +129,35 @@ class AdminUserServiceImplTest {
 
         assertThat(user.isMustChangePassword()).isTrue();
         assertThat(user.getPasswordHash()).isEqualTo("hashed-Reset123");
+    }
+
+    @Test
+    @DisplayName("createUser: ROLE_USER (or its alias) cannot be assigned by an admin")
+    void createUser_RoleUser_Rejected() {
+        for (String code : new String[]{"ROLE_USER", "user"}) {
+            assertThatThrownBy(() -> adminUserService.createUser(CreateUserByAdminRequest.builder()
+                    .email("someone@fpt.edu.vn")
+                    .fullName("Someone")
+                    .roleCode(code)
+                    .build(), adminId))
+                    .isInstanceOf(AppException.class)
+                    .extracting(e -> ((AppException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.ROLE_NOT_ASSIGNABLE);
+        }
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("createUser: no role given defaults to ROLE_STUDENT")
+    void createUser_NoRole_DefaultsToStudent() {
+        when(roleRepository.findByRoleCode("ROLE_STUDENT")).thenReturn(Optional.of(studentRole));
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User created = adminUserService.createUser(CreateUserByAdminRequest.builder()
+                .email("default@fpt.edu.vn")
+                .fullName("Default Role")
+                .build(), adminId);
+
+        assertThat(created.getRole().getRoleCode()).isEqualTo("ROLE_STUDENT");
     }
 }

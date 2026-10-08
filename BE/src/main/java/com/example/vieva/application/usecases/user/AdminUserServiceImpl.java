@@ -27,12 +27,16 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AdminUserServiceImpl implements AdminUserService {
+
+    /** Roles an admin may assign; ROLE_USER is only given by self-registration. */
+    private static final Set<String> ADMIN_ASSIGNABLE_ROLES = Set.of("ROLE_ADMIN", "ROLE_LECTURER", "ROLE_STUDENT");
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -282,6 +286,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     /**
      * Resolve a single role code to its Role, accepting either spelling ({@code ADMIN} or {@code ROLE_ADMIN}).
      * The canonical {@code ROLE_*} role wins over its legacy alias; a blank code falls back to the default role.
+     * Only ADMIN, LECTURER and STUDENT can be assigned by an admin (ROLE_USER is for self-registration).
      */
     private Role resolveRole(String roleCode) {
         if (!StringUtils.hasText(roleCode)) {
@@ -289,14 +294,17 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
         String cleanCode = roleCode.trim().toUpperCase(Locale.ROOT);
         String canonicalCode = cleanCode.startsWith("ROLE_") ? cleanCode : "ROLE_" + cleanCode;
+        if (!ADMIN_ASSIGNABLE_ROLES.contains(canonicalCode)) {
+            throw new AppException(ErrorCode.ROLE_NOT_ASSIGNABLE);
+        }
         return roleRepository.findByRoleCode(canonicalCode)
                 .or(() -> roleRepository.findByRoleCode(canonicalCode.substring(5)))
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     private Role findDefaultRole() {
-        return roleRepository.findByRoleCode("ROLE_USER")
-                .or(() -> roleRepository.findByRoleCode("USER"))
+        return roleRepository.findByRoleCode("ROLE_STUDENT")
+                .or(() -> roleRepository.findByRoleCode("STUDENT"))
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
     }
 
