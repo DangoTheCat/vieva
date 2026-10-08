@@ -8,12 +8,11 @@ import {
   LogOut,
   ChevronDown,
   Mic2,
-  Table2,
-  Bot
+  Table2
 } from 'lucide-react';
 import { VoiceWaveform } from './VoiceWaveform';
 
-export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssistant, onNavigate, currentTab }) {
+export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate, currentTab }) {
   const { currentUser, logout, isDemoMode, setIsDemoMode, isLiveBackendReachable, isAdmin, isLecturer } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isTroubleshootOpen, setIsTroubleshootOpen] = useState(false);
@@ -184,15 +183,6 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onOpenAssis
             <VoiceWaveform isSpeaking={true} volume={0.45} barCount={6} height={14} barWidth="w-0.5" barGap="gap-0.5" />
             <span className="text-[10px] text-emerald-400 font-bold font-mono">Ready</span>
           </div>
-
-          {/* AI Assistant */}
-          <button
-            onClick={onOpenAssistant}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
-          >
-            <Bot className="w-4 h-4 text-sky-400" />
-            <span className="hidden sm:inline">Trợ Lý AI</span>
-          </button>
 
           {/* Quick Action: Thêm Người Dùng */}
           {isAdmin && (

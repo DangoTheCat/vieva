@@ -25,7 +25,6 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ProfileModal } from './components/profile/ProfileModal';
 import { RbacMatrixModal } from './components/users/RbacMatrixModal';
 import { CreateUserModal } from './components/users/CreateUserModal';
-import { AiAssistantPanel } from './components/common/AiAssistantPanel';
 import { Activity, Mic2, Mic, MicOff, Volume2, ShieldCheck, CheckCircle2, Radio, Server, ArrowLeft } from 'lucide-react';
 
 function AppContent() {
@@ -64,7 +63,6 @@ function AppContent() {
   const [profileModalState, setProfileModalState] = useState({ isOpen: false, tab: 'info' });
   const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   // Global Toast state
   const [toast, setToast] = useState(null);
@@ -152,7 +150,6 @@ function AppContent() {
         onOpenAddUser={() => setIsQuickAddOpen(true)}
         onOpenProfile={(tab) => setProfileModalState({ isOpen: true, tab })}
         onOpenMatrix={() => setIsMatrixOpen(true)}
-        onOpenAssistant={() => setIsAssistantOpen(true)}
       />
 
       {/* MAIN CONTAINER WITH SIDEBAR */}
@@ -283,7 +280,7 @@ function AppContent() {
                 Xin chào {currentUser.fullName || ''}
               </h1>
               <p className="text-xs text-slate-500 mt-2">
-                Tài khoản của bạn chưa có phân hệ quản trị nào. Bạn có thể cập nhật hồ sơ hoặc hỏi Trợ Lý AI.
+                Tài khoản của bạn chưa có phân hệ quản trị nào. Bạn có thể cập nhật hồ sơ.
               </p>
             </div>
           )}
@@ -548,11 +545,6 @@ function AppContent() {
           showToast({ type: 'success', message: 'Tạo tài khoản thành công!' });
         }}
         showToast={showToast}
-      />
-
-      <AiAssistantPanel
-        isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
       />
 
       {/* TOAST NOTIFICATION CONTAINER */}

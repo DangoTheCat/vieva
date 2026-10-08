@@ -14,8 +14,11 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Run as non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Run as non-root user for security. The local document store must be writable
+# by this user because uploaded course files are saved under /app/data/documents.
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /app/data/documents \
+    && chown -R appuser:appgroup /app/data
 USER appuser
 
 # Copy built artifact from builder stage

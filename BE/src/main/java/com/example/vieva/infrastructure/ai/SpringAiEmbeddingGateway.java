@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.EmbeddingResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "vieva.ai.provider", havingValue = "openai")
+@ConditionalOnExpression("'openai'.equals('${vieva.ai.provider:mock}') || 'gemini'.equals('${vieva.ai.provider:mock}')")
 public class SpringAiEmbeddingGateway implements EmbeddingModelPort {
 
     private final EmbeddingModel embeddingModel;

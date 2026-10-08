@@ -12,7 +12,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "vieva.ai.provider", havingValue = "openai")
+@ConditionalOnExpression("'openai'.equals('${vieva.ai.provider:mock}') || 'gemini'.equals('${vieva.ai.provider:mock}')")
 public class OpenAiQuestionGenerationGateway implements QuestionGenerationPort {
 
     private final ChatModel chatModel;
