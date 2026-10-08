@@ -132,19 +132,21 @@ export function AuthProvider({ children }) {
 
     try {
       const data = await authApi.register(payload);
-      localStorage.setItem('aives_user_role', selectedRole);
-      if (emailKey) localStorage.setItem(emailKey, selectedRole);
+      // Self-registered accounts are always ROLE_STUDENT on the BE; its role wins over the picked tab
+      const actualRole = getUserRole(data.user) || selectedRole;
+      localStorage.setItem('aives_user_role', actualRole);
+      if (emailKey) localStorage.setItem(emailKey, actualRole);
 
       const mergedUser = {
         ...(data.user || {}),
-        selectedRole: selectedRole
+        selectedRole: actualRole
       };
       setToken(data.accessToken);
       setCurrentUser(mergedUser);
       localStorage.setItem('aives_user', JSON.stringify(mergedUser));
       setIsDemoMode(false);
       setIsLiveBackendReachable(true);
-      return { ...data, user: mergedUser, effectiveRole: selectedRole };
+      return { ...data, user: mergedUser, effectiveRole: actualRole };
     } catch (err) {
       // Re-throw domain validation errors (e.g., duplicate user 1001)
       if (err.code === '1001' || err.code === 'USER_EXISTED' || (err.status === 400 || err.status === 409)) {

@@ -6,7 +6,6 @@ import { ShieldCheck, UserPlus, Check, X, ShieldAlert, Eye, EyeOff, Award, Spark
 export function RegisterPage({ onNavigate, showToast }) {
   const { register } = useAuth();
 
-  const [roleType, setRoleType] = useState('student'); // student, lecturer
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,23 +56,22 @@ export function RegisterPage({ onNavigate, showToast }) {
       const payload = {
         email: email.trim().toLowerCase(),
         password,
-        fullName: fullName.trim() || (roleType === 'student' ? 'Sinh Viên FPT' : 'Giảng Viên FPT'),
+        fullName: fullName.trim() || 'Sinh Viên FPT',
         phoneNumber: phoneNumber ? phoneNumber.trim() : null
       };
 
-      const roleOverride = roleType === 'lecturer' ? 'ROLE_LECTURER' : 'ROLE_STUDENT';
-      const result = await register(payload, roleOverride);
+      // Self-registration always creates a student account; lecturers are created by an admin
+      const result = await register(payload, 'ROLE_STUDENT');
       if (showToast) {
         showToast({
           type: result?.isDemoFallback ? 'warning' : 'success',
           title: result?.isDemoFallback ? 'Đăng Ký Khảo Thí (Chế độ Cục bộ)' : 'Đăng Ký Thành Công',
           message: result?.isDemoFallback
-            ? `Đã tạo tài khoản ${result.user?.email || email} ở chế độ trải nghiệm. Bạn đã được cấp quyền Giảng viên!`
+            ? `Đã tạo tài khoản ${result.user?.email || email} ở chế độ trải nghiệm. Bạn đã được cấp quyền Sinh viên.`
             : `Tài khoản ${result.user?.email || email} đã được kích hoạt thành công!`
         });
       }
-      const targetView = roleType === 'student' ? 'discover' : 'lecturer-questions';
-      onNavigate(targetView);
+      onNavigate('discover');
     } catch (err) {
       const msg = getErrorMessage(err);
       setErrorMessage(msg);
@@ -145,32 +143,9 @@ export function RegisterPage({ onNavigate, showToast }) {
               </div>
             )}
 
-            {/* Role Segmented Switcher */}
-            <div>
-              <label className="block font-bold text-slate-300 mb-1.5">Vai Trò Đăng Ký:</label>
-              <div className="grid grid-cols-2 p-1 bg-slate-900 border border-slate-800 rounded-xl gap-1">
-                <button
-                  type="button"
-                  onClick={() => setRoleType('student')}
-                  className={`py-1.5 rounded-lg font-bold text-xs transition-all ${roleType === 'student'
-                    ? 'bg-sky-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-400 font-semibold hover:text-slate-200'
-                    }`}
-                >
-                  Sinh Viên
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRoleType('lecturer')}
-                  className={`py-1.5 rounded-lg font-bold text-xs transition-all ${roleType === 'lecturer'
-                    ? 'bg-sky-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-400 font-semibold hover:text-slate-200'
-                    }`}
-                >
-                  Giảng Viên
-                </button>
-              </div>
-            </div>
+            <p className="text-[11px] text-slate-400">
+              Đăng ký dành cho sinh viên. Tài khoản giảng viên do quản trị viên cấp.
+            </p>
 
             <div>
               <label className="block font-bold text-slate-300 mb-1">Họ Và Tên :</label>
@@ -181,7 +156,7 @@ export function RegisterPage({ onNavigate, showToast }) {
                 maxLength={50}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder={roleType === 'student' ? 'Nguyễn Quang Thổ' : 'TS. Võ Lê Đức Phát '}
+                placeholder="Nguyễn Quang Thổ"
                 className="w-full p-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-800 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition placeholder:text-slate-500"
               />
             </div>

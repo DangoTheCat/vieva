@@ -132,8 +132,9 @@ class AdminUserServiceImplTest {
     }
 
     @Test
-    @DisplayName("createUser: ROLE_USER (or its alias) cannot be assigned by an admin")
+    @DisplayName("createUser: ROLE_USER no longer exists, so it cannot be assigned")
     void createUser_RoleUser_Rejected() {
+        when(roleRepository.findByRoleCode("ROLE_USER")).thenReturn(Optional.empty());
         for (String code : new String[]{"ROLE_USER", "user"}) {
             assertThatThrownBy(() -> adminUserService.createUser(CreateUserByAdminRequest.builder()
                     .email("someone@fpt.edu.vn")
@@ -142,7 +143,7 @@ class AdminUserServiceImplTest {
                     .build(), adminId))
                     .isInstanceOf(AppException.class)
                     .extracting(e -> ((AppException) e).getErrorCode())
-                    .isEqualTo(ErrorCode.ROLE_NOT_ASSIGNABLE);
+                    .isEqualTo(ErrorCode.ROLE_NOT_FOUND);
         }
         verify(userRepository, never()).saveAndFlush(any(User.class));
     }

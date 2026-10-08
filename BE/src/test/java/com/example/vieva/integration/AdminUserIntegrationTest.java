@@ -69,6 +69,16 @@ class AdminUserIntegrationTest {
     }
 
     @Test
+    @DisplayName("V14 leaves exactly three roles and rejects new ones")
+    void onlyThreeRolesExist() {
+        assertThat(jdbc.queryForList("SELECT role_code FROM roles ORDER BY role_code", String.class))
+                .containsExactly("ROLE_ADMIN", "ROLE_LECTURER", "ROLE_STUDENT");
+        assertThatThrownBy(() -> jdbc.update(
+                "INSERT INTO roles (role_code, role_name) VALUES ('ROLE_USER', 'User')"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     @DisplayName("Admin-created account: one role, must change password, emailed after commit; role change replaces it")
     void createThenChangeRole() {
         String email = "it-" + UUID.randomUUID().toString().substring(0, 8) + "@fpt.edu.vn";

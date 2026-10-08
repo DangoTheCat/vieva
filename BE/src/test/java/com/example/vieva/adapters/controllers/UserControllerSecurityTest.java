@@ -98,7 +98,7 @@ class UserControllerSecurityTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "STUDENT")
     @DisplayName("GET /api/v1/users: non-admin user request returns 403")
     void getAllUsers_NonAdmin_Returns403() throws Exception {
         mockMvc.perform(get("/api/v1/users")

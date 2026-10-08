@@ -63,7 +63,7 @@ class JwtAuthenticationFilterTest {
     void setUp() {
         SecurityContextHolder.clearContext();
         userId = UUID.randomUUID();
-        Role userRole = Role.builder().roleId(1).roleCode("ROLE_USER").build();
+        Role userRole = Role.builder().roleId(1).roleCode("ROLE_STUDENT").build();
         UserRole ur = UserRole.builder().userId(userId).roleId(1).role(userRole).build();
 
         activeUser = User.builder()

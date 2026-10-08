@@ -77,15 +77,15 @@ public class User {
     }
 
     public boolean isAdmin() {
-        return hasRole("ROLE_ADMIN") || hasRole("ADMIN");
+        return hasRole("ROLE_ADMIN");
     }
 
     public boolean isLecturer() {
-        return hasRole("ROLE_LECTURER") || hasRole("LECTURER");
+        return hasRole("ROLE_LECTURER");
     }
 
     public boolean isStudent() {
-        return hasRole("ROLE_STUDENT") || hasRole("STUDENT");
+        return hasRole("ROLE_STUDENT");
     }
 
     public void delete() {

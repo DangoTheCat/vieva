@@ -173,13 +173,9 @@ export function UserTable({
                         <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-bold text-[10px] tracking-wide">
                           LECTURER / EXAMINER
                         </span>
-                      ) : userRole === 'ROLE_STUDENT' ? (
+                      ) : (
                         <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px] tracking-wide">
                           STUDENT / CANDIDATE
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-white text-slate-500 border border-slate-200 font-bold text-[10px] tracking-wide">
-                          USER
                         </span>
                       )}
                       {user.mustChangePassword && (

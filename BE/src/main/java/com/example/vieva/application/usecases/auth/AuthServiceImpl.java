@@ -44,7 +44,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
-        Role defaultRole = roleRepository.findByRoleCode("ROLE_USER")
+        // Self-registered accounts are students
+        Role defaultRole = roleRepository.findByRoleCode("ROLE_STUDENT")
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
 
         UUID newUserId = UUID.randomUUID();

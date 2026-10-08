@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
-import { ASSIGNABLE_ROLE_OPTIONS } from '../../utils/roles';
+import { ROLE_OPTIONS } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
 import { useAuth } from '../../context/AuthContext';
 import { UserPlus, X, ShieldAlert, Check, Eye, EyeOff } from 'lucide-react';
@@ -253,7 +253,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
           <div>
             <label className="block font-bold text-slate-700 mb-1.5">Vai Trò Hệ Thống (chọn 1):</label>
             <div className="grid grid-cols-2 gap-2" role="radiogroup">
-              {ASSIGNABLE_ROLE_OPTIONS.map(({ code, description }) => {
+              {ROLE_OPTIONS.map(({ code, description }) => {
                 const isChecked = selectedRole === code;
                 const isAdminRole = code === 'ROLE_ADMIN';
                 return (

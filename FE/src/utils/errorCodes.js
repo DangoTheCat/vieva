@@ -74,7 +74,6 @@ export const ERROR_MESSAGES = {
   // Account rules
   '1061': 'Mỗi tài khoản chỉ được có một vai trò.',
   '1062': 'Bạn cần đổi mật khẩu trước khi sử dụng hệ thống.',
-  '1063': 'Quản trị viên chỉ được gán vai trò Admin, Giảng viên hoặc Sinh viên.',
 
   // Rate limiting
   '4290': 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.',

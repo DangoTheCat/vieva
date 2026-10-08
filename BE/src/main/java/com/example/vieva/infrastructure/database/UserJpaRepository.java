@@ -42,7 +42,7 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID>, J
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM UserJpaEntity u JOIN u.userRoles ur JOIN ur.role r " +
-           "WHERE (r.roleCode = 'ROLE_ADMIN' OR r.roleCode = 'ADMIN') " +
+           "WHERE r.roleCode = 'ROLE_ADMIN' " +
            "AND u.status = 'ACTIVE'")
     List<UserJpaEntity> findActiveAdminsForUpdate();
 }
