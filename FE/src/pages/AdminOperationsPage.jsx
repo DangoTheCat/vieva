@@ -30,6 +30,16 @@ export function AdminOperationsPage({ onNavigate, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('live');
 
+  // Keyboard accessibility: Escape to close audit modal
+  useEffect(() => {
+    if (!isAuditModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsAuditModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAuditModalOpen]);
+
   // Real-time active exam rooms list (Matching Image 1)
   const [activeRooms, setActiveRooms] = useState([
     {
@@ -127,7 +137,7 @@ export function AdminOperationsPage({ onNavigate, showToast }) {
           className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
         >
           <FileText className="w-4 h-4 text-amber-400" />
-          <span>📜 Xem Log Audit (Modal)</span>
+          <span>Xem Log Audit</span>
         </button>
       </div>
 
@@ -284,7 +294,7 @@ export function AdminOperationsPage({ onNavigate, showToast }) {
           <span>Trang 1 / 6</span>
           <div className="flex items-center gap-1">
             <button className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-400 cursor-not-allowed">Trước</button>
-            <button className="px-3 py-1 rounded-lg bg-[#0066FF] text-white font-bold">1</button>
+            <button className="px-3 py-1 rounded-lg bg-sky-600 text-white font-bold">1</button>
             <button className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer">Sau</button>
           </div>
         </div>

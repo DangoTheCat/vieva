@@ -43,36 +43,18 @@ export function UserTable({
     return 'bg-sky-100 text-sky-700 border border-sky-200';
   };
 
-  const getScope = (user) => {
-    if (user.roles?.includes('ROLE_ADMIN') || user.roles?.includes('ADMIN')) {
-      return '* (ALL COURSES)';
+  const formatDate = (isoString) => {
+    if (!isoString) return '—';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '—';
     }
-    if (user.userCode?.startsWith('LEC')) {
-      return 'SWD392, CS402';
-    }
-    return 'SWD392 (Class SE1701)';
-  };
-
-  const get2FaInfo = (user) => {
-    if (user.roles?.includes('ROLE_ADMIN') || user.roles?.includes('ADMIN')) {
-      return {
-        label: 'Hardware FIDO2 / YubiKey',
-        color: 'text-emerald-700 font-semibold',
-        active: true
-      };
-    }
-    if (user.userCode?.startsWith('LEC')) {
-      return {
-        label: 'Google Authenticator',
-        color: 'text-emerald-700 font-semibold',
-        active: true
-      };
-    }
-    return {
-      label: 'Google OAuth SSO',
-      color: 'text-slate-500',
-      active: false
-    };
   };
 
   return (
@@ -85,9 +67,9 @@ export function UserTable({
             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
               <th className="py-3.5 px-4">Người Dùng / Email FPT</th>
               <th className="py-3.5 px-4">Vai Trò Hệ Thống</th>
-              <th className="py-3.5 px-4">Phạm Vi Môn Học (Scope)</th>
-              <th className="py-3.5 px-4">Trạng Thái</th>
-              <th className="py-3.5 px-4">Xác Thực 2FA</th>
+              <th className="py-3.5 px-4">Trạng Thái &amp; Bảo Mật</th>
+              <th className="py-3.5 px-4">Số Điện Thoại</th>
+              <th className="py-3.5 px-4">Ngày Khởi Tạo</th>
               <th className="py-3.5 px-4 text-right">Thao Tác</th>
             </tr>
           </thead>
@@ -120,7 +102,6 @@ export function UserTable({
                 const isSelf = user.userId === currentUser?.userId;
                 const userRole = getUserRole(user);
                 const isAdmin = userRole === 'ROLE_ADMIN';
-                const twoFa = get2FaInfo(user);
                 const isCopied = copiedId === user.userCode;
 
                 return (
@@ -167,61 +148,59 @@ export function UserTable({
                       {isAdmin ? (
                         <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-bold text-[10px] tracking-wide inline-flex items-center gap-1">
                           <ShieldCheck className="w-3 h-3 text-purple-600" />
-                          <span>SUPER ADMINISTRATOR</span>
+                          <span>SUPER ADMIN</span>
                         </span>
                       ) : userRole === 'ROLE_LECTURER' ? (
                         <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-bold text-[10px] tracking-wide">
-                          LECTURER / EXAMINER
+                          GIẢNG VIÊN / GIÁM THỊ
                         </span>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px] tracking-wide">
-                          STUDENT / CANDIDATE
-                        </span>
-                      )}
-                      {user.mustChangePassword && (
-                        <span
-                          className="ml-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]"
-                          title="Người dùng chưa đổi mật khẩu tạm thời do admin cấp"
-                        >
-                          Chờ đổi MK
+                          SINH VIÊN / THÍ SINH
                         </span>
                       )}
                     </td>
 
-                    {/* Scope */}
+                    {/* Status & Security */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-xs ${
-                        isAdmin
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {getScope(user)}
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          user.status === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : user.status === 'INACTIVE'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            user.status === 'ACTIVE' ? 'bg-emerald-500' : user.status === 'INACTIVE' ? 'bg-amber-500' : 'bg-rose-500'
+                          }`}></span>
+                          <span>{user.status || 'ACTIVE'}</span>
+                        </span>
+                        {user.mustChangePassword ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-semibold"
+                            title="Tài khoản đang dùng mật khẩu tạm, người dùng phải đổi khi đăng nhập"
+                          >
+                            <KeyRound className="w-2.5 h-2.5 text-amber-600" />
+                            <span>Chờ đổi MK</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium px-1">Đã kích hoạt</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Phone Number */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className="font-mono text-slate-700 text-xs">
+                        {user.phoneNumber || <span className="text-slate-400 italic">Chưa cập nhật</span>}
                       </span>
                     </td>
 
-                    {/* Status */}
+                    {/* Created At */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        user.status === 'ACTIVE'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : user.status === 'INACTIVE'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : user.status === 'BANNED'
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          user.status === 'ACTIVE' ? 'bg-emerald-500' : user.status === 'INACTIVE' ? 'bg-amber-500' : 'bg-rose-500'
-                        }`}></span>
-                        <span>{user.status || 'ACTIVE'}</span>
-                      </span>
-                    </td>
-
-                    {/* 2FA */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className={`${twoFa.color} font-medium flex items-center gap-1.5 text-xs`}>
-                        {twoFa.active && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>}
-                        <span>{twoFa.label}</span>
+                      <span className="font-mono text-slate-600 text-xs">
+                        {formatDate(user.createdAt)}
                       </span>
                     </td>
 

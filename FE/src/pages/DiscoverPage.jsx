@@ -128,10 +128,10 @@ export function DiscoverPage({ onNavigate, showToast }) {
           <button 
             type="button"
             onClick={() => onNavigate && onNavigate('calibration')}
-            className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs sm:text-sm px-7 py-3 rounded-full shadow-md shadow-blue-600/20 flex items-center gap-2 transition active:scale-95 cursor-pointer"
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-xs flex items-center gap-2 transition active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             <span>Kiểm Tra Thiết Bị &amp; Vào Thi</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 text-sky-400" />
           </button>
         </div>
 

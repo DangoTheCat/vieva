@@ -43,3 +43,36 @@ export function SkeletonTable({ rows = 4, columns = 5 }) {
   );
 }
 
+export function PageSkeleton() {
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto w-full animate-pulse text-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-white border border-slate-200/80 rounded-2xl">
+        <div className="space-y-2 w-full max-w-sm">
+          <div className="h-6 bg-slate-200 rounded-lg w-3/4"></div>
+          <div className="h-3.5 bg-slate-100 rounded-md w-full"></div>
+        </div>
+        <div className="h-9 bg-slate-200 rounded-xl w-32"></div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="p-5 bg-white rounded-2xl border border-slate-200/80 space-y-3">
+            <div className="h-3.5 bg-slate-100 rounded w-24"></div>
+            <div className="h-7 bg-slate-200 rounded w-16"></div>
+            <div className="h-3 bg-slate-100 rounded w-32"></div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4">
+        <div className="h-5 bg-slate-200 rounded w-48"></div>
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-12 bg-slate-50 border border-slate-100 rounded-xl"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+

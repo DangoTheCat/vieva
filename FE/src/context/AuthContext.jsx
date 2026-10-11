@@ -107,7 +107,7 @@ export function AuthProvider({ children }) {
         const fallbackUser = {
           userId: `demo-${Date.now()}`,
           email: credentials?.email || 'user@fpt.edu.vn',
-          fullName: selectedRole === 'ROLE_LECTURER' ? 'Giảng Viên (Offline)' : 'Sinh Viên (Offline)',
+          fullName: selectedRole === 'ROLE_ADMIN' ? 'Ban Khảo Thí (Offline)' : selectedRole === 'ROLE_LECTURER' ? 'Giảng Viên (Offline)' : 'Sinh Viên (Offline)',
           selectedRole: selectedRole,
           status: 'ACTIVE'
         };

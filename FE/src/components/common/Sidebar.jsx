@@ -12,7 +12,9 @@ import {
   X,
   LayoutDashboard,
   Sparkles,
-  Award
+  Award,
+  Mic,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,6 +22,16 @@ export function Sidebar({ currentTab, onNavigate }) {
   const { isAdmin, isLecturer } = useAuth();
   const isStudent = !isAdmin && !isLecturer;
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+
+  const getItemClass = (isActive) =>
+    `w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-xs transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
+      isActive
+        ? 'bg-sky-500/15 text-sky-400 border-sky-400/30 shadow-xs'
+        : 'text-slate-300 border-transparent hover:text-white hover:bg-slate-800/60'
+    }`;
+
+  const getIconClass = (isActive) =>
+    `w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-sky-400' : 'text-slate-400'}`;
 
   return (
     <>
@@ -37,62 +49,64 @@ export function Sidebar({ currentTab, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => onNavigate('discover')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && (currentTab === 'discover' || currentTab === 'home')
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && (currentTab === 'discover' || currentTab === 'home'))}
                 >
-                  <Calendar className={`w-4 h-4 ${!isRulesModalOpen && (currentTab === 'discover' || currentTab === 'home') ? 'text-sky-400' : 'text-white'}`} />
+                  <Calendar className={getIconClass(!isRulesModalOpen && (currentTab === 'discover' || currentTab === 'home'))} />
                   <span>Lịch Thi Của Tôi</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('calibration')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'calibration'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'calibration')}
                 >
-                  <Sliders className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'calibration' ? 'text-sky-400' : 'text-white'}`} />
+                  <Sliders className={getIconClass(!isRulesModalOpen && currentTab === 'calibration')} />
                   <span>Kiểm Tra Micro / Cam</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setIsRulesModalOpen(true)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    isRulesModalOpen
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  onClick={() => onNavigate('exam-room')}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'exam-room')}
                 >
-                  <FileText className={`w-4 h-4 ${isRulesModalOpen ? 'text-sky-400' : 'text-white'}`} />
+                  <Mic className={getIconClass(!isRulesModalOpen && currentTab === 'exam-room')} />
+                  <span>Phòng Thi Vấn Đáp (Làm Bài)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate('submission-success')}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'submission-success')}
+                >
+                  <CheckCircle2 className={getIconClass(!isRulesModalOpen && currentTab === 'submission-success')} />
+                  <span>Biên Bản Nộp Bài Thi</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRulesModalOpen(true)}
+                  className={getItemClass(isRulesModalOpen)}
+                >
+                  <FileText className={getIconClass(isRulesModalOpen)} />
                   <span>Quy Chế Thi Vấn Đáp</span>
                 </button>
               </>
             )}
 
-            {/* Admin & Faculty Module Section (LUỒNG QUẢN TRỊ ADMIN) */}
+            {/* Admin Module Section */}
             {isAdmin && (
               <>
                 <div className="pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 flex items-center justify-between">
                   <span>LUỒNG QUẢN TRỊ (ADMIN)</span>
-                  <span className="text-sky-400 font-mono">4 MÀN</span>
+                  <span className="text-sky-400 font-mono text-[9px] bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/50">4 MÀN</span>
                 </div>
                 
                 <button
                   type="button"
                   onClick={() => onNavigate('admin-dashboard')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'admin-dashboard'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'admin-dashboard')}
                 >
-                  <LayoutDashboard className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'admin-dashboard' ? 'text-sky-400' : 'text-white'}`} />
+                  <LayoutDashboard className={getIconClass(!isRulesModalOpen && currentTab === 'admin-dashboard')} />
                   <div className="flex-1 flex items-center justify-between">
                     <span>1. Giám Sát Phòng Thi Live</span>
                     <span className="text-[10px] text-slate-500 font-mono">DevOps</span>
@@ -102,13 +116,9 @@ export function Sidebar({ currentTab, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => onNavigate('admin-voice-lab')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && (currentTab === 'admin-voice-lab' || currentTab === 'voice-lab')
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && (currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'))}
                 >
-                  <GraduationCap className={`w-4 h-4 ${!isRulesModalOpen && (currentTab === 'admin-voice-lab' || currentTab === 'voice-lab') ? 'text-sky-400' : 'text-white'}`} />
+                  <GraduationCap className={getIconClass(!isRulesModalOpen && (currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'))} />
                   <div className="flex-1 flex items-center justify-between">
                     <span>2. Voice &amp; Speech Lab</span>
                     <span className="text-[10px] text-slate-500 font-mono">TTS/STT</span>
@@ -118,29 +128,21 @@ export function Sidebar({ currentTab, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => onNavigate('admin-users')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'admin-users'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'admin-users')}
                 >
-                  <Users className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'admin-users' ? 'text-sky-400' : 'text-white'}`} />
+                  <Users className={getIconClass(!isRulesModalOpen && currentTab === 'admin-users')} />
                   <div className="flex-1 flex items-center justify-between">
                     <span>3. Phân Quyền RBAC</span>
-                    <span className="text-[10px] text-slate-500 font-mono">Roles</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Single Role</span>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('admin-subjects')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'admin-subjects'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'admin-subjects')}
                 >
-                  <BookOpen className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'admin-subjects' ? 'text-sky-400' : 'text-white'}`} />
+                  <BookOpen className={getIconClass(!isRulesModalOpen && currentTab === 'admin-subjects')} />
                   <div className="flex-1 flex items-center justify-between">
                     <span>4. Quản Lý Môn Học</span>
                     <span className="text-[10px] text-slate-500 font-mono">Catalog</span>
@@ -157,91 +159,63 @@ export function Sidebar({ currentTab, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => onNavigate('lecturer-dashboard')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'lecturer-dashboard'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'lecturer-dashboard')}
                 >
-                  <LayoutDashboard className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'lecturer-dashboard' ? 'text-sky-400' : 'text-white'}`} />
+                  <LayoutDashboard className={getIconClass(!isRulesModalOpen && currentTab === 'lecturer-dashboard')} />
                   <span>Trang Tổng Quan</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('lecturer-docs-rag')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'lecturer-docs-rag'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'lecturer-docs-rag')}
                 >
-                  <Database className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'lecturer-docs-rag' ? 'text-sky-400' : 'text-white'}`} />
+                  <Database className={getIconClass(!isRulesModalOpen && currentTab === 'lecturer-docs-rag')} />
                   <span>Kho Tài Liệu RAG</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('lecturer-questions')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'lecturer-questions'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'lecturer-questions')}
                 >
-                  <Table2 className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'lecturer-questions' ? 'text-sky-400' : 'text-white'}`} />
+                  <Table2 className={getIconClass(!isRulesModalOpen && currentTab === 'lecturer-questions')} />
                   <span>Ngân Hàng Câu Hỏi</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('space-detail')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'space-detail'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'space-detail')}
                 >
-                  <Sparkles className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'space-detail' ? 'text-sky-400' : 'text-white'}`} />
+                  <Sparkles className={getIconClass(!isRulesModalOpen && currentTab === 'space-detail')} />
                   <span>QuestionStudio</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('rubric-studio')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'rubric-studio'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'rubric-studio')}
                 >
-                  <Award className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'rubric-studio' ? 'text-sky-400' : 'text-white'}`} />
+                  <Award className={getIconClass(!isRulesModalOpen && currentTab === 'rubric-studio')} />
                   <span>Ma Trận Rubric</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('lecturer-grading-queue')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'lecturer-grading-queue'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'lecturer-grading-queue')}
                 >
-                  <ShieldCheck className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'lecturer-grading-queue' ? 'text-sky-400' : 'text-white'}`} />
+                  <ShieldCheck className={getIconClass(!isRulesModalOpen && currentTab === 'lecturer-grading-queue')} />
                   <span>Hàng Đợi Chấm &amp; FAP</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate('lecturer-review-regrading')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full font-bold transition-all border text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer ${
-                    !isRulesModalOpen && currentTab === 'lecturer-review-regrading'
-                      ? 'bg-[#092244] text-sky-400 border-sky-500 shadow-sm'
-                      : 'text-white border-transparent hover:bg-slate-800/60'
-                  }`}
+                  className={getItemClass(!isRulesModalOpen && currentTab === 'lecturer-review-regrading')}
                 >
-                  <FileText className={`w-4 h-4 ${!isRulesModalOpen && currentTab === 'lecturer-review-regrading' ? 'text-sky-400' : 'text-white'}`} />
+                  <FileText className={getIconClass(!isRulesModalOpen && currentTab === 'lecturer-review-regrading')} />
                   <span>Phúc Khảo &amp; Chấm Lại</span>
                 </button>
               </>
@@ -253,37 +227,38 @@ export function Sidebar({ currentTab, onNavigate }) {
 
       {/* POPUP MODAL: QUY CHẾ THI VẤN ĐÁP AIVES */}
       {isRulesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/75 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5 animate-modal-entry text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-entry text-slate-800">
             
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-heading font-extrabold text-lg text-slate-900">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-heading font-extrabold text-base text-slate-900">
                 Quy Chế Thi Vấn Đáp AIVES
               </h3>
               <button 
                 type="button"
                 onClick={() => setIsRulesModalOpen(false)} 
-                className="text-slate-400 hover:text-slate-700 p-1 transition focus:outline-none cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition focus:outline-none cursor-pointer"
+                aria-label="Đóng"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3.5 text-xs text-slate-600 leading-relaxed font-normal">
+            <div className="space-y-3 text-xs text-slate-600 leading-relaxed font-normal">
               <p className="flex items-start gap-2">
-                <span className="text-slate-400 font-bold">•</span>
+                <span className="text-sky-500 font-bold">•</span>
                 <span>Thí sinh phải bật Camera liên tục trong suốt quá trình trả lời câu hỏi.</span>
               </p>
               <p className="flex items-start gap-2">
-                <span className="text-slate-400 font-bold">•</span>
+                <span className="text-sky-500 font-bold">•</span>
                 <span>Trả lời trực tiếp bằng giọng nói, hệ thống bóc băng STT và đối chiếu Rubric tức thì.</span>
               </p>
               <p className="flex items-start gap-2">
-                <span className="text-slate-400 font-bold">•</span>
+                <span className="text-sky-500 font-bold">•</span>
                 <span>Nếu mất kết nối mạng, hệ thống tự động bảo lưu phiên thi trong <strong className="text-slate-900 font-bold">60 giây</strong>.</span>
               </p>
               <p className="flex items-start gap-2">
-                <span className="text-slate-400 font-bold">•</span>
+                <span className="text-sky-500 font-bold">•</span>
                 <span>Sau khi nộp bài, chứng cứ âm thanh và transcript được ký băm SHA-256 chống giả mạo.</span>
               </p>
             </div>
@@ -292,7 +267,7 @@ export function Sidebar({ currentTab, onNavigate }) {
               <button 
                 type="button"
                 onClick={() => setIsRulesModalOpen(false)} 
-                className="px-6 py-2.5 rounded-full bg-[#111827] hover:bg-slate-800 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 Tôi Đã Hiểu
               </button>

@@ -8,7 +8,10 @@ import {
   LogOut,
   ChevronDown,
   Mic2,
-  Table2
+  Table2,
+  GraduationCap,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { VoiceWaveform } from './VoiceWaveform';
 
@@ -53,14 +56,15 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
   if (currentTab === 'calibration') {
     return (
       <>
-        <header className="h-16 bg-[#0B132B] text-white px-6 flex items-center justify-between shrink-0 shadow-lg border-b border-slate-800 sticky top-0 z-40 select-none">
+        <header className="h-16 bg-sidebarBg text-white px-6 flex items-center justify-between shrink-0 shadow-xs border-b border-slate-800 sticky top-0 z-40 select-none">
           <div className="flex items-center gap-3">
             <button 
               type="button"
               onClick={() => onNavigate && onNavigate('discover')}
-              className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-sm hover:opacity-90 transition cursor-pointer border-none outline-none"
+              className="w-9 h-9 rounded-xl bg-sky-600 hover:bg-sky-500 flex items-center justify-center text-white shadow-xs transition cursor-pointer border-none outline-none active:scale-95"
+              aria-label="Về trang chủ"
             >
-              🎓
+              <GraduationCap className="w-5 h-5 text-white" />
             </button>
             <div>
               <h1 className="font-heading font-extrabold text-sm text-white tracking-tight">
@@ -77,22 +81,24 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
             onClick={() => setIsTroubleshootOpen(true)}
             className="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <span>⚙ Trợ Giúp Kỹ Thuật (Modal)</span>
+            <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
+            <span>Trợ Giúp Kỹ Thuật</span>
           </button>
         </header>
 
         {/* TROUBLESHOOTING MODAL */}
         {isTroubleshootOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/75 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-slate-800 animate-modal-entry">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-slate-800 animate-modal-entry">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-bold text-base text-slate-900">Trợ Giúp Xử Lý Thiết Bị</h3>
+                <h3 className="font-heading font-extrabold text-base text-slate-900">Trợ Giúp Xử Lý Thiết Bị</h3>
                 <button
                   type="button"
                   onClick={() => setIsTroubleshootOpen(false)}
-                  className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 cursor-pointer focus:outline-none"
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition cursor-pointer focus:outline-none"
+                  aria-label="Đóng"
                 >
-                  &times;
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -111,7 +117,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                 <button
                   type="button"
                   onClick={() => setIsTroubleshootOpen(false)}
-                  className="px-5 py-2 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer"
                 >
                   Đã Hiểu
                 </button>
@@ -154,19 +160,99 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                   onClick={() => onNavigate('admin-users')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-users'
                       ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
                   Phân Quyền (RBAC)
                 </button>
                 <button
+                  onClick={() => onNavigate('admin-subjects')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-subjects'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Môn Học &amp; Phân Công
+                </button>
+                <button
                   onClick={() => onNavigate('admin-voice-lab')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'
                       ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-sidebarHover border-transparent'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
                   Voice &amp; Speech Lab
+                </button>
+              </>
+            )}
+            {isLecturer && !isAdmin && (
+              <>
+                <button
+                  onClick={() => onNavigate('lecturer-dashboard')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-dashboard'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Tổng Quan
+                </button>
+                <button
+                  onClick={() => onNavigate('lecturer-docs-rag')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-docs-rag'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Tài Liệu RAG
+                </button>
+                <button
+                  onClick={() => onNavigate('lecturer-questions')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-questions'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Ngân Hàng Câu Hỏi
+                </button>
+              </>
+            )}
+            {!isAdmin && !isLecturer && (
+              <>
+                <button
+                  onClick={() => onNavigate('discover')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'discover' || currentTab === 'home'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Lịch Thi
+                </button>
+                <button
+                  onClick={() => onNavigate('calibration')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'calibration'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Kiểm Tra Mic / Cam
+                </button>
+                <button
+                  onClick={() => onNavigate('exam-room')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'exam-room'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Phòng Thi (Làm Bài)
+                </button>
+                <button
+                  onClick={() => onNavigate('submission-success')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'submission-success'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                    }`}
+                >
+                  Biên Bản Nộp Bài
                 </button>
               </>
             )}

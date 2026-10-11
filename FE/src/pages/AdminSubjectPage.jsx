@@ -57,6 +57,19 @@ export function AdminSubjectPage({ showToast }) {
   const [formCredits, setFormCredits] = useState(3);
   const [formStatus, setFormStatus] = useState('ACTIVE');
 
+  // Keyboard accessibility: Escape to close modals
+  useEffect(() => {
+    if (!isEditModalOpen && !isAssignModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsEditModalOpen(false);
+        setIsAssignModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEditModalOpen, isAssignModalOpen]);
+
   // Fetch subjects and assignments from live backend
   const loadData = async () => {
     setIsLoading(true);
@@ -68,7 +81,26 @@ export function AdminSubjectPage({ showToast }) {
 
       if (subRes.status === 'fulfilled') {
         const content = subRes.value.content || subRes.value || [];
-        setSubjects(Array.isArray(content) ? content : []);
+        const subjectList = Array.isArray(content) ? content : [];
+        setSubjects(subjectList);
+
+        // Pre-fetch lecturer assignments for loaded subjects so metrics & table counts are accurate immediately
+        if (subjectList.length > 0) {
+          try {
+            const assignResults = await Promise.allSettled(
+              subjectList.map(s => adminSubjectApi.getLecturersBySubject(s.subjectId))
+            );
+            const allAssignments = [];
+            assignResults.forEach(res => {
+              if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+                allAssignments.push(...res.value);
+              }
+            });
+            setAssignments(allAssignments);
+          } catch {
+            // Keep default assignments
+          }
+        }
       } else {
         setSubjects([]);
       }

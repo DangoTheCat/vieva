@@ -115,29 +115,20 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
 
     setIsUploading(true);
     try {
-      try {
-        await courseDocumentApi.uploadDocument(selectedSubjectId, fileToUpload);
-      } catch (err) {
-        console.warn('Backend upload API error, simulating local RAG file indexing fallback.', err);
+      const uploadedDoc = await courseDocumentApi.uploadDocument(selectedSubjectId, fileToUpload);
+
+      if (uploadedDoc && (uploadedDoc.documentId || uploadedDoc.id)) {
+        setDocuments(prev => [uploadedDoc, ...prev]);
+      } else {
+        const refreshed = await courseDocumentApi.getDocuments(selectedSubjectId);
+        const list = Array.isArray(refreshed) ? refreshed : refreshed?.content || [];
+        setDocuments(list);
       }
-
-      const ext = fileToUpload.name.split('.').pop()?.toLowerCase() || 'pdf';
-      const newDoc = {
-        documentId: `doc-${Date.now()}`,
-        fileName: fileToUpload.name,
-        fileType: ext,
-        fileSizeBytes: fileToUpload.size || 2500000,
-        status: 'READY',
-        chunkCount: Math.floor(Math.random() * 25) + 15,
-        createdAt: new Date().toISOString()
-      };
-
-      setDocuments(prev => [newDoc, ...prev]);
 
       showToast({
         type: 'success',
         title: 'Tải Lên Thành Công',
-        message: `Đã nhận tệp "${fileToUpload.name}" và bóc tách Lập chỉ mục Vector Store (RAG Indexing)!`
+        message: `Đã tiếp nhận tệp "${fileToUpload.name}" và bắt đầu Lập chỉ mục Vector Store (RAG Indexing)!`
       });
 
       setIsUploadModalOpen(false);
@@ -152,23 +143,27 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
   const handleDeleteDocument = async (docId) => {
     if (!docId) return;
     try {
-      await courseDocumentApi.deleteDocument(docId).catch(() => {});
+      await courseDocumentApi.deleteDocument(docId);
+      setDocuments(prev => prev.filter(d => (d.documentId || d.id) !== docId));
+      showToast({ type: 'success', message: 'Đã xóa tài liệu khỏi hệ thống RAG!' });
     } catch (err) {
-      // Ignore
+      showToast({ type: 'error', message: getErrorMessage(err) });
     }
-    setDocuments(prev => prev.filter(d => (d.documentId || d.id) !== docId));
-    showToast({ type: 'success', message: 'Đã xóa tài liệu khỏi hệ thống RAG!' });
   };
 
   const handleRetryIndexing = async (docId) => {
     if (!docId) return;
     try {
-      await courseDocumentApi.retryIndexing(docId).catch(() => {});
+      const updated = await courseDocumentApi.retryIndexing(docId);
+      setDocuments(prev => prev.map(d =>
+        (d.documentId || d.id) === docId
+          ? { ...d, ...(updated || {}), status: updated?.status || 'INDEXING' }
+          : d
+      ));
+      showToast({ type: 'success', message: 'Đã gửi yêu cầu thử lại lập chỉ mục (Retry Index)!' });
     } catch (err) {
-      // Ignore
+      showToast({ type: 'error', message: getErrorMessage(err) });
     }
-    setDocuments(prev => prev.map(d => (d.documentId || d.id) === docId ? { ...d, status: 'READY' } : d));
-    showToast({ type: 'success', message: 'Đã gửi yêu cầu thử lại lập chỉ mục (Retry Index)!' });
   };
 
   return (
@@ -204,7 +199,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
             type="button"
             disabled={!selectedSubjectId}
             onClick={() => setIsUploadModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs px-5 py-2.5 rounded-full shadow-sm transition active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition active:scale-95 disabled:opacity-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             <UploadCloud className="w-4 h-4" />
             <span>Tải Tài Liệu Mới</span>

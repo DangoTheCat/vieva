@@ -95,7 +95,7 @@ export function RegisterPage({ onNavigate, showToast }) {
           tabIndex={0}
         >
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 border border-cyan-400/30 group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center shadow-md shadow-sky-900/40 border border-sky-400/30 group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
@@ -239,7 +239,7 @@ export function RegisterPage({ onNavigate, showToast }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-heading font-bold text-xs shadow-md shadow-sky-600/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-heading font-bold text-xs shadow-md shadow-sky-600/25 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
             >
               {isSubmitting && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
               <span>Kích Hoạt Tài Khoản & Bắt Đầu</span>

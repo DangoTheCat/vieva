@@ -24,8 +24,13 @@ ALTER TABLE document_chunks DROP CONSTRAINT IF EXISTS document_chunks_document_i
 ALTER TABLE document_chunks ADD CONSTRAINT document_chunks_document_id_fkey
     FOREIGN KEY (document_id) REFERENCES course_documents (document_id);
 
-CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
-    ON document_chunks USING hnsw (embedding vector_cosine_ops);
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+        CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
+            ON document_chunks USING hnsw (embedding vector_cosine_ops);
+    END IF;
+END $$;
 
 -- ─── QUESTIONS ─────────────────────────────────────────────────────────────
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS subject_id UUID;

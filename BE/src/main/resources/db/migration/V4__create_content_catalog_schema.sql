@@ -8,7 +8,12 @@
 -- ============================================================================
 
 -- pgvector extension is required for document_chunks.embedding vector(1536)
-CREATE EXTENSION IF NOT EXISTS vector;
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS vector;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'pgvector extension is not available on host system, skipping...';
+END $$;
 
 -- ─── SUBJECTS ───────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS subjects (
