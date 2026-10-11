@@ -8,8 +8,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(properties = {
         "jwt.secret=test-secret-at-least-32-characters-long-key",
-        "spring.datasource.password=testpassword",
-        "spring.flyway.enabled=false"
+        "spring.datasource.password=testpassword"
 })
 class VievaApplicationTests {
 

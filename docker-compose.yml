@@ -13,6 +13,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./BE/src/main/resources/db/migration:/opt/vieva-schema:ro
+      - ./BE/src/main/resources/db/init.sh:/docker-entrypoint-initdb.d/01-vieva.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-vieva_db}"]
       interval: 5s

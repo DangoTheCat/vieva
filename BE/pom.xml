@@ -66,16 +66,6 @@
 			<artifactId>pgvector</artifactId>
 			<version>0.1.6</version>
 		</dependency>
-		<!-- Flyway: database migration — single source of truth for schema -->
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
 		<!-- Bucket4j: token-bucket rate limiting for auth endpoints -->
 		<dependency>
 			<groupId>com.bucket4j</groupId>

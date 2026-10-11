@@ -12,7 +12,7 @@ import java.util.UUID;
  * Phân công giảng viên phụ trách môn học. Là cơ sở kiểm tra RBAC phạm vi môn (Course-scoped RBAC).
  */
 @Entity
-// The (lecturer_id, subject_id) uniqueness is a PARTIAL index managed by Flyway:
+// The (lecturer_id, subject_id) uniqueness is a PARTIAL index defined in SQL initialization scripts:
 //   CREATE UNIQUE INDEX uq_lecturer_subject ... WHERE revoked_at IS NULL
 // so that a revoked assignment (revoked_at != null) can be re-created later.
 @Table(
