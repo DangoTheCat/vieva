@@ -25,11 +25,25 @@ import {
 } from 'lucide-react';
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
 
+const PORTAL_ROLES = {
+  stu: { code: 'ROLE_STUDENT', label: 'Sinh Viên', view: 'discover' },
+  lec: { code: 'ROLE_LECTURER', label: 'Giảng Viên', view: 'lecturer-questions' },
+  adm: { code: 'ROLE_ADMIN', label: 'Ban Khảo Thí (Admin)', view: 'admin-users' }
+};
+
+const ROLE_TO_PORTAL = {
+  ROLE_STUDENT: 'stu',
+  ROLE_LECTURER: 'lec',
+  ROLE_ADMIN: 'adm'
+};
+
 export function LoginPage({ onNavigate, showToast }) {
-  const { login, isLiveBackendReachable } = useAuth();
+  const { login, logout, isLiveBackendReachable } = useAuth();
 
   const [selectedRole, setSelectedRole] = useState('stu'); // 'stu', 'lec', 'adm'
+  const [roleMismatch, setRoleMismatch] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showForgotNotice, setShowForgotNotice] = useState(false);
 
   // Form credentials
   const [email, setEmail] = useState('');
@@ -43,6 +57,8 @@ export function LoginPage({ onNavigate, showToast }) {
   // Select role tab
   const handleRoleChange = (role) => {
     setSelectedRole(role);
+    setRoleMismatch(null);
+    setErrorMsg('');
   };
 
   // Focus email input when modal opens & handle Escape key
@@ -64,6 +80,7 @@ export function LoginPage({ onNavigate, showToast }) {
     setErrorMsg('');
     setEmail('');
     setPassword('');
+    setShowForgotNotice(false);
     setIsModalOpen(true);
   };
 
@@ -86,6 +103,7 @@ export function LoginPage({ onNavigate, showToast }) {
   const handleSubmitLogin = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setRoleMismatch(null);
 
     if (!email.trim() || !password) {
       setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu.');
@@ -94,9 +112,40 @@ export function LoginPage({ onNavigate, showToast }) {
 
     setIsLoading(true);
     try {
-      const roleOverride = selectedRole === 'lec' ? 'ROLE_LECTURER' : selectedRole === 'adm' ? 'ROLE_ADMIN' : 'ROLE_STUDENT';
+      const expectedRole = PORTAL_ROLES[selectedRole]?.code || 'ROLE_STUDENT';
       // Real BE API Call: POST /api/v1/auth/login
-      const result = await login({ email: email.trim(), password }, roleOverride);
+      const result = await login({ email: email.trim(), password }, expectedRole);
+      
+      const actualRole = result.effectiveRole || result.user?.selectedRole || (result.user?.role?.startsWith('ROLE_') ? result.user.role : result.user?.role ? `ROLE_${result.user.role}` : expectedRole);
+
+      // Strict Role Portal Enforcement
+      if (actualRole && actualRole !== expectedRole) {
+        // Sign out immediately so incorrect role session does not persist
+        await logout();
+
+        const correctPortalKey = ROLE_TO_PORTAL[actualRole] || 'stu';
+        const correctPortalLabel = PORTAL_ROLES[correctPortalKey]?.label || actualRole;
+        const currentPortalLabel = PORTAL_ROLES[selectedRole]?.label || expectedRole;
+
+        setRoleMismatch({
+          actualRole,
+          targetPortal: correctPortalKey,
+          correctLabel: correctPortalLabel,
+          currentLabel: currentPortalLabel
+        });
+
+        const errMsg = `Tài khoản "${email.trim()}" thuộc vai trò [${correctPortalLabel}], không được phép đăng nhập qua cổng [${currentPortalLabel}]. Vui lòng chuyển sang đúng cổng tương ứng.`;
+        setErrorMsg(errMsg);
+        if (showToast) {
+          showToast({
+            type: 'error',
+            title: 'Sai Cổng Đăng Nhập',
+            message: errMsg
+          });
+        }
+        return;
+      }
+
       if (showToast) {
         showToast({
           type: 'success',
@@ -105,13 +154,7 @@ export function LoginPage({ onNavigate, showToast }) {
         });
       }
       setIsModalOpen(false);
-      // The account's single role (from BE) decides the landing view, not the picked tab
-      const effectiveRole = result.effectiveRole || result.user?.selectedRole || roleOverride;
-      const targetView = effectiveRole === 'ROLE_LECTURER'
-        ? 'lecturer-questions'
-        : effectiveRole === 'ROLE_ADMIN'
-          ? 'admin-users'
-          : 'discover';
+      const targetView = PORTAL_ROLES[selectedRole]?.view || 'discover';
       onNavigate(targetView);
     } catch (err) {
       const msg = err.code === '1003' ? 'Email hoặc mật khẩu không chính xác.' : getErrorMessage(err);
@@ -131,7 +174,7 @@ export function LoginPage({ onNavigate, showToast }) {
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 border border-cyan-400/30">
+            <div className="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center shadow-md shadow-sky-900/40 border border-sky-400/30">
               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
@@ -178,7 +221,7 @@ export function LoginPage({ onNavigate, showToast }) {
             <div className="space-y-3">
               <h1 className="font-heading font-extrabold text-4xl sm:text-5xl text-white tracking-tight leading-[1.12]">
                 Nắm bắt năng lực vấn đáp <br />
-                <span className="bg-gradient-to-r from-sky-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent">
+                <span className="text-sky-400">
                   học thuật chuẩn xác tức thì.
                 </span>
               </h1>
@@ -233,11 +276,11 @@ export function LoginPage({ onNavigate, showToast }) {
             {/* Action Buttons Stack */}
             <div className="space-y-3 pt-1">
 
-              {/* Email & Password Gradient Main Button */}
+              {/* Email & Password Main Button */}
               <button
                 type="button"
                 onClick={handleOpenLoginModal}
-                className="w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-extrabold text-xs py-3.5 px-5 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2.5 transition active:scale-98 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
+                className="w-full bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs py-3.5 px-5 rounded-2xl shadow-md shadow-sky-600/25 flex items-center justify-center gap-2.5 transition active:scale-98 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
               >
                 <Mail className="w-4 h-4 text-white shrink-0" />
                 <span>Đăng nhập bằng Email &amp; Mật Khẩu</span>
@@ -366,7 +409,34 @@ export function LoginPage({ onNavigate, showToast }) {
             </div>
 
             <form onSubmit={handleSubmitLogin} className="space-y-4 text-xs" autoComplete="off">
-              {errorMsg && (
+              {/* Active Portal Indicator */}
+              <div className="flex items-center justify-between px-3 py-2 bg-[#070d1a] border border-sky-900/60 rounded-xl text-[11px]">
+                <span className="text-slate-400">Cổng đăng nhập:</span>
+                <span className="font-bold text-sky-400">
+                  {PORTAL_ROLES[selectedRole]?.label}
+                </span>
+              </div>
+
+              {roleMismatch && (
+                <div className="p-3 bg-amber-950/80 border border-amber-600/80 rounded-xl space-y-2 animate-in fade-in">
+                  <p className="text-[11px] text-amber-200 leading-relaxed">
+                    Bạn đang đăng nhập tại cổng <strong>{roleMismatch.currentLabel}</strong>, nhưng tài khoản này có vai trò <strong>{roleMismatch.correctLabel}</strong>.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleRoleChange(roleMismatch.targetPortal);
+                      setRoleMismatch(null);
+                      setErrorMsg('');
+                    }}
+                    className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                  >
+                    <span>👉 Chuyển sang Cổng {roleMismatch.correctLabel} &amp; Thử lại</span>
+                  </button>
+                </div>
+              )}
+
+              {errorMsg && !roleMismatch && (
                 <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-xl text-rose-300 text-[11px] font-medium flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
                   <span>{errorMsg}</span>
@@ -414,15 +484,39 @@ export function LoginPage({ onNavigate, showToast }) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end text-[11px] text-slate-400 pt-1">
-                <button
-                  type="button"
-                  onClick={() => alert('Liên hệ Trạm Khảo Thí FPTU để reset mật khẩu.')}
-                  className="text-sky-400 hover:underline font-medium"
-                >
-                  Quên mật khẩu?
-                </button>
-              </div>
+              {showForgotNotice ? (
+                <div className="p-3.5 bg-sky-950/60 border border-sky-800/80 rounded-xl space-y-2 text-xs text-slate-300 animate-in fade-in">
+                  <div className="flex items-center justify-between text-sky-400 font-bold">
+                    <div className="flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 text-sky-400" />
+                      <span>Hỗ Trợ Khôi Phục Mật Khẩu</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotNotice(false)}
+                      className="text-slate-400 hover:text-white text-sm leading-none"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-300">
+                    Theo quy chuẩn bảo mật khảo thí AIVES, người dùng quên mật khẩu vui lòng liên hệ trực tiếp <strong>Trạm Khảo Thí FPTU</strong> hoặc Quản trị viên để được cấp lại mật khẩu tạm thời.
+                  </p>
+                  <div className="text-[10px] text-sky-300/90 font-mono bg-[#070d1a] border border-sky-900/60 p-2 rounded-lg">
+                    📧 Email: <span className="text-white">khaothi_hcm@fpt.edu.vn</span> • Hotline: 028.7300.5588
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-end text-[11px] text-slate-400 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotNotice(true)}
+                    className="text-sky-400 hover:underline font-medium"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-sky-900/40 flex items-center justify-end gap-2.5">
                 <button
@@ -435,7 +529,7 @@ export function LoginPage({ onNavigate, showToast }) {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-sky-600/30 flex items-center gap-2 disabled:opacity-50 transition active:scale-95"
+                  className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/25 flex items-center gap-2 disabled:opacity-50 transition active:scale-95"
                 >
                   {isLoading && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
                   <span>Đăng nhập</span>
