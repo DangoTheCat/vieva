@@ -114,12 +114,8 @@ export function LecturerGradingQueuePage({ onNavigate, showToast }) {
     if (!candidate) return;
     setIsSubmitting(true);
     try {
-      if (candidate.versionId) {
-        try {
-          await questionBankApi.approveVersion(candidate.versionId);
-        } catch (err) {
-          console.warn('Backend approve API error, continuing with local FAP sync fallback.', err);
-        }
+      if (candidate.versionId && !candidate.versionId.startsWith('ver-')) {
+        await questionBankApi.approveVersion(candidate.versionId);
       }
 
       setCandidates(prev => prev.map(c => 
@@ -131,7 +127,7 @@ export function LecturerGradingQueuePage({ onNavigate, showToast }) {
       showToast({
         type: 'success',
         title: 'Phê Duyệt Điểm FAP',
-        message: `Đã phê duyệt kết quả và đồng bộ điểm FAP cho bài thi!`
+        message: `Đã phê duyệt kết quả và đồng bộ điểm FAP cho bài thi của thí sinh!`
       });
       setActiveModalStudent(null);
     } catch (err) {
@@ -142,8 +138,14 @@ export function LecturerGradingQueuePage({ onNavigate, showToast }) {
   };
 
   const filteredCandidates = candidates.filter((item) => {
-    const title = item.content || item.name || '';
-    return title.toLowerCase().includes(searchTerm.toLowerCase());
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) return true;
+    const matchName = item.studentName?.toLowerCase().includes(q);
+    const matchCode = item.studentCode?.toLowerCase().includes(q);
+    const matchTopic = item.topicName?.toLowerCase().includes(q);
+    const matchContent = item.content?.toLowerCase().includes(q);
+    const matchTitle = item.name?.toLowerCase().includes(q);
+    return Boolean(matchName || matchCode || matchTopic || matchContent || matchTitle);
   });
 
   return (

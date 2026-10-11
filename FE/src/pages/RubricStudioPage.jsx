@@ -57,6 +57,8 @@ export function RubricStudioPage({ showToast }) {
   const [questions, setQuestions] = useState([]);
   const [selectedVersionId, setSelectedVersionId] = useState('');
   const [rubricCriteria, setRubricCriteria] = useState([]);
+  const [versionLock, setVersionLock] = useState(null);
+  const [versionTotalScore, setVersionTotalScore] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
@@ -65,6 +67,16 @@ export function RubricStudioPage({ showToast }) {
   const [criteriaDescription, setCriteriaDescription] = useState('');
   const [criteriaMaxScore, setCriteriaMaxScore] = useState('2.5');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Keyboard accessibility: Escape to close rubric modal
+  useEffect(() => {
+    if (!isRubricModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsRubricModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isRubricModalOpen]);
 
   // 1. Fetch Assigned Subjects from BE
   useEffect(() => {
@@ -131,6 +143,8 @@ export function RubricStudioPage({ showToast }) {
         } else {
           setRubricCriteria(MOCK_RUBRIC_CRITERIA);
         }
+        if (data?.lockVersion != null) setVersionLock(data.lockVersion);
+        if (data?.rubric?.totalScore != null) setVersionTotalScore(data.rubric.totalScore);
       } catch (err) {
         setRubricCriteria(MOCK_RUBRIC_CRITERIA);
       }
@@ -145,42 +159,60 @@ export function RubricStudioPage({ showToast }) {
 
     setIsSubmitting(true);
     try {
-      if (editingCriterion) {
-        try {
-          await rubricApi.updateCriterion(selectedVersionId, editingCriterion.criterionId || editingCriterion.id, {
-            name: criteriaName.trim(),
-            description: criteriaDescription.trim() || 'Tiêu chí đánh giá',
-            maxScore: Number(criteriaMaxScore)
-          });
-        } catch (err) {
-          console.warn('Backend updateCriterion error, updating local state.', err);
-        }
+      const payload = {
+        name: criteriaName.trim(),
+        description: criteriaDescription.trim() || 'Tiêu chí đánh giá chất lượng câu trả lời',
+        maxScore: Number(criteriaMaxScore),
+        orderIndex: editingCriterion ? (editingCriterion.orderIndex || 1) : (rubricCriteria.length + 1),
+        ...(versionLock != null ? { expectedVersion: versionLock } : {})
+      };
 
-        setRubricCriteria(prev => prev.map(c => 
-          (c.criterionId || c.id) === (editingCriterion.criterionId || editingCriterion.id)
-            ? { ...c, name: criteriaName.trim(), description: criteriaDescription.trim(), maxScore: Number(criteriaMaxScore) }
-            : c
-        ));
+      if (editingCriterion) {
+        const critId = editingCriterion.criterionId || editingCriterion.id;
+        if (selectedVersionId && !selectedVersionId.startsWith('ver-rubric-')) {
+          const res = await rubricApi.updateCriterion(selectedVersionId, critId, payload);
+          const updatedList = res?.rubric?.criteria || res?.criteria;
+          if (Array.isArray(updatedList)) {
+            setRubricCriteria(updatedList);
+          } else {
+            setRubricCriteria(prev => prev.map(c => 
+              (c.criterionId || c.id) === critId
+                ? { ...c, ...payload }
+                : c
+            ));
+          }
+          if (res?.lockVersion != null) setVersionLock(res.lockVersion);
+          if (res?.rubric?.totalScore != null) setVersionTotalScore(res.rubric.totalScore);
+        } else {
+          setRubricCriteria(prev => prev.map(c => 
+            (c.criterionId || c.id) === critId
+              ? { ...c, ...payload }
+              : c
+          ));
+        }
         showToast({ type: 'success', message: 'Cập nhật tiêu chí Rubric thành công!' });
       } else {
-        const newCrit = {
-          criterionId: `crit-${Date.now()}`,
-          name: criteriaName.trim(),
-          description: criteriaDescription.trim() || 'Tiêu chí đánh giá',
-          maxScore: Number(criteriaMaxScore)
-        };
-
-        try {
-          await rubricApi.addCriterion(selectedVersionId, {
-            name: criteriaName.trim(),
-            description: criteriaDescription.trim() || 'Tiêu chí đánh giá',
-            maxScore: Number(criteriaMaxScore)
-          });
-        } catch (err) {
-          console.warn('Backend addCriterion error, adding to local state.', err);
+        if (selectedVersionId && !selectedVersionId.startsWith('ver-rubric-')) {
+          const res = await rubricApi.addCriterion(selectedVersionId, payload);
+          const updatedList = res?.rubric?.criteria || res?.criteria;
+          if (Array.isArray(updatedList)) {
+            setRubricCriteria(updatedList);
+          } else {
+            const newCrit = {
+              criterionId: `crit-${Date.now()}`,
+              ...payload
+            };
+            setRubricCriteria(prev => [...prev, newCrit]);
+          }
+          if (res?.lockVersion != null) setVersionLock(res.lockVersion);
+          if (res?.rubric?.totalScore != null) setVersionTotalScore(res.rubric.totalScore);
+        } else {
+          const newCrit = {
+            criterionId: `crit-${Date.now()}`,
+            ...payload
+          };
+          setRubricCriteria(prev => [...prev, newCrit]);
         }
-
-        setRubricCriteria(prev => [...prev, newCrit]);
         showToast({ type: 'success', message: 'Thêm tiêu chí Rubric thành công!' });
       }
 
@@ -198,12 +230,18 @@ export function RubricStudioPage({ showToast }) {
   const handleDeleteCriterion = async (criterionId) => {
     if (!selectedVersionId || !criterionId) return;
     try {
-      await rubricApi.deleteCriterion(selectedVersionId, criterionId).catch(() => {});
+      if (!selectedVersionId.startsWith('ver-rubric-') && !criterionId.startsWith('crit-')) {
+        const res = await rubricApi.deleteCriterion(selectedVersionId, criterionId, versionLock);
+        if (res?.rubric?.criteria) setRubricCriteria(res.rubric.criteria);
+        if (res?.lockVersion != null) setVersionLock(res.lockVersion);
+        if (res?.rubric?.totalScore != null) setVersionTotalScore(res.rubric.totalScore);
+      } else {
+        setRubricCriteria(prev => prev.filter(c => (c.criterionId || c.id) !== criterionId));
+      }
+      showToast({ type: 'success', message: 'Đã xóa tiêu chí Rubric khỏi hệ thống!' });
     } catch (err) {
-      // Ignore
+      showToast({ type: 'error', message: getErrorMessage(err) });
     }
-    setRubricCriteria(prev => prev.filter(c => (c.criterionId || c.id) !== criterionId));
-    showToast({ type: 'success', message: 'Đã xóa tiêu chí Rubric khỏi hệ thống!' });
   };
 
   return (
@@ -242,7 +280,7 @@ export function RubricStudioPage({ showToast }) {
               setCriteriaMaxScore('2.5');
               setIsRubricModalOpen(true);
             }} 
-            className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow-xs active:scale-95 transition disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-xs active:scale-95 transition disabled:opacity-50 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm Tiêu Chí Rubric</span>
@@ -333,7 +371,7 @@ export function RubricStudioPage({ showToast }) {
         <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
           <span>Tổng số tiêu chí: {rubricCriteria.length}</span>
           <span className="font-bold text-slate-700">
-            Tổng điểm Rubric: {rubricCriteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)} điểm
+            Tổng điểm Rubric: {versionTotalScore != null ? Number(versionTotalScore).toFixed(1) : rubricCriteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)} điểm
           </span>
         </div>
       </div>
@@ -360,7 +398,7 @@ export function RubricStudioPage({ showToast }) {
                   value={criteriaName}
                   onChange={(e) => setCriteriaName(e.target.value)}
                   placeholder="Ví dụ: Hiểu cơ chế Event-Driven Architecture..." 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none" 
                 />
               </div>
 
@@ -371,7 +409,7 @@ export function RubricStudioPage({ showToast }) {
                   value={criteriaDescription}
                   onChange={(e) => setCriteriaDescription(e.target.value)}
                   placeholder="Mô tả tiêu chuẩn đạt điểm của câu trả lời..." 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
                 />
               </div>
 
@@ -384,7 +422,7 @@ export function RubricStudioPage({ showToast }) {
                   required
                   value={criteriaMaxScore}
                   onChange={(e) => setCriteriaMaxScore(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none" 
                 />
               </div>
 
@@ -399,7 +437,7 @@ export function RubricStudioPage({ showToast }) {
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Lưu Tiêu Chí ↗</span>

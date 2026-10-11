@@ -36,6 +36,19 @@ export function AdminVoiceLabPage({ showToast }) {
   const [newVoiceGender, setNewVoiceGender] = useState('male');
   const [newVoicePrompt, setNewVoicePrompt] = useState('');
 
+  // Keyboard accessibility: Escape to close active modal
+  useEffect(() => {
+    if (!isNewVoiceModalOpen && !isStressTestModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsNewVoiceModalOpen(false);
+        setIsStressTestModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isNewVoiceModalOpen, isStressTestModalOpen]);
+
   const speakText = (text) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -153,7 +166,7 @@ export function AdminVoiceLabPage({ showToast }) {
           </button>
           <button
             onClick={() => setIsNewVoiceModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white text-xs font-bold shadow-md shadow-sky-600/20 flex items-center gap-1.5 transition active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm shadow-sky-600/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Tạo Giọng Nói Mới</span>
@@ -193,7 +206,7 @@ export function AdminVoiceLabPage({ showToast }) {
                     <h4 className="font-bold text-slate-900 text-sm">Dr. Minh (Giám Thị Chính)</h4>
                     <span className="text-[10px] font-bold bg-sky-500 text-white px-2 py-0.5 rounded-full">DEFAULT</span>
                   </div>
-                  <p class="text-[11px] text-slate-500">Giọng Nam miền Bắc • Phong thái điềm đạm, chuẩn sư phạm</p>
+                  <p className="text-[11px] text-slate-500">Giọng Nam miền Bắc • Phong thái điềm đạm, chuẩn sư phạm</p>
                 </div>
               </div>
               <button 
@@ -505,7 +518,7 @@ export function AdminVoiceLabPage({ showToast }) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Audio Bitrate:</span>
-                  <span class="font-bold text-slate-900 font-mono">64 kbps Opus</span>
+                  <span className="font-bold text-slate-900 font-mono">64 kbps Opus</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Buffer Health:</span>
