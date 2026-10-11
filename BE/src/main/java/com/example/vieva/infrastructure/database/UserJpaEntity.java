@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-// Unique constraints are managed via Flyway partial indexes (WHERE deleted_at IS NULL)
+// Unique constraints are defined via SQL initialization scripts partial indexes (WHERE deleted_at IS NULL)
 // to support soft-delete email/userCode reuse. DO NOT add @Table uniqueConstraints here
 // as they would create full (non-partial) constraints conflicting with the partial indexes.
 @Table(name = "users")

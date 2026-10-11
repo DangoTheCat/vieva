@@ -27,8 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "jwt.secret=test-secret-at-least-32-characters-long-key",
-        "spring.datasource.password=testpassword",
-        "spring.flyway.enabled=false"
+        "spring.datasource.password=testpassword"
 })
 @AutoConfigureMockMvc
 class UserControllerSecurityTest {

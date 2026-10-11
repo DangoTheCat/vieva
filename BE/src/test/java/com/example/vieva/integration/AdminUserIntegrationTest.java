@@ -17,6 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -29,7 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 /**
- * Admin account management against PostgreSQL with Flyway migrations: one role per account
+ * Admin account management against PostgreSQL with PostgreSQL initialization scripts: one role per account
  * (V13 deferred unique constraint), forced password change and the after-commit welcome email.
  * Requires Docker.
  */
@@ -45,7 +46,9 @@ class AdminUserIntegrationTest {
     @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
-            DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
+            DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"))
+            .withCopyFileToContainer(MountableFile.forClasspathResource("db/migration"), "/opt/vieva-schema")
+            .withCopyFileToContainer(MountableFile.forClasspathResource("db/init.sh"), "/docker-entrypoint-initdb.d/01-vieva.sh");
 
     /** Seeded by V10. */
     private static final UUID ADMIN_ID = UUID.fromString("a0000000-0000-0000-0000-000000000001");

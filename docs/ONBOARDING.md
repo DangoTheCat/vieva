@@ -9,12 +9,12 @@ Tài liệu dành cho dev mới. Làm lần lượt từ trên xuống, mỗi b�
 | Thành phần | Công nghệ | Thư mục | Cổng (port) |
 | --- | --- | --- | --- |
 | Database | PostgreSQL 16 + pgvector (Docker image `pgvector/pgvector:pg16`) | — | `5432` |
-| Backend (BE) | Java 17, Spring Boot 3.4.3, Spring AI 1.0, Flyway, Maven | `BE/` | `8080` |
+| Backend (BE) | Java 17, Spring Boot 3.4.3, Spring AI 1.0, Maven | `BE/` | `8080` |
 | Frontend (FE) | React 19, Vite 5, Tailwind CSS 3 | `FE/` | `5173` (dev) / `3000` (Docker) |
 
 Ghi chú quan trọng:
 
-- **Flyway quản lý toàn bộ schema DB** (`BE/src/main/resources/db/migration`, từ `V0` đến `V11`). Hibernate chạy ở chế độ `ddl-auto=validate`, nghĩa là nó **không** tự tạo hoặc sửa bảng.
+- PostgreSQL khởi tạo database mới bằng `BE/src/main/resources/db/init.sh` và các SQL trong `db/migration`. Hibernate dùng `ddl-auto=none`; database hiện có không tự thay đổi.
 - `V10__seed_initial_data.sql` tạo sẵn tài khoản, môn học, câu hỏi mẫu (xem mục 6).
 - AI mặc định chạy ở chế độ **mock** (offline, không cần API key). Chỉ cần key thật khi muốn test với OpenAI.
 - BE theo Clean Architecture: `domain/` → `application/` (use case, port) → `adapters/` (controller) → `infrastructure/` (DB, security, AI, storage).
@@ -150,7 +150,7 @@ set -a; source ../.env; set +a
 3. Chạy class `com.example.vieva.VievaApplication`.
 4. Nếu cần, thêm biến môi trường trong *Run Configuration → Environment variables* (ví dụ `DB_PASSWORD=...;JWT_SECRET=...`). Có thể dùng plugin EnvFile để nạp thẳng `.env`.
 
-Khi khởi động lần đầu, Flyway chạy toàn bộ migration `V0` → `V11` và seed dữ liệu mẫu. Log thành công có dòng `Started VievaApplication`.
+Khi tạo volume PostgreSQL mới, init script chạy SQL V0 → V14 và seed dữ liệu mẫu. Backend khởi động thành công khi log có `Started VievaApplication`.
 
 Kiểm tra nhanh bằng API đăng nhập (Git Bash):
 
@@ -239,9 +239,9 @@ npm run build
 
 ### 9.1. Database migration
 
-- Muốn đổi schema: tạo file mới `BE/src/main/resources/db/migration/V12__mo_ta_ngan.sql` (số version tiếp theo).
-- **Không sửa** migration đã merge vào `main`. Flyway lưu checksum, sửa file cũ sẽ làm máy của cả nhóm báo lỗi `checksum mismatch`.
-- Sửa entity JPA thì phải có migration tương ứng, nếu không BE sẽ không khởi động được (do `ddl-auto=validate`).
+- Muốn đổi schema: tạo file mới `BE/src/main/resources/db/migration/V15__mo_ta_ngan.sql` (số version tiếp theo).
+- SQL đã áp dụng trên database hiện có không tự chạy lại. Thay đổi schema phải áp dụng thủ công bằng script mới, sau khi sao lưu.
+- Khi sửa entity JPA, cập nhật SQL khởi tạo và áp dụng SQL tương ứng lên database hiện có; Hibernate dùng `ddl-auto=none` nên không tự thêm cột.
 
 ### 9.2. Git
 
@@ -267,14 +267,13 @@ npm run build
 | `port 5432 ... already allocated` | Máy đang chạy PostgreSQL cài sẵn | Tắt service PostgreSQL local (Windows: `services.msc`), hoặc đổi mapping trong `docker-compose.yml` thành `127.0.0.1:5433:5432` và đặt `DB_PORT=5433` khi chạy BE |
 | BE báo `password authentication failed for user "postgres"` | Mật khẩu BE dùng khác mật khẩu lúc tạo volume DB, hoặc chưa nạp `.env` vào shell | Nạp `.env` như mục 5.2. Nếu đã đổi `DB_PASSWORD` sau lần chạy đầu, xem dòng reset DB bên dưới |
 | BE báo `Schema-validation: missing table/column` | Entity khác với schema | Viết migration mới (mục 9.1) |
-| BE báo Flyway `checksum mismatch` hoặc `Validate failed` | Có migration cũ bị sửa | Báo nhóm. Ở máy local, có thể reset DB (dòng bên dưới) |
 | Cần reset DB về trạng thái sạch | — | Xem cảnh báo bên dưới bảng |
 | FE hiện dữ liệu giả / gọi API lỗi `502`, `ECONNREFUSED` | BE chưa chạy hoặc chạy sai cổng | Chạy BE ở cổng 8080, kiểm tra bằng lệnh `curl` ở mục 5.2 |
 | `429 Too Many Requests` | Vượt rate limit | Đợi 1 phút |
 | Test BE lỗi `Could not find a valid Docker environment` | Docker Desktop chưa bật | Bật Docker Desktop rồi chạy lại |
 | `./mvnw: Permission denied` (Git Bash) | Mất quyền thực thi | `chmod +x mvnw`, hoặc dùng `mvnw.cmd` |
 
-**Reset DB local — cảnh báo:** lệnh dưới đây **xoá vĩnh viễn toàn bộ dữ liệu** trong volume `postgres_data`. Lần chạy BE tiếp theo, Flyway tạo lại schema và seed từ đầu.
+**Reset DB local — cảnh báo:** lệnh dưới đây **xoá vĩnh viễn toàn bộ dữ liệu** trong volume `postgres_data`. Lần tạo container PostgreSQL với volume mới, init script tạo schema và seed từ đầu.
 
 ```bash
 docker compose down -v

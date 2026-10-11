@@ -41,6 +41,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +56,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 /**
- * End-to-end group-1 flows against PostgreSQL + pgvector with Flyway migrations (V0..V7),
+ * End-to-end group-1 flows against PostgreSQL + pgvector with PostgreSQL initialization scripts (V0..V7),
  * Hibernate validation, async indexing and the offline (mock) AI providers. Requires Docker.
  */
 @SpringBootTest(properties = {
@@ -73,7 +74,9 @@ class QuestionBankIntegrationTest {
     @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
-            DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
+            DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"))
+            .withCopyFileToContainer(MountableFile.forClasspathResource("db/migration"), "/opt/vieva-schema")
+            .withCopyFileToContainer(MountableFile.forClasspathResource("db/init.sh"), "/docker-entrypoint-initdb.d/01-vieva.sh");
 
     @DynamicPropertySource
     static void storage(DynamicPropertyRegistry registry) throws Exception {
