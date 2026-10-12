@@ -1,11 +1,13 @@
 package com.example.vieva.adapters.presenters;
 
+import com.example.vieva.application.ports.output.PagedResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.function.Function;
 
 @Data
 @Builder
@@ -19,4 +21,17 @@ public class PageResponse<T> {
     private int totalPages;
     private boolean isFirst;
     private boolean isLast;
+
+    public static <T, R> PageResponse<R> from(PagedResult<T> page, Function<T, R> mapper) {
+        if (page == null) return null;
+        return PageResponse.<R>builder()
+                .content(page.getContent() == null ? List.of() : page.getContent().stream().map(mapper).toList())
+                .page(page.getPage())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .isFirst(page.isFirst())
+                .isLast(page.isLast())
+                .build();
+    }
 }

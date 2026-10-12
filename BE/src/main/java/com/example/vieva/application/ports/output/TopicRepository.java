@@ -19,6 +19,5 @@ public interface TopicRepository {
     Optional<Topic> findById(UUID topicId);
     List<Topic> findAllByIds(Collection<UUID> topicIds);
     List<Topic> findBySubjectId(UUID subjectId);
-    List<Topic> findBySubjectIds(Collection<UUID> subjectIds);
     boolean existsByIdAndSubjectId(UUID topicId, UUID subjectId);
 }

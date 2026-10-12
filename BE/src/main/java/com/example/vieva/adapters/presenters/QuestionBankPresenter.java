@@ -23,7 +23,6 @@ import com.example.vieva.domain.entities.Topic;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.function.Function;
 
 @Component
 public class QuestionBankPresenter {
@@ -76,11 +75,11 @@ public class QuestionBankPresenter {
     }
 
     public PageResponse<QuestionVersionDto> toVersionPage(PagedResult<QuestionVersionView> page) {
-        return toPage(page, this::toDto);
+        return PageResponse.from(page, this::toDto);
     }
 
     public PageResponse<QuestionBankItemDto> toBankPage(PagedResult<QuestionBankItemView> page) {
-        return toPage(page, this::toBankItem);
+        return PageResponse.from(page, this::toBankItem);
     }
 
     public QuestionBankItemDto toBankItem(QuestionBankItemView item) {
@@ -182,18 +181,6 @@ public class QuestionBankPresenter {
                 .citationQuote(source.getCitationQuote())
                 .similarityScore(source.getSimilarityScore())
                 .order(source.getSourceOrder())
-                .build();
-    }
-
-    private static <T, R> PageResponse<R> toPage(PagedResult<T> page, Function<T, R> mapper) {
-        return PageResponse.<R>builder()
-                .content(page.getContent().stream().map(mapper).toList())
-                .page(page.getPage())
-                .size(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .isFirst(page.isFirst())
-                .isLast(page.isLast())
                 .build();
     }
 }

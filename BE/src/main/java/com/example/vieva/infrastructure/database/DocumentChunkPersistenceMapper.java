@@ -1,6 +1,7 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.domain.entities.DocumentChunk;
+import com.pgvector.PGvector;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -51,13 +52,6 @@ public class DocumentChunkPersistenceMapper {
     }
 
     public static String formatVector(float[] vector) {
-        if (vector == null) return "[]";
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < vector.length; i++) {
-            if (i > 0) sb.append(',');
-            sb.append(vector[i]);
-        }
-        sb.append(']');
-        return sb.toString();
+        return vector == null ? "[]" : new PGvector(vector).getValue();
     }
 }

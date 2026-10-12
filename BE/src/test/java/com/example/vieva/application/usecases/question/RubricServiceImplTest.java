@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.input.CriterionInput;
+import com.example.vieva.application.ports.input.RubricInput;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
@@ -115,5 +116,24 @@ class RubricServiceImplTest {
                 new CriterionInput("C", "d", BigDecimal.ONE, List.of(), null), null, lecturer))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.VERSION_NOT_DRAFT);
         verify(criterionRepository, never()).save(any());
+    }
+
+    @Test
+    void replacingRubricRetainsIdAndRecomputesTotal() {
+        UUID originalId = rubric.getRubricId();
+        service.replaceRubric(version.getQuestionVersionId(), new RubricInput("Updated", "Description",
+                new BigDecimal("3"), List.of(new CriterionInput("New", "Detail", new BigDecimal("3"),
+                List.of(), 1))), null, lecturer);
+
+        assertThat(rubric.getRubricId()).isEqualTo(originalId);
+        assertThat(rubric.getRubricName()).isEqualTo("Updated");
+        assertThat(rubric.getTotalPoints()).isEqualByComparingTo("3");
+        org.mockito.ArgumentCaptor<List<RubricCriterion>> saved = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(criterionRepository).deleteByRubricId(originalId);
+        verify(criterionRepository).saveAll(saved.capture());
+        assertThat(saved.getValue()).hasSize(1).allSatisfy(criterion ->
+                assertThat(criterion.getRubricId()).isEqualTo(originalId));
+        verify(versionRepository).save(version);
+        verify(auditEventRepository).save(any());
     }
 }

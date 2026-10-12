@@ -74,13 +74,6 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
-    public List<Subject> findAllByStatus(SubjectStatus status) {
-        return subjectJpaRepository.findByStatusOrderBySubjectCodeAsc(status).stream()
-                .map(subjectMapper::toDomain)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public PagedResult<Subject> findAll(SubjectSearchCriteria criteria) {
         int page = criteria.getSanitizedPage();
         int size = criteria.getSanitizedSize();

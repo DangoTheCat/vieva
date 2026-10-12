@@ -1,8 +1,5 @@
 package com.example.vieva.infrastructure.security;
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,9 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate-limiting filter for authentication endpoints (/api/v1/auth/**).
@@ -37,27 +32,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
-    private static final int CAPACITY = 10;
-    private static final Duration REFILL_PERIOD = Duration.ofMinutes(1);
-    /** Max number of distinct IPs tracked; oldest entries are evicted when exceeded. */
-    private static final int MAX_BUCKETS = 50_000;
+    private final IpRateLimiter limiter;
 
-    /**
-     * Comma-separated list of trusted proxy IPs/CIDRs that may set X-Forwarded-For.
-     * Default: only loopback (suitable for local dev). In production set to your
-     * load-balancer/nginx IP, e.g.: rate-limit.trusted-proxies=10.0.0.1,10.0.0.2
-     */
-    @Value("${rate-limit.trusted-proxies:127.0.0.1,0:0:0:0:0:0:0:1}")
-    private Set<String> trustedProxies;
-
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
-
-    /**
-     * Serializes the evict-then-insert path so a bucket created by one thread can never be
-     * evicted by another thread's size check (which would reset that IP's token count).
-     * The hot path (existing IP) stays lock-free.
-     */
-    private final Object bucketCreateLock = new Object();
+    public AuthRateLimitFilter(@Value("${rate-limit.trusted-proxies:127.0.0.1,0:0:0:0:0:0:0:1}") Set<String> trustedProxies) {
+        limiter = new IpRateLimiter(10, Duration.ofMinutes(1), trustedProxies);
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -68,24 +47,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String ip = getClientIp(request);
-        Bucket bucket = buckets.get(ip);
-        if (bucket == null) {
-            synchronized (bucketCreateLock) {
-                bucket = buckets.get(ip);
-                if (bucket == null) {
-                    if (buckets.size() >= MAX_BUCKETS) {
-                        var it = buckets.keySet().iterator();
-                        if (it.hasNext()) {
-                            buckets.remove(it.next());
-                        }
-                    }
-                    bucket = buckets.computeIfAbsent(ip, k -> newBucket());
-                }
-            }
-        }
-
-        if (bucket.tryConsume(1)) {
+        if (limiter.tryConsume(request)) {
             filterChain.doFilter(request, response);
         } else {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
@@ -95,27 +57,4 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
                     "{\"code\":\"4290\",\"message\":\"Too many requests \u2014 please try again later.\"}");
         }
     }
-
-    /**
-     * Returns the real client IP. X-Forwarded-For is only trusted when the TCP
-     * connection originates from a known proxy IP — prevents spoofing via
-     * a crafted header from an arbitrary client.
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        if (trustedProxies.contains(remoteAddr)) {
-            String xff = request.getHeader("X-Forwarded-For");
-            if (xff != null && !xff.isBlank()) {
-                // XFF format: "client, proxy1, proxy2" — take the leftmost (client) IP
-                return xff.split(",")[0].trim();
-            }
-        }
-        return remoteAddr;
-    }
-
-    private Bucket newBucket() {
-        Bandwidth limit = Bandwidth.classic(CAPACITY, Refill.greedy(CAPACITY, REFILL_PERIOD));
-        return Bucket.builder().addLimit(limit).build();
-    }
 }
-

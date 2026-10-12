@@ -12,8 +12,6 @@ import java.util.UUID;
 @Repository
 public interface LecturerSubjectJpaRepository extends JpaRepository<LecturerSubjectJpaEntity, UUID> {
 
-    @EntityGraph(attributePaths = {"subject"})
-    Optional<LecturerSubjectJpaEntity> findByLecturerIdAndSubject_SubjectIdAndIsActiveTrueAndRevokedAtIsNull(UUID lecturerId, UUID subjectId);
 
     @EntityGraph(attributePaths = {"subject"})
     List<LecturerSubjectJpaEntity> findBySubject_SubjectIdAndIsActiveTrueAndRevokedAtIsNull(UUID subjectId);

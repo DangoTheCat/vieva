@@ -37,17 +37,6 @@ public class SubjectPresenter {
     }
 
     public PageResponse<SubjectDto> toPageResponse(PagedResult<Subject> pagedResult) {
-        if (pagedResult == null) {
-            return null;
-        }
-        return PageResponse.<SubjectDto>builder()
-                .content(toDtoList(pagedResult.getContent()))
-                .page(pagedResult.getPage())
-                .size(pagedResult.getSize())
-                .totalElements(pagedResult.getTotalElements())
-                .totalPages(pagedResult.getTotalPages())
-                .isFirst(pagedResult.isFirst())
-                .isLast(pagedResult.isLast())
-                .build();
+        return PageResponse.from(pagedResult, this::toDto);
     }
 }

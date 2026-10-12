@@ -2,6 +2,8 @@ package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.input.CriterionInput;
 import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.output.RubricRepository;
+import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.domain.entities.PerformanceLevel;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
@@ -94,6 +96,24 @@ public final class RubricDraftFactory {
         }
         int order = input.orderIndex() != null && input.orderIndex() > 0 ? input.orderIndex() : defaultOrder;
         return RubricCriterion.create(rubricId, input.name(), input.description(), maxScore, levels, order);
+    }
+
+    /** Persists a validated replacement in the caller's transaction, retaining the rubric id. */
+    public static Rubric replace(UUID versionId, RubricDraft draft, RubricRepository rubrics,
+                                 RubricCriterionRepository criteriaRepository) {
+        Rubric rubric = rubrics.findByQuestionVersionId(versionId).orElse(null);
+        if (rubric == null) {
+            rubric = draft.rubric();
+        } else {
+            criteriaRepository.deleteByRubricId(rubric.getRubricId());
+            rubric.rename(draft.rubric().getRubricName(), draft.rubric().getDescription());
+        }
+        UUID rubricId = rubric.getRubricId();
+        draft.criteria().forEach(criterion -> criterion.setRubricId(rubricId));
+        rubric.recalculateTotal(draft.criteria());
+        rubrics.save(rubric);
+        criteriaRepository.saveAll(draft.criteria());
+        return rubric;
     }
 
     private static boolean isBlank(String value) {

@@ -30,7 +30,8 @@ public class TokenTextSplitterGateway implements TextSplitterPort {
         }
         this.splitter = TokenTextSplitter.builder()
                 .withChunkSize(chunkSize)
-                .withMinChunkSizeChars(Math.max(1, minChunkTokens * 4))
+                // Vietnamese ~2-3 chars/token (vs ~4 for English): *3 keeps short definitions.
+                .withMinChunkSizeChars(Math.max(1, minChunkTokens * 3))
                 .withMinChunkLengthToEmbed(0)
                 .withMaxNumChunks(Integer.MAX_VALUE)
                 .withKeepSeparator(true)
@@ -52,14 +53,11 @@ public class TokenTextSplitterGateway implements TextSplitterPort {
                 if (text == null || text.isBlank()) {
                     continue;
                 }
-                chunks.add(new TextChunk(text, tokenCount(document), section.pageNumber(),
+                // Single encode per chunk (was: Document wrapper + second encode in tokenCount).
+                chunks.add(new TextChunk(text, encoding.encode(text).size(), section.pageNumber(),
                         section.pageNumber(), section.sectionTitle()));
             }
         }
         return chunks;
-    }
-
-    private int tokenCount(Document document) {
-        return encoding.encode(document.getText()).size();
     }
 }

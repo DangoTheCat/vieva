@@ -58,6 +58,13 @@ public class LecturerQuestionImportController {
                                                         @RequestParam(defaultValue = "true") boolean dryRun,
                                                         @AuthenticationPrincipal User currentUser) {
         UUID userId = CurrentUser.id(currentUser);
+        if (file == null || file.isEmpty()) {
+            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");
+        }
+        // Fail fast before loading bytes into heap (import limit 5MB).
+        if (file.getSize() > 5L * 1024 * 1024) {
+            throw new AppException(ErrorCode.IMPORT_LIMIT_EXCEEDED, "The file exceeds 5120 KB");
+        }
         try {
             return ResponseEntity.ok(importService.importQuestions(subjectId, file.getOriginalFilename(),
                     file.getBytes(), dryRun, userId));

@@ -160,11 +160,13 @@ public class QuestionImportServiceImpl implements QuestionImportService {
     private List<ParsedQuestion> parse(List<ImportRow> rows, List<RowError> errors) {
         Map<String, List<ImportRow>> groups = new LinkedHashMap<>();
         for (ImportRow row : rows) {
-            String ref = row.get(COL_REF);
-            if (ref == null || ref.isBlank()) {
+            String rawRef = row.get(COL_REF);
+            if (rawRef == null || rawRef.isBlank()) {
                 errors.add(new RowError(row.rowNumber(), COL_REF, null, "question_ref is required"));
                 continue;
             }
+            // Normalize ref so "Q1 " and "Q1" group together instead of splitting questions.
+            String ref = rawRef.trim();
             groups.computeIfAbsent(ref, k -> new ArrayList<>()).add(row);
         }
         List<ParsedQuestion> questions = new ArrayList<>();
@@ -203,8 +205,8 @@ public class QuestionImportServiceImpl implements QuestionImportService {
 
         List<CriterionInput> criteria = new ArrayList<>();
         for (ImportRow row : group) {
-            String name = row.get(COL_CRITERION_NAME);
-            String description = row.get(COL_CRITERION_DESCRIPTION);
+            String name = sanitizeSpreadsheet(row.get(COL_CRITERION_NAME));
+            String description = sanitizeSpreadsheet(row.get(COL_CRITERION_DESCRIPTION));
             String rawScore = row.get(COL_CRITERION_MAX);
             boolean rowValid = true;
             if (isBlank(name)) {
@@ -231,7 +233,9 @@ public class QuestionImportServiceImpl implements QuestionImportService {
             RubricDraftFactory.build(UUID.randomUUID(), new RubricInput(null, null, null, criteria), violations);
             violations.forEach(v -> errors.add(new RowError(firstRow, null, ref, v.message())));
         }
-        return new ParsedQuestion(ref, firstRow, topic, content, answer, bloom, criteria, errors);
+        // Neutralize CSV/Excel formula injection (=, +, -, @) on re-export.
+        return new ParsedQuestion(ref, firstRow, sanitizeSpreadsheet(topic),
+                sanitizeSpreadsheet(content), sanitizeSpreadsheet(answer), bloom, criteria, errors);
     }
 
     /** Question-level columns may be filled on the first row only, or repeated identically. */
@@ -242,9 +246,10 @@ public class QuestionImportServiceImpl implements QuestionImportService {
             if (isBlank(cell)) {
                 continue;
             }
+            String trimmed = cell.trim();
             if (value == null) {
-                value = cell;
-            } else if (!value.equals(cell)) {
+                value = trimmed;
+            } else if (!value.equals(trimmed)) {
                 errors.add(new RowError(row.rowNumber(), column, ref,
                         column + " differs from the first row of question " + ref));
             }
@@ -322,7 +327,23 @@ public class QuestionImportServiceImpl implements QuestionImportService {
             return null;
         }
         try {
-            return new BigDecimal(raw.trim().replace(',', '.'));
+            String s = raw.trim().replaceAll("\\s+", "");
+            int lastDot = s.lastIndexOf('.');
+            int lastComma = s.lastIndexOf(',');
+            String normalized;
+            if (lastDot >= 0 && lastComma >= 0) {
+                // Both present: last separator is decimal, the other is thousand.
+                if (lastDot > lastComma) {
+                    normalized = s.replace(",", "");
+                } else {
+                    normalized = s.replace(".", "").replace(',', '.');
+                }
+            } else if (lastComma >= 0) {
+                normalized = s.replace(',', '.');
+            } else {
+                normalized = s;
+            }
+            return new BigDecimal(normalized);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -338,6 +359,18 @@ public class QuestionImportServiceImpl implements QuestionImportService {
 
     private static String key(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Prefix spreadsheet formula triggers so re-export to Excel cannot execute them. */
+    private static String sanitizeSpreadsheet(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        char first = value.charAt(0);
+        if (first == '=' || first == '+' || first == '-' || first == '@') {
+            return "'" + value;
+        }
+        return value;
     }
 
     private static boolean isBlank(String value) {

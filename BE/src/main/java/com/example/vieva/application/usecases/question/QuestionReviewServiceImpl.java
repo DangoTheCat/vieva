@@ -101,10 +101,16 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         questionVersionRepository.save(version);
 
         if (previousApprovedId != null && !previousApprovedId.equals(versionId)) {
-            questionVersionRepository.findById(previousApprovedId).ifPresent(previous -> {
-                previous.supersede();
-                questionVersionRepository.save(previous);
-            });
+            try {
+                questionVersionRepository.findById(previousApprovedId).ifPresent(previous -> {
+                    previous.supersede();
+                    questionVersionRepository.save(previous);
+                });
+            } catch (AppException e) {
+                // Already superseded by a concurrent approve: report as concurrent edit, not bad state.
+                throw new AppException(ErrorCode.CONCURRENT_MODIFICATION,
+                        "Question was modified concurrently, reload and retry");
+            }
         }
         question.publish(versionId);
         questionRepository.save(question);
