@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 
 const MOCK_SUBJECTS = [
-  { subjectId: 'SWD392', subjectCode: 'SWD392', subjectName: 'Phát Triển Phần Mềm Theo Kiến Trúc Đối Tượng' }
+  { subjectId: 'd0000000-0000-0000-0000-000000000001', subjectCode: 'SWD392', subjectName: 'Kiến trúc và Thiết kế Phần mềm (SWD392)' },
+  { subjectId: 'd0000000-0000-0000-0000-000000000003', subjectCode: 'PRN231', subjectName: 'Xây dựng Web API với ASP.NET Core (PRN231)' }
 ];
 
 const MOCK_QUESTIONS = [
