@@ -29,6 +29,14 @@ export function AuthProvider({ children }) {
   // Check initial connection and refresh current user profile
   useEffect(() => {
     async function initAuth() {
+      try {
+        Object.keys(localStorage).forEach(k => {
+          if (k.startsWith('aives_user_role_')) {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch (_) {}
+
       const existingToken = apiClient.getToken();
       if (existingToken) {
         try {
@@ -78,37 +86,45 @@ export function AuthProvider({ children }) {
   }, []);
 
   const handleLogin = async (credentials, roleOverride) => {
-    const emailKey = credentials?.email ? `aives_user_role_${credentials.email.trim().toLowerCase()}` : null;
-    const rememberedRole = emailKey ? localStorage.getItem(emailKey) : null;
-    const selectedRole = roleOverride || rememberedRole || localStorage.getItem('aives_user_role') || (credentials?.email?.includes('lecturer') ? 'ROLE_LECTURER' : 'ROLE_STUDENT');
-
     try {
       const data = await authApi.login(credentials);
-      // An account has exactly one role: the BE role wins over the tab picked on the login page
-      const actualRole = getUserRole(data.user) || selectedRole;
-      if (actualRole) {
-        localStorage.setItem('aives_user_role', actualRole);
-        if (emailKey) localStorage.setItem(emailKey, actualRole);
+      const actualRole = getUserRole(data.user);
+
+      // Strict role enforcement: If the user selected a specific portal/role,
+      // require that the account's actual role matches that selection.
+      if (roleOverride && actualRole && actualRole !== roleOverride) {
+        const mismatchErr = new Error('ROLE_MISMATCH');
+        mismatchErr.code = 'ROLE_MISMATCH';
+        mismatchErr.actualRole = actualRole;
+        mismatchErr.expectedRole = roleOverride;
+        throw mismatchErr;
       }
+
+      const effectiveRole = actualRole || roleOverride || 'ROLE_STUDENT';
       const mergedUser = {
         ...(data.user || {}),
-        selectedRole: actualRole
+        selectedRole: effectiveRole
       };
       setToken(data.accessToken);
       setCurrentUser(mergedUser);
       localStorage.setItem('aives_user', JSON.stringify(mergedUser));
+      localStorage.setItem('aives_user_role', effectiveRole);
       setIsDemoMode(false);
       setIsLiveBackendReachable(true);
-      return { ...data, user: mergedUser, effectiveRole: actualRole };
+      return { ...data, user: mergedUser, effectiveRole };
     } catch (err) {
+      if (err.code === 'ROLE_MISMATCH') {
+        throw err;
+      }
       // If server error (500) or network unreachable, fallback to local offline mode for testing
       if (err.status === 500 || err.status === 502 || err.status === 503 || err.status === 504 || !err.status) {
         console.warn('Backend server error or unreachable, activating local session fallback.', err);
+        const fallbackRole = roleOverride || 'ROLE_STUDENT';
         const fallbackUser = {
           userId: `demo-${Date.now()}`,
           email: credentials?.email || 'user@fpt.edu.vn',
-          fullName: selectedRole === 'ROLE_ADMIN' ? 'Ban Khảo Thí (Offline)' : selectedRole === 'ROLE_LECTURER' ? 'Giảng Viên (Offline)' : 'Sinh Viên (Offline)',
-          selectedRole: selectedRole,
+          fullName: fallbackRole === 'ROLE_ADMIN' ? 'Ban Khảo Thí (Offline)' : fallbackRole === 'ROLE_LECTURER' ? 'Giảng Viên (Offline)' : 'Sinh Viên (Offline)',
+          selectedRole: fallbackRole,
           status: 'ACTIVE'
         };
         const mockToken = `demo-token-${Date.now()}`;
@@ -116,11 +132,10 @@ export function AuthProvider({ children }) {
         setToken(mockToken);
         setCurrentUser(fallbackUser);
         localStorage.setItem('aives_user', JSON.stringify(fallbackUser));
-        localStorage.setItem('aives_user_role', selectedRole);
-        if (emailKey) localStorage.setItem(emailKey, selectedRole);
+        localStorage.setItem('aives_user_role', fallbackRole);
         setIsDemoMode(true);
         setIsLiveBackendReachable(false);
-        return { accessToken: mockToken, user: fallbackUser, effectiveRole: selectedRole, isDemoFallback: true };
+        return { accessToken: mockToken, user: fallbackUser, effectiveRole: fallbackRole, isDemoFallback: true };
       }
       throw err;
     }
@@ -128,14 +143,12 @@ export function AuthProvider({ children }) {
 
   const handleRegister = async (payload, roleOverride) => {
     const selectedRole = roleOverride || localStorage.getItem('aives_user_role') || 'ROLE_STUDENT';
-    const emailKey = payload?.email ? `aives_user_role_${payload.email.trim().toLowerCase()}` : null;
 
     try {
       const data = await authApi.register(payload);
       // Self-registered accounts are always ROLE_STUDENT on the BE; its role wins over the picked tab
       const actualRole = getUserRole(data.user) || selectedRole;
       localStorage.setItem('aives_user_role', actualRole);
-      if (emailKey) localStorage.setItem(emailKey, actualRole);
 
       const mergedUser = {
         ...(data.user || {}),

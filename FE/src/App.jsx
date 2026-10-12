@@ -7,24 +7,24 @@ import { PageSkeleton } from './components/common/Skeleton';
 import { ProfileModal } from './components/profile/ProfileModal';
 import { RbacMatrixModal } from './components/users/RbacMatrixModal';
 import { CreateUserModal } from './components/users/CreateUserModal';
-import { Radio, Server, ShieldCheck, ArrowLeft } from 'lucide-react';
 
-const AdminOperationsPage = lazy(() => import('./pages/AdminOperationsPage').then(m => ({ default: m.AdminOperationsPage })));
+// Nhóm 7: Quản Trị Hệ Thống (Admin)
 const AdminUserPage = lazy(() => import('./pages/AdminUserPage').then(m => ({ default: m.AdminUserPage })));
 const AdminSubjectPage = lazy(() => import('./pages/AdminSubjectPage').then(m => ({ default: m.AdminSubjectPage })));
-const LecturerQuestionBankPage = lazy(() => import('./pages/LecturerQuestionBankPage').then(m => ({ default: m.LecturerQuestionBankPage })));
 const AdminVoiceLabPage = lazy(() => import('./pages/AdminVoiceLabPage').then(m => ({ default: m.AdminVoiceLabPage })));
-const LecturerGradingQueuePage = lazy(() => import('./pages/LecturerGradingQueuePage').then(m => ({ default: m.LecturerGradingQueuePage })));
-const LecturerReviewRegradingPage = lazy(() => import('./pages/LecturerReviewRegradingPage').then(m => ({ default: m.LecturerReviewRegradingPage })));
+
+// Nhóm 1: Quản Lý Ngân Hàng Câu Hỏi & Rubric (Lecturer)
+const LecturerQuestionBankPage = lazy(() => import('./pages/LecturerQuestionBankPage').then(m => ({ default: m.LecturerQuestionBankPage })));
 const LecturerDocsRagPage = lazy(() => import('./pages/LecturerDocsRagPage').then(m => ({ default: m.LecturerDocsRagPage })));
-const LecturerDashboardPage = lazy(() => import('./pages/LecturerDashboardPage').then(m => ({ default: m.LecturerDashboardPage })));
-const DiscoverPage = lazy(() => import('./pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
-const SpaceDetailPage = lazy(() => import('./pages/SpaceDetailPage').then(m => ({ default: m.SpaceDetailPage })));
-const OralExamRoomPage = lazy(() => import('./pages/OralExamRoomPage').then(m => ({ default: m.OralExamRoomPage })));
 const RubricStudioPage = lazy(() => import('./pages/RubricStudioPage').then(m => ({ default: m.RubricStudioPage })));
+
+// Nhóm 3: Lõi Phỏng Vấn AI (Student - Oral Exam Room)
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
 const CalibrationPage = lazy(() => import('./pages/CalibrationPage').then(m => ({ default: m.CalibrationPage })));
-const ReconnectGuardPage = lazy(() => import('./pages/ReconnectGuardPage').then(m => ({ default: m.ReconnectGuardPage })));
+const OralExamRoomPage = lazy(() => import('./pages/OralExamRoomPage').then(m => ({ default: m.OralExamRoomPage })));
 const StudentSubmissionSuccessPage = lazy(() => import('./pages/StudentSubmissionSuccessPage').then(m => ({ default: m.StudentSubmissionSuccessPage })));
+
+// Authentication & Security
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage })));
 const ForceChangePasswordPage = lazy(() => import('./pages/ForceChangePasswordPage').then(m => ({ default: m.ForceChangePasswordPage })));
@@ -78,27 +78,26 @@ function AppContent() {
     setToast(toastData);
   };
 
-  // Views each role may open (mirrors BE SecurityConfig); anything else falls back to the role's home view
+  // Views each role may open — Strictly limited to 3 Core Functional Groups
   const allowedViews = [
-    ...(isAdmin ? ['admin-dashboard', 'admin-users', 'admin-subjects', 'admin-voice-lab', 'voice-lab', 'telemetry'] : []),
+    ...(isAdmin ? [
+      'admin-users', 
+      'admin-subjects', 
+      'admin-voice-lab', 
+      'voice-lab'
+    ] : []),
     ...(isAdmin || isLecturer ? [
-      'lecturer-dashboard',
       'lecturer-questions', 
       'lecturer-docs-rag', 
-      'lecturer-grading-queue', 
-      'lecturer-review-regrading',
-      'space-detail',
       'rubric-studio'
     ] : []),
     'discover',
     'calibration',
     'exam-room',
-    'submission-success',
-    'exam-success',
-    'reconnect'
+    'submission-success'
   ];
 
-  const defaultRoleHome = isAdmin ? 'admin-dashboard' : isLecturer ? 'lecturer-dashboard' : 'discover';
+  const defaultRoleHome = isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover';
   const activeView = allowedViews.includes(currentView) ? currentView : defaultRoleHome;
 
   // Keep browser URL hash synchronized with activeView (must be before any early return)
@@ -179,13 +178,7 @@ function AppContent() {
         {/* CENTER MAIN CANVAS */}
         <main className="flex-1 canvas-dot-grid py-8 px-4 sm:px-8 overflow-y-auto">
           <Suspense fallback={<PageSkeleton />}>
-            {activeView === 'admin-dashboard' && (
-              <AdminOperationsPage
-                onNavigate={(view) => setCurrentView(view)}
-                showToast={showToast}
-              />
-            )}
-
+            {/* Nhóm 7: Quản Trị Hệ Thống (Admin) */}
             {activeView === 'admin-users' && (
               <AdminUserPage
                 onOpenMatrix={() => setIsMatrixOpen(true)}
@@ -199,13 +192,13 @@ function AppContent() {
               />
             )}
 
-            {activeView === 'lecturer-dashboard' && (
-              <LecturerDashboardPage
-                onNavigate={(view) => setCurrentView(view)}
+            {(activeView === 'admin-voice-lab' || activeView === 'voice-lab') && (
+              <AdminVoiceLabPage
                 showToast={showToast}
               />
             )}
 
+            {/* Nhóm 1: Quản Lý Ngân Hàng Câu Hỏi & Rubric (Lecturer) */}
             {activeView === 'lecturer-questions' && (
               <LecturerQuestionBankPage
                 showToast={showToast}
@@ -219,26 +212,13 @@ function AppContent() {
               />
             )}
 
-            {activeView === 'lecturer-grading-queue' && (
-              <LecturerGradingQueuePage
-                onNavigate={(view) => setCurrentView(view)}
+            {activeView === 'rubric-studio' && (
+              <RubricStudioPage
                 showToast={showToast}
               />
             )}
 
-            {activeView === 'lecturer-review-regrading' && (
-              <LecturerReviewRegradingPage
-                onNavigate={(view) => setCurrentView(view)}
-                showToast={showToast}
-              />
-            )}
-
-            {(activeView === 'admin-voice-lab' || activeView === 'voice-lab') && (
-              <AdminVoiceLabPage
-                showToast={showToast}
-              />
-            )}
-
+            {/* Nhóm 3: Lõi Phỏng Vấn AI (Student) */}
             {(activeView === 'discover' || activeView === 'home') && (
               <DiscoverPage
                 onNavigate={(view) => setCurrentView(view)}
@@ -246,8 +226,8 @@ function AppContent() {
               />
             )}
 
-            {activeView === 'space-detail' && (
-              <SpaceDetailPage
+            {activeView === 'calibration' && (
+              <CalibrationPage
                 onNavigate={(view) => setCurrentView(view)}
                 showToast={showToast}
               />
@@ -260,124 +240,11 @@ function AppContent() {
               />
             )}
 
-            {activeView === 'rubric-studio' && (
-              <RubricStudioPage
-                showToast={showToast}
-              />
-            )}
-
-            {activeView === 'calibration' && (
-              <CalibrationPage
-                onNavigate={(view) => setCurrentView(view)}
-                showToast={showToast}
-              />
-            )}
-
             {(activeView === 'submission-success' || activeView === 'exam-success') && (
               <StudentSubmissionSuccessPage
                 onNavigate={(view) => setCurrentView(view)}
                 showToast={showToast}
               />
-            )}
-
-            {activeView === 'reconnect' && (
-              <ReconnectGuardPage
-                onNavigate={(view) => setCurrentView(view)}
-                showToast={showToast}
-              />
-            )}
-
-            {/* TELEMETRY HUB SCREEN */}
-            {activeView === 'telemetry' && (
-              <div className="space-y-6 animate-modal-entry">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
-                        Module 5 • Real-time STOMP WebSocket Monitoring
-                      </span>
-                    </div>
-                    <h1 className="font-heading font-extrabold text-2xl text-slate-900 tracking-tight">
-                      Live Telemetry &amp; Phiên Thi Vấn Đáp Trực Tuyến
-                    </h1>
-                  </div>
-                  <button
-                    onClick={() => setCurrentView('admin-users')}
-                    className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Quay Lại RBAC</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500">WebSocket STOMP Broker</span>
-                      <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
-                    </div>
-                    <p className="font-heading font-extrabold text-2xl text-emerald-600">ONLINE</p>
-                    <p className="text-[11px] text-slate-400 font-mono">Channel: /topic/exam-room.*</p>
-                  </div>
-
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500">Độ Trễ Âm Thanh (Audio Latency)</span>
-                      <Server className="w-4 h-4 text-sky-500" />
-                    </div>
-                    <p className="font-heading font-extrabold text-2xl text-sky-600">42 ms</p>
-                    <p className="text-[11px] text-slate-400 font-mono">OPUS Codec • 24kHz Sample Rate</p>
-                  </div>
-
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500">Cửa Sổ Cứu Vớt Mạng (Recovery)</span>
-                      <ShieldCheck className="w-4 h-4 text-purple-500" />
-                    </div>
-                    <p className="font-heading font-extrabold text-2xl text-purple-600">60 Giây</p>
-                    <p className="text-[11px] text-slate-400 font-mono">Auto-Reconnect Guard Activated</p>
-                  </div>
-                </div>
-
-                {/* Real-time telemetry feed table */}
-                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-                  <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                    <h3 className="font-heading font-bold text-xs text-slate-900 uppercase tracking-wider">
-                      Nhật Ký Tác Vụ WebSocket Thời Gian Thực (Live STOMP Events)
-                    </h3>
-                    <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                      Đang truyền phát
-                    </span>
-                  </div>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/70">
-                      <div className="flex items-center gap-2.5">
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold">200 OK</span>
-                        <span className="font-semibold text-slate-800">CONNECT /ws/viva-session</span>
-                        <span className="text-slate-400 text-[11px]">User SE160892 (Nguyễn Thị Mai) vào phòng</span>
-                      </div>
-                      <span className="font-mono text-slate-400 text-[11px]">16:15:20</span>
-                    </div>
-                    <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/70">
-                      <div className="flex items-center gap-2.5">
-                        <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-700 font-mono text-[10px] font-bold">STT CHUNK</span>
-                        <span className="font-semibold text-slate-800">Neural STT Transcribing:</span>
-                        <span className="text-slate-600 italic text-[11px]">"Em áp dụng Transactional Outbox Pattern để..."</span>
-                      </div>
-                      <span className="font-mono text-slate-400 text-[11px]">16:15:35</span>
-                    </div>
-                    <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/70">
-                      <div className="flex items-center gap-2.5">
-                        <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-mono text-[10px] font-bold">RUBRIC MATCH</span>
-                        <span className="font-semibold text-slate-800">Dr. Sophia AI Examiner:</span>
-                        <span className="text-slate-600 text-[11px]">Khớp Rubric tiêu chí C2.1 (Kiến trúc phân tầng)</span>
-                      </div>
-                      <span className="font-mono text-slate-400 text-[11px]">16:15:48</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             )}
           </Suspense>
         </main>

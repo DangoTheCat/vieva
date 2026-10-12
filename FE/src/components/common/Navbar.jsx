@@ -136,11 +136,11 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
         {/* Left: Brand & Nav Links */}
         <div className="flex items-center gap-6">
           <div
-            onClick={() => onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
+            onClick={() => onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover')}
             className="flex items-center gap-3 cursor-pointer group select-none"
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
+            onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover')}
           >
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 border border-cyan-400/30 group-hover:scale-105 transition-transform">
@@ -163,7 +163,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Phân Quyền (RBAC)
+                  1. Quản Lý Tài Khoản
                 </button>
                 <button
                   onClick={() => onNavigate('admin-subjects')}
@@ -172,7 +172,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Môn Học &amp; Phân Công
+                  2. Môn Học &amp; Phân Công
                 </button>
                 <button
                   onClick={() => onNavigate('admin-voice-lab')}
@@ -181,20 +181,20 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Voice &amp; Speech Lab
+                  3. Cấu Hình STT/TTS
                 </button>
               </>
             )}
             {isLecturer && !isAdmin && (
               <>
                 <button
-                  onClick={() => onNavigate('lecturer-dashboard')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-dashboard'
+                  onClick={() => onNavigate('lecturer-questions')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-questions'
                       ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Tổng Quan
+                  1. Ngân Hàng Câu Hỏi
                 </button>
                 <button
                   onClick={() => onNavigate('lecturer-docs-rag')}
@@ -203,16 +203,16 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Tài Liệu RAG
+                  2. Tài Liệu RAG
                 </button>
                 <button
-                  onClick={() => onNavigate('lecturer-questions')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-questions'
+                  onClick={() => onNavigate('rubric-studio')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'rubric-studio'
                       ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Ngân Hàng Câu Hỏi
+                  3. Ma Trận Rubric
                 </button>
               </>
             )}
@@ -243,16 +243,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                     }`}
                 >
-                  Phòng Thi (Làm Bài)
-                </button>
-                <button
-                  onClick={() => onNavigate('submission-success')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'submission-success'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
-                    }`}
-                >
-                  Biên Bản Nộp Bài
+                  Phòng Thi Vấn Đáp AI
                 </button>
               </>
             )}

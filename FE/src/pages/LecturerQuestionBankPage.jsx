@@ -237,8 +237,8 @@ export function LecturerQuestionBankPage({ showToast }) {
 
   // Default Subjects fallback when backend has no assignments or returns permission errors
   const DEFAULT_SUBJECTS = useMemo(() => [
-    { subjectId: 'SWD392', subjectCode: 'SWD392', subjectName: 'SWD392 • Software Architecture & Design (Kiến Trúc Phần Mềm)' },
-    { subjectId: 'PRN231', subjectCode: 'PRN231', subjectName: 'PRN231 • Building Cross-Platform Apps with .NET' }
+    { subjectId: 'd0000000-0000-0000-0000-000000000001', subjectCode: 'SWD392', subjectName: 'SWD392 • Software Architecture & Design (Kiến Trúc Phần Mềm)' },
+    { subjectId: 'd0000000-0000-0000-0000-000000000003', subjectCode: 'PRN231', subjectName: 'PRN231 • Building Cross-Platform Apps with .NET' }
   ], []);
 
   // 1. Load subjects assigned to lecturer
@@ -255,12 +255,12 @@ export function LecturerQuestionBankPage({ showToast }) {
           }
         } else {
           setSubjects(DEFAULT_SUBJECTS);
-          if (!selectedSubjectId) setSelectedSubjectId('SWD392');
+          if (!selectedSubjectId) setSelectedSubjectId('d0000000-0000-0000-0000-000000000001');
         }
       } catch (err) {
         // Suppress 1004 Admin error toast for lecturers and fallback seamlessly
         setSubjects(DEFAULT_SUBJECTS);
-        if (!selectedSubjectId) setSelectedSubjectId('SWD392');
+        if (!selectedSubjectId) setSelectedSubjectId('d0000000-0000-0000-0000-000000000001');
       } finally {
         setIsLoadingCatalog(false);
       }

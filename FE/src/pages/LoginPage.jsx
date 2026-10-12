@@ -84,20 +84,11 @@ export function LoginPage({ onNavigate, showToast }) {
     setIsModalOpen(true);
   };
 
-  // Auto-detect remembered role when typing email
+  // Handle email change without auto-switching the selected role
   const handleEmailChange = (val) => {
     setEmail(val);
-    if (val.trim()) {
-      const emailKey = `aives_user_role_${val.trim().toLowerCase()}`;
-      const savedRole = localStorage.getItem(emailKey);
-      if (savedRole === 'ROLE_LECTURER') {
-        setSelectedRole('lec');
-      } else if (savedRole === 'ROLE_ADMIN') {
-        setSelectedRole('adm');
-      } else if (savedRole === 'ROLE_STUDENT') {
-        setSelectedRole('stu');
-      }
-    }
+    if (errorMsg) setErrorMsg('');
+    if (roleMismatch) setRoleMismatch(null);
   };
 
   const handleSubmitLogin = async (e) => {
@@ -123,23 +114,12 @@ export function LoginPage({ onNavigate, showToast }) {
         // Sign out immediately so incorrect role session does not persist
         await logout();
 
-        const correctPortalKey = ROLE_TO_PORTAL[actualRole] || 'stu';
-        const correctPortalLabel = PORTAL_ROLES[correctPortalKey]?.label || actualRole;
-        const currentPortalLabel = PORTAL_ROLES[selectedRole]?.label || expectedRole;
-
-        setRoleMismatch({
-          actualRole,
-          targetPortal: correctPortalKey,
-          correctLabel: correctPortalLabel,
-          currentLabel: currentPortalLabel
-        });
-
-        const errMsg = `Tài khoản "${email.trim()}" thuộc vai trò [${correctPortalLabel}], không được phép đăng nhập qua cổng [${currentPortalLabel}]. Vui lòng chuyển sang đúng cổng tương ứng.`;
+        const errMsg = 'Vai trò đã chọn không chính xác đối với tài khoản này.';
         setErrorMsg(errMsg);
         if (showToast) {
           showToast({
             type: 'error',
-            title: 'Sai Cổng Đăng Nhập',
+            title: 'Lỗi Đăng Nhập',
             message: errMsg
           });
         }
@@ -157,9 +137,21 @@ export function LoginPage({ onNavigate, showToast }) {
       const targetView = PORTAL_ROLES[selectedRole]?.view || 'discover';
       onNavigate(targetView);
     } catch (err) {
+      if (err.code === 'ROLE_MISMATCH') {
+        const errMsg = 'Vai trò đã chọn không chính xác đối với tài khoản này.';
+        setErrorMsg(errMsg);
+        if (showToast) {
+          showToast({
+            type: 'error',
+            title: 'Lỗi Đăng Nhập',
+            message: errMsg
+          });
+        }
+        return;
+      }
       const msg = err.code === '1003' ? 'Email hoặc mật khẩu không chính xác.' : getErrorMessage(err);
       setErrorMsg(msg);
-      if (showToast) showToast({ type: 'error', message: msg });
+      if (showToast) showToast({ type: 'error', title: 'Lỗi Đăng Nhập', message: msg });
     } finally {
       setIsLoading(false);
     }
@@ -230,51 +222,8 @@ export function LoginPage({ onNavigate, showToast }) {
               </p>
             </div>
 
-            {/* Role Filter Tabs */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 tracking-wider uppercase">
-                <User className="w-3.5 h-3.5 text-sky-400" />
-                <span>Xác định vai trò </span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 bg-[#0c1938]/90 border border-sky-800/60 rounded-2xl text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange('stu')}
-                  className={`flex-1 py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition ${selectedRole === 'stu'
-                    ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-[#122850]/70'
-                    }`}
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  <span>Sinh Viên</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange('lec')}
-                  className={`flex-1 py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition ${selectedRole === 'lec'
-                    ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-[#122850]/70'
-                    }`}
-                >
-                  <School className="w-4 h-4" />
-                  <span>Giảng Viên</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange('adm')}
-                  className={`flex-1 py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition ${selectedRole === 'adm'
-                    ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-[#122850]/70'
-                    }`}
-                >
-                  <Shield className="w-4 h-4" />
-                  <span>Ban Khảo Thí</span>
-                </button>
-              </div>
-            </div>
-
             {/* Action Buttons Stack */}
-            <div className="space-y-3 pt-1">
+            <div className="space-y-3 pt-2">
 
               {/* Email & Password Main Button */}
               <button
@@ -409,35 +358,57 @@ export function LoginPage({ onNavigate, showToast }) {
             </div>
 
             <form onSubmit={handleSubmitLogin} className="space-y-4 text-xs" autoComplete="off">
-              {/* Active Portal Indicator */}
-              <div className="flex items-center justify-between px-3 py-2 bg-[#070d1a] border border-sky-900/60 rounded-xl text-[11px]">
-                <span className="text-slate-400">Cổng đăng nhập:</span>
-                <span className="font-bold text-sky-400">
-                  {PORTAL_ROLES[selectedRole]?.label}
-                </span>
-              </div>
-
-              {roleMismatch && (
-                <div className="p-3 bg-amber-950/80 border border-amber-600/80 rounded-xl space-y-2 animate-in fade-in">
-                  <p className="text-[11px] text-amber-200 leading-relaxed">
-                    Bạn đang đăng nhập tại cổng <strong>{roleMismatch.currentLabel}</strong>, nhưng tài khoản này có vai trò <strong>{roleMismatch.correctLabel}</strong>.
-                  </p>
+              {/* Role Selection Tabs inside Modal */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Vai trò đăng nhập:</span>
+                  </span>
+                  <span className="text-sky-400 font-semibold">{PORTAL_ROLES[selectedRole]?.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 bg-[#070d1a] border border-sky-900/60 rounded-xl text-xs">
                   <button
                     type="button"
-                    onClick={() => {
-                      handleRoleChange(roleMismatch.targetPortal);
-                      setRoleMismatch(null);
-                      setErrorMsg('');
-                    }}
-                    className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                    onClick={() => handleRoleChange('stu')}
+                    className={`flex-1 py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer ${
+                      selectedRole === 'stu'
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'text-slate-400 hover:text-white hover:bg-[#122850]/50'
+                    }`}
                   >
-                    <span>👉 Chuyển sang Cổng {roleMismatch.correctLabel} &amp; Thử lại</span>
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Sinh Viên</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange('lec')}
+                    className={`flex-1 py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer ${
+                      selectedRole === 'lec'
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'text-slate-400 hover:text-white hover:bg-[#122850]/50'
+                    }`}
+                  >
+                    <School className="w-3.5 h-3.5" />
+                    <span>Giảng Viên</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange('adm')}
+                    className={`flex-1 py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer ${
+                      selectedRole === 'adm'
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'text-slate-400 hover:text-white hover:bg-[#122850]/50'
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Ban Khảo Thí</span>
                   </button>
                 </div>
-              )}
+              </div>
 
-              {errorMsg && !roleMismatch && (
-                <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-xl text-rose-300 text-[11px] font-medium flex items-center gap-2">
+              {errorMsg && (
+                <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-xl text-rose-300 text-[11px] font-medium flex items-center gap-2 animate-in fade-in">
                   <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
                   <span>{errorMsg}</span>
                 </div>
@@ -453,7 +424,13 @@ export function LoginPage({ onNavigate, showToast }) {
                     autoComplete="off"
                     value={email}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="student@fpt.edu.vn hoặc MSSV"
+                    placeholder={
+                      selectedRole === 'stu'
+                        ? 'student@fpt.edu.vn hoặc MSSV'
+                        : selectedRole === 'lec'
+                        ? 'vancee@fpt.edu.vn hoặc Mã GV'
+                        : 'admin@aives.edu.vn hoặc Mã QTV'
+                    }
                     className="w-full bg-[#070d1a] border border-sky-900/50 rounded-xl p-3 pl-9 text-xs text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:outline-none transition font-sans"
                   />
                   <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
