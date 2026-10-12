@@ -13,12 +13,12 @@ import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,7 +43,6 @@ class AdminUserServiceImplTest {
     @Mock private JsonSerializerPort jsonSerializer;
     @Mock private DomainEventPublisherPort domainEventPublisher;
 
-    @InjectMocks
     private AdminUserServiceImpl adminUserService;
 
     private final UUID adminId = UUID.randomUUID();
@@ -52,6 +51,8 @@ class AdminUserServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        adminUserService = new AdminUserServiceImpl(userRepository, roleRepository, passwordEncoder,
+                new QuestionBankAuditor(auditEventRepository, jsonSerializer), domainEventPublisher);
         lenient().when(passwordEncoder.encode(anyString())).thenAnswer(inv -> "hashed-" + inv.getArgument(0));
         lenient().when(jsonSerializer.serialize(any())).thenReturn("{}");
     }

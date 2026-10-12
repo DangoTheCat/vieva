@@ -21,5 +21,4 @@ public interface SubjectRepository {
     Optional<Subject> findBySubjectCode(String subjectCode);
     boolean existsBySubjectCode(String subjectCode);
     PagedResult<Subject> findAll(SubjectSearchCriteria criteria);
-    List<Subject> findAllByStatus(SubjectStatus status);
 }

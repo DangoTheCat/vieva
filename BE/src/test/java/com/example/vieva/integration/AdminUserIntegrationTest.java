@@ -36,7 +36,7 @@ import static org.mockito.Mockito.verify;
  */
 @SpringBootTest(properties = {
         "jwt.secret=test-secret-at-least-32-characters-long-key",
-        "spring.autoconfigure.exclude=org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration",
+        "spring.autoconfigure.exclude=",
         "vieva.ai.provider=mock",
         "vieva.storage.provider=local"
 })

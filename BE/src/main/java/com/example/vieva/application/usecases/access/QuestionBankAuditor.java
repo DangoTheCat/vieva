@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * BR-09: audit trail for group 1 (upload, indexing outcome, generation, edit, approve, reject,
- * archive, import). Written in the caller's transaction so the audit row commits with the change.
+ * Audit trail for question-bank and account/catalog changes. Written in the caller's transaction
+ * so the audit row commits with the change.
  */
 @Component
 @RequiredArgsConstructor

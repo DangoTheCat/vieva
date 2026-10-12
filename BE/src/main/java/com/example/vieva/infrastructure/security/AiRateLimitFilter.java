@@ -1,8 +1,5 @@
 package com.example.vieva.infrastructure.security;
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,9 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate-limiting filter for AI-costly endpoints (question generation,
@@ -45,26 +40,13 @@ public class AiRateLimitFilter extends OncePerRequestFilter {
             "/api/v1/lecturer/subjects/",
             "/api/v1/lecturer/documents/");
 
-    /** Max number of distinct IPs tracked; oldest entries are evicted when exceeded. */
-    private static final int MAX_BUCKETS = 50_000;
+    private final IpRateLimiter limiter;
 
-    @Value("${ai.rate-limit.capacity:30}")
-    private int capacity;
-
-    @Value("${ai.rate-limit.refill-minutes:1}")
-    private long refillMinutes;
-
-    @Value("${rate-limit.trusted-proxies:127.0.0.1,0:0:0:0:0:0:0:1}")
-    private Set<String> trustedProxies;
-
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
-
-    /**
-     * Serializes the evict-then-insert path so a bucket created by one thread can never be
-     * evicted by another thread's size check (which would reset that IP's token count).
-     * The hot path (existing IP) stays lock-free.
-     */
-    private final Object bucketCreateLock = new Object();
+    public AiRateLimitFilter(@Value("${ai.rate-limit.capacity:30}") int capacity,
+                             @Value("${ai.rate-limit.refill-minutes:1}") long refillMinutes,
+                             @Value("${rate-limit.trusted-proxies:127.0.0.1,0:0:0:0:0:0:0:1}") Set<String> trustedProxies) {
+        limiter = new IpRateLimiter(Math.max(1, capacity), Duration.ofMinutes(Math.max(1, refillMinutes)), trustedProxies);
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -84,24 +66,7 @@ public class AiRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String ip = getClientIp(request);
-        Bucket bucket = buckets.get(ip);
-        if (bucket == null) {
-            synchronized (bucketCreateLock) {
-                bucket = buckets.get(ip);
-                if (bucket == null) {
-                    if (buckets.size() >= MAX_BUCKETS) {
-                        var it = buckets.keySet().iterator();
-                        if (it.hasNext()) {
-                            buckets.remove(it.next());
-                        }
-                    }
-                    bucket = buckets.computeIfAbsent(ip, k -> newBucket());
-                }
-            }
-        }
-
-        if (bucket.tryConsume(1)) {
+        if (limiter.tryConsume(request)) {
             filterChain.doFilter(request, response);
         } else {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
@@ -110,24 +75,5 @@ public class AiRateLimitFilter extends OncePerRequestFilter {
             response.getWriter().write(
                     "{\"code\":\"4291\",\"message\":\"AI request limit exceeded \\u2014 please try again later.\"}");
         }
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        if (trustedProxies.contains(remoteAddr)) {
-            String xff = request.getHeader("X-Forwarded-For");
-            if (xff != null && !xff.isBlank()) {
-                return xff.split(",")[0].trim();
-            }
-        }
-        return remoteAddr;
-    }
-
-    private Bucket newBucket() {
-        int effectiveCapacity = Math.max(1, capacity);
-        long effectivePeriod = Math.max(1, refillMinutes);
-        Bandwidth limit = Bandwidth.classic(effectiveCapacity,
-                Refill.greedy(effectiveCapacity, Duration.ofMinutes(effectivePeriod)));
-        return Bucket.builder().addLimit(limit).build();
     }
 }

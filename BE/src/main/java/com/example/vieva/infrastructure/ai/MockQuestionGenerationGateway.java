@@ -34,7 +34,11 @@ public class MockQuestionGenerationGateway implements QuestionGenerationPort {
             BloomLevel.EVALUATE, "Hãy đánh giá ưu điểm và hạn chế của quan điểm: \"%s\"?",
             BloomLevel.CREATE, "Hãy đề xuất một giải pháp hoặc thiết kế mới dựa trên ý: \"%s\"?"));
 
-    public MockQuestionGenerationGateway() {
+    private final double duplicateThreshold;
+
+    public MockQuestionGenerationGateway(
+            @org.springframework.beans.factory.annotation.Value("${vieva.rag.duplicate-threshold:0.8}") double duplicateThreshold) {
+        this.duplicateThreshold = duplicateThreshold;
         log.warn("Mock LLM provider active — generated questions are synthetic; set VIEVA_AI_PROVIDER=openai");
     }
 
@@ -60,7 +64,7 @@ public class MockQuestionGenerationGateway implements QuestionGenerationPort {
                 for (int tries = 0; tries < sentences.size() && candidate == null; tries++) {
                     Sentence sentence = sentences.get(cursor++ % sentences.size());
                     String content = TEMPLATES.get(entry.getKey()).formatted(sentence.text());
-                    if (QuestionSimilarity.isNearDuplicate(content, used, 0.8)) {
+                    if (QuestionSimilarity.isNearDuplicate(content, used, duplicateThreshold)) {
                         continue;
                     }
                     used.add(QuestionSimilarity.tokens(content));

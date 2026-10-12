@@ -80,16 +80,6 @@ public class TopicRepositoryImpl implements TopicRepository {
     }
 
     @Override
-    public List<Topic> findBySubjectIds(Collection<UUID> subjectIds) {
-        if (subjectIds == null || subjectIds.isEmpty()) {
-            return List.of();
-        }
-        return jpaRepository.findBySubject_SubjectIdIn(subjectIds).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public boolean existsByIdAndSubjectId(UUID topicId, UUID subjectId) {
         return jpaRepository.existsByTopicIdAndSubject_SubjectId(topicId, subjectId);
     }

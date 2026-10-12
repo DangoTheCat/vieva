@@ -42,6 +42,10 @@ public class LecturerDocumentController {
         if (file == null || file.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Uploaded file must not be empty");
         }
+        // Fail fast on size before loading bytes into heap (OOM guard for concurrent 20MB uploads).
+        if (file.getSize() > 20L * 1024 * 1024) {
+            throw new AppException(ErrorCode.FILE_TOO_LARGE, "File exceeds the maximum size of 20 MB");
+        }
         try {
             CourseDocument document = documentIndexingService.uploadDocument(
                     subjectId, file.getOriginalFilename(), file.getBytes(), userId);

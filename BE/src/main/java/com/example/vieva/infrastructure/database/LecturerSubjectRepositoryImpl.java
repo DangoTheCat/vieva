@@ -48,12 +48,6 @@ public class LecturerSubjectRepositoryImpl implements LecturerSubjectRepository 
     }
 
     @Override
-    public Optional<LecturerSubject> findActiveAssignment(UUID lecturerId, UUID subjectId) {
-        return jpaRepository.findByLecturerIdAndSubject_SubjectIdAndIsActiveTrueAndRevokedAtIsNull(lecturerId, subjectId)
-                .map(mapper::toDomain);
-    }
-
-    @Override
     public List<LecturerSubject> findActiveAssignments(UUID subjectId, Collection<UUID> lecturerIds) {
         if (subjectId == null || lecturerIds == null || lecturerIds.isEmpty()) {
             return List.of();

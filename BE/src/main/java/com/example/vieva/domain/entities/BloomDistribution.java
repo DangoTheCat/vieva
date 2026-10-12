@@ -63,10 +63,6 @@ public final class BloomDistribution {
         return counts.values().stream().mapToInt(Integer::intValue).sum();
     }
 
-    public int countFor(BloomLevel level) {
-        return counts.getOrDefault(level, 0);
-    }
-
     public Map<BloomLevel, Integer> asMap() {
         return Collections.unmodifiableMap(counts);
     }

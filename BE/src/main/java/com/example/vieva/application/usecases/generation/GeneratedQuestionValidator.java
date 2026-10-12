@@ -163,10 +163,19 @@ public final class GeneratedQuestionValidator {
                 sources.put(ref, new ValidatedSource(chunk, citation.quote().trim()));
             }
         }
-        // Sources without an explicit quote cite the opening of the chunk (always grounded).
+        // BR-03: every cited chunk needs an explicit verbatim quote. No auto-excerpt
+        // fallback: a source without a grounded quote is rejected, not synthesized.
         List<ValidatedSource> result = new ArrayList<>();
-        sources.forEach((ref, source) -> result.add(source != null ? source
-                : new ValidatedSource(contextByRef.get(ref), excerpt(contextByRef.get(ref).content()))));
+        sources.forEach((ref, source) -> {
+            if (source != null) {
+                result.add(source);
+            } else {
+                reasons.add("source " + ref + " has no verbatim citation quote");
+            }
+        });
+        if (result.size() != sources.size()) {
+            return List.of();
+        }
         return result;
     }
 

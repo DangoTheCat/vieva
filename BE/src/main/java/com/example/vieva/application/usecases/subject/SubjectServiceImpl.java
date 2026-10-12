@@ -3,10 +3,9 @@ package com.example.vieva.application.usecases.subject;
 import com.example.vieva.application.ports.input.CreateSubjectRequest;
 import com.example.vieva.application.ports.input.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateSubjectRequest;
-import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
-import com.example.vieva.domain.entities.AuditEvent;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.exception.AppException;
@@ -29,8 +28,7 @@ import java.util.UUID;
 public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
-    private final AuditEventRepository auditEventRepository;
-    private final com.example.vieva.application.ports.output.JsonSerializerPort jsonSerializer;
+    private final QuestionBankAuditor auditor;
 
     @Override
     public Subject createSubject(CreateSubjectRequest request, UUID currentAdminId) {
@@ -71,15 +69,7 @@ public class SubjectServiceImpl implements SubjectService {
         auditValues.put("name", saved.getSubjectName());
         auditValues.put("status", saved.getStatus() != null ? saved.getStatus().name() : null);
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("SUBJECT_CREATED")
-                .entityType("SUBJECT")
-                .entityId(saved.getSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(auditValues))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "SUBJECT_CREATED", "SUBJECT", saved.getSubjectId(), auditValues);
 
         return saved;
     }
@@ -97,15 +87,7 @@ public class SubjectServiceImpl implements SubjectService {
         auditValues.put("status", updated.getStatus() != null ? updated.getStatus().name() : null);
         auditValues.put("credits", updated.getCredits());
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("SUBJECT_UPDATED")
-                .entityType("SUBJECT")
-                .entityId(updated.getSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(auditValues))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "SUBJECT_UPDATED", "SUBJECT", updated.getSubjectId(), auditValues);
 
         return updated;
     }
@@ -121,15 +103,7 @@ public class SubjectServiceImpl implements SubjectService {
         Map<String, Object> auditValues = new HashMap<>();
         auditValues.put("status", SubjectStatus.INACTIVE.name());
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("SUBJECT_DEACTIVATED")
-                .entityType("SUBJECT")
-                .entityId(subject.getSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(auditValues))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "SUBJECT_DEACTIVATED", "SUBJECT", subject.getSubjectId(), auditValues);
     }
 
     @Override

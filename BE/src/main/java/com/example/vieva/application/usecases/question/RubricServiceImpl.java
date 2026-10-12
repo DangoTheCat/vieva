@@ -55,19 +55,7 @@ public class RubricServiceImpl implements RubricService {
         }
         BigDecimal before = currentTotal(versionId);
 
-        Rubric rubric = rubricRepository.findByQuestionVersionId(versionId).orElse(null);
-        if (rubric == null) {
-            rubric = draft.rubric();
-        } else {
-            rubricCriterionRepository.deleteByRubricId(rubric.getRubricId());
-            rubric.rename(draft.rubric().getRubricName(), draft.rubric().getDescription());
-        }
-        UUID rubricId = rubric.getRubricId();
-        List<RubricCriterion> criteria = draft.criteria();
-        criteria.forEach(criterion -> criterion.setRubricId(rubricId));
-        rubric.recalculateTotal(criteria);
-        rubricRepository.save(rubric);
-        rubricCriterionRepository.saveAll(criteria);
+        Rubric rubric = RubricDraftFactory.replace(versionId, draft, rubricRepository, rubricCriterionRepository);
         return finish(version, actorId, before, rubric);
     }
 

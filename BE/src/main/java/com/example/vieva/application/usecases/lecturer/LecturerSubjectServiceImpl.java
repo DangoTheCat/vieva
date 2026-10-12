@@ -6,6 +6,7 @@ import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.UserRepository;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.AuditEvent;
 import com.example.vieva.domain.entities.LecturerSubject;
 import com.example.vieva.domain.entities.Subject;
@@ -38,6 +39,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     private final UserRepository userRepository;
     private final AuditEventRepository auditEventRepository;
     private final JsonSerializerPort jsonSerializer;
+    private final QuestionBankAuditor auditor;
 
     @Override
     public List<LecturerSubject> assignLecturersToSubject(AssignLecturerRequest request, UUID currentAdminId) {
@@ -144,15 +146,8 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
         Map<String, Object> auditValues = new java.util.HashMap<>();
         auditValues.put("isActive", false);
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("LECTURER_ASSIGNMENT_REVOKED")
-                .entityType("LECTURER_SUBJECT")
-                .entityId(assignment.getLecturerSubjectId().toString())
-                .newValuesJson(jsonSerializer.serialize(auditValues))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "LECTURER_ASSIGNMENT_REVOKED", "LECTURER_SUBJECT",
+                assignment.getLecturerSubjectId(), auditValues);
     }
 
     @Override

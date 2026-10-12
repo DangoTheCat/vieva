@@ -7,10 +7,8 @@ import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
-import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.DomainEventPublisherPort;
-import com.example.vieva.application.ports.output.JsonSerializerPort;
-import com.example.vieva.domain.entities.AuditEvent;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
@@ -37,8 +35,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoderPort passwordEncoder;
-    private final AuditEventRepository auditEventRepository;
-    private final JsonSerializerPort jsonSerializer;
+    private final QuestionBankAuditor auditor;
     private final DomainEventPublisherPort domainEventPublisher;
 
     @Override
@@ -120,15 +117,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         auditValues.put("status", savedUser.getStatus() != null ? savedUser.getStatus().name() : null);
         auditValues.put("role", roleToAssign.getRoleCode());
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("USER_CREATED")
-                .entityType("USER")
-                .entityId(savedUser.getUserId().toString())
-                .newValuesJson(jsonSerializer.serialize(auditValues))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "USER_CREATED", "USER", savedUser.getUserId(), auditValues);
 
         // Sent after commit by the async email worker
         domainEventPublisher.publishAccountCreated(savedUser.getEmail(), savedUser.getFullName(),
@@ -202,15 +191,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setUpdatedAt(Instant.now());
         User updatedUser = userRepository.save(user);
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("USER_UPDATED")
-                .entityType("USER")
-                .entityId(updatedUser.getUserId().toString())
-                .newValuesJson(jsonSerializer.serialize(Map.of("status", updatedUser.getStatus().name())))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "USER_UPDATED", "USER", updatedUser.getUserId(),
+                Map.of("status", updatedUser.getStatus().name()));
 
         return updatedUser;
     }
@@ -240,15 +222,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.delete();
         userRepository.save(user);
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("USER_DELETED")
-                .entityType("USER")
-                .entityId(user.getUserId().toString())
-                .newValuesJson(jsonSerializer.serialize(Map.of("status", UserStatus.DELETED.name())))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "USER_DELETED", "USER", user.getUserId(),
+                Map.of("status", UserStatus.DELETED.name()));
     }
 
     @Override
@@ -268,15 +243,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.issueTemporaryPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        auditEventRepository.save(AuditEvent.builder()
-                .auditId(UUID.randomUUID())
-                .actorId(currentAdminId)
-                .actionType("USER_PASSWORD_RESET")
-                .entityType("USER")
-                .entityId(user.getUserId().toString())
-                .newValuesJson(jsonSerializer.serialize(Map.of("passwordReset", true)))
-                .createdAt(Instant.now())
-                .build());
+        auditor.record(currentAdminId, "USER_PASSWORD_RESET", "USER", user.getUserId(), Map.of("passwordReset", true));
     }
 
     /**

@@ -9,11 +9,11 @@ import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,7 +38,6 @@ class SubjectServiceImplTest {
     @Mock
     private JsonSerializerPort jsonSerializer;
 
-    @InjectMocks
     private SubjectServiceImpl subjectService;
 
     private UUID adminId;
@@ -47,6 +46,8 @@ class SubjectServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        subjectService = new SubjectServiceImpl(subjectRepository,
+                new QuestionBankAuditor(auditEventRepository, jsonSerializer));
         adminId = UUID.randomUUID();
         subjectId = UUID.randomUUID();
         sampleSubject = Subject.builder()

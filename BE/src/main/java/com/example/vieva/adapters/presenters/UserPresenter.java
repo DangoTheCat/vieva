@@ -6,9 +6,7 @@ import com.example.vieva.domain.entities.User;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 public class UserPresenter {
@@ -33,27 +31,7 @@ public class UserPresenter {
                 .build();
     }
 
-    public List<UserDto> toDtoList(List<User> users) {
-        if (users == null) {
-            return Collections.emptyList();
-        }
-        return users.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
-
     public PageResponse<UserDto> toPageResponse(PagedResult<User> pagedResult) {
-        if (pagedResult == null) {
-            return null;
-        }
-        return PageResponse.<UserDto>builder()
-                .content(toDtoList(pagedResult.getContent()))
-                .page(pagedResult.getPage())
-                .size(pagedResult.getSize())
-                .totalElements(pagedResult.getTotalElements())
-                .totalPages(pagedResult.getTotalPages())
-                .isFirst(pagedResult.isFirst())
-                .isLast(pagedResult.isLast())
-                .build();
+        return PageResponse.from(pagedResult, this::toDto);
     }
 }

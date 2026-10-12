@@ -15,10 +15,8 @@ import java.util.Arrays;
  * Hibernate {@link UserType} mapping a {@code float[]} Java field to a PostgreSQL
  * {@code vector} column (pgvector extension).
  *
- * <p>Hibernate 6.6 knows {@code SqlTypes.VECTOR} but that requires the optional
- * {@code hibernate-vector} module. This project already depends on
- * {@code com.pgvector:pgvector} (pulled in by the Spring AI PGVector store), so a
- * small self-contained UserType is used instead.
+ * <p>Uses the existing {@code com.pgvector:pgvector} dependency without an additional
+ * Hibernate vector module.
  *
  * <p>{@link #getSqlType()} returns {@link Types#OTHER}, matching what the
  * PostgreSQL JDBC driver reports for the {@code vector} type, so
@@ -56,7 +54,7 @@ public class PgVectorType implements UserType<float[]> {
         if (value instanceof PGvector vector) {
             return vector.toArray();
         }
-        return parse(value.toString());
+        return new PGvector(value.toString()).toArray();
     }
 
     @Override
@@ -87,24 +85,5 @@ public class PgVectorType implements UserType<float[]> {
     @Override
     public float[] assemble(Serializable cached, Object owner) {
         return cached == null ? null : deepCopy((float[]) cached);
-    }
-
-    private static float[] parse(String raw) {
-        String trimmed = raw.trim();
-        if (trimmed.startsWith("[")) {
-            trimmed = trimmed.substring(1);
-        }
-        if (trimmed.endsWith("]")) {
-            trimmed = trimmed.substring(0, trimmed.length() - 1);
-        }
-        if (trimmed.isBlank()) {
-            return new float[0];
-        }
-        String[] parts = trimmed.split(",");
-        float[] result = new float[parts.length];
-        for (int i = 0; i < parts.length; i++) {
-            result[i] = Float.parseFloat(parts[i].trim());
-        }
-        return result;
     }
 }

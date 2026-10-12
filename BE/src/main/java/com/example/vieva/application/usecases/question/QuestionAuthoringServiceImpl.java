@@ -112,7 +112,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         }
         version.editContent(command.content(), command.expectedAnswer(), command.bloomLevel(), command.bloomConfirmed());
         if (newRubric != null) {
-            replaceRubric(versionId, newRubric);
+            RubricDraftFactory.replace(versionId, newRubric, rubricRepository, rubricCriterionRepository);
         }
         questionVersionRepository.save(version);
 
@@ -203,23 +203,6 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
                 Map.of("questionId", questionId, "parentVersionId", approved.getQuestionVersionId(),
                         "versionNumber", nextNumber));
         return reloadView(draft.getQuestionVersionId());
-    }
-
-    private void replaceRubric(UUID versionId, RubricDraft newRubric) {
-        Rubric rubric = rubricRepository.findByQuestionVersionId(versionId).orElse(null);
-        if (rubric == null) {
-            rubricRepository.save(newRubric.rubric());
-            rubricCriterionRepository.saveAll(newRubric.criteria());
-            return;
-        }
-        rubricCriterionRepository.deleteByRubricId(rubric.getRubricId());
-        rubric.rename(newRubric.rubric().getRubricName(), newRubric.rubric().getDescription());
-        List<RubricCriterion> criteria = newRubric.criteria().stream()
-                .peek(criterion -> criterion.setRubricId(rubric.getRubricId()))
-                .toList();
-        rubric.recalculateTotal(criteria);
-        rubricRepository.save(rubric);
-        rubricCriterionRepository.saveAll(criteria);
     }
 
     private void validateTopic(UUID subjectId, UUID topicId) {

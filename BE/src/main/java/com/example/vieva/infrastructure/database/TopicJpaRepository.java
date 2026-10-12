@@ -13,7 +13,5 @@ public interface TopicJpaRepository extends JpaRepository<TopicJpaEntity, UUID> 
     @EntityGraph(attributePaths = {"subject"})
     List<TopicJpaEntity> findBySubject_SubjectIdOrderByOrderIndexAsc(UUID subjectId);
 
-    @EntityGraph(attributePaths = {"subject"})
-    List<TopicJpaEntity> findBySubject_SubjectIdIn(Collection<UUID> subjectIds);
     boolean existsByTopicIdAndSubject_SubjectId(UUID topicId, UUID subjectId);
 }

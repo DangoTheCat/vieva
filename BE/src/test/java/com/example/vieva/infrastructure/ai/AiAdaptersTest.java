@@ -80,7 +80,7 @@ class AiAdaptersTest {
     @Test
     @DisplayName("mock LLM honours the requested Bloom distribution with grounded citations")
     void mockGenerator() {
-        List<GeneratedQuestionCandidate> candidates = new MockQuestionGenerationGateway().generate(PROMPT);
+        List<GeneratedQuestionCandidate> candidates = new MockQuestionGenerationGateway(0.8).generate(PROMPT);
         assertThat(candidates).extracting(GeneratedQuestionCandidate::bloomLevel).containsExactlyInAnyOrder("APPLY", "CREATE");
         assertThat(candidates).allSatisfy(c -> assertThat(PROMPT.contextChunks().get(0).content())
                 .contains(c.citations().get(0).quote()));

@@ -63,12 +63,12 @@ class GeneratedQuestionValidatorTest {
     }
 
     @Test
-    @DisplayName("source given by UUID without quote falls back to a chunk excerpt")
-    void uuidRefAndExcerpt() {
+    @DisplayName("BR-03 strict: source without verbatim quote is rejected, no excerpt fallback")
+    void uuidRefWithoutQuoteRejected() {
         Outcome outcome = validate(candidate("Phân tích", BigDecimal.TEN, criteria(),
                 List.of(chunk.chunkId().toString().toUpperCase()), null));
-        assertThat(outcome.valid()).isTrue();
-        assertThat(chunk.content()).startsWith(outcome.question().sources().get(0).quote());
+        assertThat(outcome.valid()).isFalse();
+        assertThat(outcome.reasons()).anyMatch(r -> r.contains("no verbatim citation"));
     }
 
     @Test
