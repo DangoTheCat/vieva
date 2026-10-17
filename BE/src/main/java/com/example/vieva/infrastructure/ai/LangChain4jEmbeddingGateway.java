@@ -2,34 +2,29 @@ package com.example.vieva.infrastructure.ai;
 
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.EmbeddingModelPort;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.embedding.Embedding;
-import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.embedding.EmbeddingResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Real embeddings through Spring AI ({@code vieva.ai.provider=openai}); model and API key come
- * from {@code spring.ai.openai.*} / environment variables.
- */
 @Slf4j
 @Service
-@ConditionalOnExpression("'openai'.equals('${vieva.ai.provider:mock}') || 'gemini'.equals('${vieva.ai.provider:mock}')")
-public class SpringAiEmbeddingGateway implements EmbeddingModelPort {
+@ConditionalOnBean(EmbeddingModel.class)
+public class LangChain4jEmbeddingGateway implements EmbeddingModelPort {
 
     private final EmbeddingModel embeddingModel;
 
-    public SpringAiEmbeddingGateway(EmbeddingModel embeddingModel) {
+    public LangChain4jEmbeddingGateway(EmbeddingModel embeddingModel) {
         this.embeddingModel = embeddingModel;
     }
 
     @Override
     public float[] generateEmbedding(String text) {
         try {
-            return embeddingModel.embed(text);
+            return embeddingModel.embed(text).content().vector();
         } catch (RuntimeException e) {
             log.warn("Embedding call failed: {}", e.getClass().getSimpleName());
             throw new AiServiceException("Embedding provider call failed", e);
@@ -42,8 +37,12 @@ public class SpringAiEmbeddingGateway implements EmbeddingModelPort {
             return List.of();
         }
         try {
-            EmbeddingResponse response = embeddingModel.embedForResponse(texts);
-            return response.getResults().stream().map(Embedding::getOutput).toList();
+            return embeddingModel.embedAll(texts.stream()
+                            .map(TextSegment::from)
+                            .toList())
+                    .content().stream()
+                    .map(embedding -> embedding.vector())
+                    .toList();
         } catch (RuntimeException e) {
             log.warn("Batch embedding call failed for {} texts: {}", texts.size(), e.getClass().getSimpleName());
             throw new AiServiceException("Embedding provider call failed", e);
