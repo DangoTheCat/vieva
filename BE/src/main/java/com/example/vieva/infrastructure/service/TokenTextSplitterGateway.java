@@ -3,24 +3,22 @@ package com.example.vieva.infrastructure.service;
 import com.example.vieva.application.ports.output.ParsedSection;
 import com.example.vieva.application.ports.output.TextChunk;
 import com.example.vieva.application.ports.output.TextSplitterPort;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingType;
+import com.knuddels.jtokkit.api.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-/** Spring AI's token splitter with page/section metadata mapped back to the application port. */
+/** Token splitter with page/section metadata mapped back to the application port. */
 @Component
 public class TokenTextSplitterGateway implements TextSplitterPort {
 
-    private final TokenTextSplitter splitter;
+    private final int chunkSize;
+    private final int minChunkTokens;
     private final Encoding encoding = Encodings.newLazyEncodingRegistry().getEncoding(EncodingType.CL100K_BASE);
 
     public TokenTextSplitterGateway(@Value("${vieva.rag.chunk-size-tokens:800}") int chunkSize,
@@ -28,14 +26,8 @@ public class TokenTextSplitterGateway implements TextSplitterPort {
         if (chunkSize <= 0 || minChunkTokens < 0) {
             throw new IllegalArgumentException("Chunk sizes must be positive");
         }
-        this.splitter = TokenTextSplitter.builder()
-                .withChunkSize(chunkSize)
-                // Vietnamese ~2-3 chars/token (vs ~4 for English): *3 keeps short definitions.
-                .withMinChunkSizeChars(Math.max(1, minChunkTokens * 3))
-                .withMinChunkLengthToEmbed(0)
-                .withMaxNumChunks(Integer.MAX_VALUE)
-                .withKeepSeparator(true)
-                .build();
+        this.chunkSize = chunkSize;
+        this.minChunkTokens = minChunkTokens;
     }
 
     @Override
@@ -45,17 +37,17 @@ public class TokenTextSplitterGateway implements TextSplitterPort {
             if (section.text() == null || section.text().isBlank()) {
                 continue;
             }
-            Map<String, Object> metadata = new HashMap<>();
-            if (section.pageNumber() != null) metadata.put("page", section.pageNumber());
-            if (section.sectionTitle() != null) metadata.put("section", section.sectionTitle());
-            for (Document document : splitter.split(new Document(section.text(), metadata))) {
-                String text = document.getText();
-                if (text == null || text.isBlank()) {
-                    continue;
+            IntArrayList tokens = encoding.encode(section.text());
+            for (int start = 0; start < tokens.size(); start += chunkSize) {
+                int end = Math.min(tokens.size(), start + chunkSize);
+                IntArrayList window = new IntArrayList(end - start);
+                for (int i = start; i < end; i++) {
+                    window.add(tokens.get(i));
                 }
-                // Single encode per chunk (was: Document wrapper + second encode in tokenCount).
-                chunks.add(new TextChunk(text, encoding.encode(text).size(), section.pageNumber(),
-                        section.pageNumber(), section.sectionTitle()));
+                if (window.size() >= minChunkTokens) {
+                    chunks.add(new TextChunk(encoding.decode(window), window.size(), section.pageNumber(),
+                            section.pageNumber(), section.sectionTitle()));
+                }
             }
         }
         return chunks;
