@@ -9,7 +9,7 @@ Tài liệu dành cho dev mới. Làm lần lượt từ trên xuống, mỗi b�
 | Thành phần | Công nghệ | Thư mục | Cổng (port) |
 | --- | --- | --- | --- |
 | Database | PostgreSQL 16 + pgvector (Docker image `pgvector/pgvector:pg16`) | — | `5432` |
-| Backend (BE) | Java 17, Spring Boot 3.4.3, Spring AI 1.0, Maven | `BE/` | `8080` |
+| Backend (BE) | Java 17, Spring Boot 3.4.3, LangChain4j, Maven | `BE/` | `8080` |
 | Frontend (FE) | React 19, Vite 5, Tailwind CSS 3 | `FE/` | `5173` (dev) / `3000` (Docker) |
 
 Ghi chú quan trọng:
@@ -104,7 +104,7 @@ docker compose down
 
 Cách này phù hợp để xem sản phẩm, **không** phù hợp để code hằng ngày vì mỗi lần sửa code phải build lại image. Để code, dùng cách B.
 
-Lưu ý: file `docker-compose.yml` không truyền `VIEVA_AI_PROVIDER`, nên backend trong Docker luôn chạy AI ở chế độ mock.
+Docker Compose truyền `VIEVA_AI_PROVIDER` và cấu hình model từ `.env`; mặc định là `mock`. Chat và embedding thật chạy qua LangChain4j.
 
 ---
 
@@ -141,7 +141,7 @@ set -a; source ../.env; set +a
 ./mvnw spring-boot:run
 ```
 
-**Cảnh báo cho Git Bash trên Windows:** Git Bash tự đổi giá trị biến môi trường bắt đầu bằng `/` thành đường dẫn Windows. Ví dụ `OPENAI_EMBEDDING_PATH=/embeddings` bị đổi thành `C:/Program Files/Git/embeddings`, và BE báo lỗi `invalid URI scheme c` khi gọi AI. Trên Windows, hãy chạy BE bằng PowerShell hoặc IntelliJ.
+LangChain4j nhận `OPENAI_BASE_URL` có sẵn phiên bản API, ví dụ `https://api.openai.com/v1` hoặc `https://generativelanguage.googleapis.com/v1beta/openai`. Không dùng `OPENAI_CHAT_PATH` và `OPENAI_EMBEDDING_PATH` nữa.
 
 **IntelliJ IDEA:**
 
@@ -199,13 +199,15 @@ Mặc định mọi thứ chạy offline. Để bật dịch vụ thật, đặt
 
 | Mục đích | Biến môi trường |
 | --- | --- |
-| Sinh câu hỏi / embedding bằng OpenAI | `VIEVA_AI_PROVIDER=openai`, `OPENAI_API_KEY=sk-...` (tuỳ chọn `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL`) |
-| Dùng Gemini thay OpenAI (endpoint OpenAI-compatible) | `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `OPENAI_CHAT_PATH=/chat/completions`, `OPENAI_EMBEDDING_PATH=/embeddings`, `OPENAI_CHAT_MODEL=gemini-3.5-flash-lite`, `OPENAI_EMBEDDING_MODEL=gemini-embedding-001`, `OPENAI_API_KEY=<Gemini key>` |
+| Sinh câu hỏi / embedding bằng OpenAI | `VIEVA_AI_PROVIDER=openai`, `OPENAI_BASE_URL=https://api.openai.com/v1`, `OPENAI_API_KEY=sk-...` (tuỳ chọn `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL`) |
+| Dùng Gemini thay OpenAI (endpoint OpenAI-compatible) | `VIEVA_AI_PROVIDER=gemini`, `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `OPENAI_CHAT_MODEL=gemini-3.5-flash-lite`, `OPENAI_EMBEDDING_MODEL=gemini-embedding-001`, `OPENAI_API_KEY=<Gemini key>` |
 | Lưu tài liệu lên Cloudinary | `VIEVA_STORAGE_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 | Thư mục lưu file local | `VIEVA_STORAGE_ROOT` (mặc định `./data/documents`) |
 | Gửi email thật khi admin tạo tài khoản | `VIEVA_MAIL_PROVIDER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` (Gmail: App Password), `MAIL_FROM`, `APP_LOGIN_URL`. Mặc định `log`: chỉ ghi log người nhận và tiêu đề, không gửi |
 
 Không bao giờ commit API key. Mỗi người tự xin key và để trong `.env` của mình.
+
+RAG lấy tối đa `2 × vieva.rag.top-k` ứng viên bằng vector trong các tài liệu READY đã chọn của môn học, rồi xếp lại theo 75% cosine similarity + 25% Jaccard từ khóa. Đây là reranking trên ứng viên vector; chưa có nhánh tìm kiếm full-text độc lập. Giữ nguyên model embedding và số chiều khi dùng lại vector đã lưu; đổi model cần index lại tài liệu.
 
 Các endpoint tốn chi phí AI (chat, generate, retry, import, upload) bị giới hạn 30 request/phút mỗi IP. Endpoint auth bị giới hạn 10 request/phút.
 
