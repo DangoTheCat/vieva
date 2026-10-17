@@ -5,13 +5,11 @@ import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.chat.prompt.Prompt;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +30,7 @@ class AiAdaptersTest {
 
     private static ChatModel replying(String text) {
         ChatModel model = mock(ChatModel.class);
-        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage(text)))));
+        when(model.chat(any(List.class))).thenReturn(ChatResponse.builder().aiMessage(AiMessage.from(text)).build());
         return model;
     }
 
@@ -46,7 +44,7 @@ class AiAdaptersTest {
                   "sourceChunkIds":["C1"],"citations":[{"chunkId":"C1","quote":"bốn tính chất ACID"}],"extra":"ignored"}]}
                 ```""";
         List<GeneratedQuestionCandidate> candidates =
-                new OpenAiQuestionGenerationGateway(replying(reply), new ObjectMapper()).generate(PROMPT);
+                new LangChain4jQuestionGenerationGateway(replying(reply), new ObjectMapper()).generate(PROMPT);
         assertThat(candidates).singleElement().satisfies(c -> {
             assertThat(c.bloomLevel()).isEqualTo("APPLY");
             assertThat(c.rubricTotalScore()).isEqualByComparingTo("10");
@@ -58,11 +56,11 @@ class AiAdaptersTest {
     @Test
     void wrapsProviderAndFormatErrors() {
         ChatModel failing = mock(ChatModel.class);
-        when(failing.call(any(Prompt.class))).thenThrow(new RuntimeException("401 invalid api key sk-secret"));
-        assertThatThrownBy(() -> new OpenAiQuestionGenerationGateway(failing, new ObjectMapper()).generate(PROMPT))
+        when(failing.chat(any(List.class))).thenThrow(new RuntimeException("401 invalid api key sk-secret"));
+        assertThatThrownBy(() -> new LangChain4jQuestionGenerationGateway(failing, new ObjectMapper()).generate(PROMPT))
                 .isInstanceOf(AiServiceException.class)
                 .hasMessageNotContaining("sk-secret");
-        assertThatThrownBy(() -> new OpenAiQuestionGenerationGateway(replying("not json"), new ObjectMapper()).generate(PROMPT))
+        assertThatThrownBy(() -> new LangChain4jQuestionGenerationGateway(replying("not json"), new ObjectMapper()).generate(PROMPT))
                 .isInstanceOf(AiServiceException.class);
     }
 

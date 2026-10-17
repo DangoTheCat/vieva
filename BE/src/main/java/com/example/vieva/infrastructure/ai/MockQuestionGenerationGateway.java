@@ -39,7 +39,7 @@ public class MockQuestionGenerationGateway implements QuestionGenerationPort {
     public MockQuestionGenerationGateway(
             @org.springframework.beans.factory.annotation.Value("${vieva.rag.duplicate-threshold:0.8}") double duplicateThreshold) {
         this.duplicateThreshold = duplicateThreshold;
-        log.warn("Mock LLM provider active — generated questions are synthetic; set VIEVA_AI_PROVIDER=openai");
+        log.warn("Mock LLM provider active — generated questions are synthetic; set VIEVA_AI_PROVIDER=openai or gemini");
     }
 
     @Override

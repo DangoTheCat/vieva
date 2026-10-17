@@ -20,8 +20,11 @@ public final class QuestionPromptBuilder {
                 You are an assessment designer writing ORAL (viva) exam questions for a university course.
                 Rules:
                 1. Use ONLY the provided context chunks. Never use outside knowledge.
-                2. Every question must cite at least one chunk in "sourceChunkIds" using the chunk ids shown (e.g. "C2"),
-                   and give at least one "citations" entry whose "quote" is copied VERBATIM from that chunk.
+                2. Prefer citing one chunk per question. "sourceChunkIds" must contain exactly the chunk ids that
+                   appear in "citations"; for EVERY cited chunk, include one citation with a quote copied as an
+                   exact contiguous substring from that chunk. Do not paraphrase, translate, normalize, or invent
+                   citation text. Copy the quote directly from the context, including Vietnamese diacritics.
+                   Keep quotes short (roughly 8-40 words) so they can be copied accurately.
                 3. "bloomLevel" must be exactly one of: REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
                    (revised Bloom taxonomy: Nhớ, Hiểu, Vận dụng, Phân tích, Đánh giá, Sáng tạo).
                    Produce exactly the requested number of questions for each level.

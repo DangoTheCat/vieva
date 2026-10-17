@@ -54,6 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -299,7 +300,7 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
         try {
             float[] queryVector = embeddingModel.generateEmbedding(query);
             chunks = documentChunkRepository.searchSimilarChunks(request.getSubjectId(), request.getDocumentIds(),
-                    queryVector, settings.getMinSimilarity(), settings.getTopK());
+                    queryVector, settings.getMinSimilarity(), settings.getTopK() * 2);
         } catch (AiServiceException e) {
             failRequest(request, "Embedding service error: " + e.getMessage());
             throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE,
@@ -312,16 +313,30 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                     "No chunk of the selected documents is similar enough (>= " + settings.getMinSimilarity()
                             + ") to the subject/topic; refine the topic or select other documents");
         }
+        chunks = rerank(chunks, query, settings.getTopK());
+        List<ChunkSearchResult> retrievedChunks = chunks;
         transactionRunner.inNewTransaction(() -> {
             QuestionGenerationRequest fresh = generationRequestRepository.findById(request.getGenerationRequestId())
                     .orElseThrow();
-            fresh.recordRetrievedContext(chunks.stream().map(ChunkSearchResult::chunkId).toList());
+            fresh.recordRetrievedContext(retrievedChunks.stream().map(ChunkSearchResult::chunkId).toList());
             QuestionGenerationRequest saved = generationRequestRepository.save(fresh);
             request.setRetrievedChunkIds(saved.getRetrievedChunkIds());
             request.setVersion(saved.getVersion());
             request.setUpdatedAt(saved.getUpdatedAt());
         });
-        return context(subject, topic, chunks);
+        return context(subject, topic, retrievedChunks);
+    }
+
+    /** Combines vector similarity with cheap lexical overlap before sending context to the LLM. */
+    private static List<ChunkSearchResult> rerank(List<ChunkSearchResult> chunks, String query, int limit) {
+        Set<String> queryTokens = QuestionSimilarity.tokens(query);
+        return chunks.stream()
+                .sorted(Comparator.comparingDouble(chunk -> -(
+                        0.75 * chunk.similarityScore()
+                                + 0.25 * QuestionSimilarity.jaccard(queryTokens,
+                                QuestionSimilarity.tokens(chunk.content())))))
+                .limit(limit)
+                .toList();
     }
 
     /** Context saved at generation time (regeneration and retries reuse the same chunks). */

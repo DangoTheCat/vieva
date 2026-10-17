@@ -16,7 +16,9 @@
 	<properties>
 		<java.version>17</java.version>
 		<lombok.version>1.18.38</lombok.version>
-		<spring-ai.version>1.0.0</spring-ai.version>
+		<langchain4j.version>1.22.0</langchain4j.version>
+		<tika.version>3.1.0</tika.version>
+		<jtokkit.version>1.1.0</jtokkit.version>
 		<cloudinary.version>1.39.0</cloudinary.version>
 		<poi.version>5.4.0</poi.version>
 		<commons-csv.version>1.13.0</commons-csv.version>
@@ -69,16 +71,27 @@
 			<version>8.10.1</version>
 		</dependency>
 
-		<!-- Spring AI: LLM, embeddings & document ingestion -->
+		<!-- LangChain4j: LLM and embeddings -->
 		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-starter-model-openai</artifactId>
-			<version>${spring-ai.version}</version>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-open-ai</artifactId>
+			<version>${langchain4j.version}</version>
+		</dependency>
+		<!-- Document parsing stays Apache Tika; LangChain4j owns the AI/RAG clients. -->
+		<dependency>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-core</artifactId>
+			<version>${tika.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-tika-document-reader</artifactId>
-			<version>${spring-ai.version}</version>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-parsers-standard-package</artifactId>
+			<version>${tika.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.knuddels</groupId>
+			<artifactId>jtokkit</artifactId>
+			<version>${jtokkit.version}</version>
 		</dependency>
 
 		<!-- Question import (UC1.6): Excel + CSV. Versions aligned with the ones Tika already brings in. -->

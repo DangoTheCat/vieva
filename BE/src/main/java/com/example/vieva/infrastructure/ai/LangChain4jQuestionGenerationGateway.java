@@ -6,30 +6,24 @@ import com.example.vieva.application.ports.output.QuestionGenerationPort;
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * LLM question generation through Spring AI ({@code vieva.ai.provider=openai}). Model, temperature
- * and API key come from {@code spring.ai.openai.*}; nothing sensitive is logged.
- */
 @Slf4j
 @Service
-@ConditionalOnExpression("'openai'.equals('${vieva.ai.provider:mock}') || 'gemini'.equals('${vieva.ai.provider:mock}')")
-public class OpenAiQuestionGenerationGateway implements QuestionGenerationPort {
+@ConditionalOnBean(ChatModel.class)
+public class LangChain4jQuestionGenerationGateway implements QuestionGenerationPort {
 
     private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
 
-    public OpenAiQuestionGenerationGateway(ChatModel chatModel, ObjectMapper objectMapper) {
+    public LangChain4jQuestionGenerationGateway(ChatModel chatModel, ObjectMapper objectMapper) {
         this.chatModel = chatModel;
         this.objectMapper = objectMapper;
     }
@@ -38,11 +32,10 @@ public class OpenAiQuestionGenerationGateway implements QuestionGenerationPort {
     public List<GeneratedQuestionCandidate> generate(QuestionGenerationPrompt prompt) {
         String raw;
         try {
-            ChatResponse response = chatModel.call(new Prompt(List.of(
-                    new SystemMessage(QuestionPromptBuilder.systemMessage()),
-                    new UserMessage(QuestionPromptBuilder.userMessage(prompt)))));
-            raw = response == null || response.getResult() == null || response.getResult().getOutput() == null
-                    ? null : response.getResult().getOutput().getText();
+            var response = chatModel.chat(List.of(
+                    SystemMessage.from(QuestionPromptBuilder.systemMessage()),
+                    UserMessage.from(QuestionPromptBuilder.userMessage(prompt))));
+            raw = response == null || response.aiMessage() == null ? null : response.aiMessage().text();
         } catch (RuntimeException e) {
             log.warn("LLM call failed: {}", e.getClass().getSimpleName());
             throw new AiServiceException("LLM provider call failed", e);
@@ -58,13 +51,9 @@ public class OpenAiQuestionGenerationGateway implements QuestionGenerationPort {
         }
     }
 
-    /** Tolerates markdown fences or prose around the JSON object. */
     static String extractJson(String raw) {
         int start = raw.indexOf('{');
         int end = raw.lastIndexOf('}');
-        if (start < 0 || end <= start) {
-            return raw;
-        }
-        return raw.substring(start, end + 1);
+        return start >= 0 && end > start ? raw.substring(start, end + 1) : raw;
     }
 }

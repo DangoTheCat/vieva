@@ -26,7 +26,7 @@ public class MockEmbeddingGateway implements EmbeddingModelPort {
 
     public MockEmbeddingGateway(@Value("${vieva.rag.embedding-dimensions:1536}") int dimensions) {
         this.dimensions = dimensions;
-        log.warn("Mock embedding provider active — set VIEVA_AI_PROVIDER=openai for real embeddings");
+        log.warn("Mock embedding provider active — set VIEVA_AI_PROVIDER=openai or gemini for real embeddings");
     }
 
     @Override
