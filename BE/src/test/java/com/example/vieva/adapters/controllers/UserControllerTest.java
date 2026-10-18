@@ -38,7 +38,9 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -284,5 +286,40 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.content[1].email").value("user2@example.com"));
 
         verify(adminUserService).getUsers(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users/me/avatar: uploads avatar file and returns updated UserDto")
+    void uploadAvatar_Success() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                "file", "avatar.png", "image/png", new byte[]{1, 2, 3});
+
+        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(authenticatedUser));
+        when(userPresenter.toDto(any())).thenReturn(UserDto.builder()
+                .userId(authenticatedUser.getUserId())
+                .avatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png")
+                .build());
+
+        mockMvc.perform(multipart("/api/v1/users/me/avatar").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl").value("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png"));
+
+        verify(userService).uploadAvatar(eq(authenticatedUser.getUserId()), any(), eq("image/png"));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/users/me/avatar: deletes avatar and returns updated UserDto")
+    void deleteAvatar_Success() throws Exception {
+        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(authenticatedUser));
+        when(userPresenter.toDto(any())).thenReturn(UserDto.builder()
+                .userId(authenticatedUser.getUserId())
+                .avatarUrl(null)
+                .build());
+
+        mockMvc.perform(delete("/api/v1/users/me/avatar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl").doesNotExist());
+
+        verify(userService).deleteAvatar(authenticatedUser.getUserId());
     }
 }
