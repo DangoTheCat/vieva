@@ -6,4 +6,5 @@ package com.example.vieva.application.ports.output;
  */
 public interface JsonSerializerPort {
     String serialize(Object object);
+    <T> T deserialize(String json, Class<T> targetClass);
 }

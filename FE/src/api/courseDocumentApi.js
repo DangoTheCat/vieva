@@ -21,5 +21,9 @@ export const courseDocumentApi = {
 
   deleteDocument(documentId) {
     return apiClient.delete(`/lecturer/documents/${documentId}`);
+  },
+
+  getDocumentPreview(documentId) {
+    return apiClient.get(`/lecturer/documents/${documentId}/preview`);
   }
 };

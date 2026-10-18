@@ -22,6 +22,7 @@ public class UserPresenter {
                 .userCode(user.getUserCode())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
+                .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
                 .role(role != null ? role.getRoleCode() : null)
                 .roles(role != null ? Set.of(role.getRoleCode()) : Collections.emptySet())

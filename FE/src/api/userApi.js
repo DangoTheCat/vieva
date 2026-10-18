@@ -30,5 +30,22 @@ export const userApi = {
    */
   async getUserById(id) {
     return apiClient.get(`/users/${id}`);
+  },
+
+  /**
+   * @param {File} file
+   * @returns {Promise<UserDto>}
+   */
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/users/me/avatar', formData);
+  },
+
+  /**
+   * @returns {Promise<UserDto>}
+   */
+  async deleteAvatar() {
+    return apiClient.delete('/users/me/avatar');
   }
 };

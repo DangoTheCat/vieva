@@ -47,6 +47,9 @@ public class UserJpaEntity implements Persistable<UUID> {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private UserStatus status;

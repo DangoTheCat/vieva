@@ -20,6 +20,7 @@ public class AuthPresenter {
                 .userCode(result.getUserCode())
                 .fullName(result.getFullName())
                 .phoneNumber(result.getPhoneNumber())
+                .avatarUrl(result.getAvatarUrl())
                 .status(result.getStatus() != null
                         ? com.example.vieva.domain.entities.UserStatus.valueOf(result.getStatus())
                         : null)

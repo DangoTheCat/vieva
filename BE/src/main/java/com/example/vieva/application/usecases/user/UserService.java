@@ -11,4 +11,6 @@ public interface UserService {
     Optional<User> getById(UUID userId);
     User updateProfile(UUID userId, UpdateProfileRequest request);
     void changePassword(UUID userId, ChangePasswordRequest request);
+    String uploadAvatar(UUID userId, byte[] imageBytes, String contentType);
+    void deleteAvatar(UUID userId);
 }

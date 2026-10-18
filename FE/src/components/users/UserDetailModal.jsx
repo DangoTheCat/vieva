@@ -147,27 +147,42 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
         <div className="p-5 space-y-4 text-xs overflow-y-auto">
           
           {/* User Hero Banner */}
-          <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl flex items-center gap-3.5">
-            <div className={`w-12 h-12 rounded-2xl font-heading font-black text-base flex items-center justify-center shadow-xs ${
+          <div className="p-4 bg-paper border-2 border-green-500 rounded-2xl flex items-center gap-3.5 shadow-[2px_2px_0px_#DEB9B5]">
+            <div className={`w-14 h-14 rounded-2xl font-heading font-black text-base flex items-center justify-center shadow-[2px_2px_0px_#DEB9B5] overflow-hidden shrink-0 border-2 border-green-600 ${
               isAdmin
-                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                ? 'bg-cream text-ink'
                 : isLecturer
-                ? 'bg-sky-100 text-sky-800 border border-sky-200'
-                : 'bg-slate-200 text-slate-800 border border-slate-300'
+                ? 'bg-pink-200 text-pink-900'
+                : 'bg-green-100 text-green-900'
             }`}>
-              {user.fullName ? user.fullName.substring(0, 2).toUpperCase() : 'US'}
+              {(user.avatarUrl || user.avatar || user.avatar_url) ? (
+                <img
+                  src={(user.avatarUrl || user.avatar || user.avatar_url).trim()}
+                  alt={user.fullName || 'Avatar'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) {
+                      e.currentTarget.nextSibling.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              <span className={`w-full h-full flex items-center justify-center ${(user.avatarUrl || user.avatar || user.avatar_url) ? 'hidden' : ''}`}>
+                {user.fullName ? user.fullName.substring(0, 2).toUpperCase() : 'US'}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 truncate">{user.fullName}</h4>
+              <h4 className="font-heading font-bold text-base text-ink truncate">{user.fullName}</h4>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-slate-600 font-mono text-[11px] truncate">{user.email}</span>
+                <span className="text-on-surface-variant font-mono text-[11px] truncate">{user.email}</span>
                 <button
                   type="button"
                   onClick={() => handleCopy('email', user.email)}
-                  className="text-slate-400 hover:text-sky-600 transition"
+                  className="text-pink-700 hover:text-pink-900 transition cursor-pointer"
                   title="Sao chép email"
                 >
-                  {copiedField === 'email' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                  {copiedField === 'email' ? <Check className="w-3 h-3 text-green-700" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
             </div>

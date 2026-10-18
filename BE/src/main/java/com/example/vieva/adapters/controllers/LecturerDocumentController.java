@@ -2,7 +2,9 @@ package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.adapters.presenters.CourseDocumentDto;
 import com.example.vieva.adapters.presenters.CourseDocumentPresenter;
+import com.example.vieva.adapters.presenters.DocumentPreviewDto;
 import com.example.vieva.adapters.presenters.MessageResponse;
+import com.example.vieva.application.ports.output.DocumentPreview;
 import com.example.vieva.application.usecases.document.DocumentService;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.User;
@@ -65,6 +67,14 @@ public class LecturerDocumentController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
     public ResponseEntity<CourseDocumentDto> getDocumentById(@PathVariable UUID documentId) {
         return ResponseEntity.ok(presenter.toDto(documentIndexingService.getDocumentById(documentId)));
+    }
+
+    @GetMapping("/documents/{documentId}/preview")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
+    public ResponseEntity<DocumentPreviewDto> getDocumentPreview(@PathVariable UUID documentId,
+                                                                 @AuthenticationPrincipal User currentUser) {
+        DocumentPreview preview = documentIndexingService.previewDocument(documentId, CurrentUser.id(currentUser));
+        return ResponseEntity.ok(presenter.toPreviewDto(preview));
     }
 
     @PostMapping("/documents/{documentId}/retry-index")

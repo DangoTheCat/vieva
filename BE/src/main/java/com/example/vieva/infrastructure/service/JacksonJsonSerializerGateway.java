@@ -26,4 +26,16 @@ public class JacksonJsonSerializerGateway implements JsonSerializerPort {
             throw new IllegalStateException("Failed to serialize object to JSON", e);
         }
     }
+
+    @Override
+    public <T> T deserialize(String json, Class<T> targetClass) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, targetClass);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to deserialize JSON string", e);
+        }
+    }
 }

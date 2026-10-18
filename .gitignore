@@ -13,3 +13,12 @@ node_modules/
 dist/
 **/dist/
 
+# Local agent skills cache (preserve tracked skills)
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/clean-architecture
+!.agents/skills/fe-resilience-hardening
+!.agents/skills/gsap-motion-craft
+!.agents/skills/impeccable-ui-craft
+

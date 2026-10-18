@@ -114,6 +114,7 @@ public class AuthServiceImpl implements AuthService {
                 .userCode(user.getUserCode())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
+                .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .roles(roles)
                 .mustChangePassword(user.isMustChangePassword())

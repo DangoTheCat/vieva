@@ -33,7 +33,10 @@ public final class QuestionPromptBuilder {
                 4. Each question has a rubric: 2-4 criteria with a name, a description of achievement levels and a
                    positive "maxScore". "totalScore" MUST equal the sum of the criteria maxScore and equal 10.0.
                 5. Write questions and answers in the language of the context (Vietnamese if the context is Vietnamese).
-                   Questions must be answerable orally in 2-5 minutes; do not repeat the questions to avoid.
+                   Questions are designed for oral viva examination (vấn đáp trực tiếp). Questions must be open-ended,
+                   assess conceptual understanding or practical reasoning, and be answerable orally in 2-5 minutes.
+                   Provide expectedAnswer containing a structured checklist of key evaluation points for examiners.
+                   Do not repeat the questions to avoid.
                 6. Reply with ONE JSON object only, no markdown, matching:
                 {"questions":[{"content":"string","expectedAnswer":"string","bloomLevel":"APPLY",
                   "rubric":{"totalScore":10,"criteria":[{"name":"string","description":"string","maxScore":5}]},
