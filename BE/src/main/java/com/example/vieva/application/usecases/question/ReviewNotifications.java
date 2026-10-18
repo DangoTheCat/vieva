@@ -3,12 +3,10 @@ package com.example.vieva.application.usecases.question;
 import com.example.vieva.application.ports.output.NotificationRepository;
 import com.example.vieva.domain.entities.Notification;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.UUID;
 
 /** Inserts join the review transaction: rollback also removes its notification. */
-@Component
 @RequiredArgsConstructor
 public class ReviewNotifications {
     private final NotificationRepository notifications;

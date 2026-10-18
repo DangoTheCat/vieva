@@ -1,6 +1,7 @@
-package com.example.vieva.application.usecases.question;
+package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.output.QuestionRepository;
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
-public class QuestionVersionViewAssembler {
+public class QuestionVersionViewAssembler implements QuestionVersionViewAssemblerPort {
 
     private final QuestionRepository questionRepository;
     private final TopicRepository topicRepository;

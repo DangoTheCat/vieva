@@ -1,10 +1,12 @@
 package com.example.vieva.application.usecases.question;
 
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
@@ -26,7 +28,6 @@ import com.example.vieva.domain.exception.FieldViolation;
 import com.example.vieva.domain.services.QuestionApprovalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
@@ -39,7 +40,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class QuestionReviewServiceImpl implements QuestionReviewService {
 
@@ -51,11 +51,11 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private final DocumentChunkRepository documentChunkRepository;
     private final CourseDocumentRepository courseDocumentRepository;
     private final QuestionAccessLoader accessLoader;
-    private final QuestionVersionViewAssembler viewAssembler;
+    private final QuestionVersionViewAssemblerPort viewAssembler;
     private final QuestionBankAuditor auditor;
     private final SubjectHeadService heads;
     private final ReviewNotifications notifications;
-    private final PostgreSQLDatabase db;
+    private final QuestionDraftWriter db;
 
     @Override
     @Transactional

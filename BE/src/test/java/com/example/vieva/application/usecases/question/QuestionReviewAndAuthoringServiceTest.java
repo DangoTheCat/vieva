@@ -18,6 +18,8 @@ import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
+import com.example.vieva.infrastructure.database.PostgreSQLDatabase;
+import com.example.vieva.infrastructure.database.QuestionVersionViewAssembler;
 import com.example.vieva.domain.entities.AuditEvent;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.CourseDocument;

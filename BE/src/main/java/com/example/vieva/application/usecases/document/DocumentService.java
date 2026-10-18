@@ -26,7 +26,6 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -42,11 +41,8 @@ import java.util.UUID;
  * lecturer can observe UPLOADED → INDEXING → READY | FAILED while it runs.
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
-public class DocumentService implements DocumentOperations {
-
-    @Override
+public class DocumentService {
     @Transactional
     public void archiveDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findByIdForUpdate(documentId)
@@ -77,9 +73,7 @@ public class DocumentService implements DocumentOperations {
     private final SubjectAccessGuard subjectAccessGuard;
     private final QuestionBankAuditor auditor;
     private final DocumentSettings documentSettings;
-    private final com.example.vieva.application.usecases.question.PostgreSQLDatabase db;
-
-    @Override
+    private final com.example.vieva.application.ports.output.QuestionDraftWriter db;
     @Transactional
     public CourseDocument uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
@@ -115,8 +109,6 @@ public class DocumentService implements DocumentOperations {
         domainEventPublisher.publishDocumentIndexingRequested(document.getDocumentId());
         return document;
     }
-
-    @Override
     public void indexDocument(UUID documentId) {
         CourseDocument document = transactionRunner.inNewTransaction(() -> {
             // Row write-lock: a concurrent worker/scheduler retry blocks here instead of
@@ -167,8 +159,6 @@ public class DocumentService implements DocumentOperations {
             markIndexingFailed(documentId, reason);
         }
     }
-
-    @Override
     @Transactional
     public CourseDocument retryIndexing(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
@@ -182,21 +172,15 @@ public class DocumentService implements DocumentOperations {
         domainEventPublisher.publishDocumentIndexingRequested(documentId);
         return saved;
     }
-
-    @Override
     @Transactional(readOnly = true)
     public List<CourseDocument> getDocumentsBySubject(UUID subjectId) {
         return courseDocumentRepository.findActiveBySubjectId(subjectId);
     }
-
-    @Override
     @Transactional(readOnly = true)
     public CourseDocument getDocumentById(UUID documentId) {
         return courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
-
-    @Override
     @Transactional
     public void softDeleteDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
@@ -211,8 +195,6 @@ public class DocumentService implements DocumentOperations {
         auditor.record(actorId, "DOCUMENT_DELETED", QuestionBankAuditor.DOCUMENT, documentId,
                 Map.of("fileName", document.getFileName()));
     }
-
-    @Override
     @Transactional
     public int failStaleDocuments(Instant indexingThreshold, Instant uploadedThreshold) {
         List<CourseDocument> stale = new ArrayList<>();

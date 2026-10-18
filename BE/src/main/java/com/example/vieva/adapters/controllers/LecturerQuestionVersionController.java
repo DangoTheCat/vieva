@@ -11,7 +11,7 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateDraftCommand;
-import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
+import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionReviewService;
 import com.example.vieva.domain.entities.BloomLevel;
@@ -45,7 +45,7 @@ public class LecturerQuestionVersionController {
 
     private final QuestionReviewService reviewService;
     private final QuestionAuthoringService authoringService;
-    private final QuestionGenerationOperations generationService;
+    private final QuestionGenCoordinator generationService;
     private final QuestionBankPresenter presenter;
 
     @GetMapping

@@ -4,8 +4,8 @@ import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.application.usecases.document.DocumentOperations;
-import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
+import com.example.vieva.application.usecases.document.DocumentService;
+import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
 import com.example.vieva.application.usecases.importing.QuestionImportService;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionReviewService;
@@ -88,9 +88,9 @@ class LecturerQuestionBankApiTest {
     @MockitoBean private QuestionVersionRepository questionVersionRepository;
     @MockitoBean private QuestionAuthoringService authoringService;
     @MockitoBean private QuestionReviewService reviewService;
-    @MockitoBean private QuestionGenerationOperations generationService;
+    @MockitoBean private QuestionGenCoordinator generationService;
     @MockitoBean private QuestionImportService importService;
-    @MockitoBean private DocumentOperations documentIndexingService;
+    @MockitoBean private DocumentService documentIndexingService;
 
     private final UUID subjectId = UUID.randomUUID();
     private User lecturer;

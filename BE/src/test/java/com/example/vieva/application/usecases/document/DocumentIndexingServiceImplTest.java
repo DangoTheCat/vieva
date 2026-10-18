@@ -77,7 +77,7 @@ class DocumentIndexingServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private AuditEventRepository auditEventRepository;
 
-    @Mock private com.example.vieva.application.usecases.question.PostgreSQLDatabase db;
+    @Mock private com.example.vieva.application.ports.output.QuestionDraftWriter db;
     private DocumentService service;
     private final RagSettings ragSettings = new RagSettings();
     private final DocumentSettings documentSettings = new DocumentSettings();

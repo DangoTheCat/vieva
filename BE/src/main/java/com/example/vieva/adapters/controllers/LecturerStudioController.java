@@ -1,7 +1,7 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.usecases.document.DocumentOperations;
-import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
+import com.example.vieva.application.usecases.document.DocumentService;
+import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
 import com.example.vieva.application.usecases.question.QuestionReviewService;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.adapters.presenters.*;
@@ -22,8 +22,8 @@ import java.util.*;
 @RequestMapping("/api/v1/lecturer/studio")
 @RequiredArgsConstructor
 public class LecturerStudioController {
-    private final DocumentOperations docService;
-    private final QuestionGenerationOperations ragCoord;
+    private final DocumentService docService;
+    private final QuestionGenCoordinator ragCoord;
     private final QuestionReviewService reviews;
     private final QuestionVersionRepository versions;
     private final QuestionBankPresenter presenter;

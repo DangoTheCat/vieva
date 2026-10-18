@@ -3,7 +3,7 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.adapters.presenters.CourseDocumentDto;
 import com.example.vieva.adapters.presenters.CourseDocumentPresenter;
 import com.example.vieva.adapters.presenters.MessageResponse;
-import com.example.vieva.application.usecases.document.DocumentOperations;
+import com.example.vieva.application.usecases.document.DocumentService;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.exception.AppException;
@@ -29,7 +29,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LecturerDocumentController {
 
-    private final DocumentOperations documentIndexingService;
+    private final DocumentService documentIndexingService;
     private final CourseDocumentPresenter presenter;
 
     @PostMapping(value = "/subjects/{subjectId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.question;
 
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
 import com.example.vieva.application.ports.input.UpdateDraftCommand;
 import com.example.vieva.application.ports.output.QuestionRepository;
@@ -12,7 +13,8 @@ import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
-import com.example.vieva.application.usecases.question.PostgreSQLDatabase.NewDraft;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
+import com.example.vieva.application.ports.output.QuestionDraftWriter.NewDraft;
 import com.example.vieva.application.usecases.question.RubricDraftFactory.RubricDraft;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.Question;
@@ -26,7 +28,6 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -35,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
 public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
 
@@ -47,8 +47,8 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     private final TopicRepository topicRepository;
     private final SubjectAccessGuard subjectAccessGuard;
     private final QuestionAccessLoader accessLoader;
-    private final PostgreSQLDatabase draftWriter;
-    private final QuestionVersionViewAssembler viewAssembler;
+    private final QuestionDraftWriter draftWriter;
+    private final QuestionVersionViewAssemblerPort viewAssembler;
     private final QuestionBankAuditor auditor;
 
     @Override

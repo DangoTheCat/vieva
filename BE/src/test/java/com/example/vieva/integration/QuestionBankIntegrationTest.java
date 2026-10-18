@@ -13,8 +13,8 @@ import com.example.vieva.application.ports.output.GenerationResult;
 import com.example.vieva.application.ports.output.ImportReport;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.application.usecases.document.DocumentOperations;
-import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
+import com.example.vieva.application.usecases.document.DocumentService;
+import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
 import com.example.vieva.application.usecases.importing.QuestionImportService;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionBankService;
@@ -85,8 +85,8 @@ class QuestionBankIntegrationTest {
     }
 
     @Autowired private JdbcTemplate jdbc;
-    @Autowired private DocumentOperations documentService;
-    @Autowired private QuestionGenerationOperations generationService;
+    @Autowired private DocumentService documentService;
+    @Autowired private QuestionGenCoordinator generationService;
     @Autowired private QuestionAuthoringService authoringService;
     @Autowired private QuestionReviewService reviewService;
     @Autowired private QuestionBankService bankService;

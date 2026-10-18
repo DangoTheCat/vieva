@@ -4,11 +4,9 @@ import com.example.vieva.application.ports.output.*;
 import com.example.vieva.domain.entities.*;
 import com.example.vieva.domain.exception.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
 public class SubjectHeadService {
     private final SubjectRepository subjects;

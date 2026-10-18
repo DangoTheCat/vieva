@@ -1,8 +1,10 @@
-package com.example.vieva.application.usecases.question;
+package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.output.QuestionRepository;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
@@ -27,7 +29,7 @@ import java.util.Objects;
  */
 @Component
 @RequiredArgsConstructor
-public class PostgreSQLDatabase {
+public class PostgreSQLDatabase implements QuestionDraftWriter {
 
     private final QuestionRepository questionRepository;
     private final QuestionVersionRepository questionVersionRepository;
@@ -35,7 +37,7 @@ public class PostgreSQLDatabase {
     private final RubricCriterionRepository rubricCriterionRepository;
     private final QuestionSourceRepository questionSourceRepository;
     private final CourseDocumentRepository documents;
-    private final QuestionVersionViewAssembler assembler;
+    private final QuestionVersionViewAssemblerPort assembler;
 
     public CourseDocument saveCourseDocument(CourseDocument document) { return documents.save(document); }
 
@@ -51,26 +53,22 @@ public class PostgreSQLDatabase {
 
     public QuestionVersionView fetchQuestionWithRubric(QuestionVersion version) { return assembler.assemble(version); }
 
-    public record NewDraft(Question question, QuestionVersion version, Rubric rubric,
-                           List<RubricCriterion> criteria, List<QuestionSource> sources) {
-    }
-
-    public void saveQuestionDraft(List<NewDraft> drafts) {
+    public void saveQuestionDraft(List<QuestionDraftWriter.NewDraft> drafts) {
         if (drafts.isEmpty()) {
             return;
         }
         List<Rubric> rubrics = new ArrayList<>();
         List<RubricCriterion> criteria = new ArrayList<>();
         List<QuestionSource> sources = new ArrayList<>();
-        for (NewDraft draft : drafts) {
+        for (QuestionDraftWriter.NewDraft draft : drafts) {
             if (draft.rubric() != null) {
                 rubrics.add(draft.rubric());
             }
             criteria.addAll(draft.criteria() == null ? List.of() : draft.criteria());
             sources.addAll(draft.sources() == null ? List.of() : draft.sources());
         }
-        questionRepository.saveAll(drafts.stream().map(NewDraft::question).filter(Objects::nonNull).toList());
-        questionVersionRepository.saveAll(drafts.stream().map(NewDraft::version).toList());
+        questionRepository.saveAll(drafts.stream().map(QuestionDraftWriter.NewDraft::question).filter(Objects::nonNull).toList());
+        questionVersionRepository.saveAll(drafts.stream().map(QuestionDraftWriter.NewDraft::version).toList());
         rubricRepository.saveAll(rubrics);
         rubricCriterionRepository.saveAll(criteria);
         questionSourceRepository.saveAll(sources);

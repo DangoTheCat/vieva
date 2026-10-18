@@ -8,7 +8,6 @@ import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
@@ -16,7 +15,6 @@ import java.util.UUID;
  * Loads a question / version and re-checks the actor's subject assignment (BR-06) in the caller's
  * transaction.
  */
-@Component
 @RequiredArgsConstructor
 public class QuestionAccessLoader {
 

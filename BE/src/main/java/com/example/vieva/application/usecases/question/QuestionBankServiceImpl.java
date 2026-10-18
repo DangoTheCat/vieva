@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.question;
 
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
@@ -14,7 +15,6 @@ import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -25,14 +25,13 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
 @RequiredArgsConstructor
 public class QuestionBankServiceImpl implements QuestionBankService {
 
     private final QuestionRepository questionRepository;
     private final QuestionVersionRepository questionVersionRepository;
     private final QuestionAccessLoader accessLoader;
-    private final QuestionVersionViewAssembler viewAssembler;
+    private final QuestionVersionViewAssemblerPort viewAssembler;
     private final QuestionBankAuditor auditor;
 
     @Override

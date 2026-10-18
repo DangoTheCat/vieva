@@ -11,8 +11,8 @@ import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.settings.ImportSettings;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
-import com.example.vieva.application.usecases.question.PostgreSQLDatabase;
-import com.example.vieva.application.usecases.question.PostgreSQLDatabase.NewDraft;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
+import com.example.vieva.application.ports.output.QuestionDraftWriter.NewDraft;
 import com.example.vieva.application.usecases.question.RubricDraftFactory;
 import com.example.vieva.application.usecases.question.RubricDraftFactory.RubricDraft;
 import com.example.vieva.domain.entities.BloomLevel;
@@ -25,7 +25,6 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -41,7 +40,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
 @RequiredArgsConstructor
 public class QuestionImportServiceImpl implements QuestionImportService {
 
@@ -62,7 +60,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
     private final SubjectRepository subjectRepository;
     private final TopicRepository topicRepository;
     private final SubjectAccessGuard subjectAccessGuard;
-    private final PostgreSQLDatabase draftWriter;
+    private final QuestionDraftWriter draftWriter;
     private final QuestionBankAuditor auditor;
     private final ImportSettings settings;
 

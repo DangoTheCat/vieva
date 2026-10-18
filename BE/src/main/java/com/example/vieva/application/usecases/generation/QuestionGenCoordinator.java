@@ -26,9 +26,9 @@ import com.example.vieva.application.usecases.generation.GeneratedQuestionValida
 import com.example.vieva.application.usecases.generation.GeneratedQuestionValidator.ValidatedSource;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
-import com.example.vieva.application.usecases.question.PostgreSQLDatabase;
-import com.example.vieva.application.usecases.question.PostgreSQLDatabase.NewDraft;
-import com.example.vieva.application.usecases.question.QuestionVersionViewAssembler;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
+import com.example.vieva.application.ports.output.QuestionDraftWriter.NewDraft;
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.domain.entities.BloomDistribution;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.CourseDocument;
@@ -47,7 +47,6 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.services.QuestionSimilarity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -72,9 +71,8 @@ import java.util.stream.Collectors;
  * transaction that re-checks the lecturer's permission (BR-06).
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
-public class QuestionGenCoordinator implements QuestionGenerationOperations {
+public class QuestionGenCoordinator {
 
     public QuestionVersionView coordinateRAGPipeline(UUID topicId, BloomLevel difficulty, List<UUID> documentIds, UUID actorId) {
         if(topicId==null || difficulty==null) throw new AppException(ErrorCode.INVALID_REQUEST,"topicId and difficulty are required");
@@ -111,8 +109,8 @@ public class QuestionGenCoordinator implements QuestionGenerationOperations {
     private final TransactionRunnerPort transactionRunner;
     private final SubjectAccessGuard subjectAccessGuard;
     private final QuestionAccessLoader accessLoader;
-    private final PostgreSQLDatabase draftWriter;
-    private final QuestionVersionViewAssembler viewAssembler;
+    private final QuestionDraftWriter draftWriter;
+    private final QuestionVersionViewAssemblerPort viewAssembler;
     private final QuestionBankAuditor auditor;
     private final RagSettings settings;
 
@@ -125,8 +123,6 @@ public class QuestionGenCoordinator implements QuestionGenerationOperations {
     }
 
     // ─── UC1.2: generate ──────────────────────────────────────────────────────
-
-    @Override
     public GenerationResult generate(GenerateQuestionsCommand command, UUID actorId) {
         BloomDistribution distribution = validateCommand(command);
         QuestionGenerationRequest request = transactionRunner.inNewTransaction(() -> {
@@ -142,8 +138,6 @@ public class QuestionGenCoordinator implements QuestionGenerationOperations {
         Context context = retrieveContext(request);
         return runAndPersist(request, context, distribution, actorId);
     }
-
-    @Override
     public GenerationResult retry(UUID generationRequestId, UUID actorId) {
         QuestionGenerationRequest request = transactionRunner.inNewTransaction(() -> {
             QuestionGenerationRequest loaded = generationRequestRepository.findById(generationRequestId)
@@ -175,8 +169,6 @@ public class QuestionGenCoordinator implements QuestionGenerationOperations {
                 : storedContext(request);
         return runAndPersist(request, context, remaining, actorId);
     }
-
-    @Override
     @Transactional(readOnly = true)
     public GenerationResult getRequest(UUID generationRequestId) {
         QuestionGenerationRequest request = generationRequestRepository.findById(generationRequestId)
@@ -186,8 +178,6 @@ public class QuestionGenCoordinator implements QuestionGenerationOperations {
     }
 
     // ─── UC1.2: regenerate one draft ─────────────────────────────────────────
-
-    @Override
     public QuestionVersionView regenerate(UUID versionId, String feedback, Long expectedVersion, UUID actorId) {
         record Prepared(QuestionVersion version, QuestionGenerationRequest request, Context context,
                         List<Set<String>> otherQuestions) {
