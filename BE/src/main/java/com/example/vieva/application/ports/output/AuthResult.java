@@ -27,6 +27,7 @@ public class AuthResult {
     private String userCode;
     private String fullName;
     private String phoneNumber;
+    private String avatarUrl;
     private String status;
     private Set<String> roles;
     private boolean mustChangePassword;
