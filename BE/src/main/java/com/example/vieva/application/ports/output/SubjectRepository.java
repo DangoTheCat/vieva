@@ -17,6 +17,7 @@ public interface SubjectRepository {
      */
     Subject saveAndFlush(Subject subject);
     Optional<Subject> findById(UUID subjectId);
+    Optional<Subject> findByIdForUpdate(UUID subjectId);
     List<Subject> findAllByIds(Collection<UUID> subjectIds);
     Optional<Subject> findBySubjectCode(String subjectCode);
     boolean existsBySubjectCode(String subjectCode);

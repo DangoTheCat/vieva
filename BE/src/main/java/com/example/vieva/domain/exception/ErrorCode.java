@@ -66,7 +66,12 @@ public enum ErrorCode {
     SUBJECT_INACTIVE("1059", "Subject is not active"),
     AI_RULE_NOT_FOUND("1060", "Active AI rule not found"),
     MULTIPLE_ROLES_NOT_ALLOWED("1061", "An account can have only one role"),
-    PASSWORD_CHANGE_REQUIRED("1062", "You must change your password before using the system");
+    PASSWORD_CHANGE_REQUIRED("1062", "You must change your password before using the system"),
+    VERSION_NOT_UNDER_REVIEW("1063", "Only UNDER_REVIEW versions can be approved or rejected"),
+    SUBJECT_HEAD_REQUIRED("1064", "Assign an active subject head before submitting for review"),
+    NOT_SUBJECT_HEAD("1065", "Only the assigned subject head can review this question"),
+    NOT_QUESTION_AUTHOR("1066", "Only the question author can edit or submit this version"),
+    NOTIFICATION_NOT_FOUND("1067", "Notification not found");
 
     private final String code;
     private final String message;
