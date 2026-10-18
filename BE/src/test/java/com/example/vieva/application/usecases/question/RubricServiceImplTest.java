@@ -111,6 +111,7 @@ class RubricServiceImplTest {
     @Test
     @DisplayName("rubric of an APPROVED version is immutable")
     void approvedRubricIsImmutable() {
+        version.submitForReview();
         version.approve(lecturer);
         assertThatThrownBy(() -> service.addCriterion(version.getQuestionVersionId(),
                 new CriterionInput("C", "d", BigDecimal.ONE, List.of(), null), null, lecturer))

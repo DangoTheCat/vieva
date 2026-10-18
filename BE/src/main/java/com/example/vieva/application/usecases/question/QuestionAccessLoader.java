@@ -28,6 +28,14 @@ public class QuestionAccessLoader {
     }
 
     public VersionContext versionForWrite(UUID versionId, UUID actorId) {
+        VersionContext context = versionForReview(versionId, actorId);
+        if (!actorId.equals(context.version().getCreatedBy())) {
+            throw new AppException(ErrorCode.NOT_QUESTION_AUTHOR);
+        }
+        return context;
+    }
+
+    public VersionContext versionForReview(UUID versionId, UUID actorId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         Question question = questionRepository.findById(version.getQuestionId())

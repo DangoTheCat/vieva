@@ -21,7 +21,7 @@ public class Question {
     private UUID subjectId;
     private UUID topicId;
     private String questionCode;
-    private QuestionStatus status;
+    private QuestionLifecycleStatus status;
     private UUID currentApprovedVersionId;
     private UUID createdBy;
     private Instant createdAt;
@@ -35,7 +35,7 @@ public class Question {
                 .subjectId(subjectId)
                 .topicId(topicId)
                 .questionCode("Q-" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase())
-                .status(QuestionStatus.ACTIVE)
+                .status(QuestionLifecycleStatus.ACTIVE)
                 .createdBy(createdBy)
                 .createdAt(now)
                 .updatedAt(now)
@@ -43,7 +43,7 @@ public class Question {
     }
 
     public boolean isArchived() {
-        return status == QuestionStatus.ARCHIVED;
+        return status == QuestionLifecycleStatus.ARCHIVED;
     }
 
     public boolean isInBank() {
@@ -66,7 +66,7 @@ public class Question {
     /** ACTIVE → ARCHIVED. Never deletes anything (BR-04). */
     public void archive() {
         ensureActive();
-        this.status = QuestionStatus.ARCHIVED;
+        this.status = QuestionLifecycleStatus.ARCHIVED;
         this.updatedAt = Instant.now();
     }
 }

@@ -11,6 +11,7 @@ import com.example.vieva.application.ports.output.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
+import com.example.vieva.application.usecases.access.SubjectHeadService;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
@@ -52,6 +53,35 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private final QuestionAccessLoader accessLoader;
     private final QuestionVersionViewAssembler viewAssembler;
     private final QuestionBankAuditor auditor;
+    private final SubjectHeadService heads;
+    private final ReviewNotifications notifications;
+    private final PostgreSQLDatabase db;
+
+    @Override
+    @Transactional
+    public QuestionVersionView submitForReview(UUID versionId, Long expectedVersion, UUID actorId) {
+        VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
+        ctx.question().ensureActive();
+        ctx.version().ensureVersionMatches(expectedVersion);
+        ctx.version().ensureDraft();
+        UUID head = heads.headOf(ctx.question().getSubjectId());
+        validateForReview(ctx.version());
+        ctx.version().submitForReview();
+        QuestionVersion submitted = db.updateStatus(ctx.version());
+        notifications.notifyPendingReview(head, ctx.question().getQuestionId(), versionId);
+        auditor.record(actorId, "QUESTION_SUBMITTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
+                Map.of("questionId", ctx.question().getQuestionId()));
+        return db.fetchQuestionWithRubric(submitted);
+    }
+
+    @Override
+    @Transactional
+    public QuestionVersionView reviewQuestion(UUID versionId, UUID actorId) {
+        VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
+        heads.requireHead(actorId, ctx.question().getSubjectId());
+        ctx.version().ensureUnderReview();
+        return db.fetchQuestionWithRubric(ctx.version());
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -76,13 +106,39 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     @Override
     @Transactional
     public QuestionVersionView approve(UUID versionId, Long expectedVersion, UUID actorId) {
-        VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
+        VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
         Question question = ctx.question();
         version.ensureVersionMatches(expectedVersion);
-        version.ensureDraft();
+        heads.requireHead(actorId, question.getSubjectId());
+        version.ensureUnderReview();
         question.ensureActive();
+        Rubric rubric = validateForReview(version);
 
+        UUID previousApprovedId = question.getCurrentApprovedVersionId();
+        version.approve(actorId);
+        db.updateStatus(version);
+
+        if (previousApprovedId != null && !previousApprovedId.equals(versionId)) {
+            questionVersionRepository.findById(previousApprovedId).ifPresent(previous -> {
+                previous.supersede();
+                    db.updateStatus(previous);
+            });
+        }
+        question.publish(versionId);
+        questionRepository.save(question);
+        notifications.notifyQuestionApproved(version.getCreatedBy(), question.getQuestionId(), versionId);
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("questionId", question.getQuestionId());
+        newValues.put("versionNumber", version.getVersionNumber());
+        newValues.put("supersededVersionId", previousApprovedId);
+        newValues.put("totalScore", rubric.getTotalPoints());
+        auditor.record(actorId, "QUESTION_APPROVED", QuestionBankAuditor.QUESTION_VERSION, versionId, newValues);
+        return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+    }
+
+    private Rubric validateForReview(QuestionVersion version) {
+        UUID versionId = version.getQuestionVersionId();
         Rubric rubric = rubricRepository.findByQuestionVersionId(versionId).orElse(null);
         List<RubricCriterion> criteria = rubric == null ? List.of()
                 : rubricCriterionRepository.findByRubricId(rubric.getRubricId());
@@ -96,43 +152,19 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
             throw AppException.ofViolations(violations);
         }
 
-        UUID previousApprovedId = question.getCurrentApprovedVersionId();
-        version.approve(actorId);
-        questionVersionRepository.save(version);
-
-        if (previousApprovedId != null && !previousApprovedId.equals(versionId)) {
-            try {
-                questionVersionRepository.findById(previousApprovedId).ifPresent(previous -> {
-                    previous.supersede();
-                    questionVersionRepository.save(previous);
-                });
-            } catch (AppException e) {
-                // Already superseded by a concurrent approve: report as concurrent edit, not bad state.
-                throw new AppException(ErrorCode.CONCURRENT_MODIFICATION,
-                        "Question was modified concurrently, reload and retry");
-            }
-        }
-        question.publish(versionId);
-        questionRepository.save(question);
-
-        Map<String, Object> newValues = new HashMap<>();
-        newValues.put("questionId", question.getQuestionId());
-        newValues.put("versionNumber", version.getVersionNumber());
-        newValues.put("supersededVersionId", previousApprovedId);
-        newValues.put("totalScore", rubric == null ? null : rubric.getTotalPoints());
-        auditor.record(actorId, "QUESTION_APPROVED", QuestionBankAuditor.QUESTION_VERSION, versionId, newValues);
-        log.info("Lecturer {} approved question {} version {}", actorId, question.getQuestionId(), versionId);
-        return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+        return rubric;
     }
 
     @Override
     @Transactional
     public QuestionVersionView reject(UUID versionId, String reason, Long expectedVersion, UUID actorId) {
-        VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
+        VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
+        heads.requireHead(actorId, ctx.question().getSubjectId());
+        ctx.question().ensureActive();
         version.ensureVersionMatches(expectedVersion);
         version.reject(actorId, reason);
-        questionVersionRepository.save(version);
+        db.updateStatus(version);
         auditor.record(actorId, "QUESTION_REJECTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId(), "reason", version.getRejectionReason()));
         return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
@@ -150,7 +182,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private Set<UUID> loadReadyDocumentIds(java.util.Collection<DocumentChunk> chunks) {
         Set<UUID> documentIds = chunks.stream().map(DocumentChunk::getDocumentId).collect(Collectors.toSet());
         return courseDocumentRepository.findAllByIds(documentIds).stream()
-                .filter(CourseDocument::isReady)
+                .filter(CourseDocument::isAvailableAsEvidence)
                 .map(CourseDocument::getDocumentId)
                 .collect(Collectors.toSet());
     }
