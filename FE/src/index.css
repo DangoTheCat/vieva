@@ -2,9 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Pink scale */
+  --pink-50:  #FAF5F5;
+  --pink-100: #F3E8E7;
+  --pink-200: #EAD4D2;
+  --pink-300: #DEB9B5;
+  --pink-400: #D5A6A2;
+  --pink-500: #CE9893;
+  --pink-600: #B96C65;
+  --pink-700: #984F48;
+  --pink-800: #713D38;
+  --pink-900: #492A27;
+
+  /* Green scale */
+  --green-50:  #F5F6F3;
+  --green-100: #EBEEE8;
+  --green-200: #DADFD3;
+  --green-300: #C4CCB7;
+  --green-400: #A4B190;
+  --green-500: #819266;
+  --green-600: #687750;
+  --green-700: #505B3E;
+  --green-800: #3A422E;
+  --green-900: #25291E;
+
+  /* Neutrals */
+  --paper: #FBF5EE;
+  --ink:   #1F1F1D;
+  --sand:  #CFB997;
+
+  /* Semantic */
+  --color-bg:            var(--paper);
+  --color-surface:       var(--pink-100);
+  --color-text:          var(--ink);
+  --color-text-muted:    var(--pink-900);
+  --color-primary:       var(--pink-500);
+  --color-primary-hover: var(--pink-400);
+  --color-secondary:     var(--green-500);
+  --color-border:        var(--green-200);
+  --color-link:          var(--green-700);
+  --color-focus:         var(--green-600);
+  --color-success:       var(--green-600);
+  --color-error:         var(--pink-700);
+  --color-warning:       var(--sand);
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(31, 31, 29, 0.08);
+  --shadow-md: 0 4px 12px rgba(31, 31, 29, 0.10);
+  --shadow-lg: 0 12px 32px rgba(31, 31, 29, 0.14);
+
+  /* Fonts */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Be Vietnam Pro", system-ui, sans-serif;
+}
+
 @layer base {
   body {
-    @apply bg-canvasBg text-slate-800 font-sans antialiased selection:bg-sky-500 selection:text-white;
+    @apply bg-canvasBg text-ink font-sans antialiased selection:bg-pink-500 selection:text-ink;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
@@ -12,35 +71,39 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;
   }
+
+  .font-fraunces {
+    font-family: 'Fraunces', Georgia, serif;
+  }
 }
 
-/* Iridescent Radiant Orb (SchoolAI Gradient Style) */
+/* Iridescent Radiant Orb (Blush Pink & Sage Green Harmonious Gradient) */
 .iridescent-orb {
-  background: radial-gradient(circle at 35% 35%, #93C5FD 0%, #C084FC 45%, #F472B6 70%, #FBBF24 100%);
-  box-shadow: 0 10px 30px -5px rgba(192, 132, 252, 0.45);
+  background: radial-gradient(circle at 35% 35%, #EAD4D2 0%, #CE9893 45%, #819266 75%, #687750 100%);
+  box-shadow: 0 10px 30px -5px rgba(206, 152, 147, 0.35);
 }
 
 /* Elevated Minimalist Floating Card */
 .schoolai-card {
   background: #FFFFFF;
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.07), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(218, 223, 211, 0.85);
+  box-shadow: 0 20px 45px -10px rgba(31, 31, 29, 0.07), 0 4px 12px -2px rgba(31, 31, 29, 0.03);
 }
 
 /* Subtle academic canvas dot grid */
 .canvas-dot-grid {
-  background-image: radial-gradient(rgba(148, 163, 184, 0.22) 1.25px, transparent 1.25px);
+  background-image: radial-gradient(rgba(129, 146, 102, 0.22) 1.25px, transparent 1.25px);
   background-size: 20px 20px;
 }
 
-/* Tech Navy Grid Mesh Background (Matching AIVES Exam Portal reference image) */
+/* Sage & Blush Deep Grid Mesh Background for Auth/Live Portals */
 .dark-tech-grid {
-  background-color: #081026;
+  background-color: #1a1e16;
   background-image:
-    radial-gradient(circle at 20% 25%, rgba(14, 165, 233, 0.28) 0%, transparent 50%),
-    radial-gradient(circle at 80% 60%, rgba(37, 99, 235, 0.24) 0%, transparent 55%),
-    linear-gradient(to right, rgba(14, 165, 233, 0.16) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(14, 165, 233, 0.16) 1px, transparent 1px);
+    radial-gradient(circle at 20% 25%, rgba(206, 152, 147, 0.22) 0%, transparent 50%),
+    radial-gradient(circle at 80% 60%, rgba(129, 146, 102, 0.24) 0%, transparent 55%),
+    linear-gradient(to right, rgba(129, 146, 102, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(129, 146, 102, 0.12) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
 }
 
@@ -53,11 +116,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #DADFD3;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #C4CCB7;
 }
 
 /* Accessible Interactive Button Physics (Impeccable & GSAP micro-interactions) */
