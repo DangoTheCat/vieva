@@ -39,4 +39,18 @@ public class CourseDocumentPresenter {
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
+
+    public DocumentPreviewDto toPreviewDto(com.example.vieva.application.ports.output.DocumentPreview preview) {
+        if (preview == null) {
+            return null;
+        }
+        List<DocumentPreviewDto.PreviewChunkDto> chunkDtos = preview.chunks() == null ? Collections.emptyList() :
+                preview.chunks().stream()
+                        .map(c -> new DocumentPreviewDto.PreviewChunkDto(c.label(), c.text(), c.truncated()))
+                        .collect(Collectors.toList());
+        return DocumentPreviewDto.builder()
+                .document(toDto(preview.document()))
+                .chunks(chunkDtos)
+                .build();
+    }
 }
