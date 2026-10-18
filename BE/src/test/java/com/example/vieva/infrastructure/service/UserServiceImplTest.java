@@ -2,6 +2,7 @@ package com.example.vieva.infrastructure.service;
 
 import com.example.vieva.application.ports.input.ChangePasswordRequest;
 import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.ports.output.AvatarStoragePort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.usecases.user.UserServiceImpl;
@@ -34,6 +35,9 @@ class UserServiceImplTest {
 
     @Mock
     private PasswordEncoderPort passwordEncoder;
+
+    @Mock
+    private AvatarStoragePort avatarStoragePort;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -233,5 +237,54 @@ class UserServiceImplTest {
         assertThat(sampleUser.isMustChangePassword()).isFalse();
         assertThat(sampleUser.getPasswordHash()).isEqualTo("hashed-new-password");
         verify(userRepository).save(sampleUser);
+    }
+
+    @Test
+    @DisplayName("uploadAvatar: uploads image to avatar storage and updates user entity")
+    void uploadAvatar_Success() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
+        when(avatarStoragePort.uploadAvatar(eq(userId), any(byte[].class), eq("image/png")))
+                .thenReturn("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        byte[] fakeImage = new byte[]{1, 2, 3};
+        String url = userService.uploadAvatar(userId, fakeImage, "image/png");
+
+        assertThat(url).isEqualTo("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png");
+        assertThat(sampleUser.getAvatarUrl()).isEqualTo("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png");
+        verify(userRepository).save(sampleUser);
+        verify(avatarStoragePort, never()).deleteAvatar(any());
+    }
+
+    @Test
+    @DisplayName("uploadAvatar: when user already has an old avatar, deletes old avatar from storage")
+    void uploadAvatar_WhenOldAvatarExists_DeletesOldAvatar() {
+        sampleUser.setAvatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/old_avatar.png");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
+        when(avatarStoragePort.uploadAvatar(eq(userId), any(byte[].class), eq("image/png")))
+                .thenReturn("https://res.cloudinary.com/example-cloud/image/upload/v2/new_avatar.png");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        byte[] fakeImage = new byte[]{1, 2, 3};
+        String url = userService.uploadAvatar(userId, fakeImage, "image/png");
+
+        assertThat(url).isEqualTo("https://res.cloudinary.com/example-cloud/image/upload/v2/new_avatar.png");
+        assertThat(sampleUser.getAvatarUrl()).isEqualTo("https://res.cloudinary.com/example-cloud/image/upload/v2/new_avatar.png");
+        verify(userRepository).save(sampleUser);
+        verify(avatarStoragePort).deleteAvatar("https://res.cloudinary.com/example-cloud/image/upload/v1/old_avatar.png");
+    }
+
+    @Test
+    @DisplayName("deleteAvatar: removes avatar URL from user entity and deletes from external storage")
+    void deleteAvatar_Success() {
+        sampleUser.setAvatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.deleteAvatar(userId);
+
+        assertThat(sampleUser.getAvatarUrl()).isNull();
+        verify(userRepository).save(sampleUser);
+        verify(avatarStoragePort).deleteAvatar("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png");
     }
 }
