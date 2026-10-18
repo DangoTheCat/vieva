@@ -71,7 +71,8 @@ public enum ErrorCode {
     SUBJECT_HEAD_REQUIRED("1064", "Assign an active subject head before submitting for review"),
     NOT_SUBJECT_HEAD("1065", "Only the assigned subject head can review this question"),
     NOT_QUESTION_AUTHOR("1066", "Only the question author can edit or submit this version"),
-    NOTIFICATION_NOT_FOUND("1067", "Notification not found");
+    NOTIFICATION_NOT_FOUND("1067", "Notification not found"),
+    DOCUMENT_ALREADY_EXISTS("1068", "A document with the same name and size already exists in this subject");
 
     private final String code;
     private final String message;
