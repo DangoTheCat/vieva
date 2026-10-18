@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.domain.entities.DocumentIndexingStatus;
+import com.example.vieva.domain.entities.DocumentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -56,7 +56,7 @@ public class CourseDocumentJpaEntity implements Persistable<UUID> {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "indexing_status", nullable = false, length = 30)
-    private DocumentIndexingStatus indexingStatus = DocumentIndexingStatus.UPLOADED;
+    private DocumentStatus indexingStatus = DocumentStatus.UPLOADED;
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;

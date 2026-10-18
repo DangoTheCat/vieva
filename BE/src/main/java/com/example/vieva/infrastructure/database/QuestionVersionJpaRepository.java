@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -29,12 +29,12 @@ public interface QuestionVersionJpaRepository extends JpaRepository<QuestionVers
     @EntityGraph(attributePaths = {"question"})
     List<QuestionVersionJpaEntity> findByGenerationRequestIdOrderByCreatedAtAsc(UUID generationRequestId);
 
-    boolean existsByQuestion_QuestionIdAndApprovalStatus(UUID questionId, QuestionApprovalStatus approvalStatus);
+    boolean existsByQuestion_QuestionIdAndApprovalStatus(UUID questionId, QuestionStatus approvalStatus);
 
     @Query("""
             SELECT v.questionContent FROM QuestionVersionJpaEntity v
             WHERE v.question.subject.subjectId = :subjectId
-              AND v.approvalStatus <> com.example.vieva.domain.entities.QuestionApprovalStatus.REJECTED
+              AND v.approvalStatus <> com.example.vieva.domain.entities.QuestionStatus.REJECTED
             """)
     List<String> findActiveContentsBySubject(@Param("subjectId") UUID subjectId);
 }

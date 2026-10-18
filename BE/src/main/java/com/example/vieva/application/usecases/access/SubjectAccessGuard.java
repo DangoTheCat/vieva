@@ -7,7 +7,6 @@ import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
@@ -16,7 +15,6 @@ import java.util.UUID;
  * whose assignment was revoked while the screen was still open cannot publish anything.
  * Administrators keep global access, consistent with the HTTP-level evaluator.
  */
-@Component
 @RequiredArgsConstructor
 public class SubjectAccessGuard {
 

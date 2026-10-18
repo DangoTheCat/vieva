@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Phiên bản câu hỏi. State machine: DRAFT → APPROVED | REJECTED; APPROVED → SUPERSEDED when a
+ * Phiên bản câu hỏi. DRAFT/REJECTED → UNDER_REVIEW → APPROVED | REJECTED; APPROVED → SUPERSEDED when a
  * newer version is approved. Editing an APPROVED version goes through {@link #copyAsDraft}
  * (Copy-on-Write) so the approved content stays untouched for reference.
  */
@@ -27,7 +27,7 @@ public class QuestionVersion {
     private BloomLevel bloomLevel;
     private boolean bloomConfirmed;
     private QuestionGenerationMode generationMode;
-    private QuestionApprovalStatus approvalStatus;
+    private QuestionStatus approvalStatus;
     private UUID parentVersionId;
     private UUID generationRequestId;
     private int regenerationCount;
@@ -53,7 +53,7 @@ public class QuestionVersion {
                 // A human author picked the level; only AI suggestions need explicit confirmation (BR-01).
                 .bloomConfirmed(mode != QuestionGenerationMode.AI_RAG)
                 .generationMode(mode)
-                .approvalStatus(QuestionApprovalStatus.DRAFT)
+                .approvalStatus(QuestionStatus.DRAFT)
                 .createdBy(createdBy)
                 .createdAt(now)
                 .updatedAt(now)
@@ -61,7 +61,7 @@ public class QuestionVersion {
     }
 
     public boolean isDraft() {
-        return approvalStatus == QuestionApprovalStatus.DRAFT;
+        return approvalStatus == QuestionStatus.DRAFT;
     }
 
     public boolean isAiGenerated() {
@@ -69,9 +69,22 @@ public class QuestionVersion {
     }
 
     public void ensureDraft() {
-        if (!isDraft()) {
+        if (!isDraft() && approvalStatus != QuestionStatus.REJECTED) {
             throw new AppException(ErrorCode.VERSION_NOT_DRAFT,
                     "Only DRAFT versions can be changed (current: " + approvalStatus + ")");
+        }
+    }
+
+    public void submitForReview() {
+        ensureDraft();
+        approvalStatus = QuestionStatus.UNDER_REVIEW;
+        rejectionReason = null;
+        touch();
+    }
+
+    public void ensureUnderReview() {
+        if (approvalStatus != QuestionStatus.UNDER_REVIEW) {
+            throw new AppException(ErrorCode.VERSION_NOT_UNDER_REVIEW);
         }
     }
 
@@ -131,8 +144,8 @@ public class QuestionVersion {
     }
 
     public void approve(UUID reviewer) {
-        ensureDraft();
-        this.approvalStatus = QuestionApprovalStatus.APPROVED;
+        ensureUnderReview();
+        this.approvalStatus = QuestionStatus.APPROVED;
         this.reviewedBy = reviewer;
         this.reviewedAt = Instant.now();
         this.rejectionReason = null;
@@ -140,11 +153,11 @@ public class QuestionVersion {
     }
 
     public void reject(UUID reviewer, String reason) {
-        ensureDraft();
+        ensureUnderReview();
         if (reason == null || reason.isBlank()) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Rejection reason is required");
         }
-        this.approvalStatus = QuestionApprovalStatus.REJECTED;
+        this.approvalStatus = QuestionStatus.REJECTED;
         this.rejectionReason = reason.trim();
         this.reviewedBy = reviewer;
         this.reviewedAt = Instant.now();
@@ -152,10 +165,10 @@ public class QuestionVersion {
     }
 
     public void supersede() {
-        if (approvalStatus != QuestionApprovalStatus.APPROVED) {
+        if (approvalStatus != QuestionStatus.APPROVED) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Only APPROVED versions can be superseded");
         }
-        this.approvalStatus = QuestionApprovalStatus.SUPERSEDED;
+        this.approvalStatus = QuestionStatus.SUPERSEDED;
         touch();
     }
 
@@ -164,7 +177,7 @@ public class QuestionVersion {
      * The Bloom level was already confirmed when this version was approved.
      */
     public QuestionVersion copyAsDraft(int newVersionNumber, UUID author) {
-        if (approvalStatus != QuestionApprovalStatus.APPROVED) {
+        if (approvalStatus != QuestionStatus.APPROVED) {
             throw new AppException(ErrorCode.NO_APPROVED_VERSION,
                     "Only the APPROVED version can be copied into a new draft");
         }
@@ -178,7 +191,7 @@ public class QuestionVersion {
                 .bloomLevel(bloomLevel)
                 .bloomConfirmed(true)
                 .generationMode(generationMode)
-                .approvalStatus(QuestionApprovalStatus.DRAFT)
+                .approvalStatus(QuestionStatus.DRAFT)
                 .parentVersionId(questionVersionId)
                 .generationRequestId(generationRequestId)
                 .createdBy(author)

@@ -81,6 +81,8 @@ public final class QuestionApprovalPolicy {
             out.add(FieldViolation.of("rubric.totalScore", ErrorCode.RUBRIC_SCORE_MISMATCH,
                     "Sum of criteria max scores (" + Rubric.sumOf(criteria) + ") must equal total score ("
                             + rubric.getTotalPoints() + ")"));
+        } else if (rubric.getTotalPoints().compareTo(java.math.BigDecimal.TEN)!=0) {
+            out.add(FieldViolation.of("rubric.totalScore",ErrorCode.RUBRIC_SCORE_MISMATCH,"Rubric total must equal 10.0"));
         }
     }
 

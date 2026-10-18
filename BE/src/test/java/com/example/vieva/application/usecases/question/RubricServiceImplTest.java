@@ -1,5 +1,7 @@
 package com.example.vieva.application.usecases.question;
 
+import com.example.vieva.infrastructure.database.QuestionVersionViewAssembler;
+
 import com.example.vieva.application.ports.input.CriterionInput;
 import com.example.vieva.application.ports.input.RubricInput;
 import com.example.vieva.application.ports.output.AuditEventRepository;
@@ -111,6 +113,7 @@ class RubricServiceImplTest {
     @Test
     @DisplayName("rubric of an APPROVED version is immutable")
     void approvedRubricIsImmutable() {
+        version.submitForReview();
         version.approve(lecturer);
         assertThatThrownBy(() -> service.addCriterion(version.getQuestionVersionId(),
                 new CriterionInput("C", "d", BigDecimal.ONE, List.of(), null), null, lecturer))

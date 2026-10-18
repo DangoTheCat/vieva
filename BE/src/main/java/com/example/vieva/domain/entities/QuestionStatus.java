@@ -1,6 +1,10 @@
 package com.example.vieva.domain.entities;
 
 public enum QuestionStatus {
-    ACTIVE,
+    DRAFT,
+    UNDER_REVIEW,
+    APPROVED,
+    REJECTED,
+    SUPERSEDED,
     ARCHIVED
 }

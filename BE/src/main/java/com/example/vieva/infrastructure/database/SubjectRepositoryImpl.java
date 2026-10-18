@@ -53,6 +53,11 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
+    public Optional<Subject> findByIdForUpdate(UUID subjectId) {
+        return subjectJpaRepository.findByIdForUpdate(subjectId).map(subjectMapper::toDomain);
+    }
+
+    @Override
     public List<Subject> findAllByIds(java.util.Collection<UUID> subjectIds) {
         if (subjectIds == null || subjectIds.isEmpty()) {
             return List.of();

@@ -16,7 +16,6 @@ import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -26,7 +25,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 

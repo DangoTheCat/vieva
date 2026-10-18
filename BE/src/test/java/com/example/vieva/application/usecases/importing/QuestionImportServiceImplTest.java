@@ -15,8 +15,9 @@ import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.settings.ImportSettings;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
+import com.example.vieva.infrastructure.database.PostgreSQLDatabase;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
@@ -81,8 +82,8 @@ class QuestionImportServiceImplTest {
     void setUp() {
         service = new QuestionImportServiceImpl(new PoiCsvQuestionSpreadsheetGateway(), subjectRepository, topicRepository,
                 new SubjectAccessGuard(lecturerSubjectRepository, userRepository),
-                new QuestionDraftWriter(questionRepository, versionRepository, rubricRepository, criterionRepository,
-                        sourceRepository),
+                new PostgreSQLDatabase(questionRepository, versionRepository, rubricRepository, criterionRepository,
+                        sourceRepository, org.mockito.Mockito.mock(com.example.vieva.application.ports.output.CourseDocumentRepository.class), org.mockito.Mockito.mock(com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort.class)),
                 new QuestionBankAuditor(auditEventRepository, json), settings);
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(true);
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(Subject.builder().subjectId(subjectId).build()));

@@ -12,7 +12,7 @@ import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionBankService;
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionStatus;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +67,7 @@ public class LecturerQuestionController {
             @PathVariable UUID subjectId,
             @RequestParam(required = false) UUID topicId,
             @RequestParam(required = false) BloomLevel bloomLevel,
-            @RequestParam(required = false) QuestionStatus status,
+            @RequestParam(required = false) QuestionLifecycleStatus status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,

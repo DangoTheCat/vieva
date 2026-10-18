@@ -5,12 +5,10 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnExpression("'openai'.equals('${vieva.ai.provider:mock}') || 'gemini'.equals('${vieva.ai.provider:mock}')")
 class LangChain4jConfig {
 
     @Bean
@@ -23,6 +21,7 @@ class LangChain4jConfig {
                 .apiKey(apiKey)
                 .modelName(model)
                 .temperature(temperature)
+                .strictJsonSchema(true)
                 .build();
     }
 

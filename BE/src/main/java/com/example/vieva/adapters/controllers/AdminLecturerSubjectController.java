@@ -11,6 +11,7 @@ import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,17 @@ public class AdminLecturerSubjectController {
 
     private final LecturerSubjectService lecturerSubjectService;
     private final LecturerSubjectPresenter presenter;
+    private final com.example.vieva.application.usecases.access.SubjectHeadService heads;
+
+    public record AssignHeadRequest(@NotNull UUID lecturerId) { }
+
+    @PutMapping("/by-subject/{subjectId}/head")
+    public java.util.Map<String,UUID> assignHead(@PathVariable UUID subjectId,
+                                                @Valid @RequestBody AssignHeadRequest request,
+                                                @AuthenticationPrincipal User admin) {
+        heads.assign(subjectId,request.lecturerId(),CurrentUser.id(admin));
+        return java.util.Map.of("subjectId",subjectId,"headLecturerId",request.lecturerId());
+    }
 
     @PostMapping
     public ResponseEntity<List<LecturerSubjectDto>> assignLecturers(

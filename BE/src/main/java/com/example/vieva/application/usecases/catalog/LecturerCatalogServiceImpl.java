@@ -12,7 +12,6 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -21,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
 public class LecturerCatalogServiceImpl implements LecturerCatalogService {
 

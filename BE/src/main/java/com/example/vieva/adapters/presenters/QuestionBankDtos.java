@@ -2,10 +2,10 @@ package com.example.vieva.adapters.presenters;
 
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.PerformanceLevel;
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionGenerationStatus;
-import com.example.vieva.domain.entities.QuestionStatus;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 
@@ -42,7 +42,7 @@ public final class QuestionBankDtos {
             String bloomLevelLabel,
             boolean bloomConfirmed,
             QuestionGenerationMode origin,
-            QuestionApprovalStatus status,
+            QuestionStatus status,
             UUID parentVersionId,
             UUID generationRequestId,
             int regenerationCount,
@@ -75,14 +75,14 @@ public final class QuestionBankDtos {
 
     @Builder
     public record QuestionBankItemDto(UUID questionId, String questionCode, UUID subjectId, UUID topicId,
-                                      String topicName, QuestionStatus status, boolean hasPendingDraft,
+                                      String topicName, QuestionLifecycleStatus status, boolean hasPendingDraft,
                                       QuestionVersionDto currentVersion, Instant createdAt, Instant updatedAt) {
     }
 
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record QuestionDetailDto(UUID questionId, String questionCode, UUID subjectId, UUID topicId,
-                                    QuestionStatus status, UUID currentApprovedVersionId,
+                                    QuestionLifecycleStatus status, UUID currentApprovedVersionId,
                                     QuestionVersionDto currentVersion, QuestionVersionDto pendingDraft,
                                     List<QuestionVersionDto> history, Instant createdAt, Instant updatedAt) {
     }

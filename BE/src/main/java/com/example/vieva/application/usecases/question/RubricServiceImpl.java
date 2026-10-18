@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.question;
 
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.CriterionInput;
 import com.example.vieva.application.ports.input.RubricInput;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
@@ -16,7 +17,6 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
 public class RubricServiceImpl implements RubricService {
 
@@ -33,7 +32,7 @@ public class RubricServiceImpl implements RubricService {
     private final RubricRepository rubricRepository;
     private final RubricCriterionRepository rubricCriterionRepository;
     private final QuestionAccessLoader accessLoader;
-    private final QuestionVersionViewAssembler viewAssembler;
+    private final QuestionVersionViewAssemblerPort viewAssembler;
     private final QuestionBankAuditor auditor;
 
     @Override

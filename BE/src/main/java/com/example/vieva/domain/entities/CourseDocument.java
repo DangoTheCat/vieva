@@ -25,7 +25,7 @@ public class CourseDocument {
     private String storageKey;
     private Long fileSizeBytes;
     private String mimeType;
-    private DocumentIndexingStatus indexingStatus;
+    private DocumentStatus indexingStatus;
     private String errorMessage;
     private String extractedTextSummary;
     private Integer totalChunks;
@@ -35,20 +35,30 @@ public class CourseDocument {
     private Instant deletedAt;
 
     public boolean isReady() {
-        return indexingStatus == DocumentIndexingStatus.READY && deletedAt == null;
+        return indexingStatus == DocumentStatus.READY && deletedAt == null;
     }
 
     public boolean isDeleted() {
         return deletedAt != null;
     }
 
+    public boolean isAvailableAsEvidence() {
+        return deletedAt == null && (indexingStatus == DocumentStatus.READY || indexingStatus == DocumentStatus.ARCHIVED);
+    }
+
+    public void archive() {
+        if (!isReady()) throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE, "Only READY documents can be archived");
+        indexingStatus = DocumentStatus.ARCHIVED;
+        updatedAt = Instant.now();
+    }
+
     /** UPLOADED → INDEXING. Counts the attempt so retries stay bounded. */
     public void startIndexing() {
-        if (indexingStatus != DocumentIndexingStatus.UPLOADED) {
+        if (indexingStatus != DocumentStatus.UPLOADED) {
             throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE,
                     "Only UPLOADED documents can start indexing (current: " + indexingStatus + ")");
         }
-        this.indexingStatus = DocumentIndexingStatus.INDEXING;
+        this.indexingStatus = DocumentStatus.INDEXING;
         this.indexAttempts = (indexAttempts == null ? 0 : indexAttempts) + 1;
         this.errorMessage = null;
         this.updatedAt = Instant.now();
@@ -56,14 +66,14 @@ public class CourseDocument {
 
     /** INDEXING → READY. */
     public void markReady(int chunkCount, String summary) {
-        if (indexingStatus != DocumentIndexingStatus.INDEXING) {
+        if (indexingStatus != DocumentStatus.INDEXING) {
             throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE,
                     "Only INDEXING documents can become READY (current: " + indexingStatus + ")");
         }
         if (chunkCount <= 0) {
             throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE, "A READY document needs at least one chunk");
         }
-        this.indexingStatus = DocumentIndexingStatus.READY;
+        this.indexingStatus = DocumentStatus.READY;
         this.totalChunks = chunkCount;
         this.extractedTextSummary = summary;
         this.errorMessage = null;
@@ -75,10 +85,10 @@ public class CourseDocument {
      * because its chunks may already be cited by questions.
      */
     public void markFailed(String reason) {
-        if (indexingStatus == DocumentIndexingStatus.READY) {
+        if (indexingStatus == DocumentStatus.READY || indexingStatus == DocumentStatus.ARCHIVED) {
             throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE, "A READY document cannot be marked as FAILED");
         }
-        this.indexingStatus = DocumentIndexingStatus.FAILED;
+        this.indexingStatus = DocumentStatus.FAILED;
         this.errorMessage = reason;
         this.totalChunks = 0;
         this.updatedAt = Instant.now();
@@ -86,7 +96,7 @@ public class CourseDocument {
 
     /** FAILED → UPLOADED, only while the retry budget is not exhausted. */
     public void requeueForRetry(int maxAttempts) {
-        if (indexingStatus != DocumentIndexingStatus.FAILED) {
+        if (indexingStatus != DocumentStatus.FAILED) {
             throw new AppException(ErrorCode.DOCUMENT_NOT_RETRYABLE,
                     "Only FAILED documents can be re-indexed (current: " + indexingStatus + ")");
         }
@@ -95,7 +105,7 @@ public class CourseDocument {
             throw new AppException(ErrorCode.RETRY_LIMIT_EXCEEDED,
                     "Indexing retry limit reached (" + maxAttempts + " attempts)");
         }
-        this.indexingStatus = DocumentIndexingStatus.UPLOADED;
+        this.indexingStatus = DocumentStatus.UPLOADED;
         this.errorMessage = null;
         this.updatedAt = Instant.now();
     }

@@ -116,6 +116,9 @@ public final class GeneratedQuestionValidator {
             criteria.add(new ValidatedCriterion(criterion.name().trim(), criterion.description().trim(), criterion.maxScore()));
         }
         BigDecimal total = candidate.rubricTotalScore();
+        if (total != null && total.compareTo(BigDecimal.TEN) != 0) {
+            reasons.add("rubric totalScore must equal 10.0");
+        }
         if (total == null || total.signum() <= 0) {
             reasons.add("rubric totalScore is missing");
         } else if (criteriaValid && sum.compareTo(total) != 0) {

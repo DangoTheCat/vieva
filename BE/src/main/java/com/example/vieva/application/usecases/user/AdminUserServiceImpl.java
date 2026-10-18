@@ -17,7 +17,6 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -27,7 +26,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
 @Transactional
 public class AdminUserServiceImpl implements AdminUserService {

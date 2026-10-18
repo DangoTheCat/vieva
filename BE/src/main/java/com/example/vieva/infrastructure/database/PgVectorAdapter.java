@@ -2,6 +2,9 @@ package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
+import com.example.vieva.application.ports.output.EmbeddingModelPort;
+import com.example.vieva.application.ports.output.AiServiceException;
+import com.example.vieva.application.settings.RagSettings;
 import com.example.vieva.domain.entities.DocumentChunk;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -13,10 +16,47 @@ import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
-public class DocumentChunkRepositoryImpl implements DocumentChunkRepository {
+public class PgVectorAdapter implements DocumentChunkRepository {
 
     private final DocumentChunkJpaRepository jpaRepository;
     private final DocumentChunkPersistenceMapper mapper;
+    private final EmbeddingModelPort embeddingModel;
+    private final RagSettings settings;
+
+    @Override
+    public List<float[]> embedChunks(List<String> texts) {
+        List<float[]> vectors = new java.util.ArrayList<>();
+        int batchSize = Math.max(1,settings.getEmbeddingBatchSize());
+        for (int start=0; start<texts.size(); start+=batchSize) {
+            var batch=texts.subList(start,Math.min(start+batchSize,texts.size()));
+            var result=embeddingModel.generateEmbeddings(batch);
+            if (result == null || result.size()!=batch.size()) throw new AiServiceException("Embedding count mismatch");
+            for (float[] vector: result) {
+                if (vector==null || vector.length!=settings.getEmbeddingDimensions()) {
+                    throw new AiServiceException("Embedding dimensions mismatch");
+                }
+            }
+            vectors.addAll(result);
+        }
+        return vectors;
+    }
+
+    @Override
+    public List<DocumentChunk> storeEmbeddings(List<DocumentChunk> chunks) {
+        if (chunks.stream().anyMatch(c -> c.getEmbedding()==null)) {
+            var vectors=embedChunks(chunks.stream().map(DocumentChunk::getContent).toList());
+            List<DocumentChunk> embedded = new java.util.ArrayList<>();
+            for(int i=0;i<chunks.size();i++) embedded.add(chunks.get(i).toBuilder().embedding(vectors.get(i)).build());
+            chunks=embedded;
+        }
+        return saveAll(chunks);
+    }
+
+    @Override
+    public List<ChunkSearchResult> similaritySearch(UUID subjectId, Collection<UUID> documentIds,
+                                                   String query, double minSimilarity,int topK) {
+        return searchSimilarChunks(subjectId,documentIds,embeddingModel.generateEmbedding(query),minSimilarity,topK);
+    }
 
     @Override
     public List<DocumentChunk> saveAll(List<DocumentChunk> chunks) {

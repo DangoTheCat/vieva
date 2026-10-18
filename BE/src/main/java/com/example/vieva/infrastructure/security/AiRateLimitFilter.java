@@ -35,6 +35,7 @@ public class AiRateLimitFilter extends OncePerRequestFilter {
 
     /** POST prefixes whose requests consume AI budget (generate, retry, import, upload). */
     private static final List<String> AI_POST_PREFIXES = List.of(
+            "/api/v1/lecturer/studio/",
             "/api/v1/lecturer/question-generation-requests",
             "/api/v1/lecturer/question-versions/",
             "/api/v1/lecturer/subjects/",

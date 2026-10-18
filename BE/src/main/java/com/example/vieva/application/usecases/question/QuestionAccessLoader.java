@@ -8,7 +8,6 @@ import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
@@ -16,7 +15,6 @@ import java.util.UUID;
  * Loads a question / version and re-checks the actor's subject assignment (BR-06) in the caller's
  * transaction.
  */
-@Component
 @RequiredArgsConstructor
 public class QuestionAccessLoader {
 
@@ -28,6 +26,14 @@ public class QuestionAccessLoader {
     }
 
     public VersionContext versionForWrite(UUID versionId, UUID actorId) {
+        VersionContext context = versionForReview(versionId, actorId);
+        if (!actorId.equals(context.version().getCreatedBy())) {
+            throw new AppException(ErrorCode.NOT_QUESTION_AUTHOR);
+        }
+        return context;
+    }
+
+    public VersionContext versionForReview(UUID versionId, UUID actorId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         Question question = questionRepository.findById(version.getQuestionId())

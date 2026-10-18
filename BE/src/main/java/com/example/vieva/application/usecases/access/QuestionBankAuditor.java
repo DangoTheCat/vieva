@@ -4,7 +4,6 @@ import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.domain.entities.AuditEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Map;
@@ -14,7 +13,6 @@ import java.util.UUID;
  * Audit trail for question-bank and account/catalog changes. Written in the caller's transaction
  * so the audit row commits with the change.
  */
-@Component
 @RequiredArgsConstructor
 public class QuestionBankAuditor {
 

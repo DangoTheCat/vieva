@@ -9,6 +9,9 @@ import java.util.UUID;
 
 @Repository
 public interface SubjectJpaRepository extends JpaRepository<SubjectJpaEntity, UUID>, JpaSpecificationExecutor<SubjectJpaEntity> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT s FROM SubjectJpaEntity s WHERE s.subjectId=:id")
+    Optional<SubjectJpaEntity> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") UUID id);
     Optional<SubjectJpaEntity> findBySubjectCode(String subjectCode);
     boolean existsBySubjectCode(String subjectCode);
 }
