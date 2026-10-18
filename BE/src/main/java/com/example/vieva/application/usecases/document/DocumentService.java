@@ -28,8 +28,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.vieva.application.ports.output.DocumentPreview;
+
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +89,16 @@ public class DocumentService {
         String mimeType = DocumentFileValidator.validateType(safeName,
                 fileTypeDetector.detect(content, safeName), documentSettings);
 
+        // Duplicate check within subject (same filename and file size)
+        boolean isDuplicate = courseDocumentRepository.findActiveBySubjectId(subjectId).stream()
+                .anyMatch(doc -> !doc.isDeleted()
+                        && doc.getFileSizeBytes() != null
+                        && doc.getFileSizeBytes().equals((long) content.length)
+                        && doc.getFileName().equalsIgnoreCase(safeName));
+        if (isDuplicate) {
+            throw new AppException(ErrorCode.DOCUMENT_ALREADY_EXISTS, "Tệp tài liệu này (\"" + safeName + "\") đã được tải lên trước đó trong môn học này.");
+        }
+
         StoredFile stored = fileStorage.store(safeName, content, mimeType);
         Instant now = Instant.now();
         CourseDocument document = db.saveCourseDocument(CourseDocument.builder()
@@ -129,15 +142,36 @@ public class DocumentService {
             byte[] bytes = fileStorage.load(document.getStorageKey());
             List<ParsedSection> sections = documentParser.extract(bytes, document.getMimeType());
             String fullText = joinText(sections);
-            if (fullText.replaceAll("\\s+", "").length() < documentSettings.getMinTextChars()) {
+            int totalChars = fullText.replaceAll("\\s+", "").length();
+            if (totalChars < documentSettings.getMinTextChars()) {
                 throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT);
+            }
+
+            // Quality check for scanned / unextractable PDFs
+            String ext = "";
+            int dot = document.getFileName().lastIndexOf('.');
+            if (dot > 0) ext = document.getFileName().substring(dot + 1).toLowerCase();
+            int pageCount = (int) sections.stream()
+                    .filter(s -> s.pageNumber() != null)
+                    .map(ParsedSection::pageNumber)
+                    .distinct()
+                    .count();
+            if (pageCount == 0) pageCount = 1;
+
+            var problem = com.example.vieva.domain.services.ExtractionCheck.checkProblem(ext, pageCount, totalChars, sections.size());
+            if (problem.isPresent()) {
+                throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT, problem.get());
             }
 
             List<TextChunk> pieces = textSplitter.split(sections);
             if (pieces.isEmpty()) {
                 throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT);
             }
-            List<float[]> embeddings = documentChunkRepository.embedChunks(pieces.stream().map(TextChunk::text).toList());
+            // Embed chunks with document context prefix for enhanced retrieval accuracy
+            List<String> textsToEmbed = pieces.stream()
+                    .map(p -> document.getFileName() + "\n" + p.text())
+                    .toList();
+            List<float[]> embeddings = documentChunkRepository.embedChunks(textsToEmbed);
             List<DocumentChunk> chunks = toChunks(documentId, pieces, embeddings);
             String summary = fullText.substring(0, Math.min(fullText.length(), SUMMARY_LENGTH));
 
@@ -180,6 +214,39 @@ public class DocumentService {
     public CourseDocument getDocumentById(UUID documentId) {
         return courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentPreview previewDocument(UUID documentId, UUID actorId) {
+        CourseDocument document = courseDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+        subjectAccessGuard.requireManage(actorId, document.getSubjectId());
+
+        List<DocumentChunk> chunks = documentChunkRepository.findByDocumentId(documentId);
+        List<DocumentChunk> sortedChunks = new ArrayList<>(chunks);
+        sortedChunks.sort(Comparator.comparing(DocumentChunk::getChunkIndex, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        List<DocumentPreview.PreviewChunk> previewChunks = sortedChunks.stream()
+                .limit(5)
+                .map(chunk -> {
+                    String text = chunk.getContent() != null ? chunk.getContent().trim() : "";
+                    boolean truncated = text.length() > 300;
+                    String snippet = truncated ? text.substring(0, 300) + "..." : text;
+                    String label = "Đoạn " + (chunk.getChunkIndex() != null ? chunk.getChunkIndex() : 1);
+                    if (chunk.getMetadataJson() != null && !chunk.getMetadataJson().isBlank()) {
+                        try {
+                            Map<?, ?> meta = jsonSerializer.deserialize(chunk.getMetadataJson(), Map.class);
+                            if (meta != null && meta.containsKey("sourceLabel")) {
+                                label = String.valueOf(meta.get("sourceLabel"));
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    return new DocumentPreview.PreviewChunk(label, snippet, truncated);
+                })
+                .toList();
+
+        return new DocumentPreview(document, previewChunks);
     }
     @Transactional
     public void softDeleteDocument(UUID documentId, UUID actorId) {
@@ -271,6 +338,21 @@ public class DocumentService {
             metadata.put("pageStart", piece.pageStart());
             metadata.put("pageEnd", piece.pageEnd());
             metadata.put("section", piece.sectionTitle());
+
+            String sourceLabel;
+            if (piece.sectionTitle() != null && piece.sectionTitle().toLowerCase().contains("slide")) {
+                sourceLabel = piece.sectionTitle();
+            } else if (piece.pageStart() != null && piece.pageStart() > 0) {
+                if (piece.pageEnd() != null && !piece.pageEnd().equals(piece.pageStart())) {
+                    sourceLabel = "Trang " + piece.pageStart() + " - " + piece.pageEnd();
+                } else {
+                    sourceLabel = "Trang " + piece.pageStart();
+                }
+            } else {
+                sourceLabel = "Đoạn " + (i + 1);
+            }
+            metadata.put("sourceLabel", sourceLabel);
+
             chunks.add(DocumentChunk.builder()
                     .chunkId(UUID.randomUUID())
                     .documentId(documentId)
