@@ -56,21 +56,21 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
   if (currentTab === 'calibration') {
     return (
       <>
-        <header className="h-16 bg-sidebarBg text-white px-6 flex items-center justify-between shrink-0 shadow-xs border-b border-slate-800 sticky top-0 z-40 select-none">
+        <header className="h-16 bg-paper text-ink px-6 flex items-center justify-between shrink-0 shadow-[0_3px_0_#DEB9B5] border-b-2 border-green-500 sticky top-0 z-40 select-none">
           <div className="flex items-center gap-3">
             <button 
               type="button"
               onClick={() => onNavigate && onNavigate('discover')}
-              className="w-9 h-9 rounded-xl bg-sky-600 hover:bg-sky-500 flex items-center justify-center text-white shadow-xs transition cursor-pointer border-none outline-none active:scale-95"
+              className="w-9 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[2px_2px_0_#DEB9B5] transition cursor-pointer outline-none active:scale-95"
               aria-label="Về trang chủ"
             >
-              <GraduationCap className="w-5 h-5 text-white" />
+              <GraduationCap className="w-5 h-5 text-pink-700" />
             </button>
             <div>
-              <h1 className="font-heading font-extrabold text-sm text-white tracking-tight">
+              <h1 className="font-heading font-black text-sm text-ink tracking-tight">
                 AIVES Calibration Wizard
               </h1>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-green-700 font-medium">
                 Bước chuẩn bị bắt buộc trước khi vào phòng thi chính thức
               </p>
             </div>
@@ -79,36 +79,36 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
           <button
             type="button"
             onClick={() => setIsTroubleshootOpen(true)}
-            className="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            className="text-xs font-bold text-ink hover:text-pink-900 bg-pink-100 hover:bg-pink-200 px-3.5 py-1.5 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] transition flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
+            <HelpCircle className="w-3.5 h-3.5 text-pink-700" />
             <span>Trợ Giúp Kỹ Thuật</span>
           </button>
         </header>
 
         {/* TROUBLESHOOTING MODAL */}
         {isTroubleshootOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-slate-800 animate-modal-entry">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-heading font-extrabold text-base text-slate-900">Trợ Giúp Xử Lý Thiết Bị</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-paper rounded-2xl max-w-md w-full p-6 shadow-[6px_6px_0_#D5A6A2] border-2 border-green-500 space-y-4 text-ink animate-modal-entry">
+              <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
+                <h3 className="font-heading font-black text-base text-ink">Trợ Giúp Xử Lý Thiết Bị</h3>
                 <button
                   type="button"
                   onClick={() => setIsTroubleshootOpen(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition cursor-pointer focus:outline-none"
+                  className="text-green-800 hover:text-pink-700 p-1 rounded-lg transition cursor-pointer focus:outline-none"
                   aria-label="Đóng"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-3 text-xs text-slate-600 leading-relaxed font-normal">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="font-bold text-slate-900 mb-0.5">1. Không nghe thấy tiếng?</p>
+              <div className="space-y-3 text-xs text-green-900 leading-relaxed font-normal">
+                <div className="p-3 bg-pink-50 rounded-xl border-2 border-green-200">
+                  <p className="font-bold text-ink mb-0.5">1. Không nghe thấy tiếng?</p>
                   <p>Kiểm tra nút âm lượng của máy tính hoặc tai nghe đã cắm chặt jack 3.5mm / Bluetooth.</p>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="font-bold text-slate-900 mb-0.5">2. Trình duyệt chặn quyền truy cập?</p>
+                <div className="p-3 bg-pink-50 rounded-xl border-2 border-green-200">
+                  <p className="font-bold text-ink mb-0.5">2. Trình duyệt chặn quyền truy cập?</p>
                   <p>Nhấp vào biểu tượng ổ khóa bên trái thanh địa chỉ URL để cấp quyền Microphone và Camera.</p>
                 </div>
               </div>
@@ -117,7 +117,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                 <button
                   type="button"
                   onClick={() => setIsTroubleshootOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-600 shadow-[2px_2px_0_#3A422E] transition active:scale-95 cursor-pointer"
                 >
                   Đã Hiểu
                 </button>
@@ -130,7 +130,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
   }
 
   return (
-    <header className="bg-sidebarBg text-white border-b border-slate-700/80 sticky top-0 z-40 shadow-md">
+    <header className="bg-paper text-ink border-b-2 border-green-500 sticky top-0 z-40 shadow-[0_3px_0_#DEB9B5]">
       <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
 
         {/* Left: Brand & Nav Links */}
@@ -143,12 +143,14 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
             onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover')}
           >
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 border border-cyan-400/30 group-hover:scale-105 transition-transform">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-9 h-9 rounded-xl bg-pink-100 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[2px_2px_0_#DEB9B5] group-hover:scale-105 transition-transform">
+                <svg className="w-5 h-5 text-pink-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="font-heading font-black text-2xl tracking-tight text-white">aives.</span>
+              <span className="font-heading font-black text-2xl tracking-tight text-ink">
+                aives<span className="text-pink-600">.</span>
+              </span>
             </div>
           </div>
 
@@ -158,27 +160,27 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
               <>
                 <button
                   onClick={() => onNavigate('admin-users')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-users'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'admin-users'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   1. Quản Lý Tài Khoản
                 </button>
                 <button
                   onClick={() => onNavigate('admin-subjects')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-subjects'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'admin-subjects'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   2. Môn Học &amp; Phân Công
                 </button>
                 <button
                   onClick={() => onNavigate('admin-voice-lab')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   3. Cấu Hình STT/TTS
@@ -189,27 +191,27 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
               <>
                 <button
                   onClick={() => onNavigate('lecturer-questions')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-questions'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-questions'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   1. Ngân Hàng Câu Hỏi
                 </button>
                 <button
                   onClick={() => onNavigate('lecturer-docs-rag')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'lecturer-docs-rag'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-docs-rag'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   2. Tài Liệu RAG
                 </button>
                 <button
                   onClick={() => onNavigate('rubric-studio')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'rubric-studio'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'rubric-studio'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   3. Ma Trận Rubric
@@ -220,27 +222,27 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
               <>
                 <button
                   onClick={() => onNavigate('discover')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'discover' || currentTab === 'home'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'discover' || currentTab === 'home'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   Lịch Thi
                 </button>
                 <button
                   onClick={() => onNavigate('calibration')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'calibration'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'calibration'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   Kiểm Tra Mic / Cam
                 </button>
                 <button
                   onClick={() => onNavigate('exam-room')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border ${currentTab === 'exam-room'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/30 shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'exam-room'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
                     }`}
                 >
                   Phòng Thi Vấn Đáp AI
@@ -254,57 +256,96 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
         <div className="flex items-center gap-3">
 
           {/* Real-time Voice Audio Activity (GSAP 60 FPS) */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[11px]">
-            <Mic2 className="w-3.5 h-3.5 text-sky-400" />
-            <span className="text-slate-400 text-[10px] font-mono">Speech Engine:</span>
-            <VoiceWaveform isSpeaking={true} volume={0.45} barCount={6} height={14} barWidth="w-0.5" barGap="gap-0.5" />
-            <span className="text-[10px] text-emerald-400 font-bold font-mono">Ready</span>
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-pink-50 border-2 border-green-400 text-ink shadow-[2px_2px_0_#C4CCB7] text-[11px]">
+            <Mic2 className="w-3.5 h-3.5 text-pink-700" />
+            <span className="text-green-800 text-[10px] font-mono font-bold">Speech Engine:</span>
+            <VoiceWaveform isSpeaking={true} volume={0.45} barCount={6} height={14} barWidth="w-0.5" barGap="gap-0.5" colorClass="bg-pink-600" />
+            <span className="text-[10px] text-green-900 font-bold font-mono bg-green-200 px-1.5 py-0.5 rounded border border-green-400">Ready</span>
           </div>
 
           {/* Quick Action: Thêm Người Dùng */}
           {isAdmin && (
             <button
               onClick={onOpenAddUser}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink text-xs font-bold border-2 border-green-600 shadow-[2px_2px_0_#3A422E] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none cursor-pointer"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-4 h-4 text-ink" />
               <span className="hidden sm:inline">Thêm Người Dùng</span>
             </button>
           )}
 
-          <div className="h-6 w-px bg-slate-700 hidden sm:block"></div>
+          <div className="h-6 w-0.5 bg-green-300 hidden sm:block"></div>
 
           {/* User Profile Pill & Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs group cursor-pointer"
+              className={`flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full border-2 transition-all shadow-[2px_2px_0_#DEB9B5] group cursor-pointer focus:outline-none ${
+                currentTab === 'profile' || currentTab === 'profile-password'
+                  ? 'bg-pink-100 border-green-600 ring-2 ring-pink-300'
+                  : 'bg-paper hover:bg-pink-50 border-green-500 hover:border-green-600'
+              }`}
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/40 text-white font-heading font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
-                {getInitials(currentUser?.fullName)}
+              <div className="w-8 h-8 rounded-full bg-pink-300 border-2 border-green-600 text-ink font-heading font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+                {currentUser?.avatarUrl ? (
+                  <img 
+                    src={currentUser.avatarUrl} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextSibling) {
+                        e.currentTarget.nextSibling.style.display = 'inline';
+                      }
+                    }}
+                  />
+                ) : null}
+                <span className={currentUser?.avatarUrl ? 'hidden' : ''}>
+                  {getInitials(currentUser?.fullName)}
+                </span>
               </div>
               <div className="text-left leading-tight">
-                <p className="font-heading font-bold text-xs text-white group-hover:text-sky-300 transition truncate max-w-[140px]">
+                <p className="font-heading font-bold text-xs text-ink group-hover:text-pink-700 transition truncate max-w-[140px]">
                   {currentUser?.fullName || 'Người Dùng AIVES'}
                 </p>
-                <p className="text-[10px] font-semibold text-slate-400 mt-0.5 tracking-wide">
+                <p className="text-[10px] font-bold text-green-700 mt-0.5 tracking-wide">
                   {isAdmin ? 'Ban Khảo Thí' : isLecturer ? 'Giảng Viên' : 'Sinh Viên'}
                 </p>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-white ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-green-700 group-hover:text-pink-700 ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-slate-200 text-slate-800 py-2 z-50 animate-modal-entry">
-                <div className="px-4 py-2.5 border-b border-slate-100">
-                  <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.fullName}</p>
-                  <p className="text-[11px] text-slate-500 font-mono truncate">{currentUser?.email}</p>
-                  <span className="inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded bg-sky-50 text-sky-700 font-bold border border-sky-200">
-                    {currentUser?.userCode || 'USR-CODE'}
-                  </span>
+              <div className="absolute right-0 mt-2 w-64 bg-paper rounded-2xl shadow-[4px_4px_0_#D5A6A2] border-2 border-green-500 text-ink py-2 z-50 animate-modal-entry">
+                <div className="px-4 py-2.5 border-b-2 border-cream bg-pink-50/70 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-pink-300 border-2 border-green-500 text-ink font-heading font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+                    {currentUser?.avatarUrl ? (
+                      <img 
+                        src={currentUser.avatarUrl} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextSibling) {
+                            e.currentTarget.nextSibling.style.display = 'inline';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <span className={currentUser?.avatarUrl ? 'hidden' : ''}>
+                      {getInitials(currentUser?.fullName)}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-ink truncate">{currentUser?.fullName}</p>
+                    <p className="text-[11px] text-green-800 font-mono truncate">{currentUser?.email}</p>
+                    <span className="inline-block mt-0.5 text-[10px] font-mono px-2 py-0.5 rounded bg-green-100 text-green-900 font-bold border border-green-300">
+                      {currentUser?.userCode || 'USR-CODE'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="py-1 text-xs">
@@ -313,9 +354,11 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       setDropdownOpen(false);
                       onOpenProfile('info');
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 font-medium transition"
+                    className={`w-full px-4 py-2 text-left hover:bg-pink-100 flex items-center gap-2.5 font-medium transition cursor-pointer ${
+                      currentTab === 'profile' ? 'bg-pink-100 text-pink-900 font-bold' : 'text-ink'
+                    }`}
                   >
-                    <User className="w-4 h-4 text-slate-500" />
+                    <User className="w-4 h-4 text-green-700" />
                     <span>Hồ Sơ Của Tôi</span>
                   </button>
 
@@ -324,23 +367,25 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                       setDropdownOpen(false);
                       onOpenProfile('password');
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 font-medium transition"
+                    className={`w-full px-4 py-2 text-left hover:bg-pink-100 flex items-center gap-2.5 font-medium transition cursor-pointer ${
+                      currentTab === 'profile-password' ? 'bg-pink-100 text-pink-900 font-bold' : 'text-ink'
+                    }`}
                   >
-                    <Key className="w-4 h-4 text-slate-500" />
+                    <Key className="w-4 h-4 text-green-700" />
                     <span>Đổi Mật Khẩu</span>
                   </button>
                 </div>
 
-                <div className="border-t border-slate-100 pt-1 text-xs">
+                <div className="border-t-2 border-cream pt-1 text-xs mt-1">
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
                       logout();
                       onNavigate('login');
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-rose-50 flex items-center gap-2.5 text-rose-600 font-medium transition"
+                    className="w-full px-4 py-2 text-left hover:bg-pink-100 flex items-center gap-2.5 text-pink-700 font-bold transition cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-rose-500" />
+                    <LogOut className="w-4 h-4 text-pink-700" />
                     <span>Đăng Xuất</span>
                   </button>
                 </div>
