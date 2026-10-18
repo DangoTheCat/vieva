@@ -1,8 +1,9 @@
 package com.example.vieva.domain.entities;
 
-public enum DocumentIndexingStatus {
+public enum DocumentStatus {
     UPLOADED,
     INDEXING,
     READY,
+    ARCHIVED,
     FAILED
 }

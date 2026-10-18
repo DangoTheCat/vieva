@@ -27,9 +27,23 @@ class DocumentPipelineAdaptersTest {
     private final TikaFileTypeDetectorGateway detector = new TikaFileTypeDetectorGateway();
 
     @Test
+    void overlappingChunksPreserveUnicodeAndFinalTail() {
+        String text="Tiếng Việt 👩‍💻 dữ liệu nhất quán. ".repeat(40)+"ĐUÔI 🧪";
+        var chunks=new ChunkingEngine(50,10).split(List.of(new ParsedSection(text,7,"Unicode")));
+        assertThat(chunks).allSatisfy(c -> {
+            assertThat(text).contains(c.text());
+            assertThat(c.text()).doesNotContain("\uFFFD");
+            assertThat(c.tokenCount()).isLessThanOrEqualTo(50);
+            assertThat(c.pageStart()).isEqualTo(7);
+        });
+        assertThat(chunks.get(chunks.size()-1).text()).endsWith("ĐUÔI 🧪");
+        assertThat(chunks.stream().mapToInt(c -> c.text().length()).sum()).isGreaterThan(text.length());
+    }
+
+    @Test
     @DisplayName("library splitter keeps page and section metadata")
     void splitterPages() {
-        TokenTextSplitterGateway splitter = new TokenTextSplitterGateway(120, 5);
+        ChunkingEngine splitter = new ChunkingEngine(120, 5);
         StringBuilder page1 = new StringBuilder();
         StringBuilder page2 = new StringBuilder();
         for (int i = 1; i <= 12; i++) {
@@ -50,11 +64,11 @@ class DocumentPipelineAdaptersTest {
 
     @Test
     void splitterHardSplitsVeryLongSentences() {
-        TokenTextSplitterGateway splitter = new TokenTextSplitterGateway(50, 5);
+        ChunkingEngine splitter = new ChunkingEngine(50, 5);
         String longSentence = "từ ".repeat(400);
         List<TextChunk> chunks = splitter.split(List.of(new ParsedSection(longSentence, null, null)));
         assertThat(chunks).hasSizeGreaterThan(5).allMatch(c -> c.tokenCount() <= 52);
-        assertThatThrownBy(() -> new TokenTextSplitterGateway(0, 5)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ChunkingEngine(0, 5)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

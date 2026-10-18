@@ -25,7 +25,7 @@ import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
-import com.example.vieva.domain.entities.DocumentIndexingStatus;
+import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.exception.AppException;
@@ -77,7 +77,8 @@ class DocumentIndexingServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private AuditEventRepository auditEventRepository;
 
-    private DocumentIndexingServiceImpl service;
+    @Mock private com.example.vieva.application.usecases.question.PostgreSQLDatabase db;
+    private DocumentService service;
     private final RagSettings ragSettings = new RagSettings();
     private final DocumentSettings documentSettings = new DocumentSettings();
     private final UUID lecturer = UUID.randomUUID();
@@ -95,14 +96,16 @@ class DocumentIndexingServiceImplTest {
         ragSettings.setEmbeddingBatchSize(2);
         ragSettings.setEmbeddingDimensions(4);
         documentSettings.setMinTextChars(10);
-        service = new DocumentIndexingServiceImpl(documentRepository, chunkRepository, sourceRepository, subjectRepository,
-                parser, storage, typeDetector, embedding, splitter, events, direct, json,
+        service = new DocumentService(documentRepository, chunkRepository, sourceRepository, subjectRepository,
+                parser, storage, typeDetector, splitter, events, direct, json,
                 new SubjectAccessGuard(lecturerSubjectRepository, userRepository),
-                new QuestionBankAuditor(auditEventRepository, json), documentSettings, ragSettings);
+                new QuestionBankAuditor(auditEventRepository, json), documentSettings, db);
 
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(true);
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(
                 Subject.builder().subjectId(subjectId).status(SubjectStatus.ACTIVE).build()));
+        when(db.saveCourseDocument(any())).thenAnswer(inv -> { stored.set(inv.getArgument(0)); return inv.getArgument(0); });
+        when(db.updateDocumentStatus(any(),any(),org.mockito.ArgumentMatchers.anyInt(),any())).thenAnswer(inv -> { CourseDocument doc=inv.getArgument(0); doc.markReady(inv.getArgument(2),inv.getArgument(3)); return doc; });
         when(documentRepository.save(any())).thenAnswer(inv -> {
             stored.set(inv.getArgument(0));
             return inv.getArgument(0);
@@ -119,7 +122,7 @@ class DocumentIndexingServiceImplTest {
                 .fileName("csdl.pdf")
                 .storageKey("2026/10/x.pdf")
                 .mimeType("application/pdf")
-                .indexingStatus(DocumentIndexingStatus.UPLOADED)
+                .indexingStatus(DocumentStatus.UPLOADED)
                 .indexAttempts(0)
                 .build();
         stored.set(document);
@@ -136,7 +139,7 @@ class DocumentIndexingServiceImplTest {
 
         CourseDocument document = service.uploadDocument(subjectId, "C:\\tmp\\Giáo trình.pdf", content, lecturer);
 
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.UPLOADED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
         assertThat(document.getStorageKey()).isEqualTo("2026/10/k.pdf");
         assertThat(document.getFileSizeBytes()).isEqualTo(content.length);
         verify(events).publishDocumentIndexingRequested(document.getDocumentId());
@@ -171,19 +174,25 @@ class DocumentIndexingServiceImplTest {
         when(splitter.split(anyList())).thenReturn(List.of(
                 new TextChunk("c1", 10, 1, 1, "Chương 1"), new TextChunk("c2", 10, 1, 2, null),
                 new TextChunk("c3", 10, 2, 2, null)));
-        when(embedding.generateEmbeddings(anyList())).thenAnswer(inv -> {
+        when(chunkRepository.embedChunks(anyList())).thenAnswer(inv -> {
             List<String> texts = inv.getArgument(0);
             return texts.stream().map(t -> new float[]{1, 0, 0, 0}).toList();
         });
 
         service.indexDocument(document.getDocumentId());
 
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.READY);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.READY);
         assertThat(document.getTotalChunks()).isEqualTo(3);
         assertThat(document.getIndexAttempts()).isEqualTo(1);
-        verify(embedding, times(2)).generateEmbeddings(anyList()); // batch size 2 → 2 calls for 3 chunks
+        verify(chunkRepository).embedChunks(anyList());
         ArgumentCaptor<List<DocumentChunk>> chunks = ArgumentCaptor.forClass(List.class);
-        verify(chunkRepository).saveAll(chunks.capture());
+        verify(chunkRepository).storeEmbeddings(chunks.capture());
+        var order=org.mockito.Mockito.inOrder(parser,splitter,chunkRepository,db);
+        order.verify(parser).extract(any(),any());
+        order.verify(splitter).split(anyList());
+        order.verify(chunkRepository).embedChunks(anyList());
+        order.verify(chunkRepository).storeEmbeddings(anyList());
+        order.verify(db).updateDocumentStatus(eq(document),eq(DocumentStatus.READY),eq(3),any());
         assertThat(chunks.getValue()).extracting(DocumentChunk::getChunkIndex).containsExactly(1, 2, 3);
         assertThat(chunks.getValue()).allMatch(c -> c.getEmbedding().length == 4);
     }
@@ -195,11 +204,11 @@ class DocumentIndexingServiceImplTest {
         when(storage.load(any())).thenReturn(new byte[]{1});
         when(parser.extract(any(), any())).thenReturn(List.of(new ParsedSection("Nội dung đủ dài để lập chỉ mục.", null, null)));
         when(splitter.split(anyList())).thenReturn(List.of(new TextChunk("c1", 10, null, null, null)));
-        when(embedding.generateEmbeddings(anyList())).thenThrow(new AiServiceException("Embedding provider call failed"));
+        when(chunkRepository.embedChunks(anyList())).thenThrow(new AiServiceException("Embedding provider call failed"));
 
         service.indexDocument(document.getDocumentId());
 
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.FAILED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.FAILED);
         assertThat(document.getErrorMessage()).contains("Embedding service error");
         verify(chunkRepository).deleteByDocumentId(document.getDocumentId());
         verify(chunkRepository, never()).saveAll(anyList());
@@ -212,10 +221,10 @@ class DocumentIndexingServiceImplTest {
         when(storage.load(any())).thenReturn(new byte[]{1});
         when(parser.extract(any(), any())).thenReturn(List.of(new ParsedSection("Nội dung đủ dài để lập chỉ mục.", null, null)));
         when(splitter.split(anyList())).thenReturn(List.of(new TextChunk("c1", 10, null, null, null)));
-        when(embedding.generateEmbeddings(anyList())).thenReturn(List.of(new float[3]));
+        when(chunkRepository.embedChunks(anyList())).thenThrow(new AiServiceException("Embedding dimensions mismatch"));
 
         service.indexDocument(document.getDocumentId());
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.FAILED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.FAILED);
         assertThat(document.getErrorMessage()).contains("dimensions");
     }
 
@@ -227,7 +236,7 @@ class DocumentIndexingServiceImplTest {
         when(parser.extract(any(), any())).thenReturn(List.of(new ParsedSection("   ", 1, null)));
 
         service.indexDocument(document.getDocumentId());
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.FAILED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.FAILED);
         assertThat(document.getErrorMessage()).isEqualTo(ErrorCode.EMPTY_DOCUMENT_TEXT.getMessage());
         verify(embedding, never()).generateEmbeddings(anyList());
     }
@@ -235,7 +244,7 @@ class DocumentIndexingServiceImplTest {
     @Test
     void indexingSkipsDocumentsNotUploaded() {
         CourseDocument document = uploadedDocument();
-        document.setIndexingStatus(DocumentIndexingStatus.READY);
+        document.setIndexingStatus(DocumentStatus.READY);
         service.indexDocument(document.getDocumentId());
         verify(storage, never()).load(any());
     }
@@ -249,7 +258,7 @@ class DocumentIndexingServiceImplTest {
         document.markFailed("x");
 
         service.retryIndexing(document.getDocumentId(), lecturer);
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.UPLOADED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
         verify(events).publishDocumentIndexingRequested(document.getDocumentId());
 
         document.startIndexing();
@@ -279,6 +288,6 @@ class DocumentIndexingServiceImplTest {
         when(documentRepository.findStaleUploadedDocuments(any())).thenReturn(List.of());
         when(documentRepository.findAllByIds(any())).thenReturn(List.of(indexing));
         assertThat(service.failStaleDocuments(java.time.Instant.now(), java.time.Instant.now())).isEqualTo(1);
-        assertThat(indexing.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.FAILED);
+        assertThat(indexing.getIndexingStatus()).isEqualTo(DocumentStatus.FAILED);
     }
 }

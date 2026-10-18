@@ -10,7 +10,9 @@ import java.util.UUID;
  * UC1.1: upload a course document, index it asynchronously (extract → chunk → embed → store vectors),
  * follow its status and retry a FAILED indexing within a bounded budget.
  */
-public interface DocumentIndexingService {
+public interface DocumentOperations {
+    CourseDocument processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId);
+    void archiveDocument(UUID documentId, UUID actorId);
     /** Validates and stores the file, saves it as UPLOADED and schedules indexing after commit. */
     CourseDocument uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId);
 

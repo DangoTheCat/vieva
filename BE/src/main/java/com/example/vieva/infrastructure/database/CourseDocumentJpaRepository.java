@@ -33,9 +33,9 @@ public interface CourseDocumentJpaRepository extends JpaRepository<CourseDocumen
     @EntityGraph(attributePaths = {"subject"})
     List<CourseDocumentJpaEntity> findByDocumentIdInAndDeletedAtIsNull(Collection<UUID> documentIds);
 
-    @Query("SELECT d FROM CourseDocumentJpaEntity d WHERE d.indexingStatus = com.example.vieva.domain.entities.DocumentIndexingStatus.INDEXING AND d.updatedAt < :threshold AND d.deletedAt IS NULL")
+    @Query("SELECT d FROM CourseDocumentJpaEntity d WHERE d.indexingStatus = com.example.vieva.domain.entities.DocumentStatus.INDEXING AND d.updatedAt < :threshold AND d.deletedAt IS NULL")
     List<CourseDocumentJpaEntity> findStaleIndexing(@Param("threshold") Instant threshold);
 
-    @Query("SELECT d FROM CourseDocumentJpaEntity d WHERE d.indexingStatus = com.example.vieva.domain.entities.DocumentIndexingStatus.UPLOADED AND d.updatedAt < :threshold AND d.deletedAt IS NULL")
+    @Query("SELECT d FROM CourseDocumentJpaEntity d WHERE d.indexingStatus = com.example.vieva.domain.entities.DocumentStatus.UPLOADED AND d.updatedAt < :threshold AND d.deletedAt IS NULL")
     List<CourseDocumentJpaEntity> findStaleUploaded(@Param("threshold") Instant threshold);
 }

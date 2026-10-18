@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.usecases.document.DocumentIndexingService;
+import com.example.vieva.application.usecases.document.DocumentOperations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,12 +13,12 @@ import java.time.Instant;
 @Component
 public class StaleDocumentCleanupScheduler {
 
-    private final DocumentIndexingService documentIndexingService;
+    private final DocumentOperations documentIndexingService;
     private final Duration indexingTimeout;
     private final Duration uploadedTimeout;
 
     public StaleDocumentCleanupScheduler(
-            DocumentIndexingService documentIndexingService,
+            DocumentOperations documentIndexingService,
             @Value("${vieva.documents.indexing-timeout:PT30M}") Duration indexingTimeout,
             @Value("${vieva.documents.uploaded-timeout:PT15M}") Duration uploadedTimeout) {
         this.documentIndexingService = documentIndexingService;
