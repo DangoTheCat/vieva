@@ -6,6 +6,7 @@ import {
   Upload,
   Download,
   Plus,
+  Minus,
   Search,
   Filter,
   CheckCircle2,
@@ -26,11 +27,14 @@ import {
   FileSpreadsheet,
   ChevronDown,
   ChevronUp,
+  ChevronsUpDown,
+  Lightbulb,
   FileCheck,
   FileWarning,
   Cpu,
   ListOrdered,
-  Sliders
+  Sliders,
+  FolderPlus
 } from 'lucide-react';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { courseDocumentApi } from '../api/courseDocumentApi';
@@ -42,29 +46,76 @@ import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorCodes';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
+import { Pagination } from '../components/common/Pagination';
 
 // Bloom Taxonomy Levels & Color Tokens (Pedagogical UI)
 const BLOOM_LEVELS = [
-  { value: 'REMEMBER', label: '1. Nhận Biết (Remember)', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'UNDERSTAND', label: '2. Thông Hiểu (Understand)', color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-  { value: 'APPLY', label: '3. Vận Dụng (Apply)', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'ANALYZE', label: '4. Phân Tích (Analyze)', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { value: 'EVALUATE', label: '5. Đánh Giá (Evaluate)', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  { value: 'CREATE', label: '6. Sáng Tạo (Create)', color: 'bg-purple-50 text-purple-700 border-purple-200' }
+  { value: 'REMEMBER', label: '1. Nhận Biết (Remember)', short: 'Nhớ', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
+  { value: 'UNDERSTAND', label: '2. Thông Hiểu (Understand)', short: 'Hiểu', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
+  { value: 'APPLY', label: '3. Vận Dụng (Apply)', short: 'Vận dụng', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
+  { value: 'ANALYZE', label: '4. Phân Tích (Analyze)', short: 'Phân tích', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
+  { value: 'EVALUATE', label: '5. Đánh Giá (Evaluate)', short: 'Đánh giá', color: 'bg-pink-100 text-pink-900 border-2 border-pink-400' },
+  { value: 'CREATE', label: '6. Sáng Tạo (Create)', short: 'Sáng tạo', color: 'bg-pink-200 text-pink-900 border-2 border-green-500' }
 ];
 
-// Split total 30/40/30 over REMEMBER/UNDERSTAND/APPLY; BE requires the sum to equal total exactly
-const BLOOM_SPLIT = [['UNDERSTAND', 0.4], ['REMEMBER', 0.3], ['APPLY', 0.3]];
+// Presets for RAG Bloom Taxonomy distribution
+const BLOOM_PRESETS = [
+  {
+    id: 'BALANCED',
+    name: 'Cân Bằng Chuẩn',
+    desc: 'Bao quát từ cơ bản đến vận dụng & phân tích',
+    weights: { REMEMBER: 0.2, UNDERSTAND: 0.3, APPLY: 0.3, ANALYZE: 0.2, EVALUATE: 0, CREATE: 0 }
+  },
+  {
+    id: 'VIVA_ORAL',
+    name: 'Vấn Đáp Viva',
+    desc: 'Ưu tiên phản biện, lập luận & đánh giá phương án',
+    weights: { REMEMBER: 0.1, UNDERSTAND: 0.2, APPLY: 0.3, ANALYZE: 0.25, EVALUATE: 0.15, CREATE: 0 }
+  },
+  {
+    id: 'FOUNDATIONAL',
+    name: 'Nền Tảng',
+    desc: 'Tập trung định nghĩa cốt lõi & hiểu nguyên lý',
+    weights: { REMEMBER: 0.4, UNDERSTAND: 0.4, APPLY: 0.2, ANALYZE: 0, EVALUATE: 0, CREATE: 0 }
+  },
+  {
+    id: 'ADVANCED',
+    name: 'Bậc Cao',
+    desc: 'Đào sâu phân tích, đánh giá & đề xuất giải pháp',
+    weights: { REMEMBER: 0, UNDERSTAND: 0.1, APPLY: 0.2, ANALYZE: 0.35, EVALUATE: 0.25, CREATE: 0.1 }
+  },
+  {
+    id: 'CUSTOM',
+    name: 'Tùy Chỉnh',
+    desc: 'Tự điều chỉnh số câu cho từng bậc Bloom',
+    weights: null
+  }
+];
 
-function buildBloomDistribution(total) {
-  const dist = {};
+function calculateBloomDistribution(total, weights) {
+  const dist = { REMEMBER: 0, UNDERSTAND: 0, APPLY: 0, ANALYZE: 0, EVALUATE: 0, CREATE: 0 };
+  const n = Math.max(1, Math.min(20, Number(total) || 1));
+  if (!weights) {
+    dist.UNDERSTAND = n;
+    return dist;
+  }
   let assigned = 0;
-  BLOOM_SPLIT.forEach(([level, ratio]) => {
-    dist[level] = Math.floor(total * ratio);
+  const entries = Object.entries(weights).filter(([_, w]) => w > 0);
+  if (entries.length === 0) {
+    dist.UNDERSTAND = n;
+    return dist;
+  }
+  entries.forEach(([level, weight]) => {
+    dist[level] = Math.floor(n * weight);
     assigned += dist[level];
   });
-  for (let i = 0; assigned < total; i = (i + 1) % BLOOM_SPLIT.length) {
-    dist[BLOOM_SPLIT[i][0]] += 1;
+  const remainders = entries.map(([level, weight]) => ({
+    level,
+    remainder: (n * weight) - Math.floor(n * weight)
+  })).sort((a, b) => b.remainder - a.remainder);
+
+  for (let i = 0; assigned < n; i = (i + 1) % remainders.length) {
+    dist[remainders[i].level] += 1;
     assigned += 1;
   }
   return dist;
@@ -102,14 +153,14 @@ function RubricCriteriaEditor({ criteria, onChange }) {
     <>
       <div className="space-y-2">
         {criteria.map((crit, idx) => (
-          <div key={idx} className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5">
+          <div key={idx} className="bg-paper p-3 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] space-y-2">
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Tên tiêu chí (VD: Tính đúng đắn)"
                 value={crit.name}
                 onChange={(e) => updateAt(idx, { name: e.target.value })}
-                className="flex-1 px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border-2 border-green-500 font-medium text-ink focus:outline-none focus:border-green-600 shadow-[1px_1px_0_#DEB9B5]"
               />
               <input
                 type="number"
@@ -118,13 +169,13 @@ function RubricCriteriaEditor({ criteria, onChange }) {
                 max="999.99"
                 value={crit.maxScore}
                 onChange={(e) => updateAt(idx, { maxScore: e.target.value })}
-                className="w-16 px-2 py-1.5 rounded-lg text-xs border border-slate-200 font-mono font-bold text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-16 px-2 py-1.5 rounded-lg text-xs bg-surface-container-lowest border-2 border-green-500 font-mono font-bold text-center text-ink focus:outline-none focus:border-green-600 shadow-[1px_1px_0_#DEB9B5]"
               />
               <button
                 type="button"
                 onClick={() => onChange(criteria.filter((_, i) => i !== idx))}
                 disabled={criteria.length <= 1}
-                className="p-1.5 text-slate-400 hover:text-rose-600 disabled:opacity-30"
+                className="p-1.5 text-on-surface-variant hover:text-error disabled:opacity-30 transition"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -134,7 +185,7 @@ function RubricCriteriaEditor({ criteria, onChange }) {
               placeholder="Mô tả tiêu chí (bắt buộc)"
               value={crit.description}
               onChange={(e) => updateAt(idx, { description: e.target.value })}
-              className="w-full px-2.5 py-1.5 rounded-lg text-[11px] border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full px-3 py-1.5 rounded-lg text-[11px] bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[1px_1px_0_#DEB9B5]"
             />
           </div>
         ))}
@@ -143,7 +194,7 @@ function RubricCriteriaEditor({ criteria, onChange }) {
       <button
         type="button"
         onClick={() => onChange([...criteria, { name: 'Tiêu chí bổ sung', description: '', maxScore: 2 }])}
-        className="text-xs font-bold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1"
+        className="text-xs font-bold text-green-700 hover:text-green-900 inline-flex items-center gap-1 transition"
       >
         <Plus className="w-3.5 h-3.5" />
         <span>Thêm tiêu chí chấm</span>
@@ -177,11 +228,19 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [filterTopicId, setFilterTopicId] = useState('ALL');
   const [filterBloom, setFilterBloom] = useState('ALL');
   const [expandedExpectedAnswers, setExpandedExpectedAnswers] = useState({});
+  const [bankPage, setBankPage] = useState(0);
+  const [bankPageSize, setBankPageSize] = useState(10);
+  const [bankTotalPages, setBankTotalPages] = useState(1);
+  const [bankTotalElements, setBankTotalElements] = useState(0);
 
   // Tab 3: Review Queue State
   const [reviewVersions, setReviewVersions] = useState([]);
   const [isLoadingReview, setIsLoadingReview] = useState(false);
   const [reviewStatusFilter, setReviewStatusFilter] = useState('DRAFT');
+  const [reviewPage, setReviewPage] = useState(0);
+  const [reviewPageSize, setReviewPageSize] = useState(10);
+  const [reviewTotalPages, setReviewTotalPages] = useState(1);
+  const [reviewTotalElements, setReviewTotalElements] = useState(0);
 
   // Modals state
   const [isCreateTopicModalOpen, setIsCreateTopicModalOpen] = useState(false);
@@ -204,9 +263,54 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [genTopicId, setGenTopicId] = useState('');
   const [genDocumentIds, setGenDocumentIds] = useState([]);
   const [genTotalQuestions, setGenTotalQuestions] = useState(3);
+  const [selectedBloomPreset, setSelectedBloomPreset] = useState('BALANCED');
+  const [bloomCounts, setBloomCounts] = useState(() => calculateBloomDistribution(3, BLOOM_PRESETS[0].weights));
   const [genLecturerNote, setGenLecturerNote] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [failedGenRequest, setFailedGenRequest] = useState(null);
+
+  const totalAllocatedBloom = useMemo(() => {
+    return Object.values(bloomCounts).reduce((sum, c) => sum + (Number(c) || 0), 0);
+  }, [bloomCounts]);
+
+  const isBloomBalanced = useMemo(() => {
+    return totalAllocatedBloom === Number(genTotalQuestions);
+  }, [totalAllocatedBloom, genTotalQuestions]);
+
+  const handleTotalQuestionsChange = (newVal) => {
+    const val = Number(newVal);
+    setGenTotalQuestions(newVal);
+    if (val >= 1 && val <= 20) {
+      const preset = BLOOM_PRESETS.find(p => p.id === selectedBloomPreset);
+      if (preset && preset.weights) {
+        setBloomCounts(calculateBloomDistribution(val, preset.weights));
+      }
+    }
+  };
+
+  const handleSelectBloomPreset = (presetId) => {
+    setSelectedBloomPreset(presetId);
+    const preset = BLOOM_PRESETS.find(p => p.id === presetId);
+    if (preset && preset.weights) {
+      setBloomCounts(calculateBloomDistribution(Number(genTotalQuestions), preset.weights));
+    }
+  };
+
+  const handleBloomCountChange = (level, deltaOrValue, isAbsolute = false) => {
+    setSelectedBloomPreset('CUSTOM');
+    setBloomCounts(prev => {
+      const current = prev[level] || 0;
+      const nextVal = isAbsolute ? Math.max(0, Number(deltaOrValue) || 0) : Math.max(0, current + deltaOrValue);
+      return { ...prev, [level]: nextVal };
+    });
+  };
+
+  const handleAutoBalanceBloom = () => {
+    const targetTotal = Math.max(1, Math.min(20, Number(genTotalQuestions) || 3));
+    const preset = BLOOM_PRESETS.find(p => p.id === selectedBloomPreset && p.weights) || BLOOM_PRESETS[0];
+    setBloomCounts(calculateBloomDistribution(targetTotal, preset.weights));
+    setSelectedBloomPreset(preset.id);
+  };
 
   // Import Modal State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -235,12 +339,6 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [regenVersionTarget, setRegenVersionTarget] = useState(null);
   const [regenFeedback, setRegenFeedback] = useState('');
 
-  // Default Subjects fallback when backend has no assignments or returns permission errors
-  const DEFAULT_SUBJECTS = useMemo(() => [
-    { subjectId: 'd0000000-0000-0000-0000-000000000001', subjectCode: 'SWD392', subjectName: 'SWD392 • Software Architecture & Design (Kiến Trúc Phần Mềm)' },
-    { subjectId: 'd0000000-0000-0000-0000-000000000003', subjectCode: 'PRN231', subjectName: 'PRN231 • Building Cross-Platform Apps with .NET' }
-  ], []);
-
   // 1. Load subjects assigned to lecturer
   useEffect(() => {
     async function loadCatalog() {
@@ -248,30 +346,31 @@ export function LecturerQuestionBankPage({ showToast }) {
       try {
         const data = await lecturerCatalogApi.getAssignedSubjects();
         const list = Array.isArray(data) ? data : data?.content || [];
+        setSubjects(list);
         if (list.length > 0) {
-          setSubjects(list);
-          if (!selectedSubjectId) {
+          if (!selectedSubjectId || !list.some(s => s.subjectId === selectedSubjectId)) {
             setSelectedSubjectId(list[0].subjectId);
           }
         } else {
-          setSubjects(DEFAULT_SUBJECTS);
-          if (!selectedSubjectId) setSelectedSubjectId('d0000000-0000-0000-0000-000000000001');
+          setSelectedSubjectId('');
         }
       } catch (err) {
-        // Suppress 1004 Admin error toast for lecturers and fallback seamlessly
-        setSubjects(DEFAULT_SUBJECTS);
-        if (!selectedSubjectId) setSelectedSubjectId('d0000000-0000-0000-0000-000000000001');
+        setSubjects([]);
+        setSelectedSubjectId('');
       } finally {
         setIsLoadingCatalog(false);
       }
     }
 
     loadCatalog();
-  }, [DEFAULT_SUBJECTS]);
+  }, []);
 
   // 2. Load Topics whenever selectedSubjectId changes
   useEffect(() => {
-    if (!selectedSubjectId) return;
+    if (!selectedSubjectId) {
+      setTopics([]);
+      return;
+    }
 
     async function loadTopics() {
       try {
@@ -293,112 +392,128 @@ export function LecturerQuestionBankPage({ showToast }) {
 
   // 3. Load tab specific data
   useEffect(() => {
-    if (!selectedSubjectId) return;
+    if (!selectedSubjectId) {
+      setDocuments([]);
+      setBankQuestions([]);
+      setReviewVersions([]);
+      return;
+    }
 
     if (activeTab === 'documents') {
       loadDocuments();
     } else if (activeTab === 'bank') {
-      loadBank();
+      setBankPage(0);
+      loadBank(0);
     } else if (activeTab === 'review') {
-      loadReviewQueue();
+      setReviewPage(0);
+      loadReviewQueue(0);
     }
   }, [selectedSubjectId, activeTab]);
 
-const MOCK_BANK_DOCUMENTS = [
-  {
-    documentId: 'doc-bank-01',
-    fileName: 'Giao_Trinh_Onion_Architecture_SWD392.pdf',
-    fileType: 'pdf',
-    fileSizeBytes: 3800000,
-    status: 'READY',
-    chunkCount: 35,
-    createdAt: '2026-09-20T08:00:00Z'
-  }
-];
-
-const MOCK_BANK_QUESTIONS = [
-  {
-    questionId: 'q-bank-01',
-    subjectId: 'SWD392',
-    topicName: 'Kiến Trúc Phân Tầng Onion',
-    bloomLevel: 'ANALYSIS',
-    content: 'Tại sao tầng Domain Core trong Onion Architecture không phụ thuộc vào bất kỳ thư viện ORM nào?',
-    expectedAnswer: 'Domain Core chứa quy tắc nghiệp vụ cốt lõi (Business Logic). Việc độc lập với ORM giúp dễ dàng thay đổi DB và bảo vệ logic nghiệp vụ.',
-    status: 'APPROVED',
-    activeVersionId: 'ver-bank-01'
-  },
-  {
-    questionId: 'q-bank-02',
-    subjectId: 'SWD392',
-    topicName: 'Domain-Driven Design (DDD)',
-    bloomLevel: 'APPLICATION',
-    content: 'Phân biệt ý nghĩa thiết kế giữa Aggregate Root và Domain Entity thông thường.',
-    expectedAnswer: 'Aggregate Root đóng vai trò làm cổng giao tiếp (Boundary) cho cả cụm Entity, đảm bảo tính nhất quán dữ liệu (Invariants).',
-    status: 'APPROVED',
-    activeVersionId: 'ver-bank-02'
-  }
-];
-
-const MOCK_REVIEW_QUEUE = [
-  {
-    versionId: 'ver-rev-01',
-    questionId: 'q-rev-01',
-    versionNumber: 1,
-    status: 'DRAFT',
-    content: 'Phân tích nguyên lý Single Responsibility Principle (SRP) trong thiết kế Service Layer.',
-    expectedAnswer: 'Mỗi Service chỉ đảm nhận một lý do duy nhất để thay đổi, tránh biến Service thành God Class.',
-    bloomLevel: 'ANALYSIS',
-    sourceDocumentName: 'Giao_Trinh_Onion_Architecture_SWD392.pdf',
-    sourceChunkText: 'Trích đoạn chương 2: Thiết kế Service và nguyên lý SOLID trong C# / Java Enterprise.'
-  }
-];
-
   const loadDocuments = async () => {
+    if (!selectedSubjectId) {
+      setDocuments([]);
+      return;
+    }
     setIsLoadingDocs(true);
     try {
       const data = await courseDocumentApi.getDocuments(selectedSubjectId);
       const list = Array.isArray(data) ? data : data?.content || [];
-      setDocuments(list.length > 0 ? list : MOCK_BANK_DOCUMENTS);
+      setDocuments(list);
     } catch (err) {
-      setDocuments(MOCK_BANK_DOCUMENTS);
+      setDocuments([]);
     } finally {
       setIsLoadingDocs(false);
     }
   };
 
-  const loadBank = async () => {
+  const loadBank = async (pageOverride, sizeOverride, topicOverride, bloomOverride, keywordOverride) => {
+    if (!selectedSubjectId) {
+      setBankQuestions([]);
+      setBankTotalPages(1);
+      setBankTotalElements(0);
+      return;
+    }
     setIsLoadingBank(true);
+    const targetPage = pageOverride !== undefined ? pageOverride : bankPage;
+    const targetSize = sizeOverride !== undefined ? sizeOverride : bankPageSize;
+    const targetTopic = topicOverride !== undefined ? topicOverride : filterTopicId;
+    const targetBloom = bloomOverride !== undefined ? bloomOverride : filterBloom;
+    const targetKeyword = keywordOverride !== undefined ? keywordOverride : searchBankKeyword;
+
     try {
-      const params = { page: 0, size: 50 };
-      if (filterTopicId !== 'ALL') params.topicId = filterTopicId;
-      if (filterBloom !== 'ALL') params.bloomLevel = filterBloom;
-      if (searchBankKeyword) params.keyword = searchBankKeyword;
+      const params = { page: targetPage, size: targetSize };
+      if (targetTopic !== 'ALL') params.topicId = targetTopic;
+      if (targetBloom !== 'ALL') params.bloomLevel = targetBloom;
+      if (targetKeyword?.trim()) params.keyword = targetKeyword.trim();
 
       const data = await questionBankApi.searchBank(selectedSubjectId, params);
       const list = data?.content || (Array.isArray(data) ? data : []);
-      setBankQuestions(list.length > 0 ? list : MOCK_BANK_QUESTIONS);
+      setBankQuestions(list);
+      setBankPage(data?.page ?? targetPage);
+      setBankTotalPages(data?.totalPages || 1);
+      setBankTotalElements(data?.totalElements ?? list.length);
     } catch (err) {
-      setBankQuestions(MOCK_BANK_QUESTIONS);
+      setBankQuestions([]);
+      setBankTotalPages(1);
+      setBankTotalElements(0);
     } finally {
       setIsLoadingBank(false);
     }
   };
 
-  const loadReviewQueue = async () => {
+  const handleBankPageChange = (newPage) => {
+    setBankPage(newPage);
+    loadBank(newPage);
+  };
+
+  const handleBankPageSizeChange = (newSize) => {
+    setBankPageSize(newSize);
+    setBankPage(0);
+    loadBank(0, newSize);
+  };
+
+  const loadReviewQueue = async (pageOverride, sizeOverride, statusOverride) => {
+    if (!selectedSubjectId) {
+      setReviewVersions([]);
+      setReviewTotalPages(1);
+      setReviewTotalElements(0);
+      return;
+    }
     setIsLoadingReview(true);
+    const targetPage = pageOverride !== undefined ? pageOverride : reviewPage;
+    const targetSize = sizeOverride !== undefined ? sizeOverride : reviewPageSize;
+    const targetStatus = statusOverride !== undefined ? statusOverride : reviewStatusFilter;
+
     try {
       const data = await questionBankApi.searchVersions(selectedSubjectId, {
-        status: reviewStatusFilter === 'ALL' ? undefined : reviewStatusFilter,
-        page: 0,
-        size: 50
+        status: targetStatus === 'ALL' ? undefined : targetStatus,
+        page: targetPage,
+        size: targetSize
       });
       const list = data?.content || (Array.isArray(data) ? data : []);
-      setReviewVersions(list.length > 0 ? list : MOCK_REVIEW_QUEUE);
+      setReviewVersions(list);
+      setReviewPage(data?.page ?? targetPage);
+      setReviewTotalPages(data?.totalPages || 1);
+      setReviewTotalElements(data?.totalElements ?? list.length);
     } catch (err) {
-      setReviewVersions(MOCK_REVIEW_QUEUE);
+      setReviewVersions([]);
+      setReviewTotalPages(1);
+      setReviewTotalElements(0);
     } finally {
       setIsLoadingReview(false);
     }
+  };
+
+  const handleReviewPageChange = (newPage) => {
+    setReviewPage(newPage);
+    loadReviewQueue(newPage);
+  };
+
+  const handleReviewPageSizeChange = (newSize) => {
+    setReviewPageSize(newSize);
+    setReviewPage(0);
+    loadReviewQueue(0, newSize);
   };
 
   // Create Topic
@@ -516,7 +631,8 @@ const MOCK_REVIEW_QUEUE = [
       await questionBankApi.createManualQuestion(selectedSubjectId, payload);
       showToast({ type: 'success', message: 'Tạo câu hỏi thành công! Bản nháp đã được gửi vào hàng đợi duyệt.' });
       setActiveTab('review');
-      loadReviewQueue();
+      setReviewPage(0);
+      loadReviewQueue(0);
       setIsManualQuestionModalOpen(false);
       setManualContent('');
       setManualExpectedAnswer('');
@@ -533,7 +649,8 @@ const MOCK_REVIEW_QUEUE = [
       await questionBankApi.createDraftFromApproved(questionId);
       showToast({ type: 'success', message: 'Đã tạo bản nháp mới (Copy-on-Write). Chuyển đến Hàng đợi duyệt để chỉnh sửa.' });
       setActiveTab('review');
-      loadReviewQueue();
+      setReviewPage(0);
+      loadReviewQueue(0);
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     }
@@ -575,15 +692,32 @@ const MOCK_REVIEW_QUEUE = [
       return;
     }
 
+    const total = Number(genTotalQuestions);
+    if (!total || total < 1 || total > 20) {
+      showToast({ type: 'error', message: 'Số lượng câu hỏi phải từ 1 đến 20.' });
+      return;
+    }
+
+    if (totalAllocatedBloom !== total) {
+      showToast({
+        type: 'error',
+        message: `Tổng số câu phân bổ (${totalAllocatedBloom}) chưa khớp với số lượng yêu cầu (${total}). Vui lòng cân bằng lại trước khi sinh câu hỏi.`
+      });
+      return;
+    }
+
     setIsGeneratingAi(true);
     try {
-      const total = Number(genTotalQuestions);
+      const distribution = Object.fromEntries(
+        Object.entries(bloomCounts).filter(([_, count]) => Number(count) > 0)
+      );
+
       const payload = {
         subjectId: selectedSubjectId,
         topicId: genTopicId || null,
         documentIds: genDocumentIds,
         totalQuestions: total,
-        bloomDistribution: buildBloomDistribution(total),
+        bloomDistribution: distribution,
         lecturerNote: genLecturerNote.trim()
       };
 
@@ -804,76 +938,97 @@ const MOCK_REVIEW_QUEUE = [
   }, [subjects, selectedSubjectId]);
 
   return (
-    <div className="space-y-6 animate-modal-entry">
+    <div className="space-y-6 animate-modal-entry bg-paper text-ink min-h-screen">
 
       {/* HEADER SECTION & SUBJECT PICKER */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-paper p-6 rounded-2xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-sky-600 font-bold text-xs uppercase tracking-wider mb-1">
-            <Database className="w-4 h-4" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 border-2 border-green-500 text-xs font-semibold shadow-[2px_2px_0_#DEB9B5] mb-2">
+            <Database className="w-3.5 h-3.5 text-green-700" />
             <span>Module 1 &amp; Group 1 — Question Bank &amp; RAG Pipeline</span>
           </div>
-          <h1 className="text-xl font-heading font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-xl font-heading font-extrabold text-ink tracking-tight">
             Ngân Hàng Câu Hỏi &amp; Quản Lý RAG Giáo Trình
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Quản trị kho học liệu, bóc tách vector hóa giáo trình, kích hoạt AI RAG và thẩm định ma trận Rubric.
+          <p className="text-sm italic text-pink-700 mt-0.5 font-normal">
+            Thẩm định năng lực tư duy kiến trúc • Đối soát học liệu đa tầng
+          </p>
+          <p className="text-xs text-on-surface-variant mt-1 max-w-3xl">
+            Quản trị kho học liệu, bóc tách vector hóa giáo trình, kích hoạt AI RAG và thẩm định ma trận Rubric đa tiêu chí theo chuẩn Bloom.
           </p>
         </div>
 
-        {/* SUBJECT SWITCHER DROPDOWN */}
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Môn Học Phụ Trách</p>
-            <p className="text-xs font-bold text-slate-800">{activeSubject ? activeSubject.subjectCode : 'Chưa chọn'}</p>
+        {/* SUBJECT SWITCHER BOX */}
+        <div className="w-full md:w-80 bg-paper border-2 border-green-500 rounded-xl p-3.5 shadow-[3px_3px_0_#DEB9B5] transition-all">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] text-green-700 uppercase tracking-wider font-bold">MÔN HỌC PHỤ TRÁCH</span>
+            <span className="px-2 py-0.5 rounded-full bg-green-500 text-paper font-bold text-[10px] tracking-wide">ACTIVE</span>
           </div>
-          <select
-            value={selectedSubjectId}
-            onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="py-2.5 px-3.5 rounded-xl text-xs bg-slate-50 border border-slate-300 font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-xs"
-          >
-            {subjects.map(s => (
-              <option key={s.subjectId} value={s.subjectId}>
-                [{s.subjectCode}] {s.subjectName}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              className="w-full appearance-none bg-surface-container-lowest border-2 border-green-500 rounded-lg py-1.5 pl-3 pr-8 text-xs font-bold text-ink cursor-pointer focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5]"
+            >
+              {subjects.map(s => (
+                <option key={s.subjectId} value={s.subjectId}>
+                  [{s.subjectCode}] {s.subjectName}
+                </option>
+              ))}
+            </select>
+            <ChevronsUpDown className="w-4 h-4 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-green-700" />
+          </div>
+          <div className="mt-2 pt-1.5 border-t-2 border-cream flex items-center justify-between text-[11px] text-on-surface-variant">
+            <span>Mã: <strong className="text-ink">{activeSubject ? activeSubject.subjectCode : 'Chưa chọn'}</strong></span>
+            <span>Học kỳ: <strong className="text-ink">Fall 2026</strong></span>
+          </div>
         </div>
       </div>
 
       {/* TOPIC BANNER & SHORTCUT BAR */}
-      <div className="bg-slate-900 text-slate-200 p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-slate-400 font-medium">Chủ đề đề cương:</span>
-          <span className="font-bold text-white">{topics.length} chủ đề đang kích hoạt</span>
+      <div className="bg-paper border-2 border-green-500 rounded-xl p-4 shadow-[3px_3px_0_#DEB9B5] flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-green-100 border-2 border-green-500 flex items-center justify-center shrink-0 text-green-700 shadow-[2px_2px_0_#DEB9B5]">
+            <FolderPlus className="w-5 h-5 text-green-700" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs text-ink flex items-center gap-1.5 flex-wrap">
+              <span>Chủ đề đề cương:</span>
+              <span className="font-bold text-green-800">{topics.length} chủ đề đang kích hoạt</span>
+              <span className="text-pink-600">•</span>
+              <span className="text-on-surface-variant font-normal">Quản trị phân bố câu hỏi theo chuẩn đầu ra</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsCreateTopicModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5 text-sky-400" />
-            <span>Thêm Chủ Đề</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateTopicModalOpen(true)}
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+        >
+          <Plus className="w-4 h-4 text-green-700" />
+          <span>+ Thêm Chủ Đề Mới</span>
+        </button>
       </div>
 
       {/* THREE MAIN WORKSPACE TABS */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-1">
+      <div className="flex items-center gap-2 overflow-x-auto border-b-2 border-cream pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('bank')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'bank'
-              ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/20'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+          className={`inline-flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === 'bank'
+              ? 'bg-pink-200 border-green-500 text-pink-900 shadow-[3px_3px_0_#DEB9B5]'
+              : 'bg-paper border-transparent hover:border-green-500 text-on-surface-variant hover:text-ink'
+          }`}
         >
           <Database className="w-4 h-4" />
           <span>Ngân Hàng Chính Thức</span>
-          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'bank' ? 'bg-sky-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
+            activeTab === 'bank'
+              ? 'bg-pink-100 text-pink-900 border-green-500'
+              : 'bg-green-100 text-green-800 border-transparent'
+          }`}>
             {bankQuestions.length}
           </span>
         </button>
@@ -881,14 +1036,19 @@ const MOCK_REVIEW_QUEUE = [
         <button
           type="button"
           onClick={() => setActiveTab('documents')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'documents'
-              ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/20'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+          className={`inline-flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === 'documents'
+              ? 'bg-pink-200 border-green-500 text-pink-900 shadow-[3px_3px_0_#DEB9B5]'
+              : 'bg-paper border-transparent hover:border-green-500 text-on-surface-variant hover:text-ink'
+          }`}
         >
           <FileText className="w-4 h-4" />
           <span>Kho Giáo Trình RAG</span>
-          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'documents' ? 'bg-sky-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
+            activeTab === 'documents'
+              ? 'bg-pink-100 text-pink-900 border-green-500'
+              : 'bg-green-100 text-green-800 border-transparent'
+          }`}>
             {documents.length}
           </span>
         </button>
@@ -896,14 +1056,19 @@ const MOCK_REVIEW_QUEUE = [
         <button
           type="button"
           onClick={() => setActiveTab('review')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'review'
-              ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/20'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+          className={`inline-flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === 'review'
+              ? 'bg-pink-200 border-green-500 text-pink-900 shadow-[3px_3px_0_#DEB9B5]'
+              : 'bg-paper border-transparent hover:border-green-500 text-on-surface-variant hover:text-ink'
+          }`}
         >
-          <Sparkles className="w-4 h-4 text-amber-300" />
+          <Sparkles className="w-4 h-4 text-pink-600" />
           <span>Hàng Đợi Thẩm Định &amp; AI</span>
-          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'review' ? 'bg-sky-700 text-white' : 'bg-amber-100 text-amber-800'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
+            activeTab === 'review'
+              ? 'bg-pink-100 text-pink-900 border-green-500'
+              : 'bg-pink-100 text-pink-800 border-pink-400'
+          }`}>
             {reviewVersions.length}
           </span>
         </button>
@@ -915,17 +1080,17 @@ const MOCK_REVIEW_QUEUE = [
       {activeTab === 'documents' && (
         <div className="space-y-6">
           {/* UPLOAD DROPZONE */}
-          <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-sky-300/80 bg-sky-50/20 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mb-3">
+          <div className="bg-paper p-6 rounded-2xl border-2 border-dashed border-green-500 shadow-[3px_3px_0_#DEB9B5] flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 rounded-2xl bg-green-100 border-2 border-green-500 text-green-700 flex items-center justify-center mb-3 shadow-[2px_2px_0_#DEB9B5]">
               <Upload className="w-6 h-6" />
             </div>
-            <h3 className="font-heading font-extrabold text-slate-900 text-sm">
+            <h3 className="font-heading font-extrabold text-ink text-sm">
               Tải Lên Tài Liệu Giáo Trình &amp; Đề Cương (RAG Source)
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mt-1">
+            <p className="text-xs text-on-surface-variant max-w-md mt-1">
               Hệ thống tự động sử dụng Apache Tika bóc tách văn bản, cắt đoạn 800 tokens và vector hóa 1536 chiều với pgvector.
             </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-green-700 mt-0.5 font-medium">
               Hỗ trợ: PDF, DOCX, PPTX, TXT (Tối đa 20MB)
             </p>
 
@@ -939,7 +1104,7 @@ const MOCK_REVIEW_QUEUE = [
               />
               <label
                 htmlFor="doc-upload-input"
-                className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs cursor-pointer shadow-xs transition active:scale-95"
+                className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 hover:bg-green-100 text-green-900 font-bold text-xs cursor-pointer shadow-[2px_2px_0_#DEB9B5] transition active:scale-95"
               >
                 {docFileToUpload ? docFileToUpload.name : 'Chọn Tệp Tin Từ Máy...'}
               </label>
@@ -948,27 +1113,27 @@ const MOCK_REVIEW_QUEUE = [
                 type="button"
                 onClick={handleUploadDocument}
                 disabled={!docFileToUpload || isUploadingDoc}
-                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
               >
-                {isUploadingDoc && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                {isUploadingDoc && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                 <span>Bắt Đầu Tải Lên &amp; Lập Chỉ Mục</span>
               </button>
             </div>
           </div>
 
           {/* DOCUMENTS LIST */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="bg-paper rounded-2xl border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] overflow-hidden">
+            <div className="p-4 bg-green-50 border-b-2 border-green-500 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-slate-600" />
-                <h3 className="font-heading font-extrabold text-xs text-slate-800 uppercase tracking-wider">
+                <FileText className="w-4 h-4 text-green-700" />
+                <h3 className="font-heading font-extrabold text-xs text-ink uppercase tracking-wider">
                   Danh Sách Giáo Trình Đã Tải Lên ({documents.length})
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={loadDocuments}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition"
+                className="p-1.5 text-green-700 hover:text-green-900 rounded-lg hover:bg-green-100 transition"
                 title="Làm mới danh sách"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -980,14 +1145,14 @@ const MOCK_REVIEW_QUEUE = [
                 <SkeletonTable rows={3} columns={5} />
               </div>
             ) : documents.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-xs">
+              <div className="p-12 text-center text-on-surface-variant text-xs">
                 Chưa có tài liệu giáo trình nào cho môn học này. Hãy tải lên tài liệu đầu tiên để phục vụ sinh câu hỏi AI.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                    <tr className="bg-green-100/60 border-b-2 border-cream text-green-900 font-bold uppercase tracking-wider text-[11px]">
                       <th className="py-3 px-4">Tên Tệp Tin</th>
                       <th className="py-3 px-4">Dung Lượng</th>
                       <th className="py-3 px-4">Trạng Thái RAG</th>
@@ -996,49 +1161,49 @@ const MOCK_REVIEW_QUEUE = [
                       <th className="py-3 px-4 text-right">Thao Tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-cream">
                     {documents.map((doc) => (
-                      <tr key={doc.documentId} className="hover:bg-slate-50/80 transition">
-                        <td className="py-3.5 px-4 font-semibold text-slate-900">
+                      <tr key={doc.documentId} className="hover:bg-green-50/60 transition">
+                        <td className="py-3.5 px-4 font-semibold text-ink">
                           <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-sky-600 shrink-0" />
+                            <FileText className="w-4 h-4 text-pink-600 shrink-0" />
                             <span className="truncate max-w-xs">{doc.fileName}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-slate-500 font-mono">
+                        <td className="py-3.5 px-4 text-on-surface-variant font-mono">
                           {(doc.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB
                         </td>
                         <td className="py-3.5 px-4">
                           {doc.indexingStatus === 'READY' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-green-100 text-green-800 border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-green-700" />
                               READY (Đã Lập Chỉ Mục)
                             </span>
                           )}
                           {doc.indexingStatus === 'INDEXING' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-sky-50 text-sky-700 border border-sky-200">
-                              <span className="w-3 h-3 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-pink-100 text-pink-900 border-2 border-pink-400">
+                              <span className="w-3 h-3 border-2 border-pink-700 border-t-transparent rounded-full animate-spin"></span>
                               INDEXING...
                             </span>
                           )}
                           {doc.indexingStatus === 'UPLOADED' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-300">
-                              <Clock className="w-3.5 h-3.5" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-paper text-ink border-2 border-green-500">
+                              <Clock className="w-3.5 h-3.5 text-green-700" />
                               UPLOADED
                             </span>
                           )}
                           {doc.indexingStatus === 'FAILED' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
-                              <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-pink-50 text-error border-2 border-error">
+                              <AlertCircle className="w-3.5 h-3.5 text-error" />
                               FAILED
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                        <td className="py-3.5 px-4 font-mono font-bold text-green-900">
                           {doc.totalChunks || 0} chunks
                         </td>
                         <td className="py-3.5 px-4">
-                          <p className="text-[11px] text-slate-500 line-clamp-2 max-w-sm">
+                          <p className="text-[11px] text-on-surface-variant line-clamp-2 max-w-sm">
                             {doc.errorMessage || `Số lần lập chỉ mục: ${doc.indexAttempts || 0}`}
                           </p>
                         </td>
@@ -1047,7 +1212,7 @@ const MOCK_REVIEW_QUEUE = [
                             <button
                               type="button"
                               onClick={() => handleRetryIndexing(doc.documentId)}
-                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition"
+                              className="p-1.5 rounded-lg bg-paper border-2 border-green-500 text-green-800 hover:bg-green-100 transition shadow-[1px_1px_0_#DEB9B5]"
                               title="Thử lập chỉ mục lại"
                             >
                               <RotateCcw className="w-4 h-4" />
@@ -1056,7 +1221,7 @@ const MOCK_REVIEW_QUEUE = [
                           <button
                             type="button"
                             onClick={() => setDeleteDocTarget(doc)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                            className="p-1.5 rounded-lg bg-paper border-2 border-green-500 text-on-surface-variant hover:text-error hover:border-error hover:bg-pink-50 transition shadow-[1px_1px_0_#DEB9B5]"
                             title="Xóa tài liệu giáo trình"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1078,49 +1243,73 @@ const MOCK_REVIEW_QUEUE = [
       {activeTab === 'bank' && (
         <div className="space-y-6">
           {/* ACTION TOOLBAR & FILTERS */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-            <div className="flex flex-wrap items-center gap-2 flex-1">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-paper p-4 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5]">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 flex-1">
               {/* Search */}
-              <div className="relative min-w-[220px]">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div className="relative min-w-[220px] flex-1">
+                <Search className="w-4 h-4 text-green-700 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Tìm câu hỏi, từ khóa..."
+                  placeholder="Tìm câu hỏi, từ khóa hoặc mã..."
                   value={searchBankKeyword}
                   onChange={(e) => setSearchBankKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && loadBank()}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setBankPage(0);
+                      loadBank(0);
+                    }
+                  }}
+                  className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border-2 border-green-500 text-ink placeholder:text-on-surface-variant focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
               {/* Topic Filter */}
-              <select
-                value={filterTopicId}
-                onChange={(e) => setFilterTopicId(e.target.value)}
-                className="py-2 px-3 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-              >
-                <option value="ALL">Tất cả chủ đề</option>
-                {topics.map(t => (
-                  <option key={t.topicId} value={t.topicId}>{t.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={filterTopicId}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setFilterTopicId(next);
+                    setBankPage(0);
+                    loadBank(0, undefined, next, undefined, undefined);
+                  }}
+                  className="w-full md:w-48 appearance-none bg-surface-container-lowest border-2 border-green-500 rounded-lg py-1.5 pl-3 pr-8 text-xs font-semibold text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] cursor-pointer"
+                >
+                  <option value="ALL">Tất cả chủ đề</option>
+                  {topics.map(t => (
+                    <option key={t.topicId} value={t.topicId}>{t.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-green-700" />
+              </div>
 
               {/* Bloom Filter */}
-              <select
-                value={filterBloom}
-                onChange={(e) => setFilterBloom(e.target.value)}
-                className="py-2 px-3 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-              >
-                <option value="ALL">Tất cả cấp độ Bloom</option>
-                {BLOOM_LEVELS.map(b => (
-                  <option key={b.value} value={b.value}>{b.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={filterBloom}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setFilterBloom(next);
+                    setBankPage(0);
+                    loadBank(0, undefined, undefined, next, undefined);
+                  }}
+                  className="w-full md:w-52 appearance-none bg-surface-container-lowest border-2 border-green-500 rounded-lg py-1.5 pl-3 pr-8 text-xs font-semibold text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] cursor-pointer"
+                >
+                  <option value="ALL">Tất cả cấp độ Bloom</option>
+                  {BLOOM_LEVELS.map(b => (
+                    <option key={b.value} value={b.value}>{b.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-green-700" />
+              </div>
 
               <button
                 type="button"
-                onClick={loadBank}
-                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                onClick={() => {
+                  setBankPage(0);
+                  loadBank(0);
+                }}
+                className="p-2 rounded-lg bg-paper text-green-700 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition shrink-0"
                 title="Lọc kết quả"
               >
                 <Filter className="w-4 h-4" />
@@ -1128,20 +1317,20 @@ const MOCK_REVIEW_QUEUE = [
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
-                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 active:scale-95 border border-slate-200"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <FileSpreadsheet className="w-4 h-4 text-green-700" />
                 <span>Nhập Excel/CSV</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsManualQuestionModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-95"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-pink-500 text-ink border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-pink-600 hover:text-paper active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>Soạn Câu Hỏi Thủ Công</span>
@@ -1156,10 +1345,10 @@ const MOCK_REVIEW_QUEUE = [
               <SkeletonCard />
             </div>
           ) : bankQuestions.length === 0 ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center">
-              <Database className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="font-heading font-bold text-slate-800 text-sm">Chưa có câu hỏi chính thức</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <div className="bg-paper p-12 rounded-2xl border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] text-center">
+              <Database className="w-12 h-12 text-green-700 mx-auto mb-3 opacity-60" />
+              <h3 className="font-heading font-bold text-ink text-sm">Chưa có câu hỏi chính thức</h3>
+              <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
                 Ngân hàng câu hỏi chính thức chỉ lưu trữ các câu hỏi có phiên bản đã được phê duyệt (APPROVED). Hãy soạn thảo hoặc duyệt các bản nháp từ Hàng đợi.
               </p>
             </div>
@@ -1171,33 +1360,34 @@ const MOCK_REVIEW_QUEUE = [
                 const isExpanded = !!expandedExpectedAnswers[q.questionId];
 
                 return (
-                  <div key={q.questionId} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 transition space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-extrabold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-100">
+                  <article key={q.questionId} className="bg-paper border-2 border-green-500 rounded-2xl p-5 shadow-[6px_6px_0_#D5A6A2] transition-all space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-cream pb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
                           {q.questionCode}
                         </span>
-                        <span className="text-xs font-semibold text-slate-600">
+                        <span className="text-xs font-semibold text-green-800">
                           {q.topicName || 'Chủ đề chung'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${bloomMeta.color}`}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${bloomMeta.color}`}>
                           {bloomMeta.label}
                         </span>
 
                         {q.status === 'ARCHIVED' ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-300">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant border-2 border-green-500/50">
                             ARCHIVED
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-500 text-paper text-[10px] font-bold shadow-[1px_1px_0_#DEB9B5]">
+                            <CheckCircle2 className="w-3 h-3 text-paper" />
                             APPROVED
                           </span>
                         )}
                         {q.hasPendingDraft && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-700 border-2 border-pink-400">
                             CÓ BẢN NHÁP
                           </span>
                         )}
@@ -1205,7 +1395,7 @@ const MOCK_REVIEW_QUEUE = [
                     </div>
 
                     {/* Question Content */}
-                    <div className="text-xs text-slate-900 font-semibold leading-relaxed">
+                    <div className="text-sm text-ink font-semibold leading-relaxed font-heading">
                       {cv.content}
                     </div>
 
@@ -1214,35 +1404,43 @@ const MOCK_REVIEW_QUEUE = [
                       <button
                         type="button"
                         onClick={() => toggleExpectedAnswer(q.questionId)}
-                        className="text-[11px] font-bold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 focus:outline-none"
+                        className="text-xs font-bold text-green-800 hover:text-green-950 inline-flex items-center gap-1.5 focus:outline-none"
                       >
-                        {isExpanded ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        <span>{isExpanded ? 'Ẩn đáp án mong đợi' : 'Xem đáp án mong đợi & thang điểm'}</span>
+                        {isExpanded ? <EyeOff className="w-3.5 h-3.5 text-pink-600" /> : <Eye className="w-3.5 h-3.5 text-pink-600" />}
+                        <span>{isExpanded ? 'Ẩn đáp án mong đợi & thang điểm' : 'Xem đáp án mong đợi & thang điểm'}</span>
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-2.5 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-700 space-y-2.5 animate-modal-entry">
+                        <div className="mt-2.5 p-4 bg-pink-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] text-xs text-ink space-y-3 animate-modal-entry">
                           <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đáp Án Mong Đợi:</p>
-                            <p className="leading-relaxed font-medium">{cv.expectedAnswer}</p>
+                            <div className="flex items-center gap-1.5 text-pink-900 font-bold text-xs mb-1">
+                              <Lightbulb className="w-4 h-4 text-pink-600 shrink-0" />
+                              <span>Đáp án &amp; Định hướng chấm điểm mong đợi:</span>
+                            </div>
+                            <p className="leading-relaxed font-normal text-ink">{cv.expectedAnswer}</p>
                           </div>
 
                           {cv.rubric && cv.rubric.criteria && (
-                            <div className="pt-2 border-t border-slate-200">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
-                                <span>Ma Trận Rubric Chấm Điểm ({cv.rubric.criteria.length} tiêu chí):</span>
-                                <span className="text-sky-600 font-extrabold">Tổng điểm: {cv.rubric.totalScore || 10}đ</span>
-                              </p>
-                              <div className="space-y-1.5">
+                            <div className="pt-2.5 border-t-2 border-cream">
+                              <div className="flex flex-wrap items-center justify-between gap-1 pb-1.5">
+                                <span className="font-bold text-ink text-xs inline-flex items-center gap-1">
+                                  <Sliders className="w-4 h-4 text-green-700 shrink-0" />
+                                  Ma Trận Rubric Đính Kèm ({cv.rubric.criteria.length} Tiêu Chí):
+                                </span>
+                                <span className="text-pink-900 font-bold text-xs bg-pink-200 border border-green-500 px-2 py-0.5 rounded-md shadow-[1px_1px_0_#DEB9B5]">
+                                  Tổng điểm: {cv.rubric.totalScore || 10}đ
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
                                 {cv.rubric.criteria.map((crit, idx) => (
-                                  <div key={crit.criterionId || idx} className="flex items-center justify-between text-[11px] p-2 bg-white rounded-lg border border-slate-200">
-                                    <div>
-                                      <span className="font-bold text-slate-800">{crit.name}</span>
-                                      {crit.description && <span className="text-slate-500 ml-1.5">- {crit.description}</span>}
+                                  <div key={crit.criterionId || idx} className="bg-surface-container-lowest border-2 border-green-500/70 rounded-lg p-2.5">
+                                    <div className="flex items-center justify-between text-xs font-bold text-pink-800 mb-1">
+                                      <span>{crit.name}</span>
+                                      <span className="font-mono text-green-800 shrink-0 ml-1.5">{crit.maxScore}đ</span>
                                     </div>
-                                    <span className="font-mono font-bold text-indigo-600 shrink-0 ml-2">
-                                      {crit.maxScore}đ
-                                    </span>
+                                    {crit.description && (
+                                      <p className="text-[11px] text-on-surface-variant leading-snug">{crit.description}</p>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -1253,16 +1451,19 @@ const MOCK_REVIEW_QUEUE = [
                     </div>
 
                     {/* Bottom Toolbar */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-                      <span>Cập nhật: {new Date(q.updatedAt || Date.now()).toLocaleDateString('vi-VN')}</span>
+                    <div className="flex flex-wrap items-center justify-between pt-2.5 border-t-2 border-cream text-xs text-on-surface-variant gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-green-700 shrink-0" />
+                        <span>Cập nhật: <strong className="text-ink">{new Date(q.updatedAt || Date.now()).toLocaleDateString('vi-VN')}</strong></span>
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleOpenQuestionDetail(q.questionId)}
-                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
                         >
-                          <Layers className="w-3.5 h-3.5 text-slate-500" />
+                          <Layers className="w-3.5 h-3.5 text-green-700" />
                           <span>Chi Tiết &amp; Lịch Sử</span>
                         </button>
                         {q.status !== 'ARCHIVED' && (
@@ -1271,15 +1472,15 @@ const MOCK_REVIEW_QUEUE = [
                               type="button"
                               onClick={() => handleCreateDraftFromApproved(q.questionId)}
                               disabled={q.hasPendingDraft}
-                              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-500 text-ink border-2 border-green-500 rounded-xl font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-pink-600 hover:text-paper active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
                             >
-                              <Edit3 className="w-3.5 h-3.5 text-sky-600" />
+                              <Edit3 className="w-3.5 h-3.5" />
                               <span>Tạo Bản Nháp Mới (Copy-on-Write)</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => setArchiveQuestionTarget(q)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition focus:outline-none focus:ring-2 focus:ring-sky-500"
+                              className="p-1.5 rounded-lg bg-paper border-2 border-green-500 text-on-surface-variant hover:text-error hover:border-error hover:bg-pink-50 shadow-[2px_2px_0_#DEB9B5] transition"
                               title="Lưu trữ câu hỏi (Archive)"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1288,10 +1489,23 @@ const MOCK_REVIEW_QUEUE = [
                         )}
                       </div>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
+          )}
+
+          {/* BANK PAGINATION */}
+          {!isLoadingBank && bankQuestions.length > 0 && (
+            <Pagination
+              page={bankPage}
+              size={bankPageSize}
+              totalPages={bankTotalPages}
+              totalElements={bankTotalElements}
+              onPageChange={handleBankPageChange}
+              onSizeChange={handleBankPageSizeChange}
+              itemLabel="câu hỏi đã duyệt"
+            />
           )}
         </div>
       )}
@@ -1302,44 +1516,49 @@ const MOCK_REVIEW_QUEUE = [
       {activeTab === 'review' && (
         <div className="space-y-6">
           {/* AI RAG GENERATION TRIGGER BANNER */}
-          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-2xl border border-indigo-900/60 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="space-y-1 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-800/80 border border-indigo-700 text-indigo-200 text-[10px] font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <div className="relative overflow-hidden bg-pink-100 border-2 border-green-500 rounded-2xl p-6 shadow-[6px_6px_0_#D5A6A2] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="relative z-10 space-y-1.5 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-paper border-2 border-green-500 text-pink-800 text-[10px] font-bold uppercase tracking-wider shadow-[2px_2px_0_#DEB9B5]">
+                <Sparkles className="w-3.5 h-3.5 text-pink-600" />
                 <span>Trình Khởi Tạo Câu Hỏi Tự Động (AI RAG Engine)</span>
               </div>
-              <h2 className="text-base font-heading font-extrabold tracking-tight">
+              <h2 className="text-lg font-heading font-extrabold text-ink tracking-tight">
                 Sinh Câu Hỏi Tự Động Từ Giáo Trình Đã Vector Hóa
               </h2>
-              <p className="text-xs text-slate-300 max-w-xl">
-                AI Agent truy xuất các đoạn văn bản (chunks) từ giáo trình theo chuẩn Bloom 6 cấp độ và tạo ma trận Rubric đối sánh.
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                AI Agent truy xuất các đoạn ngữ cảnh (chunks) chính xác từ kho học liệu đã đối soát, tự động cấu trúc hóa câu hỏi theo thang tư duy Bloom 6 cấp độ và sinh kèm ma trận Rubric chấm điểm chuẩn xác.
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setIsAiGenModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-heading font-extrabold text-xs shadow-md transition active:scale-95 flex items-center gap-2 shrink-0"
+              className="relative z-10 px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink hover:text-paper font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-2 shrink-0"
             >
-              <Sparkles className="w-4 h-4 text-slate-950" />
+              <Sparkles className="w-4 h-4 text-ink" />
               <span>Thiết Lập &amp; Kích Hoạt RAG</span>
             </button>
           </div>
 
           {/* STATUS FILTER FOR QUEUE */}
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-700">Lọc Theo Trạng Thái:</span>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-paper p-3.5 rounded-2xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5]">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-ink">Lọc Theo Trạng Thái:</span>
               <div className="flex items-center gap-1.5">
                 {['DRAFT', 'APPROVED', 'REJECTED', 'ALL'].map(st => (
                   <button
                     key={st}
                     type="button"
-                    onClick={() => setReviewStatusFilter(st)}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition ${reviewStatusFilter === st
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
+                    onClick={() => {
+                      setReviewStatusFilter(st);
+                      setReviewPage(0);
+                      loadReviewQueue(0, undefined, st);
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold border-2 transition ${
+                      reviewStatusFilter === st
+                        ? 'bg-pink-500 text-ink border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                        : 'bg-paper text-green-800 border-transparent hover:border-green-500'
+                    }`}
                   >
                     {st}
                   </button>
@@ -1350,7 +1569,7 @@ const MOCK_REVIEW_QUEUE = [
             <button
               type="button"
               onClick={loadReviewQueue}
-              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition"
+              className="p-1.5 text-green-700 hover:text-green-900 rounded-lg hover:bg-green-100 transition self-end sm:self-auto"
               title="Làm mới hàng đợi"
             >
               <RefreshCw className="w-4 h-4" />
@@ -1364,10 +1583,10 @@ const MOCK_REVIEW_QUEUE = [
               <SkeletonCard />
             </div>
           ) : reviewVersions.length === 0 ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center">
-              <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="font-heading font-bold text-slate-800 text-sm">Hàng đợi đang trống</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <div className="bg-paper p-12 rounded-2xl border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] text-center">
+              <Sparkles className="w-12 h-12 text-pink-600 mx-auto mb-3 opacity-60" />
+              <h3 className="font-heading font-bold text-ink text-sm">Hàng đợi đang trống</h3>
+              <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
                 Không có bản nháp nào cần thẩm định. Bạn có thể kích hoạt RAG AI để tạo các câu hỏi mới.
               </p>
             </div>
@@ -1377,51 +1596,52 @@ const MOCK_REVIEW_QUEUE = [
                 const bloomMeta = BLOOM_LEVELS.find(b => b.value === v.bloomLevel) || BLOOM_LEVELS[0];
 
                 return (
-                  <div key={v.versionId} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                  <article key={v.versionId} className="bg-paper border-2 border-green-500 rounded-2xl p-5 shadow-[6px_6px_0_#D5A6A2] space-y-4">
 
                     {/* Header Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-cream pb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
                           {v.questionCode || 'DRAFT-VER'}
                         </span>
-                        <span className="text-xs font-semibold text-slate-700">
+                        <span className="text-xs font-semibold text-green-800">
                           {v.topicName || 'Chủ đề học phần'}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-md font-mono font-bold bg-slate-100 text-slate-600">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-mono font-bold bg-green-100 text-green-900 border border-green-500">
                           Origin: {v.origin || 'MANUAL'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Bloom Confirmation Badge */}
                         {v.bloomConfirmed ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <Check className="w-3 h-3 text-emerald-500" />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                            <Check className="w-3 h-3 text-green-700" />
                             Đã Xác Nhận Bloom
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleConfirmBloom(v)}
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border-2 border-pink-400 hover:bg-pink-200 transition active:scale-95 shadow-[1px_1px_0_#DEB9B5]"
                             title="Bấm để xác nhận cấp độ nhận thức Bloom này hợp lệ"
                           >
-                            <AlertCircle className="w-3 h-3 text-amber-500" />
+                            <AlertCircle className="w-3 h-3 text-pink-600" />
                             Xác Nhận Bloom ({v.bloomLevel})
                           </button>
                         )}
 
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${bloomMeta.color}`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${bloomMeta.color}`}>
                           {bloomMeta.label}
                         </span>
 
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${v.status === 'APPROVED'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${
+                          v.status === 'APPROVED'
+                            ? 'bg-green-100 text-green-800 border-green-500'
                             : v.status === 'REJECTED'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
+                              ? 'bg-pink-50 text-error border-error'
+                              : 'bg-pink-100 text-pink-900 border-pink-400'
+                        }`}>
                           {v.status}
                         </span>
                       </div>
@@ -1429,24 +1649,24 @@ const MOCK_REVIEW_QUEUE = [
 
                     {/* Question Content */}
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nội Dung Câu Hỏi:</p>
-                      <p className="text-xs text-slate-900 font-semibold leading-relaxed">{v.content}</p>
+                      <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-1">Nội Dung Câu Hỏi:</p>
+                      <h3 className="text-sm text-ink font-semibold leading-relaxed font-heading">{v.content}</h3>
                     </div>
 
                     {/* Expected Answer */}
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đáp Án Tiêu Chuẩn:</p>
-                      <p className="text-xs text-slate-700 leading-relaxed font-medium">{v.expectedAnswer}</p>
+                    <div className="p-3.5 bg-pink-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5]">
+                      <p className="text-[10px] font-bold text-pink-900 uppercase tracking-wider mb-1">Đáp Án Tiêu Chuẩn:</p>
+                      <p className="text-xs text-ink leading-relaxed font-normal">{v.expectedAnswer}</p>
                     </div>
 
                     {/* Source Citations (Grounding Evidence) */}
                     {v.sources && v.sources.length > 0 && (
-                      <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-indigo-700 font-bold text-[11px]">
-                          <BookOpen className="w-3.5 h-3.5" />
+                      <div className="p-3.5 bg-green-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-green-900 font-bold text-[11px]">
+                          <BookOpen className="w-3.5 h-3.5 text-green-700" />
                           <span>Cơ Sở Đối Chiếu Giáo Trình (Grounding Evidence Chunk #{v.sources[0].order}):</span>
                         </div>
-                        <p className="text-[11px] text-slate-600 italic bg-white p-2.5 rounded-lg border border-indigo-100/60 leading-relaxed">
+                        <p className="text-[11px] text-ink italic bg-surface-container-lowest p-2.5 rounded-lg border-2 border-green-500/50 leading-relaxed">
                           "{v.sources[0].citationQuote}"
                         </p>
                       </div>
@@ -1454,19 +1674,23 @@ const MOCK_REVIEW_QUEUE = [
 
                     {/* Rubric Breakdown */}
                     {v.rubric && v.rubric.criteria && (
-                      <div className="pt-2 border-t border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
-                          <span>Ma Trận Tiêu Chí Rubric ({v.rubric.criteria.length} tiêu chí):</span>
-                          <span className="text-indigo-600 font-extrabold">Tổng điểm: {v.rubric.totalScore || 10}đ</span>
-                        </p>
+                      <div className="pt-2 border-t-2 border-cream">
+                        <div className="flex flex-wrap items-center justify-between gap-1 mb-2">
+                          <span className="text-[10px] font-bold text-green-800 uppercase tracking-wider">
+                            Ma Trận Tiêu Chí Rubric ({v.rubric.criteria.length} tiêu chí):
+                          </span>
+                          <span className="text-pink-900 font-bold text-xs bg-pink-200 border border-green-500 px-2 py-0.5 rounded-md shadow-[1px_1px_0_#DEB9B5]">
+                            Tổng điểm: {v.rubric.totalScore || 10}đ
+                          </span>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {v.rubric.criteria.map((c, idx) => (
-                            <div key={idx} className="p-2 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-[11px]">
+                            <div key={idx} className="p-2.5 bg-surface-container-lowest rounded-lg border-2 border-green-500/70 flex items-center justify-between text-xs">
                               <div>
-                                <span className="font-bold text-slate-800">{c.name}</span>
-                                {c.description && <p className="text-[10px] text-slate-500 line-clamp-1">{c.description}</p>}
+                                <span className="font-bold text-pink-800">{c.name}</span>
+                                {c.description && <p className="text-[10px] text-on-surface-variant line-clamp-1">{c.description}</p>}
                               </div>
-                              <span className="font-mono font-bold text-indigo-700 shrink-0 ml-2">{c.maxScore}đ</span>
+                              <span className="font-mono font-bold text-green-800 shrink-0 ml-2">{c.maxScore}đ</span>
                             </div>
                           ))}
                         </div>
@@ -1474,15 +1698,15 @@ const MOCK_REVIEW_QUEUE = [
                     )}
 
                     {/* Action Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t-2 border-cream">
+                      <div className="flex flex-wrap items-center gap-2">
                         {v.origin === 'AI_RAG' && v.status === 'DRAFT' && (
                           <button
                             type="button"
                             onClick={() => { setRegenVersionTarget(v); setRegenFeedback(''); }}
-                            className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-xl bg-paper text-green-700 border-2 border-green-500 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition active:scale-95 flex items-center gap-1.5"
                           >
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <Sparkles className="w-3.5 h-3.5 text-pink-600" />
                             <span>Tạo Lại Với AI (Regenerate)</span>
                           </button>
                         )}
@@ -1491,9 +1715,9 @@ const MOCK_REVIEW_QUEUE = [
                           <button
                             type="button"
                             onClick={() => handleOpenEditDraft(v)}
-                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="px-3 py-1.5 rounded-xl bg-paper text-ink border-2 border-green-500 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-50 transition active:scale-95 flex items-center gap-1.5"
                           >
-                            <Edit3 className="w-3.5 h-3.5 text-sky-600" />
+                            <Edit3 className="w-3.5 h-3.5 text-green-700" />
                             <span>Chỉnh Sửa</span>
                           </button>
                         )}
@@ -1502,7 +1726,7 @@ const MOCK_REVIEW_QUEUE = [
                           <button
                             type="button"
                             onClick={() => setDeleteDraftTarget(v)}
-                            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                            className="p-1.5 rounded-xl bg-paper border-2 border-error text-error hover:bg-pink-50 transition shadow-[2px_2px_0_#DEB9B5]"
                             title="Xóa vĩnh viễn bản nháp"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1515,7 +1739,7 @@ const MOCK_REVIEW_QUEUE = [
                           <button
                             type="button"
                             onClick={() => { setRejectVersionTarget(v); setRejectReason(''); }}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold text-xs transition active:scale-95 border border-slate-200"
+                            className="px-3.5 py-1.5 rounded-xl bg-paper text-error border-2 border-error font-bold text-xs hover:bg-pink-50 transition active:scale-95"
                           >
                             Từ Chối
                           </button>
@@ -1523,7 +1747,7 @@ const MOCK_REVIEW_QUEUE = [
                           <button
                             type="button"
                             onClick={() => handleApproveVersion(v)}
-                            className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                            className="px-4 py-1.5 rounded-xl bg-pink-500 text-ink border-2 border-green-500 font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-pink-600 hover:text-paper transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-1.5"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Phê Duyệt (Approve)</span>
@@ -1532,10 +1756,23 @@ const MOCK_REVIEW_QUEUE = [
                       )}
                     </div>
 
-                  </div>
+                  </article>
                 );
               })}
             </div>
+          )}
+
+          {/* REVIEW QUEUE PAGINATION */}
+          {!isLoadingReview && reviewVersions.length > 0 && (
+            <Pagination
+              page={reviewPage}
+              size={reviewPageSize}
+              totalPages={reviewTotalPages}
+              totalElements={reviewTotalElements}
+              onPageChange={handleReviewPageChange}
+              onSizeChange={handleReviewPageSizeChange}
+              itemLabel="bản nháp trong hàng đợi"
+            />
           )}
         </div>
       )}
@@ -1544,50 +1781,50 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: TẠO CHỦ ĐỀ MỚI                                                      */}
       {/* ========================================================================= */}
       {isCreateTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-slate-900">Thêm Chủ Đề Đề Cương</h3>
-              <button onClick={() => setIsCreateTopicModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+          <div className="bg-paper rounded-2xl max-w-md w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 space-y-4 animate-modal-entry">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-ink">Thêm Chủ Đề Đề Cương</h3>
+              <button onClick={() => setIsCreateTopicModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateTopic} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Tên Chủ Đề / Chương <span className="text-rose-500">*</span></label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Tên Chủ Đề / Chương <span className="text-error">*</span></label>
                 <input
                   type="text"
                   required
                   placeholder="Ví dụ: Chương 4: Clean Architecture & SOLID"
                   value={newTopicName}
                   onChange={(e) => setNewTopicName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Mô Tả Nội Dung Chủ Đề</label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Mô Tả Nội Dung Chủ Đề</label>
                 <textarea
                   rows="2"
                   placeholder="Mô tả chuẩn đầu ra học phần cho chủ đề này..."
                   value={newTopicDesc}
                   onChange={(e) => setNewTopicDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
                 <button
                   type="button"
                   onClick={() => setIsCreateTopicModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                 >
                   Lưu Chủ Đề
                 </button>
@@ -1601,25 +1838,25 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: THIẾT LẬP RAG AI SINH CÂU HỎI                                      */}
       {/* ========================================================================= */}
       {isAiGenModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs">
-                <Sparkles className="w-4 h-4 text-amber-500" />
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+          <div className="bg-paper rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 sm:p-6 space-y-4 animate-modal-entry">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <div className="flex items-center gap-2 text-pink-900 font-bold text-xs">
+                <Sparkles className="w-4 h-4 text-pink-600" />
                 <span className="font-heading uppercase tracking-wider">Cấu Hình RAG Prompting Engine</span>
               </div>
-              <button onClick={() => setIsAiGenModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+              <button onClick={() => setIsAiGenModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Chủ Đề Áp Dụng (Topic)</label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Chủ Đề Áp Dụng (Topic)</label>
                 <select
                   value={genTopicId}
                   onChange={(e) => setGenTopicId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium cursor-pointer"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
                 >
                   <option value="">-- Mặc định (Toàn bộ học phần) --</option>
                   {topics.map(t => (
@@ -1629,15 +1866,15 @@ const MOCK_REVIEW_QUEUE = [
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Chọn Giáo Trình Làm Nguồn Ngữ Cảnh (RAG Context) <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-green-800 mb-1">
+                  Chọn Giáo Trình Làm Nguồn Ngữ Cảnh (RAG Context) <span className="text-error">*</span>
                 </label>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto border border-slate-200 p-2.5 rounded-xl bg-slate-50">
+                <div className="space-y-1.5 max-h-32 overflow-y-auto border-2 border-green-500 p-2.5 rounded-xl bg-surface-container-lowest shadow-[2px_2px_0_#DEB9B5]">
                   {documents.filter(d => d.indexingStatus === 'READY').length === 0 ? (
-                    <p className="text-slate-400 text-xs italic">Chưa có tài liệu nào ở trạng thái READY.</p>
+                    <p className="text-on-surface-variant text-xs italic">Chưa có tài liệu nào ở trạng thái READY.</p>
                   ) : (
                     documents.filter(d => d.indexingStatus === 'READY').map(d => (
-                      <label key={d.documentId} className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                      <label key={d.documentId} className="flex items-center gap-2 text-xs font-medium text-ink cursor-pointer hover:bg-green-50 p-1 rounded">
                         <input
                           type="checkbox"
                           checked={genDocumentIds.includes(d.documentId)}
@@ -1648,7 +1885,7 @@ const MOCK_REVIEW_QUEUE = [
                               setGenDocumentIds(prev => prev.filter(id => id !== d.documentId));
                             }
                           }}
-                          className="rounded text-sky-600 focus:ring-sky-500"
+                          className="rounded text-green-700 focus:ring-green-600"
                         />
                         <span className="truncate">{d.fileName} ({d.totalChunks} chunks)</span>
                       </label>
@@ -1657,39 +1894,164 @@ const MOCK_REVIEW_QUEUE = [
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Số Lượng Câu Hỏi (1-20)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={genTotalQuestions}
-                    onChange={(e) => setGenTotalQuestions(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Phân Bố Cấp Độ Bloom</label>
-                  <div className="px-3 py-2 rounded-xl text-xs bg-slate-100 text-slate-600 font-mono font-medium border border-slate-200">
-                    30% Nhớ | 40% Hiểu | 30% Dụng
+              {/* Total Questions & Quick Select */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-green-800">
+                    Số Lượng Câu Hỏi Cần Sinh (1 - 20) <span className="text-error">*</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {[3, 5, 10, 15].map(cnt => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => handleTotalQuestionsChange(cnt)}
+                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border transition ${
+                          Number(genTotalQuestions) === cnt
+                            ? 'bg-pink-200 text-pink-900 border-green-500 shadow-[1px_1px_0_#DEB9B5]'
+                            : 'bg-paper text-ink border-green-300 hover:bg-green-100'
+                        }`}
+                      >
+                        {cnt} câu
+                      </button>
+                    ))}
                   </div>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={genTotalQuestions}
+                  onChange={(e) => handleTotalQuestionsChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                />
+              </div>
+
+              {/* Bloom Taxonomy Presets */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-green-800 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-green-700" />
+                    <span>Mẫu Phân Bổ Cấp Độ Bloom (Presets)</span>
+                  </label>
+                  <span className="text-[10px] text-green-700 font-mono">Đủ 6 bậc thang tư duy</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {BLOOM_PRESETS.map(p => {
+                    const isSelected = selectedBloomPreset === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleSelectBloomPreset(p.id)}
+                        className={`p-2 rounded-xl text-left border-2 transition text-xs ${
+                          isSelected
+                            ? 'bg-pink-100 border-green-500 text-pink-900 shadow-[2px_2px_0_#DEB9B5] font-bold'
+                            : 'bg-paper border-green-300 text-ink hover:bg-green-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="truncate">{p.name}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-pink-700 flex-shrink-0" />}
+                        </div>
+                        <p className="text-[10px] text-on-surface-variant font-normal truncate mt-0.5">{p.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 6-Level Bloom Interactive Grid */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-green-800">
+                    Chi Tiết Phân Bổ 6 Cấp Độ Nhận Thức Bloom
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] font-mono px-2 py-0.5 rounded-lg border font-bold ${
+                      isBloomBalanced
+                        ? 'bg-green-100 text-green-900 border-green-500'
+                        : 'bg-pink-100 text-pink-900 border-pink-400'
+                    }`}>
+                      {totalAllocatedBloom} / {genTotalQuestions} câu ({Number(genTotalQuestions) > 0 ? Math.round((totalAllocatedBloom / Number(genTotalQuestions)) * 100) : 0}%)
+                    </span>
+                    {!isBloomBalanced && (
+                      <button
+                        type="button"
+                        onClick={handleAutoBalanceBloom}
+                        className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cream text-ink border border-green-500 hover:bg-pink-100 transition shadow-[1px_1px_0_#DEB9B5]"
+                        title="Tự động chia đều theo tổng số câu hỏi"
+                      >
+                        Tự động cân bằng
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {BLOOM_LEVELS.map(level => {
+                    const count = bloomCounts[level.value] || 0;
+                    const percent = totalAllocatedBloom > 0 ? Math.round((count / totalAllocatedBloom) * 100) : 0;
+                    return (
+                      <div
+                        key={level.value}
+                        className={`p-2.5 rounded-xl border-2 transition ${
+                          count > 0 ? 'bg-paper border-green-500 shadow-[2px_2px_0_#DEB9B5]' : 'bg-surface-container-lowest border-green-200 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] font-bold text-ink truncate" title={level.label}>
+                            {level.label}
+                          </span>
+                          <span className="text-[10px] font-mono text-green-800 bg-green-50 px-1 rounded border border-green-200">
+                            {percent}%
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleBloomCountChange(level.value, -1)}
+                            disabled={count <= 0}
+                            className="w-7 h-7 rounded-lg border border-green-400 bg-paper text-ink font-bold flex items-center justify-center hover:bg-pink-100 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={count}
+                            onChange={(e) => handleBloomCountChange(level.value, e.target.value, true)}
+                            className="w-12 text-center py-1 text-xs font-bold bg-white rounded-lg border border-green-400 text-ink focus:outline-none focus:border-green-600"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleBloomCountChange(level.value, 1)}
+                            disabled={totalAllocatedBloom >= 20}
+                            className="w-7 h-7 rounded-lg border border-green-400 bg-paper text-ink font-bold flex items-center justify-center hover:bg-green-100 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ghi Chú Đạo Diễn Cho AI (Lecturer Instruction)</label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Ghi Chú Đạo Diễn Cho AI (Lecturer Instruction)</label>
                 <textarea
                   rows="2"
                   placeholder="Ví dụ: Đặt câu hỏi xoáy sâu vào các bẫy thường gặp trong xử lý đa luồng..."
                   value={genLecturerNote}
                   onChange={(e) => setGenLecturerNote(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
               {failedGenRequest && (
-                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-800 space-y-1">
+                <div className="p-3 rounded-xl border-2 border-pink-400 bg-pink-50 text-xs text-pink-900 space-y-1 shadow-[2px_2px_0_#DEB9B5]">
                   <p className="font-bold">
                     Lần sinh gần nhất: {failedGenRequest.status} ({failedGenRequest.generatedCount}/{failedGenRequest.totalQuestions} câu)
                   </p>
@@ -1698,13 +2060,26 @@ const MOCK_REVIEW_QUEUE = [
                 </div>
               )}
 
-              <div className="pt-2 flex justify-end gap-2">
+              {!isBloomBalanced && (
+                <div className="p-2.5 rounded-xl border border-pink-400 bg-pink-50 text-[11px] text-pink-900 flex items-center justify-between">
+                  <span>⚠ Tổng số câu phân bổ ({totalAllocatedBloom}) chưa khớp với số lượng ({genTotalQuestions}). Bấm nút bên cạnh để tự động cân đối:</span>
+                  <button
+                    type="button"
+                    onClick={handleAutoBalanceBloom}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-200 text-pink-950 border border-pink-500 hover:bg-pink-300 transition"
+                  >
+                    Khớp tự động
+                  </button>
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
                 {failedGenRequest && (
                   <button
                     type="button"
                     onClick={handleRetryGeneration}
                     disabled={isGeneratingAi}
-                    className="px-4 py-2 rounded-xl border border-amber-300 text-amber-800 bg-amber-50 text-xs font-bold hover:bg-amber-100 transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="px-4 py-2 rounded-xl border-2 border-pink-400 text-pink-900 bg-pink-100 text-xs font-bold hover:bg-pink-200 transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-[2px_2px_0_#DEB9B5]"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Thử Lại Phần Thiếu</span>
@@ -1714,17 +2089,17 @@ const MOCK_REVIEW_QUEUE = [
                   type="button"
                   onClick={() => { setIsAiGenModalOpen(false); setFailedGenRequest(null); }}
                   disabled={isGeneratingAi}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="button"
                   onClick={handleTriggerAiGeneration}
-                  disabled={isGeneratingAi || genDocumentIds.length === 0}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  disabled={isGeneratingAi || genDocumentIds.length === 0 || !isBloomBalanced}
+                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isGeneratingAi && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                  {isGeneratingAi && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>Bắt Đầu Sinh Câu Hỏi</span>
                 </button>
               </div>
@@ -1737,11 +2112,11 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: SOẠN CÂU HỎI THỦ CÔNG KÈM RUBRIC BUILDER                          */}
       {/* ========================================================================= */}
       {isManualQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-slate-900">Soạn Câu Hỏi Mới Kèm Ma Trận Rubric</h3>
-              <button onClick={() => setIsManualQuestionModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+          <div className="bg-paper rounded-2xl max-w-xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-ink">Soạn Câu Hỏi Mới Kèm Ma Trận Rubric</h3>
+              <button onClick={() => setIsManualQuestionModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1749,11 +2124,11 @@ const MOCK_REVIEW_QUEUE = [
             <form onSubmit={handleCreateManualQuestion} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Chủ Đề (Topic)</label>
+                  <label className="block text-xs font-bold text-green-800 mb-1">Chủ Đề (Topic)</label>
                   <select
                     value={manualTopicId}
                     onChange={(e) => setManualTopicId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
                   >
                     <option value="">-- Chủ đề chung --</option>
                     {topics.map(t => (
@@ -1763,11 +2138,11 @@ const MOCK_REVIEW_QUEUE = [
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
+                  <label className="block text-xs font-bold text-green-800 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
                   <select
                     value={manualBloom}
                     onChange={(e) => setManualBloom(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
                   >
                     {BLOOM_LEVELS.map(b => (
                       <option key={b.value} value={b.value}>{b.label}</option>
@@ -1777,37 +2152,37 @@ const MOCK_REVIEW_QUEUE = [
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nội Dung Câu Hỏi <span className="text-rose-500">*</span></label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Nội Dung Câu Hỏi <span className="text-error">*</span></label>
                 <textarea
                   rows="3"
                   required
                   placeholder="Nhập nội dung câu hỏi vấn đáp chi tiết..."
                   value={manualContent}
                   onChange={(e) => setManualContent(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-rose-500">*</span></label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-error">*</span></label>
                 <textarea
                   rows="3"
                   required
                   placeholder="Đáp án hoặc các ý chính thí sinh cần nêu bật được..."
                   value={manualExpectedAnswer}
                   onChange={(e) => setManualExpectedAnswer(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
               {/* DYNAMIC RUBRIC BUILDER */}
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="p-3.5 bg-paper rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-3">
+                <div className="flex items-center justify-between border-b-2 border-cream pb-2">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-800">Tiêu Chí Chấm Điểm Rubric</h4>
-                    <p className="text-[10px] text-slate-400">Thiết lập các tiêu chí con chấm điểm tự động</p>
+                    <h4 className="text-xs font-bold text-ink">Tiêu Chí Chấm Điểm Rubric</h4>
+                    <p className="text-[10px] text-on-surface-variant">Thiết lập các tiêu chí con chấm điểm tự động</p>
                   </div>
-                  <span className="font-mono text-xs font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
                     Tổng: {manualCriteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
                   </span>
                 </div>
@@ -1815,21 +2190,21 @@ const MOCK_REVIEW_QUEUE = [
                 <RubricCriteriaEditor criteria={manualCriteria} onChange={setManualCriteria} />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
                 <button
                   type="button"
                   onClick={() => setIsManualQuestionModalOpen(false)}
                   disabled={isSubmittingQuestion}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingQuestion}
-                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isSubmittingQuestion && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                  {isSubmittingQuestion && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>Lưu &amp; Gửi Hàng Đợi Duyệt</span>
                 </button>
               </div>
@@ -1842,79 +2217,79 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: NHẬP CÂU HỎI TỪ EXCEL / CSV (UC1.6)                                */}
       {/* ========================================================================= */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
-                <FileSpreadsheet className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+          <div className="bg-paper rounded-2xl max-w-lg w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <div className="flex items-center gap-2 text-green-800 font-bold text-xs">
+                <FileSpreadsheet className="w-4 h-4 text-green-700" />
                 <span className="font-heading uppercase tracking-wider">Nhập Câu Hỏi Hàng Loạt (UC1.6)</span>
               </div>
-              <button onClick={() => setIsImportModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+              <button onClick={() => setIsImportModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleImportQuestions} className="space-y-4">
-              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <span className="text-xs font-semibold text-slate-700">Tải tệp mẫu quy chuẩn:</span>
+              <div className="flex items-center justify-between bg-green-50 p-3 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
+                <span className="text-xs font-semibold text-green-900">Tải tệp mẫu quy chuẩn:</span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => handleDownloadTemplate('xlsx')}
-                    className="px-2.5 py-1 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg text-xs font-bold text-slate-700 inline-flex items-center gap-1 shadow-xs"
+                    className="px-2.5 py-1 bg-paper border-2 border-green-500 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-[1px_1px_0_#DEB9B5]"
                   >
-                    <Download className="w-3 h-3 text-emerald-600" />
+                    <Download className="w-3 h-3 text-green-700" />
                     <span>Excel (.xlsx)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDownloadTemplate('csv')}
-                    className="px-2.5 py-1 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg text-xs font-bold text-slate-700 inline-flex items-center gap-1 shadow-xs"
+                    className="px-2.5 py-1 bg-paper border-2 border-green-500 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-[1px_1px_0_#DEB9B5]"
                   >
-                    <Download className="w-3 h-3 text-sky-600" />
+                    <Download className="w-3 h-3 text-pink-600" />
                     <span>CSV</span>
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Chọn Tệp Tin Cần Nhập (.xlsx, .csv)</label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Chọn Tệp Tin Cần Nhập (.xlsx, .csv)</label>
                 <input
                   type="file"
                   required
                   accept=".xlsx,.csv"
                   onChange={(e) => setImportFile(e.target.files[0] || null)}
-                  className="w-full text-xs file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                  className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-2 file:border-green-500 file:text-xs file:font-bold file:bg-paper file:text-green-800 hover:file:bg-green-100 cursor-pointer"
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
                 <div>
-                  <p className="text-xs font-bold text-slate-800">Chế Độ Thẩm Định Thử Nghiệm (Dry Run)</p>
-                  <p className="text-[10px] text-slate-500">Chỉ kiểm tra tính hợp lệ dữ liệu, chưa ghi vào cơ sở dữ liệu</p>
+                  <p className="text-xs font-bold text-ink">Chế Độ Thẩm Định Thử Nghiệm (Dry Run)</p>
+                  <p className="text-[10px] text-on-surface-variant">Chỉ kiểm tra tính hợp lệ dữ liệu, chưa ghi vào cơ sở dữ liệu</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={isDryRun}
                   onChange={(e) => setIsDryRun(e.target.checked)}
-                  className="w-4 h-4 text-sky-600 rounded focus:ring-sky-500 cursor-pointer"
+                  className="w-4 h-4 text-green-700 rounded focus:ring-green-600 cursor-pointer"
                 />
               </div>
 
               {/* Import Report Result Box */}
               {importReport && (
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs space-y-1 animate-modal-entry">
-                  <p className="font-bold text-emerald-800">Báo Cáo Kết Quả Nhập:</p>
-                  <p className="text-emerald-700">Tổng dòng đọc được: {importReport.totalRows || 0} ({importReport.totalQuestions || 0} câu hỏi)</p>
-                  <p className="text-emerald-700">Câu hỏi hợp lệ: {importReport.validQuestions || 0}</p>
+                <div className="p-3 bg-green-50 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] text-xs space-y-1 animate-modal-entry">
+                  <p className="font-bold text-green-900">Báo Cáo Kết Quả Nhập:</p>
+                  <p className="text-green-800">Tổng dòng đọc được: {importReport.totalRows || 0} ({importReport.totalQuestions || 0} câu hỏi)</p>
+                  <p className="text-green-800">Câu hỏi hợp lệ: {importReport.validQuestions || 0}</p>
                   {!importReport.dryRun && (
-                    <p className="text-emerald-700">Đã tạo: {importReport.createdQuestions || 0} câu hỏi</p>
+                    <p className="text-green-800">Đã tạo: {importReport.createdQuestions || 0} câu hỏi</p>
                   )}
                   {importReport.invalidQuestions > 0 && (
-                    <p className="text-rose-600 font-semibold">Câu hỏi lỗi: {importReport.invalidQuestions}</p>
+                    <p className="text-error font-semibold">Câu hỏi lỗi: {importReport.invalidQuestions}</p>
                   )}
                   {importReport.errors?.length > 0 && (
-                    <ul className="mt-1 max-h-32 overflow-y-auto space-y-0.5 text-[11px] text-rose-700">
+                    <ul className="mt-1 max-h-32 overflow-y-auto space-y-0.5 text-[11px] text-error">
                       {importReport.errors.map((er, idx) => (
                         <li key={idx}>
                           Dòng {er.row}{er.column ? ` • ${er.column}` : ''}{er.questionRef ? ` • ${er.questionRef}` : ''}: {er.message}
@@ -1925,21 +2300,21 @@ const MOCK_REVIEW_QUEUE = [
                 </div>
               )}
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(false)}
                   disabled={isImporting}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
                 >
                   Đóng
                 </button>
                 <button
                   type="submit"
                   disabled={isImporting || !importFile}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isImporting && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                  {isImporting && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>{isDryRun ? 'Thẩm Định File (Dry Run)' : 'Nhập Dữ Liệu Ngay'}</span>
                 </button>
               </div>
@@ -1952,10 +2327,10 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: TỪ CHỐI BẢN NHÁP (REJECT MODAL)                                    */}
       {/* ========================================================================= */}
       {rejectVersionTarget && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry">
-            <h3 className="font-heading font-extrabold text-sm text-slate-900">Từ Chối Phê Duyệt Câu Hỏi</h3>
-            <p className="text-xs text-slate-500">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+          <div className="bg-paper rounded-2xl max-w-md w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 space-y-4 animate-modal-entry">
+            <h3 className="font-heading font-extrabold text-sm text-ink">Từ Chối Phê Duyệt Câu Hỏi</h3>
+            <p className="text-xs text-on-surface-variant">
               Vui lòng nêu rõ lý do từ chối để hỗ trợ giảng viên soạn thảo hoặc định hướng lại prompt cho AI.
             </p>
 
@@ -1965,14 +2340,14 @@ const MOCK_REVIEW_QUEUE = [
               placeholder="Ví dụ: Câu hỏi chưa gắn đúng trích dẫn giáo trình hoặc đáp án chưa đủ độ sâu..."
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
+              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
             />
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t-2 border-cream">
               <button
                 type="button"
                 onClick={() => setRejectVersionTarget(null)}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
               >
                 Hủy Bỏ
               </button>
@@ -1980,7 +2355,7 @@ const MOCK_REVIEW_QUEUE = [
                 type="button"
                 onClick={handleConfirmReject}
                 disabled={!rejectReason.trim()}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-paper border-2 border-error text-error hover:bg-pink-50 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] disabled:opacity-50 transition"
               >
                 Xác Nhận Từ Chối
               </button>
@@ -1993,13 +2368,13 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: TẠO LẠI CÂU HỎI AI (REGENERATE WITH FEEDBACK)                       */}
       {/* ========================================================================= */}
       {regenVersionTarget && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry">
-            <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs">
-              <Sparkles className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+          <div className="bg-paper rounded-2xl max-w-md w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 space-y-4 animate-modal-entry">
+            <div className="flex items-center gap-2 text-pink-900 font-bold text-xs">
+              <Sparkles className="w-4 h-4 text-pink-600" />
               <span>Yêu Cầu AI Tạo Lại Câu Hỏi Này</span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-on-surface-variant">
               Cung cấp thêm chỉ dẫn điều chỉnh (Feedback). AI sẽ giữ nguyên ngữ cảnh trích dẫn ban đầu và viết lại câu hỏi phù hợp hơn.
             </p>
 
@@ -2008,21 +2383,21 @@ const MOCK_REVIEW_QUEUE = [
               placeholder="Ví dụ: Hãy chuyển câu hỏi thành dạng bài toán tình huống thực tế..."
               value={regenFeedback}
               onChange={(e) => setRegenFeedback(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
             />
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t-2 border-cream">
               <button
                 type="button"
                 onClick={() => setRegenVersionTarget(null)}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
               >
                 Hủy Bỏ
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRegenerate}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
+                className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Sinh Lại Câu Hỏi</span>
@@ -2072,24 +2447,24 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: CHỈNH SỬA BẢN NHÁP (CONTENT + RUBRIC)                               */}
       {/* ========================================================================= */}
       {editDraft && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
-          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-slate-900">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+          <div className="bg-paper rounded-2xl max-w-xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-ink">
                 Chỉnh Sửa Bản Nháp {editDraft.version.questionCode}
               </h3>
-              <button onClick={() => setEditDraft(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+              <button onClick={() => setEditDraft(null)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveDraft} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
                 <select
                   value={editDraft.bloomLevel}
                   onChange={(e) => setEditDraft(d => ({ ...d, bloomLevel: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium cursor-pointer"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
                 >
                   {BLOOM_LEVELS.map(b => (
                     <option key={b.value} value={b.value}>{b.label}</option>
@@ -2098,33 +2473,33 @@ const MOCK_REVIEW_QUEUE = [
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nội Dung Câu Hỏi <span className="text-rose-500">*</span></label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Nội Dung Câu Hỏi <span className="text-error">*</span></label>
                 <textarea
                   rows="3"
                   required
                   maxLength={4000}
                   value={editDraft.content}
                   onChange={(e) => setEditDraft(d => ({ ...d, content: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-rose-500">*</span></label>
+                <label className="block text-xs font-bold text-green-800 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-error">*</span></label>
                 <textarea
                   rows="3"
                   required
                   maxLength={8000}
                   value={editDraft.expectedAnswer}
                   onChange={(e) => setEditDraft(d => ({ ...d, expectedAnswer: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
                 />
               </div>
 
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-800">Tiêu Chí Chấm Điểm Rubric</h4>
-                  <span className="font-mono text-xs font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+              <div className="p-3.5 bg-paper rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-3">
+                <div className="flex items-center justify-between border-b-2 border-cream pb-2">
+                  <h4 className="text-xs font-bold text-ink">Tiêu Chí Chấm Điểm Rubric</h4>
+                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
                     Tổng: {editDraft.criteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
                   </span>
                 </div>
@@ -2134,21 +2509,21 @@ const MOCK_REVIEW_QUEUE = [
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
                 <button
                   type="button"
                   onClick={() => setEditDraft(null)}
                   disabled={isSavingDraft}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingDraft}
-                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isSavingDraft && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                  {isSavingDraft && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>Lưu Bản Nháp</span>
                 </button>
               </div>
@@ -2161,13 +2536,13 @@ const MOCK_REVIEW_QUEUE = [
       {/* MODAL: CHI TIẾT CÂU HỎI & LỊCH SỬ PHIÊN BẢN                                */}
       {/* ========================================================================= */}
       {questionDetail && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-slate-900">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+          <div className="bg-paper rounded-2xl max-w-2xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-ink">
                 Chi Tiết Câu Hỏi {questionDetail.detail?.questionCode || ''}
               </h3>
-              <button onClick={() => setQuestionDetail(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+              <button onClick={() => setQuestionDetail(null)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2177,45 +2552,45 @@ const MOCK_REVIEW_QUEUE = [
             ) : (
               <div className="space-y-4 text-xs">
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
                     {questionDetail.detail.status}
                   </span>
                   {questionDetail.detail.pendingDraft && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border-2 border-pink-400">
                       Bản nháp đang chờ: v{questionDetail.detail.pendingDraft.versionNumber}
                     </span>
                   )}
                 </div>
 
                 {questionDetail.detail.currentVersion && (
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="p-4 bg-pink-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-2">
+                    <p className="text-[10px] font-bold text-pink-900 uppercase tracking-wider">
                       Phiên bản hiện hành v{questionDetail.detail.currentVersion.versionNumber}
                     </p>
-                    <p className="font-semibold text-slate-900 leading-relaxed">{questionDetail.detail.currentVersion.content}</p>
-                    <p className="text-slate-700 leading-relaxed">{questionDetail.detail.currentVersion.expectedAnswer}</p>
+                    <p className="font-semibold text-ink leading-relaxed font-heading text-sm">{questionDetail.detail.currentVersion.content}</p>
+                    <p className="text-on-surface-variant leading-relaxed">{questionDetail.detail.currentVersion.expectedAnswer}</p>
                   </div>
                 )}
 
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  <p className="text-[10px] font-bold text-green-800 uppercase tracking-wider mb-2">
                     Lịch Sử Phiên Bản ({questionDetail.history.length})
                   </p>
-                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
+                  <div className="divide-y-2 divide-cream border-2 border-green-500 rounded-xl overflow-hidden bg-paper shadow-[3px_3px_0_#DEB9B5]">
                     {questionDetail.history.map(h => (
-                      <div key={h.versionId} className="p-3 flex items-start justify-between gap-3">
-                        <div className="space-y-0.5 min-w-0">
-                          <p className="font-bold text-slate-800">
+                      <div key={h.versionId} className="p-3.5 flex items-start justify-between gap-3 hover:bg-green-50/50 transition">
+                        <div className="space-y-1 min-w-0">
+                          <p className="font-bold text-ink">
                             v{h.versionNumber} • {h.origin} • {h.bloomLevel}
                           </p>
-                          <p className="text-slate-600 line-clamp-2">{h.content}</p>
-                          {h.rejectReason && <p className="text-rose-600">Lý do từ chối: {h.rejectReason}</p>}
+                          <p className="text-on-surface-variant line-clamp-2">{h.content}</p>
+                          {h.rejectReason && <p className="text-error font-medium">Lý do từ chối: {h.rejectReason}</p>}
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border border-green-500">
                             {h.status}
                           </span>
-                          <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                          <p className="text-[10px] text-on-surface-variant mt-1 font-mono">
                             {h.createdAt ? new Date(h.createdAt).toLocaleString('vi-VN') : ''}
                           </p>
                         </div>
