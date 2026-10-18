@@ -5,14 +5,14 @@ import com.example.vieva.application.ports.output.EmbeddingModelPort;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Slf4j
 @Service
-@ConditionalOnBean(EmbeddingModel.class)
+@ConditionalOnProperty(name="vieva.ai.provider", havingValue="gemini")
 public class LangChain4jEmbeddingGateway implements EmbeddingModelPort {
 
     private final EmbeddingModel embeddingModel;
