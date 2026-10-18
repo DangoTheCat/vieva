@@ -4,15 +4,15 @@ import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.application.usecases.document.DocumentIndexingService;
-import com.example.vieva.application.usecases.generation.QuestionGenerationService;
+import com.example.vieva.application.usecases.document.DocumentOperations;
+import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
 import com.example.vieva.application.usecases.importing.QuestionImportService;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionReviewService;
 import com.example.vieva.application.usecases.user.UserService;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.CourseDocument;
-import com.example.vieva.domain.entities.DocumentIndexingStatus;
+import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
@@ -61,6 +61,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 class LecturerQuestionBankApiTest {
+    @MockitoBean private com.example.vieva.application.ports.output.NotificationRepository notificationRepository;
 
     @Autowired private MockMvc mockMvc;
 
@@ -87,9 +88,9 @@ class LecturerQuestionBankApiTest {
     @MockitoBean private QuestionVersionRepository questionVersionRepository;
     @MockitoBean private QuestionAuthoringService authoringService;
     @MockitoBean private QuestionReviewService reviewService;
-    @MockitoBean private QuestionGenerationService generationService;
+    @MockitoBean private QuestionGenerationOperations generationService;
     @MockitoBean private QuestionImportService importService;
-    @MockitoBean private DocumentIndexingService documentIndexingService;
+    @MockitoBean private DocumentOperations documentIndexingService;
 
     private final UUID subjectId = UUID.randomUUID();
     private User lecturer;
@@ -243,7 +244,7 @@ class LecturerQuestionBankApiTest {
     @DisplayName("upload answers 202 Accepted with the UPLOADED document")
     void uploadAccepted() throws Exception {
         CourseDocument document = CourseDocument.builder().documentId(UUID.randomUUID()).subjectId(subjectId)
-                .fileName("csdl.pdf").indexingStatus(DocumentIndexingStatus.UPLOADED).indexAttempts(0).build();
+                .fileName("csdl.pdf").indexingStatus(DocumentStatus.UPLOADED).indexAttempts(0).build();
         when(documentIndexingService.uploadDocument(eq(subjectId), eq("csdl.pdf"), any(), eq(lecturer.getUserId())))
                 .thenReturn(document);
         mockMvc.perform(multipart("/api/v1/lecturer/subjects/{id}/documents", subjectId)

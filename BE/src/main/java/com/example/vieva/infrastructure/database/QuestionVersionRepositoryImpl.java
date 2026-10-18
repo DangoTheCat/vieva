@@ -3,7 +3,7 @@ package com.example.vieva.infrastructure.database;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionVersion;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -93,7 +93,8 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
 
     @Override
     public boolean hasDraftVersion(UUID questionId) {
-        return jpaRepository.existsByQuestion_QuestionIdAndApprovalStatus(questionId, QuestionApprovalStatus.DRAFT);
+        return jpaRepository.existsByQuestion_QuestionIdAndApprovalStatus(questionId, QuestionStatus.DRAFT)
+                || jpaRepository.existsByQuestion_QuestionIdAndApprovalStatus(questionId, QuestionStatus.UNDER_REVIEW);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import jakarta.persistence.*;
 import lombok.*;
@@ -63,7 +63,7 @@ public class QuestionVersionJpaEntity implements Persistable<UUID> {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "approval_status", nullable = false, length = 20)
-    private QuestionApprovalStatus approvalStatus = QuestionApprovalStatus.DRAFT;
+    private QuestionStatus approvalStatus = QuestionStatus.DRAFT;
 
     @Column(name = "parent_version_id")
     private UUID parentVersionId;

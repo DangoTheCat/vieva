@@ -12,7 +12,7 @@ import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter.NewDraft;
+import com.example.vieva.application.usecases.question.PostgreSQLDatabase.NewDraft;
 import com.example.vieva.application.usecases.question.RubricDraftFactory.RubricDraft;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.Question;
@@ -47,7 +47,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     private final TopicRepository topicRepository;
     private final SubjectAccessGuard subjectAccessGuard;
     private final QuestionAccessLoader accessLoader;
-    private final QuestionDraftWriter draftWriter;
+    private final PostgreSQLDatabase draftWriter;
     private final QuestionVersionViewAssembler viewAssembler;
     private final QuestionBankAuditor auditor;
 
@@ -73,7 +73,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
             throw AppException.ofViolations(violations);
         }
 
-        draftWriter.persist(List.of(new NewDraft(question, version, rubric.rubric(), rubric.criteria(), List.of())));
+        draftWriter.saveQuestionDraft(List.of(new NewDraft(question, version, rubric.rubric(), rubric.criteria(), List.of())));
         auditor.record(actorId, "QUESTION_CREATED", QuestionBankAuditor.QUESTION_VERSION, version.getQuestionVersionId(),
                 Map.of("questionId", question.getQuestionId(), "origin", QuestionGenerationMode.MANUAL,
                         "bloomLevel", version.getBloomLevel()));

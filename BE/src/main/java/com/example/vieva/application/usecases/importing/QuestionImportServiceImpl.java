@@ -11,8 +11,8 @@ import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.settings.ImportSettings;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter.NewDraft;
+import com.example.vieva.application.usecases.question.PostgreSQLDatabase;
+import com.example.vieva.application.usecases.question.PostgreSQLDatabase.NewDraft;
 import com.example.vieva.application.usecases.question.RubricDraftFactory;
 import com.example.vieva.application.usecases.question.RubricDraftFactory.RubricDraft;
 import com.example.vieva.domain.entities.BloomLevel;
@@ -62,7 +62,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
     private final SubjectRepository subjectRepository;
     private final TopicRepository topicRepository;
     private final SubjectAccessGuard subjectAccessGuard;
-    private final QuestionDraftWriter draftWriter;
+    private final PostgreSQLDatabase draftWriter;
     private final QuestionBankAuditor auditor;
     private final ImportSettings settings;
 
@@ -137,7 +137,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
                 drafts.add(new NewDraft(question, version, rubric.rubric(), rubric.criteria(), List.of()));
                 createdIds.add(question.getQuestionId());
             }
-            draftWriter.persist(drafts);
+            draftWriter.saveQuestionDraft(drafts);
             Map<String, Object> audit = new HashMap<>();
             audit.put("fileName", filename);
             audit.put("created", drafts.size());

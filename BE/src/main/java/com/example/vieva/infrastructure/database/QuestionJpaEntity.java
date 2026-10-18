@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.domain.entities.QuestionStatus;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -44,7 +44,7 @@ public class QuestionJpaEntity implements Persistable<UUID> {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "status", nullable = false, length = 30)
-    private QuestionStatus status = QuestionStatus.ACTIVE;
+    private QuestionLifecycleStatus status = QuestionLifecycleStatus.ACTIVE;
 
     /** Plain FK column: the version table already references questions, so no bidirectional mapping. */
     @Column(name = "current_approved_version_id")

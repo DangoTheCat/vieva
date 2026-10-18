@@ -51,8 +51,9 @@ class QuestionVersionTest {
         @Test
         void approveDraft() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
+            version.submitForReview();
             version.approve(reviewer);
-            assertThat(version.getApprovalStatus()).isEqualTo(QuestionApprovalStatus.APPROVED);
+            assertThat(version.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
             assertThat(version.getReviewedBy()).isEqualTo(reviewer);
             assertThat(version.getReviewedAt()).isNotNull();
         }
@@ -60,18 +61,20 @@ class QuestionVersionTest {
         @Test
         void rejectDraftRequiresReason() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
+            version.submitForReview();
             assertCode(() -> version.reject(reviewer, "  "), ErrorCode.INVALID_REQUEST);
             version.reject(reviewer, " thiếu căn cứ ");
-            assertThat(version.getApprovalStatus()).isEqualTo(QuestionApprovalStatus.REJECTED);
+            assertThat(version.getApprovalStatus()).isEqualTo(QuestionStatus.REJECTED);
             assertThat(version.getRejectionReason()).isEqualTo("thiếu căn cứ");
         }
 
         @Test
         void approvedVersionIsImmutable() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
+            version.submitForReview();
             version.approve(reviewer);
-            assertCode(() -> version.approve(reviewer), ErrorCode.VERSION_NOT_DRAFT);
-            assertCode(() -> version.reject(reviewer, "x"), ErrorCode.VERSION_NOT_DRAFT);
+            assertCode(() -> version.approve(reviewer), ErrorCode.VERSION_NOT_UNDER_REVIEW);
+            assertCode(() -> version.reject(reviewer, "x"), ErrorCode.VERSION_NOT_UNDER_REVIEW);
             assertCode(() -> version.editContent("new", null, null, null), ErrorCode.VERSION_NOT_DRAFT);
             assertCode(() -> version.confirmBloom(BloomLevel.CREATE), ErrorCode.VERSION_NOT_DRAFT);
         }
@@ -79,17 +82,19 @@ class QuestionVersionTest {
         @Test
         void rejectedVersionCannotBeApproved() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
+            version.submitForReview();
             version.reject(reviewer, "sai");
-            assertCode(() -> version.approve(reviewer), ErrorCode.VERSION_NOT_DRAFT);
+            assertCode(() -> version.approve(reviewer), ErrorCode.VERSION_NOT_UNDER_REVIEW);
         }
 
         @Test
         void onlyApprovedCanBeSuperseded() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
             assertCode(version::supersede, ErrorCode.INVALID_REQUEST);
+            version.submitForReview();
             version.approve(reviewer);
             version.supersede();
-            assertThat(version.getApprovalStatus()).isEqualTo(QuestionApprovalStatus.SUPERSEDED);
+            assertThat(version.getApprovalStatus()).isEqualTo(QuestionStatus.SUPERSEDED);
         }
     }
 
@@ -138,6 +143,7 @@ class QuestionVersionTest {
             QuestionVersion approved = draft(QuestionGenerationMode.AI_RAG);
             approved.confirmBloom(BloomLevel.ANALYZE);
             approved.setGenerationRequestId(UUID.randomUUID());
+            approved.submitForReview();
             approved.approve(reviewer);
 
             QuestionVersion copy = approved.copyAsDraft(2, author);
@@ -146,14 +152,14 @@ class QuestionVersionTest {
             assertThat(copy.getQuestionId()).isEqualTo(approved.getQuestionId());
             assertThat(copy.getVersionNumber()).isEqualTo(2);
             assertThat(copy.getParentVersionId()).isEqualTo(approved.getQuestionVersionId());
-            assertThat(copy.getApprovalStatus()).isEqualTo(QuestionApprovalStatus.DRAFT);
+            assertThat(copy.getApprovalStatus()).isEqualTo(QuestionStatus.DRAFT);
             assertThat(copy.getQuestionContent()).isEqualTo(approved.getQuestionContent());
             assertThat(copy.getBloomLevel()).isEqualTo(BloomLevel.ANALYZE);
             assertThat(copy.isBloomConfirmed()).isTrue();
             assertThat(copy.getGenerationMode()).isEqualTo(QuestionGenerationMode.AI_RAG);
             assertThat(copy.getVersion()).isNull();
             // the original stays untouched
-            assertThat(approved.getApprovalStatus()).isEqualTo(QuestionApprovalStatus.APPROVED);
+            assertThat(approved.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
         }
 
         @Test

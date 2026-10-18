@@ -16,7 +16,7 @@ class CourseDocumentAndQuestionStateTest {
     private static CourseDocument uploaded() {
         return CourseDocument.builder()
                 .documentId(UUID.randomUUID())
-                .indexingStatus(DocumentIndexingStatus.UPLOADED)
+                .indexingStatus(DocumentStatus.UPLOADED)
                 .indexAttempts(0)
                 .build();
     }
@@ -30,12 +30,12 @@ class CourseDocumentAndQuestionStateTest {
     void documentHappyPath() {
         CourseDocument document = uploaded();
         document.startIndexing();
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.INDEXING);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.INDEXING);
         assertThat(document.getIndexAttempts()).isEqualTo(1);
         assertThat(document.isReady()).isFalse();
 
         document.markReady(12, "summary");
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.READY);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.READY);
         assertThat(document.getTotalChunks()).isEqualTo(12);
         assertThat(document.isReady()).isTrue();
     }
@@ -72,7 +72,7 @@ class CourseDocumentAndQuestionStateTest {
             assertThat(document.getErrorMessage()).isEqualTo("Embedding service error");
             if (attempt < 3) {
                 document.requeueForRetry(3);
-                assertThat(document.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.UPLOADED);
+                assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
                 assertThat(document.getErrorMessage()).isNull();
             }
         }
@@ -83,7 +83,7 @@ class CourseDocumentAndQuestionStateTest {
     @DisplayName("question: publish sets the bank pointer; ACTIVE → ARCHIVED blocks further publishing")
     void questionLifecycle() {
         Question question = Question.newDraftOwner(UUID.randomUUID(), null, UUID.randomUUID());
-        assertThat(question.getStatus()).isEqualTo(QuestionStatus.ACTIVE);
+        assertThat(question.getStatus()).isEqualTo(QuestionLifecycleStatus.ACTIVE);
         assertThat(question.isInBank()).isFalse();
         assertThat(question.getQuestionCode()).startsWith("Q-");
 
@@ -94,7 +94,7 @@ class CourseDocumentAndQuestionStateTest {
 
         Instant before = question.getUpdatedAt();
         question.archive();
-        assertThat(question.getStatus()).isEqualTo(QuestionStatus.ARCHIVED);
+        assertThat(question.getStatus()).isEqualTo(QuestionLifecycleStatus.ARCHIVED);
         assertThat(question.getUpdatedAt()).isAfterOrEqualTo(before);
         assertCode(question::archive, ErrorCode.QUESTION_ARCHIVED);
         assertCode(() -> question.publish(UUID.randomUUID()), ErrorCode.QUESTION_ARCHIVED);

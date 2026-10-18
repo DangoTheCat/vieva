@@ -150,7 +150,7 @@ LangChain4j nhận `OPENAI_BASE_URL` có sẵn phiên bản API, ví dụ `https
 3. Chạy class `com.example.vieva.VievaApplication`.
 4. Nếu cần, thêm biến môi trường trong *Run Configuration → Environment variables* (ví dụ `DB_PASSWORD=...;JWT_SECRET=...`). Có thể dùng plugin EnvFile để nạp thẳng `.env`.
 
-Khi tạo volume PostgreSQL mới, init script chạy SQL V0 → V14 và seed dữ liệu mẫu. Backend khởi động thành công khi log có `Started VievaApplication`.
+Khi tạo volume PostgreSQL mới, init script chạy toàn bộ SQL theo thứ tự version và seed dữ liệu mẫu. Backend khởi động thành công khi log có `Started VievaApplication`.
 
 Kiểm tra nhanh bằng API đăng nhập (Git Bash):
 
@@ -245,7 +245,18 @@ npm run build
 - SQL đã áp dụng trên database hiện có không tự chạy lại. Thay đổi schema phải áp dụng thủ công bằng script mới, sau khi sao lưu.
 - Khi sửa entity JPA, cập nhật SQL khởi tạo và áp dụng SQL tương ứng lên database hiện có; Hibernate dùng `ddl-auto=none` nên không tự thêm cột.
 
-### 9.2. Git
+### 9.2. Studio và quy trình duyệt
+
+- Backend studio: `/api/v1/lecturer/studio`. FE hiện tại chưa tích hợp nút gửi duyệt hay chuông.
+- Upload: `POST /subjects/{subjectId}/documents` (multipart `file`) trả `202 UPLOADED`; worker chuyển `INDEXING → READY`, hoặc `FAILED` nếu lỗi. Poll endpoint document hiện có. `POST /documents/{documentId}/archive` ngừng dùng tài liệu trong retrieval và giữ nguyên nguồn lịch sử.
+- Sinh một câu: `POST /questions/generate` với `{ "topicId": "<uuid>", "difficulty": "APPLY", "documentIds": ["<uuid>"] }`. Bỏ `documentIds` để dùng tài liệu READY của môn; `difficulty` là một trong sáu mã Bloom. Trả `201` với câu hỏi, đáp án và `rubricJson`, tổng điểm 10.0. Batch API cũ tiếp tục hoạt động.
+- Admin chỉ định trưởng bộ môn bằng `PUT /api/v1/admin/lecturer-subjects/by-subject/{subjectId}/head` với `{ "lecturerId": "<uuid>" }`. Người được chọn phải là ROLE_LECTURER còn hoạt động và đang được phân công môn đó. Không tự động chọn trưởng môn cho dữ liệu cũ.
+- Tác giả sửa/xác nhận Bloom rồi `POST /questions/{questionId}/submit-for-review` với `{ "versionId": "<uuid>", "expectedVersion": 0 }`. Lấy lockVersion mới từ response cho bước tiếp theo.
+- Trưởng môn dùng `GET /questions/{questionId}/review?versionId=<uuid>`, sau đó `POST /questions/{questionId}/approve` hoặc `/reject` (thêm `reason`). Chỉ UNDER_REVIEW được approve/reject. Tác giả được sửa REJECTED rồi gửi lại; UNDER_REVIEW bị khóa sửa. Trưởng môn được tự duyệt, ADMIN không có đường tắt duyệt.
+- Thông báo trong DB: `GET /api/v1/notifications?page=0&size=20`, `GET /api/v1/notifications/unread-count`, `PATCH /api/v1/notifications/{id}/read`. Chỉ người nhận được đọc/đánh dấu; thay đổi trạng thái và thông báo commit cùng nhau.
+- Áp dụng `V16__studio_review_and_notifications.sql` thủ công cho database cũ sau khi sao lưu. Không bật Flyway và không reset volume. SQL bảo toàn version/rubric/source, thêm trạng thái và notification. Schema JSON gửi model dùng evidence IDs; quote lưu trong DB luôn lấy nguyên văn từ evidence được chọn.
+
+### 9.3. Git
 
 - Không push thẳng vào `main`. Tạo nhánh từ `main` mới nhất:
 

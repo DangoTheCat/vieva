@@ -9,7 +9,7 @@ import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Question;
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
@@ -50,7 +50,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Set<UUID> withDraft = versions.stream()
-                .filter(v -> v.getApprovalStatus() == QuestionApprovalStatus.DRAFT)
+                .filter(v -> v.getApprovalStatus() == QuestionStatus.DRAFT || v.getApprovalStatus() == QuestionStatus.UNDER_REVIEW)
                 .map(QuestionVersion::getQuestionId)
                 .collect(Collectors.toSet());
         Map<UUID, QuestionVersionView> viewsByQuestion = viewAssembler.assemble(
