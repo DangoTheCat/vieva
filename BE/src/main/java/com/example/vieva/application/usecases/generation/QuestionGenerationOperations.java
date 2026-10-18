@@ -10,7 +10,9 @@ import java.util.UUID;
  * UC1.2 / WF01 steps 5-7: retrieve context from READY documents of the subject, let the LLM draft
  * questions + rubrics + sources, validate them and store the valid ones as AI DRAFTs.
  */
-public interface QuestionGenerationService {
+public interface QuestionGenerationOperations {
+    QuestionVersionView coordinateRAGPipeline(UUID topicId, com.example.vieva.domain.entities.BloomLevel difficulty,
+                                             java.util.List<UUID> documentIds, UUID actorId);
     GenerationResult generate(GenerateQuestionsCommand command, UUID actorId);
 
     /** Retries a FAILED/PARTIAL request for the missing questions, within the attempt budget. */

@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class RagSettings {
     /** Chunks retrieved per generation request. */
-    private int topK = 8;
+    private int topK = 5;
     /** Minimum cosine similarity for a chunk to be used as context. */
     private double minSimilarity = 0.2;
     private int maxQuestionsPerRequest = 20;

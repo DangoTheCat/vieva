@@ -11,11 +11,11 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateDraftCommand;
-import com.example.vieva.application.usecases.generation.QuestionGenerationService;
+import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionReviewService;
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
@@ -45,14 +45,14 @@ public class LecturerQuestionVersionController {
 
     private final QuestionReviewService reviewService;
     private final QuestionAuthoringService authoringService;
-    private final QuestionGenerationService generationService;
+    private final QuestionGenerationOperations generationService;
     private final QuestionBankPresenter presenter;
 
     @GetMapping
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
     public ResponseEntity<PageResponse<QuestionVersionDto>> searchVersions(
             @RequestParam UUID subjectId,
-            @RequestParam(required = false) QuestionApprovalStatus status,
+            @RequestParam(required = false) QuestionStatus status,
             @RequestParam(required = false) QuestionGenerationMode origin,
             @RequestParam(required = false) BloomLevel bloomLevel,
             @RequestParam(required = false) UUID topicId,

@@ -13,16 +13,16 @@ import com.example.vieva.application.ports.output.GenerationResult;
 import com.example.vieva.application.ports.output.ImportReport;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.application.usecases.document.DocumentIndexingService;
-import com.example.vieva.application.usecases.generation.QuestionGenerationService;
+import com.example.vieva.application.usecases.document.DocumentOperations;
+import com.example.vieva.application.usecases.generation.QuestionGenerationOperations;
 import com.example.vieva.application.usecases.importing.QuestionImportService;
 import com.example.vieva.application.usecases.question.QuestionAuthoringService;
 import com.example.vieva.application.usecases.question.QuestionBankService;
 import com.example.vieva.application.usecases.question.QuestionReviewService;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.CourseDocument;
-import com.example.vieva.domain.entities.DocumentIndexingStatus;
-import com.example.vieva.domain.entities.QuestionApprovalStatus;
+import com.example.vieva.domain.entities.DocumentStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionGenerationStatus;
 import com.example.vieva.domain.entities.QuestionVersion;
@@ -85,8 +85,8 @@ class QuestionBankIntegrationTest {
     }
 
     @Autowired private JdbcTemplate jdbc;
-    @Autowired private DocumentIndexingService documentService;
-    @Autowired private QuestionGenerationService generationService;
+    @Autowired private DocumentOperations documentService;
+    @Autowired private QuestionGenerationOperations generationService;
     @Autowired private QuestionAuthoringService authoringService;
     @Autowired private QuestionReviewService reviewService;
     @Autowired private QuestionBankService bankService;
@@ -94,6 +94,43 @@ class QuestionBankIntegrationTest {
     @Autowired private QuestionVersionRepository versionRepository;
     @Autowired private DocumentChunkRepository chunkRepository;
     @Autowired private EmbeddingModelPort embeddingModel;
+    @Autowired private org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Autowired private com.example.vieva.application.ports.output.NotificationRepository notifications;
+
+    @Test
+    void submissionRollbackRemovesNotificationAndRecipientIsolationHolds() {
+        Fixture fixture=newSubjectWithLecturer();
+        var draft=createManual(fixture,"Giải thích transaction rollback?");
+        UUID versionId=draft.version().getQuestionVersionId();
+        var tx=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        assertThatThrownBy(() -> tx.execute(status -> {
+            reviewService.submitForReview(versionId,draft.version().getVersion(),fixture.lecturerId());
+            throw new IllegalStateException("rollback test");
+        })).isInstanceOf(IllegalStateException.class);
+        assertThat(versionRepository.findById(versionId).orElseThrow().getApprovalStatus()).isEqualTo(QuestionStatus.DRAFT);
+        assertThat(notifications.unreadCount(fixture.lecturerId())).isZero();
+        var submitted=reviewService.submitForReview(versionId,draft.version().getVersion(),fixture.lecturerId());
+        assertThat(submitted.version().getApprovalStatus()).isEqualTo(QuestionStatus.UNDER_REVIEW);
+        assertThat(submitted.version().getVersion()).isGreaterThan(draft.version().getVersion());
+        assertThat(notifications.unreadCount(fixture.lecturerId())).isEqualTo(1);
+        var notice=notifications.findByRecipient(fixture.lecturerId(),0,20).getContent().get(0);
+        assertThat(notifications.markRead(notice.notificationId(),UUID.randomUUID())).isFalse();
+        assertThat(notifications.markRead(notice.notificationId(),fixture.lecturerId())).isTrue();
+        assertThat(notifications.unreadCount(fixture.lecturerId())).isZero();
+        reviewService.approve(versionId,submitted.version().getVersion(),fixture.lecturerId());
+        assertThat(notifications.unreadCount(fixture.lecturerId())).isEqualTo(1);
+    }
+
+    @Test
+    void archivedDocumentIsExcludedFromRetrievalButKeepsEvidence() {
+        Fixture fixture=newSubjectWithLecturer();
+        var document=uploadAndAwait(fixture,"archive.txt",TRANSACTIONS_TEXT,DocumentStatus.READY);
+        var before=chunkRepository.findByDocumentId(document.getDocumentId());
+        documentService.archiveDocument(document.getDocumentId(),fixture.lecturerId());
+        assertThat(documentService.getDocumentById(document.getDocumentId()).isAvailableAsEvidence()).isTrue();
+        assertThat(chunkRepository.findByDocumentId(document.getDocumentId())).hasSameSizeAs(before);
+        assertThat(chunkRepository.similaritySearch(fixture.subjectId(),List.of(document.getDocumentId()),"giao dịch",0,5)).isEmpty();
+    }
 
     private static final String TRANSACTIONS_TEXT = """
             Giao dịch trong cơ sở dữ liệu là một đơn vị công việc logic. Tính nguyên tử bảo đảm hoặc mọi thao tác
@@ -117,13 +154,15 @@ class QuestionBankIntegrationTest {
                 subject, "SWD" + suffix, "Cơ sở dữ liệu " + suffix);
         jdbc.update("INSERT INTO lecturer_subjects (lecturer_subject_id, lecturer_id, subject_id, is_active, assigned_by) "
                 + "VALUES (?,?,?, TRUE, ?)", UUID.randomUUID(), lecturer, subject, lecturer);
+        jdbc.update("INSERT INTO user_roles(user_id,role_id) SELECT ?,role_id FROM roles WHERE role_code='ROLE_LECTURER'",lecturer);
+        jdbc.update("UPDATE subjects SET head_lecturer_id=? WHERE subject_id=?",lecturer,subject);
         return new Fixture(subject, lecturer);
     }
 
-    private CourseDocument uploadAndAwait(Fixture fixture, String name, String text, DocumentIndexingStatus expected) {
+    private CourseDocument uploadAndAwait(Fixture fixture, String name, String text, DocumentStatus expected) {
         CourseDocument uploaded = documentService.uploadDocument(fixture.subjectId(), name,
                 text.getBytes(StandardCharsets.UTF_8), fixture.lecturerId());
-        assertThat(uploaded.getIndexingStatus()).isEqualTo(DocumentIndexingStatus.UPLOADED);
+        assertThat(uploaded.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
         await().atMost(Duration.ofSeconds(30)).until(
                 () -> documentService.getDocumentById(uploaded.getDocumentId()).getIndexingStatus() == expected);
         return documentService.getDocumentById(uploaded.getDocumentId());
@@ -150,8 +189,8 @@ class QuestionBankIntegrationTest {
     void uploadIndexAndRetrieveWithinSubject() {
         Fixture a = newSubjectWithLecturer();
         Fixture b = newSubjectWithLecturer();
-        CourseDocument docA = uploadAndAwait(a, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentIndexingStatus.READY);
-        CourseDocument docB = uploadAndAwait(b, "giao-dich-b.txt", TRANSACTIONS_TEXT, DocumentIndexingStatus.READY);
+        CourseDocument docA = uploadAndAwait(a, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
+        CourseDocument docB = uploadAndAwait(b, "giao-dich-b.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
 
         assertThat(docA.getTotalChunks()).isGreaterThan(1);
         assertThat(docA.getIndexAttempts()).isEqualTo(1);
@@ -174,13 +213,13 @@ class QuestionBankIntegrationTest {
     @DisplayName("UC1.1: empty text → FAILED with a reason; retry is bounded")
     void failedIndexingAndBoundedRetry() {
         Fixture fixture = newSubjectWithLecturer();
-        CourseDocument failed = uploadAndAwait(fixture, "rong.txt", "quá ngắn", DocumentIndexingStatus.FAILED);
+        CourseDocument failed = uploadAndAwait(fixture, "rong.txt", "quá ngắn", DocumentStatus.FAILED);
         assertThat(failed.getErrorMessage()).isEqualTo(ErrorCode.EMPTY_DOCUMENT_TEXT.getMessage());
 
         documentService.retryIndexing(failed.getDocumentId(), fixture.lecturerId());
         await().atMost(Duration.ofSeconds(30)).until(() ->
                 documentService.getDocumentById(failed.getDocumentId()).getIndexAttempts() == 2
-                        && documentService.getDocumentById(failed.getDocumentId()).getIndexingStatus() == DocumentIndexingStatus.FAILED);
+                        && documentService.getDocumentById(failed.getDocumentId()).getIndexingStatus() == DocumentStatus.FAILED);
         assertThatThrownBy(() -> documentService.retryIndexing(failed.getDocumentId(), fixture.lecturerId()))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.RETRY_LIMIT_EXCEEDED);
     }
@@ -189,7 +228,7 @@ class QuestionBankIntegrationTest {
     @DisplayName("WF01: RAG drafts → confirm Bloom → approve (one transaction) → bank → Copy-on-Write → supersede")
     void generateReviewApproveAndCopyOnWrite() {
         Fixture fixture = newSubjectWithLecturer();
-        CourseDocument document = uploadAndAwait(fixture, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentIndexingStatus.READY);
+        CourseDocument document = uploadAndAwait(fixture, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
 
         GenerationResult generation = generationService.generate(GenerateQuestionsCommand.builder()
                 .subjectId(fixture.subjectId())
@@ -217,9 +256,9 @@ class QuestionBankIntegrationTest {
         // Nothing is in the bank before approval (BR-05).
         assertThat(bankService.search(bankCriteria(fixture, null)).getContent()).isEmpty();
 
-        assertThatThrownBy(() -> reviewService.approve(v1, null, fixture.lecturerId()))
+        assertThatThrownBy(() -> reviewService.submitForReview(v1, null, fixture.lecturerId()))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.BLOOM_NOT_CONFIRMED);
-        assertThat(versionRepository.findById(v1).orElseThrow().getApprovalStatus()).isEqualTo(QuestionApprovalStatus.DRAFT);
+        assertThat(versionRepository.findById(v1).orElseThrow().getApprovalStatus()).isEqualTo(QuestionStatus.DRAFT);
 
         // Regenerate one draft only; the others stay untouched.
         UUID untouched = generation.drafts().get(1).version().getQuestionVersionId();
@@ -232,8 +271,9 @@ class QuestionBankIntegrationTest {
 
         QuestionVersionView confirmed = authoringService.confirmBloom(v1, null, regenerated.version().getVersion(),
                 fixture.lecturerId());
-        QuestionVersionView approved = reviewService.approve(v1, confirmed.version().getVersion(), fixture.lecturerId());
-        assertThat(approved.version().getApprovalStatus()).isEqualTo(QuestionApprovalStatus.APPROVED);
+        QuestionVersionView submitted = reviewService.submitForReview(v1, confirmed.version().getVersion(), fixture.lecturerId());
+        QuestionVersionView approved = reviewService.approve(v1, submitted.version().getVersion(), fixture.lecturerId());
+        assertThat(approved.version().getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
         assertThat(approved.question().getCurrentApprovedVersionId()).isEqualTo(v1);
 
         BloomLevel level = approved.version().getBloomLevel();
@@ -255,9 +295,10 @@ class QuestionBankIntegrationTest {
         QuestionVersionView edited = authoringService.updateDraft(draft2.version().getQuestionVersionId(),
                 UpdateDraftCommand.builder().content("Phiên bản 2 của câu hỏi").rubric(rubric("3", "7"))
                         .expectedVersion(draft2.version().getVersion()).build(), fixture.lecturerId());
-        reviewService.approve(edited.version().getQuestionVersionId(), edited.version().getVersion(), fixture.lecturerId());
+        var submitted2 = reviewService.submitForReview(edited.version().getQuestionVersionId(), edited.version().getVersion(), fixture.lecturerId());
+        reviewService.approve(edited.version().getQuestionVersionId(), submitted2.version().getVersion(), fixture.lecturerId());
 
-        assertThat(versionRepository.findById(v1).orElseThrow().getApprovalStatus()).isEqualTo(QuestionApprovalStatus.SUPERSEDED);
+        assertThat(versionRepository.findById(v1).orElseThrow().getApprovalStatus()).isEqualTo(QuestionStatus.SUPERSEDED);
         assertThat(bankService.getDetail(questionId).currentVersion().version().getQuestionContent())
                 .isEqualTo("Phiên bản 2 của câu hỏi");
         assertThat(bankService.getHistory(questionId)).hasSize(2);
@@ -284,7 +325,7 @@ class QuestionBankIntegrationTest {
         assertThatThrownBy(() -> reviewService.approve(draft.version().getQuestionVersionId(), null, fixture.lecturerId()))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
         assertThat(versionRepository.findById(draft.version().getQuestionVersionId()).orElseThrow().getApprovalStatus())
-                .isEqualTo(QuestionApprovalStatus.DRAFT);
+                .isEqualTo(QuestionStatus.DRAFT);
         assertThat(jdbc.queryForObject("SELECT current_approved_version_id FROM questions WHERE question_id = ?",
                 UUID.class, draft.question().getQuestionId())).isNull();
     }

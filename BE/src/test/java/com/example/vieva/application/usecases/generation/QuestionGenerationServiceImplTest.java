@@ -29,12 +29,12 @@ import com.example.vieva.application.settings.RagSettings;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter;
+import com.example.vieva.application.usecases.question.PostgreSQLDatabase;
 import com.example.vieva.application.usecases.question.QuestionVersionViewAssembler;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
-import com.example.vieva.domain.entities.DocumentIndexingStatus;
+import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionGenerationRequest;
@@ -97,7 +97,7 @@ class QuestionGenerationServiceImplTest {
     @Mock private AuditEventRepository auditEventRepository;
     @Mock private JsonSerializerPort json;
 
-    private QuestionGenerationServiceImpl service;
+    private QuestionGenCoordinator service;
     private final RagSettings settings = new RagSettings();
     private final UUID lecturer = UUID.randomUUID();
     private final UUID subjectId = UUID.randomUUID();
@@ -117,24 +117,24 @@ class QuestionGenerationServiceImplTest {
         SubjectAccessGuard guard = new SubjectAccessGuard(lecturerSubjectRepository, userRepository);
         QuestionVersionViewAssembler assembler = new QuestionVersionViewAssembler(questionRepository, topicRepository,
                 rubricRepository, criterionRepository, sourceRepository);
-        service = new QuestionGenerationServiceImpl(requestRepository, versionRepository, rubricRepository,
+        service = new QuestionGenCoordinator(requestRepository, versionRepository, rubricRepository,
                 criterionRepository, sourceRepository, documentRepository, chunkRepository, subjectRepository,
-                topicRepository, embedding, llm, direct, guard,
+                topicRepository, llm, direct, guard,
                 new QuestionAccessLoader(questionRepository, versionRepository, guard),
-                new QuestionDraftWriter(questionRepository, versionRepository, rubricRepository, criterionRepository,
-                        sourceRepository),
+                new PostgreSQLDatabase(questionRepository, versionRepository, rubricRepository, criterionRepository,
+                        sourceRepository, documentRepository, assembler),
                 assembler, new QuestionBankAuditor(auditEventRepository, json), settings);
 
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(true);
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(
                 Subject.builder().subjectId(subjectId).subjectName("Cơ sở dữ liệu").build()));
         document = CourseDocument.builder().documentId(UUID.randomUUID()).subjectId(subjectId).fileName("csdl.pdf")
-                .indexingStatus(DocumentIndexingStatus.READY).build();
+                .indexingStatus(DocumentStatus.READY).build();
         when(documentRepository.findAllByIds(anyCollection())).thenReturn(List.of(document));
         chunk = ChunkSearchResult.of(UUID.randomUUID(), document.getDocumentId(), "csdl.pdf", 1, 2,
                 "Giao dịch có bốn tính chất ACID. Chỉ mục B-tree tăng tốc truy vấn.", 0.3);
         when(embedding.generateEmbedding(any())).thenReturn(new float[]{1f});
-        when(chunkRepository.searchSimilarChunks(eq(subjectId), anyCollection(), any(), anyDouble(), anyInt()))
+        when(chunkRepository.similaritySearch(eq(subjectId), anyCollection(), any(), anyDouble(), anyInt()))
                 .thenReturn(List.of(chunk));
 
         when(requestRepository.save(any())).thenAnswer(inv -> {
@@ -174,6 +174,30 @@ class QuestionGenerationServiceImplTest {
         return new GeneratedQuestionCandidate(content, "Đáp án theo tài liệu", bloom, BigDecimal.TEN,
                 List.of(new Criterion("Đúng", "0-6", new BigDecimal("6")), new Criterion("Rõ", "0-4", new BigDecimal("4"))),
                 List.of("C1"), List.of(new Citation("C1", "bốn tính chất ACID")));
+    }
+
+    @Test
+    void singleQuestionResolvesReadyDocumentsAndCapsContextAtFive() {
+        UUID topicId=UUID.randomUUID();
+        when(topicRepository.findById(topicId)).thenReturn(Optional.of(
+                com.example.vieva.domain.entities.Topic.builder().topicId(topicId).subjectId(subjectId)
+                        .topicName("Giao dịch").description("ACID").build()));
+        when(documentRepository.findActiveBySubjectId(subjectId)).thenReturn(List.of(document));
+        settings.setTopK(40);
+        var many=java.util.stream.IntStream.range(0,10).mapToObj(i -> ChunkSearchResult.of(UUID.randomUUID(),
+                document.getDocumentId(),"csdl.pdf",i,1,chunk.content(),0.3)).toList();
+        when(chunkRepository.similaritySearch(eq(subjectId),anyCollection(),any(),anyDouble(),anyInt())).thenReturn(many);
+        when(llm.generate(any())).thenReturn(List.of(candidate("Áp dụng ACID khi chuyển tiền?","APPLY")));
+        var result=service.coordinateRAGPipeline(topicId,BloomLevel.APPLY,null,lecturer);
+        assertThat(result.version().getBloomLevel()).isEqualTo(BloomLevel.APPLY);
+        var prompt=ArgumentCaptor.forClass(QuestionGenerationPrompt.class);
+        verify(llm).generate(prompt.capture());
+        assertThat(prompt.getValue().contextChunks()).hasSize(5);
+        assertThat(prompt.getValue().totalQuestions()).isEqualTo(1);
+        var order=org.mockito.Mockito.inOrder(chunkRepository,llm,versionRepository);
+        order.verify(chunkRepository).similaritySearch(eq(subjectId),anyCollection(),eq("Giao dịch. ACID"),anyDouble(),eq(10));
+        order.verify(llm).generate(any());
+        order.verify(versionRepository).saveAll(anyList());
     }
 
     @Test
@@ -250,11 +274,11 @@ class QuestionGenerationServiceImplTest {
     @Test
     @DisplayName("BR-07: documents must be READY and of the same subject")
     void documentChecks() {
-        document.setIndexingStatus(DocumentIndexingStatus.INDEXING);
+        document.setIndexingStatus(DocumentStatus.INDEXING);
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_READY);
 
-        document.setIndexingStatus(DocumentIndexingStatus.READY);
+        document.setIndexingStatus(DocumentStatus.READY);
         document.setSubjectId(UUID.randomUUID());
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_SUBJECT_MISMATCH);
@@ -270,7 +294,7 @@ class QuestionGenerationServiceImplTest {
     @Test
     @DisplayName("no relevant chunk → INSUFFICIENT_CONTEXT and the request is kept as FAILED")
     void noContext() {
-        when(chunkRepository.searchSimilarChunks(any(), anyCollection(), any(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(chunkRepository.similaritySearch(any(), anyCollection(), any(), anyDouble(), anyInt())).thenReturn(List.of());
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
                 .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INSUFFICIENT_CONTEXT);
         assertThat(requests.values()).singleElement()

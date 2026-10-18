@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface DocumentChunkRepository {
+    List<float[]> embedChunks(List<String> texts);
+    List<DocumentChunk> storeEmbeddings(List<DocumentChunk> chunks);
+    List<ChunkSearchResult> similaritySearch(UUID subjectId, Collection<UUID> documentIds,
+                                           String topicKeywords, double minSimilarity, int topK);
     List<DocumentChunk> saveAll(List<DocumentChunk> chunks);
     List<DocumentChunk> findAllByIds(Collection<UUID> chunkIds);
     List<DocumentChunk> findByDocumentId(UUID documentId);

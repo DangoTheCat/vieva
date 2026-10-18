@@ -5,7 +5,6 @@ import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
-import com.example.vieva.application.ports.output.EmbeddingModelPort;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
 import com.example.vieva.application.ports.output.GenerationResult;
 import com.example.vieva.application.ports.output.QuestionGenerationPort;
@@ -27,8 +26,8 @@ import com.example.vieva.application.usecases.generation.GeneratedQuestionValida
 import com.example.vieva.application.usecases.generation.GeneratedQuestionValidator.ValidatedSource;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter;
-import com.example.vieva.application.usecases.question.QuestionDraftWriter.NewDraft;
+import com.example.vieva.application.usecases.question.PostgreSQLDatabase;
+import com.example.vieva.application.usecases.question.PostgreSQLDatabase.NewDraft;
 import com.example.vieva.application.usecases.question.QuestionVersionViewAssembler;
 import com.example.vieva.domain.entities.BloomDistribution;
 import com.example.vieva.domain.entities.BloomLevel;
@@ -75,7 +74,22 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class QuestionGenerationServiceImpl implements QuestionGenerationService {
+public class QuestionGenCoordinator implements QuestionGenerationOperations {
+
+    public QuestionVersionView coordinateRAGPipeline(UUID topicId, BloomLevel difficulty, List<UUID> documentIds, UUID actorId) {
+        if(topicId==null || difficulty==null) throw new AppException(ErrorCode.INVALID_REQUEST,"topicId and difficulty are required");
+        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new AppException(ErrorCode.TOPIC_NOT_FOUND));
+        subjectAccessGuard.requireManage(actorId,topic.getSubjectId());
+        List<UUID> selected = documentIds == null || documentIds.isEmpty()
+                ? courseDocumentRepository.findActiveBySubjectId(topic.getSubjectId()).stream()
+                    .filter(CourseDocument::isReady).map(CourseDocument::getDocumentId).toList() : documentIds;
+        GenerationResult result = generate(GenerateQuestionsCommand.builder().subjectId(topic.getSubjectId())
+                .topicId(topicId).documentIds(selected).totalQuestions(1)
+                .bloomDistribution(Map.of(difficulty,1)).build(),actorId);
+        if (result.drafts().isEmpty()) throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE,
+                "Generation failed; inspect request " + result.request().getGenerationRequestId());
+        return result.drafts().get(0);
+    }
 
     private static final int MAX_ISSUES = 50;
     /**
@@ -93,12 +107,11 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
     private final DocumentChunkRepository documentChunkRepository;
     private final SubjectRepository subjectRepository;
     private final TopicRepository topicRepository;
-    private final EmbeddingModelPort embeddingModel;
     private final QuestionGenerationPort questionGenerator;
     private final TransactionRunnerPort transactionRunner;
     private final SubjectAccessGuard subjectAccessGuard;
     private final QuestionAccessLoader accessLoader;
-    private final QuestionDraftWriter draftWriter;
+    private final PostgreSQLDatabase draftWriter;
     private final QuestionVersionViewAssembler viewAssembler;
     private final QuestionBankAuditor auditor;
     private final RagSettings settings;
@@ -291,16 +304,14 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
     private Context retrieveContext(QuestionGenerationRequest request) {
         Subject subject = requireSubject(request.getSubjectId());
         Topic topic = loadTopic(request.getSubjectId(), request.getTopicId());
-        String query = joinNonBlank(subject.getSubjectName(),
-                topic == null ? null : topic.getTopicName(),
-                topic == null ? null : topic.getDescription(),
-                request.getLecturerNote());
+        String query = joinNonBlank(topic == null ? subject.getSubjectName() : topic.getTopicName(),
+                topic == null ? null : topic.getDescription(), request.getLecturerNote());
 
         List<ChunkSearchResult> chunks;
+        int topK = Math.max(1, Math.min(5, settings.getTopK()));
         try {
-            float[] queryVector = embeddingModel.generateEmbedding(query);
-            chunks = documentChunkRepository.searchSimilarChunks(request.getSubjectId(), request.getDocumentIds(),
-                    queryVector, settings.getMinSimilarity(), settings.getTopK() * 2);
+            chunks = documentChunkRepository.similaritySearch(request.getSubjectId(), request.getDocumentIds(),
+                    query, settings.getMinSimilarity(), topK * 2);
         } catch (AiServiceException e) {
             failRequest(request, "Embedding service error: " + e.getMessage());
             throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE,
@@ -313,7 +324,7 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                     "No chunk of the selected documents is similar enough (>= " + settings.getMinSimilarity()
                             + ") to the subject/topic; refine the topic or select other documents");
         }
-        chunks = rerank(chunks, query, settings.getTopK());
+        chunks = rerank(chunks, query, topK);
         List<ChunkSearchResult> retrievedChunks = chunks;
         transactionRunner.inNewTransaction(() -> {
             QuestionGenerationRequest fresh = generationRequestRepository.findById(request.getGenerationRequestId())
@@ -424,6 +435,7 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
         Map<BloomLevel, Integer> missing = new EnumMap<>(wanted.asMap());
         List<ValidatedQuestion> accepted = new ArrayList<>();
         List<String> issues = new ArrayList<>();
+        List<String> avoid = new ArrayList<>(basePrompt.avoidQuestions() == null ? List.of() : basePrompt.avoidQuestions());
         int rejected = 0;
         String lastError = null;
 
@@ -435,7 +447,7 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                 }
                 request.beginAttempt(settings.getMaxTotalAttempts());
             }
-            QuestionGenerationPrompt prompt = withDistribution(basePrompt, missing);
+            QuestionGenerationPrompt prompt = withDistribution(basePrompt, missing, avoid, issues);
             List<GeneratedQuestionCandidate> candidates;
             try {
                 candidates = questionGenerator.generate(prompt);
@@ -465,11 +477,13 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                 if (result.valid()) {
                     ValidatedQuestion question = result.question();
                     accepted.add(question);
+                    avoid.add(question.content());
                     missing.merge(question.bloomLevel(), -1, Integer::sum);
                     existingTokens.add(QuestionSimilarity.tokens(question.content()));
                     stillNeeded = computeStillNeeded(missing);
                 } else {
                     rejected++;
+                    if (result.reasons().contains("near-duplicate of an existing question")) avoid.add(candidate.content());
                     issues.add("Attempt " + attempt + ", item " + index + ": " + String.join("; ", result.reasons()));
                 }
             }
@@ -490,7 +504,7 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
                 List<NewDraft> drafts = outcome.accepted().stream()
                         .map(question -> toDraft(fresh, question, actorId))
                         .toList();
-                draftWriter.persist(drafts);
+                draftWriter.saveQuestionDraft(drafts);
 
                 String error = null;
                 if (drafts.isEmpty()) {
@@ -588,7 +602,8 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
         }
     }
 
-    private static QuestionGenerationPrompt withDistribution(QuestionGenerationPrompt base, Map<BloomLevel, Integer> missing) {
+    private static QuestionGenerationPrompt withDistribution(QuestionGenerationPrompt base, Map<BloomLevel, Integer> missing,
+                                                             List<String> avoid, List<String> issues) {
         Map<BloomLevel, Integer> wanted = new EnumMap<>(BloomLevel.class);
         missing.forEach((level, count) -> {
             if (count > 0) {
@@ -596,7 +611,10 @@ public class QuestionGenerationServiceImpl implements QuestionGenerationService 
             }
         });
         return new QuestionGenerationPrompt(base.subjectName(), base.topicName(), wanted, base.lecturerNote(),
-                base.contextChunks(), base.avoidQuestions(), base.previousContent(), base.lecturerFeedback());
+                base.contextChunks(), avoid.stream().distinct().toList(), base.previousContent(),
+                joinNonBlank(base.lecturerFeedback(), issues.isEmpty() ? null :
+                        "Correct previous validation errors:\n" + String.join("\n",
+                                issues.subList(Math.max(0,issues.size()-6),issues.size()))));
     }
 
     private static int totalOf(Map<BloomLevel, Integer> counts) {
