@@ -4,9 +4,12 @@ import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { Toast } from './components/common/Toast';
 import { PageSkeleton } from './components/common/Skeleton';
-import { ProfileModal } from './components/profile/ProfileModal';
 import { RbacMatrixModal } from './components/users/RbacMatrixModal';
 import { CreateUserModal } from './components/users/CreateUserModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+// Account & Profile Management
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 
 // Nhóm 7: Quản Trị Hệ Thống (Admin)
 const AdminUserPage = lazy(() => import('./pages/AdminUserPage').then(m => ({ default: m.AdminUserPage })));
@@ -62,9 +65,12 @@ function AppContent() {
   }, []);
 
   // Modals state
-  const [profileModalState, setProfileModalState] = useState({ isOpen: false, tab: 'info' });
   const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+
+  const handleOpenProfile = (tab = 'info') => {
+    setCurrentView(tab === 'password' ? 'profile-password' : 'profile');
+  };
 
   // Global Toast state
   const [toast, setToast] = useState(null);
@@ -78,7 +84,7 @@ function AppContent() {
     setToast(toastData);
   };
 
-  // Views each role may open — Strictly limited to 3 Core Functional Groups
+  // Views each role may open — Strictly limited to 3 Core Functional Groups + Profile Page
   const allowedViews = [
     ...(isAdmin ? [
       'admin-users', 
@@ -94,7 +100,9 @@ function AppContent() {
     'discover',
     'calibration',
     'exam-room',
-    'submission-success'
+    'submission-success',
+    'profile',
+    'profile-password'
   ];
 
   const defaultRoleHome = isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover';
@@ -116,9 +124,52 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white space-y-3 flex-col">
-        <div className="w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-        <p className="font-heading text-sm font-semibold tracking-wide">Đang khởi tạo AIVES System...</p>
+      <div className="min-h-screen bg-paper flex items-center justify-center p-6 text-ink selection:bg-pink-200 selection:text-pink-900 relative">
+        <div className="bg-paper border-2 border-green-500 rounded-3xl p-8 sm:p-10 shadow-[8px_8px_0_#DEB9B5] max-w-sm sm:max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          {/* Brand Mark with Layered Pastel Accent */}
+          <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
+            <div className="absolute inset-0 bg-pink-200 rounded-2xl border-2 border-green-500 rotate-6 shadow-[3px_3px_0_#DEB9B5]"></div>
+            <div className="relative w-16 h-16 rounded-2xl bg-pink-100 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[3px_3px_0_#DEB9B5]">
+              <svg className="w-8 h-8 text-pink-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Heading & Subtitle */}
+          <div>
+            <span className="font-heading font-black text-3xl tracking-tight text-ink leading-none">
+              aives<span className="text-pink-600">.</span>
+            </span>
+            <span className="block text-[11px] font-bold text-green-700 uppercase tracking-widest mt-1.5">
+              Stagebox Evaluator &amp; Viva Assessment
+            </span>
+          </div>
+
+          {/* Loading Indicator */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-center gap-2.5 text-xs font-bold text-ink">
+              <span className="w-4 h-4 border-2 border-pink-500 border-t-green-600 rounded-full animate-spin"></span>
+              <span>Đang khởi tạo AIVES System...</span>
+            </div>
+            <p className="text-[11px] text-green-800 font-medium">
+              Đang đồng bộ phiên khảo thí &amp; chuẩn bị không gian học liệu
+            </p>
+
+            {/* Pastel Progress Bar */}
+            <div className="w-full bg-green-100/80 rounded-full h-2 border border-green-500 overflow-hidden p-0.5 shadow-inner">
+              <div className="bg-pink-500 h-full rounded-full animate-pulse w-3/4"></div>
+            </div>
+          </div>
+
+          {/* Footer security badge */}
+          <div className="pt-3 border-t-2 border-cream flex items-center justify-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
+            <span className="text-[10px] font-mono font-semibold text-green-800 uppercase tracking-wider">
+              Secured Academic Node • v4.8
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -152,14 +203,14 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-canvasBg text-slate-800 antialiased font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-paper text-ink antialiased font-sans selection:bg-pink-200 selection:text-pink-900">
 
       {/* GLOBAL TOP NAV */}
       <Navbar
         currentTab={activeView}
         onNavigate={(view) => setCurrentView(view)}
         onOpenAddUser={() => setIsQuickAddOpen(true)}
-        onOpenProfile={(tab) => setProfileModalState({ isOpen: true, tab })}
+        onOpenProfile={handleOpenProfile}
         onOpenMatrix={() => setIsMatrixOpen(true)}
       />
 
@@ -177,7 +228,8 @@ function AppContent() {
 
         {/* CENTER MAIN CANVAS */}
         <main className="flex-1 canvas-dot-grid py-8 px-4 sm:px-8 overflow-y-auto">
-          <Suspense fallback={<PageSkeleton />}>
+          <ErrorBoundary key={activeView}>
+            <Suspense fallback={<PageSkeleton />}>
             {/* Nhóm 7: Quản Trị Hệ Thống (Admin) */}
             {activeView === 'admin-users' && (
               <AdminUserPage
@@ -246,19 +298,22 @@ function AppContent() {
                 showToast={showToast}
               />
             )}
+
+            {/* Quản Lý Hồ Sơ & Bảo Mật Tài Khoản (Dạng Page Toàn Diện) */}
+            {(activeView === 'profile' || activeView === 'profile-password') && (
+              <ProfilePage
+                onNavigate={(view) => setCurrentView(view)}
+                showToast={showToast}
+                initialTab={activeView === 'profile-password' ? 'password' : 'info'}
+              />
+            )}
           </Suspense>
-        </main>
+        </ErrorBoundary>
+      </main>
 
       </div>
 
       {/* GLOBAL MODALS */}
-      <ProfileModal
-        isOpen={profileModalState.isOpen}
-        initialTab={profileModalState.tab}
-        onClose={() => setProfileModalState({ isOpen: false, tab: 'info' })}
-        showToast={showToast}
-      />
-
       <RbacMatrixModal
         isOpen={isMatrixOpen}
         onClose={() => setIsMatrixOpen(false)}
@@ -282,8 +337,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
