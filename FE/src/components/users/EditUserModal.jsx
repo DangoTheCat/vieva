@@ -164,6 +164,32 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
             </div>
           )}
 
+          {/* User Hero Preview */}
+          <div className="p-3.5 bg-paper border-2 border-green-500 rounded-xl flex items-center gap-3 shadow-[2px_2px_0px_#DEB9B5]">
+            <div className="w-12 h-12 rounded-xl border-2 border-green-600 shadow-[2px_2px_0px_#DEB9B5] overflow-hidden shrink-0 bg-pink-100 flex items-center justify-center font-heading font-black text-sm text-pink-900">
+              {(user.avatarUrl || user.avatar || user.avatar_url) ? (
+                <img
+                  src={(user.avatarUrl || user.avatar || user.avatar_url).trim()}
+                  alt={user.fullName || 'Avatar'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) {
+                      e.currentTarget.nextSibling.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              <span className={`w-full h-full flex items-center justify-center ${(user.avatarUrl || user.avatar || user.avatar_url) ? 'hidden' : ''}`}>
+                {user.fullName ? user.fullName.substring(0, 2).toUpperCase() : 'US'}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-heading font-bold text-sm text-ink truncate">{user.fullName}</p>
+              <p className="text-on-surface-variant text-[11px] font-mono truncate">{user.email}</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block font-bold text-slate-700 mb-1">Email (Khóa cố định):</label>
