@@ -20,6 +20,7 @@ public class UserDto {
     private String userCode;
     private String fullName;
     private String phoneNumber;
+    private String avatarUrl;
     private UserStatus status;
     /** The account's single role code. */
     private String role;
