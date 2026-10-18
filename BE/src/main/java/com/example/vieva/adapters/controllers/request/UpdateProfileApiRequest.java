@@ -23,4 +23,7 @@ public class UpdateProfileApiRequest {
     @Pattern(regexp = "^$|^(\\+?[0-9]{9,11})$", message = "Phone number must contain between 9 and 11 digits")
     @Size(max = 12, message = "Phone number must not exceed 11 digits")
     private String phoneNumber;
+
+    @Size(max = 500, message = "Avatar URL must not exceed 500 characters")
+    private String avatarUrl;
 }
