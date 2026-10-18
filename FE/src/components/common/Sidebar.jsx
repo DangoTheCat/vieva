@@ -84,24 +84,24 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
         <button
           type="button"
           onClick={() => onNavigate(id)}
-          className={`w-full relative flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-3 gap-3'} py-2.5 rounded-xl transition-all duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 border ${
+          className={`w-full relative flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-3 gap-3'} py-2.5 rounded-xl transition-all duration-150 text-left cursor-pointer focus:outline-none border-2 ${
             isActive
-              ? 'bg-sky-500/15 text-white border-sky-400/40 shadow-xs'
-              : 'text-slate-300 border-transparent hover:text-white hover:bg-slate-800/60'
+              ? 'bg-pink-100 text-ink border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+              : 'text-ink border-transparent hover:text-pink-900 hover:bg-pink-50'
           }`}
           title={isCollapsed ? `${title} • ${subtitle}` : undefined}
         >
           {/* Active Accent Bar on Left */}
           {isActive && (
-            <span className="absolute left-0 top-2 bottom-2 w-1 bg-sky-400 rounded-r-full shadow-xs shadow-sky-400" />
+            <span className="absolute left-0 top-2 bottom-2 w-1.5 bg-pink-600 rounded-r-full" />
           )}
 
           {/* Icon Badge */}
           <div
-            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors border-2 ${
               isActive
-                ? 'bg-sky-500/25 text-sky-400 border border-sky-400/30'
-                : 'bg-slate-800/80 text-slate-400 group-hover:text-slate-200 group-hover:bg-slate-700/80 border border-slate-700/50'
+                ? 'bg-pink-200 text-pink-800 border-green-500'
+                : 'bg-green-100 text-green-700 group-hover:text-pink-700 group-hover:bg-pink-100 border-green-200'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -111,22 +111,22 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1.5">
-                <span className={`text-xs font-semibold truncate ${isActive ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                <span className={`text-xs font-bold truncate ${isActive ? 'text-pink-900 font-heading' : 'text-ink group-hover:text-pink-800'}`}>
                   {title}
                 </span>
                 {tag && (
                   <span
-                    className={`text-[9px] font-mono px-1.5 py-0.5 rounded tracking-wider shrink-0 whitespace-nowrap ${
+                    className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full tracking-wider shrink-0 whitespace-nowrap font-bold border ${
                       isActive
-                        ? 'bg-sky-950 text-sky-300 border border-sky-700/50'
-                        : 'bg-slate-800/90 text-slate-400 border border-slate-700/60'
+                        ? 'bg-pink-200 text-pink-900 border-pink-400'
+                        : 'bg-green-100 text-green-800 border-green-300'
                     }`}
                   >
                     {tag}
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 truncate mt-0.5 font-normal">
+              <p className={`text-[10px] truncate mt-0.5 font-normal ${isActive ? 'text-green-800 font-medium' : 'text-green-700'}`}>
                 {subtitle}
               </p>
             </div>
@@ -135,16 +135,16 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
 
         {/* Floating Tooltip in Collapsed Mode */}
         {isCollapsed && (
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover:flex flex-col z-50 bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 duration-100">
-            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover:flex flex-col z-50 bg-paper border-2 border-green-500 text-ink px-3 py-2 rounded-xl shadow-[4px_4px_0_#DEB9B5] whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 duration-100">
+            <span className="text-xs font-bold text-ink flex items-center gap-1.5 font-heading">
               {title}
               {tag && (
-                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-sky-950 text-sky-400 border border-sky-800">
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-800 border border-pink-300 font-bold">
                   {tag}
                 </span>
               )}
             </span>
-            <span className="text-[10px] text-slate-400 mt-0.5">{subtitle}</span>
+            <span className="text-[10px] text-green-700 mt-0.5">{subtitle}</span>
           </div>
         )}
       </div>
@@ -156,30 +156,30 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
       <aside
         className={`${
           isCollapsed ? 'w-20' : 'w-72'
-        } shrink-0 hidden md:flex flex-col justify-between bg-sidebarBg text-slate-300 border-r border-slate-800 select-none transition-all duration-200 min-h-[calc(100vh-4rem)] p-3`}
+        } shrink-0 hidden md:flex flex-col justify-between bg-paper text-ink border-r-2 border-green-500 select-none transition-all duration-200 min-h-[calc(100vh-4rem)] p-3`}
       >
         {/* TOP SECTION: CONTEXT BANNER & NAVIGATION */}
         <div className="space-y-4">
 
           {/* Header & Toggle Button */}
-          <div className="flex items-center justify-between px-2 pt-1 pb-2 border-b border-slate-800/80">
+          <div className="flex items-center justify-between px-2 pt-1 pb-2.5 border-b-2 border-cream">
             {!isCollapsed ? (
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-300 truncate font-heading">
+                <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse shrink-0" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-green-900 truncate font-heading">
                   {isAdmin ? 'Quản Trị Trung Tâm' : isLecturer ? 'Phân Hệ Giảng Viên' : 'Cổng Thi Vấn Đáp'}
                 </span>
               </div>
             ) : (
               <div className="w-full flex justify-center pb-1">
-                <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
               </div>
             )}
 
             <button
               type="button"
               onClick={toggleCollapse}
-              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/80 transition cursor-pointer focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="text-green-800 hover:text-pink-700 p-1.5 rounded-xl hover:bg-pink-100 border border-transparent hover:border-green-300 transition cursor-pointer focus:outline-none"
               title={isCollapsed ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu'}
               aria-label={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
             >
@@ -189,14 +189,14 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
 
           {/* Admin Segmented Filter (Only when expanded) */}
           {isAdmin && !isCollapsed && (
-            <div className="flex items-center p-1 bg-slate-900/90 rounded-xl border border-slate-800 text-[11px] select-none gap-0.5">
+            <div className="flex items-center p-1 bg-pink-50 rounded-xl border-2 border-green-300 text-[11px] select-none gap-0.5">
               <button
                 type="button"
                 onClick={() => setAdminFilter('ALL')}
                 className={`flex-1 py-1.5 rounded-lg font-bold transition text-center cursor-pointer ${
                   adminFilter === 'ALL'
-                    ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-xs'
-                    : 'text-slate-400 hover:text-white border border-transparent'
+                    ? 'bg-pink-100 text-pink-900 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                    : 'text-green-800 hover:text-pink-700 hover:bg-pink-100/50 border border-transparent'
                 }`}
               >
                 Tất Cả (6)
@@ -206,8 +206,8 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
                 onClick={() => setAdminFilter('ADMIN')}
                 className={`flex-1 py-1.5 rounded-lg font-bold transition text-center cursor-pointer ${
                   adminFilter === 'ADMIN'
-                    ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-xs'
-                    : 'text-slate-400 hover:text-white border border-transparent'
+                    ? 'bg-pink-100 text-pink-900 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                    : 'text-green-800 hover:text-pink-700 hover:bg-pink-100/50 border border-transparent'
                 }`}
               >
                 Quản Trị (3)
@@ -217,8 +217,8 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
                 onClick={() => setAdminFilter('LECTURER')}
                 className={`flex-1 py-1.5 rounded-lg font-bold transition text-center cursor-pointer ${
                   adminFilter === 'LECTURER'
-                    ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-xs'
-                    : 'text-slate-400 hover:text-white border border-transparent'
+                    ? 'bg-pink-100 text-pink-900 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                    : 'text-green-800 hover:text-pink-700 hover:bg-pink-100/50 border border-transparent'
                 }`}
               >
                 Đề &amp; Rubric (3)
@@ -233,9 +233,9 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
             {isStudent && (
               <>
                 {!isCollapsed && (
-                  <div className="pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 flex items-center justify-between">
+                  <div className="pt-1 pb-1 text-[10px] font-black uppercase tracking-wider text-green-800 px-3 flex items-center justify-between font-heading">
                     <span>Nhóm 3: Lõi Phỏng Vấn AI</span>
-                    <span className="text-cyan-400 font-mono text-[9px] bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/50">Core</span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800 border border-green-300">Core</span>
                   </div>
                 )}
 
@@ -278,9 +278,9 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
             {isAdmin && (adminFilter === 'ALL' || adminFilter === 'ADMIN') && (
               <>
                 {!isCollapsed && (
-                  <div className="pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 flex items-center justify-between">
+                  <div className="pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-green-800 px-3 flex items-center justify-between font-heading">
                     <span className="truncate">Nhóm 7: Quản Trị Hệ Thống</span>
-                    <span className="text-sky-400 font-mono text-[9px] bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/50 shrink-0">Admin</span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800 border border-green-300 shrink-0">Admin</span>
                   </div>
                 )}
 
@@ -315,9 +315,9 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
             {(isLecturer || (isAdmin && (adminFilter === 'ALL' || adminFilter === 'LECTURER'))) && (
               <>
                 {!isCollapsed && (
-                  <div className="pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 flex items-center justify-between">
+                  <div className="pt-3 pb-1 text-[10px] font-black uppercase tracking-wider text-green-800 px-3 flex items-center justify-between font-heading">
                     <span className="truncate">Nhóm 1: Câu Hỏi &amp; Rubric</span>
-                    <span className="text-sky-400 font-mono text-[9px] bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/50 shrink-0">Lecturer</span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800 border border-green-300 shrink-0">Lecturer</span>
                   </div>
                 )}
 
@@ -351,22 +351,22 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
         </div>
 
         {/* BOTTOM SECTION: SYSTEM HEALTH, RULES & USER INFO */}
-        <div className="space-y-3 pt-3 border-t border-slate-800/80">
+        <div className="space-y-3 pt-3 border-t-2 border-cream">
 
           {/* Quick Rules Action Button */}
           <button
             type="button"
             onClick={() => setIsRulesModalOpen(true)}
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-3 gap-2.5'} py-2 rounded-xl text-xs font-semibold transition border ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-3 gap-2.5'} py-2 rounded-xl text-xs font-bold transition border-2 cursor-pointer ${
               isRulesModalOpen
-                ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                : 'bg-slate-900/60 text-slate-300 hover:text-white hover:bg-slate-800 border-slate-800'
+                ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                : 'bg-pink-50 text-ink hover:text-pink-900 hover:bg-pink-100 border-green-300'
             }`}
             title="Quy Chế Thi Vấn Đáp AIVES"
           >
-            <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-pink-700 shrink-0" />
             {!isCollapsed && (
-              <span className="truncate text-left flex-1 font-medium text-[11px]">
+              <span className="truncate text-left flex-1 font-bold text-[11px] text-ink font-heading">
                 Quy Chế Thi Vấn Đáp
               </span>
             )}
@@ -377,11 +377,11 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
             <button
               type="button"
               onClick={onOpenMatrix}
-              className="w-full flex items-center px-3 gap-2.5 py-2 rounded-xl text-xs font-semibold transition border bg-slate-900/60 text-slate-300 hover:text-white hover:bg-slate-800 border-slate-800 cursor-pointer"
+              className="w-full flex items-center px-3 gap-2.5 py-2 rounded-xl text-xs font-bold transition border-2 bg-green-50 text-ink hover:text-green-900 hover:bg-green-100 border-green-300 cursor-pointer"
               title="Xem Ma Trận Phân Quyền RBAC"
             >
-              <Users className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="truncate text-left flex-1 font-medium text-[11px]">
+              <Users className="w-4 h-4 text-green-700 shrink-0" />
+              <span className="truncate text-left flex-1 font-bold text-[11px] text-ink font-heading">
                 Ma Trận Phân Quyền RBAC
               </span>
             </button>
@@ -389,45 +389,62 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
 
           {/* Smart System Connectivity Badge (When Expanded) */}
           {!isCollapsed && (
-            <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/90 text-[10px] space-y-1.5">
+            <div className="p-2.5 rounded-xl bg-pink-50 border-2 border-green-300 text-[10px] space-y-1.5 shadow-[2px_2px_0_#C4CCB7]">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1.5">
-                  <Activity className="w-3 h-3 text-emerald-400" />
+                <span className="text-green-900 font-extrabold uppercase tracking-wider text-[9px] flex items-center gap-1.5 font-heading">
+                  <Activity className="w-3 h-3 text-green-700" />
                   Hạ Tầng AIVES
                 </span>
-                <span className="flex items-center gap-1 text-emerald-400 font-bold text-[9px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="flex items-center gap-1 text-green-900 font-bold text-[9px] bg-green-200 px-1.5 py-0.5 rounded border border-green-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
                   Online
                 </span>
               </div>
-              <div className="flex items-center justify-between text-slate-400">
+              <div className="flex items-center justify-between text-green-800">
                 <span>PostgreSQL 15</span>
-                <span className="font-mono text-slate-300">Port 5432</span>
+                <span className="font-mono text-ink font-semibold">Port 5432</span>
               </div>
-              <div className="flex items-center justify-between text-slate-400">
+              <div className="flex items-center justify-between text-green-800">
                 <span>AI Viva Engine</span>
-                <span className="font-mono text-cyan-300">RAG &amp; STT Live</span>
+                <span className="font-mono text-pink-700 font-bold">RAG &amp; STT Live</span>
               </div>
             </div>
           )}
 
           {/* User Mini Bar */}
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-1.5 rounded-xl bg-slate-900/40 border border-slate-800/60`}>
+          <div
+            onClick={() => onNavigate && onNavigate('profile')}
+            title="Quản lý hồ sơ & Đổi mật khẩu"
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-1.5 rounded-xl border-2 transition-all cursor-pointer shadow-[2px_2px_0_#DEB9B5] ${
+              currentTab === 'profile' || currentTab === 'profile-password'
+                ? 'bg-pink-100 border-green-600 ring-2 ring-pink-300'
+                : 'bg-paper hover:bg-pink-50 border-green-400 hover:border-green-600'
+            }`}
+          >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
-                {getInitials(currentUser?.fullName || currentUser?.email)}
+              <div className="w-8 h-8 rounded-full bg-pink-300 border-2 border-green-600 flex items-center justify-center text-ink font-heading font-extrabold text-xs shrink-0 shadow-xs overflow-hidden">
+                {currentUser?.avatarUrl ? (
+                  <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  getInitials(currentUser?.fullName || currentUser?.email)
+                )}
               </div>
               {!isCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white truncate leading-tight">
+                  <p className="text-xs font-bold text-ink truncate leading-tight font-heading">
                     {currentUser?.fullName || currentUser?.email || 'Người Dùng'}
                   </p>
-                  <p className="text-[10px] text-sky-400 font-mono truncate leading-tight mt-0.5">
+                  <p className="text-[10px] text-green-700 font-bold truncate leading-tight mt-0.5">
                     {isAdmin ? 'Quản Trị Viên' : isLecturer ? 'Giảng Viên' : 'Thí Sinh'}
                   </p>
                 </div>
               )}
             </div>
+            {!isCollapsed && (
+              <span className="text-[10px] font-bold text-pink-700 bg-pink-50 hover:bg-pink-200 border border-pink-300 px-2 py-0.5 rounded-lg shrink-0">
+                Hồ sơ
+              </span>
+            )}
           </div>
 
         </div>
@@ -435,46 +452,46 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
 
       {/* POPUP MODAL: QUY CHẾ THI VẤN ĐÁP AIVES */}
       {isRulesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-entry text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-paper rounded-2xl max-w-md w-full p-6 shadow-[6px_6px_0_#D5A6A2] border-2 border-green-500 space-y-4 animate-modal-entry text-ink">
             
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-pink-100 border-2 border-green-500 text-pink-700 flex items-center justify-center shadow-[2px_2px_0_#DEB9B5]">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-base text-slate-900">
+                  <h3 className="font-heading font-black text-base text-ink">
                     Quy Chế Thi Vấn Đáp AIVES
                   </h3>
-                  <p className="text-[11px] text-slate-500">Chuẩn thi học thuật SWD392 FPT University</p>
+                  <p className="text-[11px] text-green-700 font-medium">Chuẩn thi học thuật SWD392 FPT University</p>
                 </div>
               </div>
               <button 
                 type="button"
                 onClick={() => setIsRulesModalOpen(false)} 
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition focus:outline-none cursor-pointer"
+                className="text-green-800 hover:text-pink-700 p-1 rounded-lg transition focus:outline-none cursor-pointer"
                 aria-label="Đóng"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-600 leading-relaxed font-normal">
-              <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="space-y-3 text-xs text-green-900 leading-relaxed font-normal">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-pink-50 border-2 border-green-200">
+                <Check className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <span>Thí sinh phải bật Camera liên tục trong suốt quá trình trả lời câu hỏi thi.</span>
               </div>
-              <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-pink-50 border-2 border-green-200">
+                <Check className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <span>Trả lời trực tiếp bằng giọng nói, hệ thống bóc băng STT và đối chiếu Rubric ma trận khách quan.</span>
               </div>
-              <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Nếu mất kết nối mạng, hệ thống tự động bảo lưu phiên thi trong <strong className="text-slate-900 font-bold">60 giây</strong> (Reconnect Recovery).</span>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-pink-50 border-2 border-green-200">
+                <Check className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
+                <span>Nếu mất kết nối mạng, hệ thống tự động bảo lưu phiên thi trong <strong className="text-pink-700 font-bold">60 giây</strong> (Reconnect Recovery).</span>
               </div>
-              <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-pink-50 border-2 border-green-200">
+                <Check className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <span>Sau khi nộp bài, chứng cứ âm thanh và transcript được ký băm SHA-256 chống gian lận.</span>
               </div>
             </div>
@@ -483,7 +500,7 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
               <button 
                 type="button"
                 onClick={() => setIsRulesModalOpen(false)} 
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-600 shadow-[2px_2px_0_#3A422E] transition active:scale-95 cursor-pointer focus:outline-none"
               >
                 Tôi Đã Hiểu &amp; Đồng Ý
               </button>
