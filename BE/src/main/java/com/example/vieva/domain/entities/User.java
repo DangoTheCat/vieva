@@ -21,6 +21,7 @@ public class User {
     private String fullName;
     private String passwordHash;
     private String phoneNumber;
+    private String avatarUrl;
     private UserStatus status;
     private Instant createdAt;
     private Instant updatedAt;
@@ -106,5 +107,10 @@ public class User {
     public void issueTemporaryPassword(String passwordHash) {
         updatePassword(passwordHash);
         this.mustChangePassword = true;
+    }
+
+    public void updateAvatar(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+        this.updatedAt = Instant.now();
     }
 }
