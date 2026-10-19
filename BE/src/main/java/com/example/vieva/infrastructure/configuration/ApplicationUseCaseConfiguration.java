@@ -17,6 +17,7 @@ import com.example.vieva.application.usecases.question.QuestionReviewServiceImpl
 import com.example.vieva.application.usecases.question.ReviewNotifications;
 import com.example.vieva.application.usecases.question.RubricServiceImpl;
 import com.example.vieva.application.usecases.subject.SubjectServiceImpl;
+import com.example.vieva.application.usecases.notification.NotificationServiceImpl;
 import com.example.vieva.application.usecases.user.AdminUserServiceImpl;
 import com.example.vieva.application.usecases.user.UserServiceImpl;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,7 @@ import org.springframework.context.annotation.Import;
         RubricServiceImpl.class,
         SubjectServiceImpl.class,
         AdminUserServiceImpl.class,
-        UserServiceImpl.class
+        UserServiceImpl.class,
+        NotificationServiceImpl.class
 })
 public class ApplicationUseCaseConfiguration { }

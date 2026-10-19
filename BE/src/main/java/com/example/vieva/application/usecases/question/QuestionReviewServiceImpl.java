@@ -42,7 +42,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RequiredArgsConstructor
 public class QuestionReviewServiceImpl implements QuestionReviewService {
 
     private final QuestionRepository questionRepository;
@@ -58,6 +57,34 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private final SubjectHeadService heads;
     private final ReviewNotifications notifications;
     private final QuestionDraftWriter db;
+
+    public QuestionReviewServiceImpl(QuestionRepository questionRepository,
+                                    QuestionVersionRepository questionVersionRepository,
+                                    RubricRepository rubricRepository,
+                                    RubricCriterionRepository rubricCriterionRepository,
+                                    QuestionSourceRepository questionSourceRepository,
+                                    DocumentChunkRepository documentChunkRepository,
+                                    CourseDocumentRepository courseDocumentRepository,
+                                    QuestionAccessLoader accessLoader,
+                                    QuestionVersionViewAssemblerPort viewAssembler,
+                                    QuestionBankAuditor auditor,
+                                    SubjectHeadService heads,
+                                    ReviewNotifications notifications,
+                                    QuestionDraftWriter db) {
+        this.questionRepository = questionRepository;
+        this.questionVersionRepository = questionVersionRepository;
+        this.rubricRepository = rubricRepository;
+        this.rubricCriterionRepository = rubricCriterionRepository;
+        this.questionSourceRepository = questionSourceRepository;
+        this.documentChunkRepository = documentChunkRepository;
+        this.courseDocumentRepository = courseDocumentRepository;
+        this.accessLoader = accessLoader;
+        this.viewAssembler = viewAssembler;
+        this.auditor = auditor;
+        this.heads = heads;
+        this.notifications = notifications;
+        this.db = db;
+    }
 
     @Override
     @UseCaseTransaction
@@ -78,11 +105,25 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
 
     @Override
     @UseCaseTransaction
+    public QuestionVersionView submitForReview(UUID questionId, UUID versionId, Long expectedVersion, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return submitForReview(versionId, expectedVersion, actorId);
+    }
+
+    @Override
+    @UseCaseTransaction
     public QuestionVersionView reviewQuestion(UUID versionId, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         heads.requireHead(actorId, ctx.question().getSubjectId());
         ctx.version().ensureUnderReview();
         return db.fetchQuestionWithRubric(ctx.version());
+    }
+
+    @Override
+    @UseCaseTransaction
+    public QuestionVersionView reviewQuestion(UUID questionId, UUID versionId, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return reviewQuestion(versionId, actorId);
     }
 
     @Override
@@ -139,6 +180,13 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
     }
 
+    @Override
+    @UseCaseTransaction
+    public QuestionVersionView approve(UUID questionId, UUID versionId, Long expectedVersion, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return approve(versionId, expectedVersion, actorId);
+    }
+
     private Rubric validateForReview(QuestionVersion version) {
         UUID versionId = version.getQuestionVersionId();
         Rubric rubric = rubricRepository.findByQuestionVersionId(versionId).orElse(null);
@@ -170,6 +218,21 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         auditor.record(actorId, "QUESTION_REJECTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId(), "reason", version.getRejectionReason()));
         return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+    }
+
+    @Override
+    @UseCaseTransaction
+    public QuestionVersionView reject(UUID questionId, UUID versionId, String reason, Long expectedVersion, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return reject(versionId, reason, expectedVersion, actorId);
+    }
+
+    private void verifyVersionBelongsToQuestion(UUID questionId, UUID versionId) {
+        QuestionVersion version = questionVersionRepository.findById(versionId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+        if (!questionId.equals(version.getQuestionId())) {
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Version belongs to another question");
+        }
     }
 
     private Map<UUID, DocumentChunk> loadChunks(List<QuestionSource> sources) {

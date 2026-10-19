@@ -382,4 +382,71 @@ class QuestionReviewAndAuthoringServiceTest {
         assertThat(rubric.getValue().getTotalPoints()).isEqualByComparingTo("3");
         verify(criterionRepository).deleteByRubricId(rubric.getValue().getRubricId());
     }
+
+    @Test
+    @DisplayName("overload methods verify version belongs to question or fail appropriately")
+    void overloadsVerifyQuestionId() {
+        QuestionVersion draft = storeDraft(QuestionGenerationMode.MANUAL, true);
+        UUID realQuestionId = question.getQuestionId();
+        UUID otherQuestionId = UUID.randomUUID();
+        UUID nonExistentVersionId = UUID.randomUUID();
+
+        // Non-existent version (all 4 overloads)
+        assertThatThrownBy(() -> reviewService.submitForReview(realQuestionId, nonExistentVersionId, 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        assertThatThrownBy(() -> reviewService.reviewQuestion(realQuestionId, nonExistentVersionId, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        assertThatThrownBy(() -> reviewService.approve(realQuestionId, nonExistentVersionId, 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        assertThatThrownBy(() -> reviewService.reject(realQuestionId, nonExistentVersionId, "Reason", 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        // Version belongs to another question (all 4 overloads)
+        assertThatThrownBy(() -> reviewService.submitForReview(otherQuestionId, draft.getQuestionVersionId(), 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        assertThatThrownBy(() -> reviewService.reviewQuestion(otherQuestionId, draft.getQuestionVersionId(), lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        assertThatThrownBy(() -> reviewService.approve(otherQuestionId, draft.getQuestionVersionId(), 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        assertThatThrownBy(() -> reviewService.reject(otherQuestionId, draft.getQuestionVersionId(), "Reason", 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        // Valid calls through overloads (all 4 overloads)
+        when(heads.headOf(subjectId)).thenReturn(lecturer);
+
+        var submitted = reviewService.submitForReview(realQuestionId, draft.getQuestionVersionId(), 0L, lecturer);
+        assertThat(submitted).isNotNull();
+        assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.UNDER_REVIEW);
+
+        var reviewed = reviewService.reviewQuestion(realQuestionId, draft.getQuestionVersionId(), lecturer);
+        assertThat(reviewed).isNotNull();
+
+        var rejected = reviewService.reject(realQuestionId, draft.getQuestionVersionId(), "Needs improvement", 0L, lecturer);
+        assertThat(rejected).isNotNull();
+        assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.REJECTED);
+
+        QuestionVersion draft2 = storeDraft(QuestionGenerationMode.MANUAL, true);
+        draft2.submitForReview();
+        var approved = reviewService.approve(realQuestionId, draft2.getQuestionVersionId(), 0L, lecturer);
+        assertThat(approved).isNotNull();
+        assertThat(draft2.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
+    }
 }

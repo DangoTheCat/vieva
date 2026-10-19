@@ -11,12 +11,18 @@ import java.util.UUID;
  */
 public interface QuestionReviewService {
     QuestionVersionView submitForReview(UUID versionId, Long expectedVersion, UUID actorId);
+    QuestionVersionView submitForReview(UUID questionId, UUID versionId, Long expectedVersion, UUID actorId);
+
     QuestionVersionView reviewQuestion(UUID versionId, UUID actorId);
+    QuestionVersionView reviewQuestion(UUID questionId, UUID versionId, UUID actorId);
+
     PagedResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria);
 
     QuestionVersionView getVersion(UUID versionId);
 
     QuestionVersionView approve(UUID versionId, Long expectedVersion, UUID actorId);
+    QuestionVersionView approve(UUID questionId, UUID versionId, Long expectedVersion, UUID actorId);
 
     QuestionVersionView reject(UUID versionId, String reason, Long expectedVersion, UUID actorId);
+    QuestionVersionView reject(UUID questionId, UUID versionId, String reason, Long expectedVersion, UUID actorId);
 }

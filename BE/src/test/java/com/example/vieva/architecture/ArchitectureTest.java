@@ -54,4 +54,21 @@ class ArchitectureTest {
     static final ArchRule entitiesHaveNoSetters = FreezingArchRule.freeze(noMethods()
             .that().arePublic().and().haveNameMatching("set[A-Z].*")
             .should().beDeclaredInClassesThat().resideInAPackage("com.example.vieva.domain.entities.."));
+
+    // R7: adapters không phụ thuộc vào usecases cụ thể
+    @ArchTest
+    static final ArchRule adaptersDoNotDependOnUseCases = noClasses().that().resideInAPackage(ADAPTERS)
+            .should().dependOnClassesThat().resideInAnyPackage(USE_CASES);
+
+    // R8: adapters không phụ thuộc vào *Repository hoặc *Port trong output ports
+    @ArchTest
+    static final ArchRule adaptersDoNotDependOnOutputRepositoriesOrPorts = noClasses().that().resideInAPackage(ADAPTERS)
+            .should().dependOnClassesThat(
+                    new com.tngtech.archunit.base.DescribedPredicate<>("are output repositories or ports") {
+                        @Override
+                        public boolean test(com.tngtech.archunit.core.domain.JavaClass javaClass) {
+                            return javaClass.getPackageName().startsWith("com.example.vieva.application.ports.output")
+                                    && (javaClass.getSimpleName().endsWith("Repository") || javaClass.getSimpleName().endsWith("Port"));
+                        }
+                    });
 }

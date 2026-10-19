@@ -3,13 +3,9 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
-import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.adapters.presenters.*;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.domain.entities.*;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.exception.FieldViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +23,6 @@ public class LecturerStudioController {
     private final DocumentService docService;
     private final QuestionGenCoordinator ragCoord;
     private final QuestionReviewService reviews;
-    private final QuestionVersionRepository versions;
     private final QuestionBankPresenter presenter;
     private final CourseDocumentPresenter documentPresenter;
 
@@ -56,38 +51,29 @@ public class LecturerStudioController {
     @PostMapping("/questions/{questionId}/submit-for-review")
     public QuestionVersionDto submitForReview(@PathVariable UUID questionId,@Valid @RequestBody ReviewRequest r,
                                                @AuthenticationPrincipal User user) {
-        checkVersion(questionId,r.versionId());
-        return presenter.toDto(reviews.submitForReview(r.versionId(),r.expectedVersion(),CurrentUser.id(user)));
+        return presenter.toDto(reviews.submitForReview(questionId,r.versionId(),r.expectedVersion(),CurrentUser.id(user)));
     }
 
     @GetMapping("/questions/{questionId}/review")
     public QuestionVersionDto reviewQuestion(@PathVariable UUID questionId,@RequestParam UUID versionId,
                                               @AuthenticationPrincipal User user) {
-        checkVersion(questionId,versionId);
-        return presenter.toDto(reviews.reviewQuestion(versionId,CurrentUser.id(user)));
+        return presenter.toDto(reviews.reviewQuestion(questionId,versionId,CurrentUser.id(user)));
     }
 
     @PostMapping("/questions/{questionId}/approve")
     public QuestionVersionDto approveQuestion(@PathVariable UUID questionId,@Valid @RequestBody ReviewRequest r,
                                                @AuthenticationPrincipal User user) {
-        checkVersion(questionId,r.versionId());
-        return presenter.toDto(reviews.approve(r.versionId(),r.expectedVersion(),CurrentUser.id(user)));
+        return presenter.toDto(reviews.approve(questionId,r.versionId(),r.expectedVersion(),CurrentUser.id(user)));
     }
 
     @PostMapping("/questions/{questionId}/reject")
     public QuestionVersionDto rejectQuestion(@PathVariable UUID questionId,@Valid @RequestBody RejectRequest r,
                                               @AuthenticationPrincipal User user) {
-        checkVersion(questionId,r.versionId());
-        return presenter.toDto(reviews.reject(r.versionId(),r.reason(),r.expectedVersion(),CurrentUser.id(user)));
+        return presenter.toDto(reviews.reject(questionId,r.versionId(),r.reason(),r.expectedVersion(),CurrentUser.id(user)));
     }
 
     @PostMapping("/documents/{documentId}/archive")
     public void archiveDocument(@PathVariable UUID documentId,@AuthenticationPrincipal User user) {
         docService.archiveDocument(documentId,CurrentUser.id(user));
-    }
-
-    private void checkVersion(UUID questionId,UUID versionId) {
-        var version=versions.findById(versionId).orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        if (!questionId.equals(version.getQuestionId())) throw new ApplicationException(ErrorCode.INVALID_REQUEST,"Version belongs to another question");
     }
 }
