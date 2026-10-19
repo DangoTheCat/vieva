@@ -1,10 +1,10 @@
 package com.example.vieva.integration;
 
-import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
-import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
-import com.example.vieva.application.ports.output.EmailSenderPort;
 import com.example.vieva.application.ports.input.user.AdminUserService;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.ports.input.user.CreateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UpdateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
+import com.example.vieva.application.ports.output.EmailSenderPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
         "spring.autoconfigure.exclude=",
         "vieva.ai.provider=mock",
         "vieva.storage.provider=local"
-})
+        })
 @Testcontainers
 class AdminUserIntegrationTest {
 
@@ -86,7 +86,7 @@ class AdminUserIntegrationTest {
     void createThenChangeRole() {
         String email = "it-" + UUID.randomUUID().toString().substring(0, 8) + "@fpt.edu.vn";
 
-        User created = adminUserService.createUser(CreateUserByAdminRequest.builder()
+        UserResult created = adminUserService.createUser(CreateUserByAdminRequest.builder()
                 .email(email)
                 .fullName("Integration User")
                 .roleCode("ROLE_STUDENT")

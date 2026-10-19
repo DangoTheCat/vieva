@@ -1,13 +1,13 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.adapters.presenters.AuthPresenter;
-import com.example.vieva.adapters.presenters.AuthResponse;
 import com.example.vieva.adapters.controllers.request.LoginApiRequest;
 import com.example.vieva.adapters.controllers.request.RegisterApiRequest;
-import com.example.vieva.application.ports.input.LoginRequest;
-import com.example.vieva.application.ports.input.RegisterRequest;
-import com.example.vieva.application.ports.output.AuthResult;
+import com.example.vieva.adapters.presenters.AuthPresenter;
+import com.example.vieva.adapters.presenters.AuthResponse;
+import com.example.vieva.application.ports.input.auth.AuthResult;
 import com.example.vieva.application.ports.input.auth.AuthService;
+import com.example.vieva.application.ports.input.auth.LoginRequest;
+import com.example.vieva.application.ports.input.auth.RegisterRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

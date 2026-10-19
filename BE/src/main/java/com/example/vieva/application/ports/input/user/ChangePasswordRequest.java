@@ -1,4 +1,4 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

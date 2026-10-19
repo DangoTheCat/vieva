@@ -1,6 +1,5 @@
 package com.example.vieva.adapters.controllers.request;
 
-import com.example.vieva.domain.entities.UserStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -42,7 +41,7 @@ public class CreateUserByAdminApiRequest {
     @Size(max = 50, message = "User code must not exceed 50 characters")
     private String userCode;
 
-    private UserStatus status;
+    private String status;
 
     @Size(max = 50, message = "Role code must not exceed 50 characters")
     private String roleCode;

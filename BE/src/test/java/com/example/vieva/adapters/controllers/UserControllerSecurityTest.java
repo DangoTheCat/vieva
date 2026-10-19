@@ -3,6 +3,7 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.application.ports.input.user.UserService;
+import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.infrastructure.database.RoleJpaRepository;
 import com.example.vieva.infrastructure.database.UserJpaRepository;
@@ -112,12 +113,12 @@ class UserControllerSecurityTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/v1/users: admin user request returns 200 and user list")
     void getAllUsers_Admin_Returns200() throws Exception {
-        User user = User.builder()
+        UserResult user = UserResult.builder()
                 .userId(UUID.randomUUID())
                 .email("admin@vieva.edu.vn")
                 .fullName("System Admin")
                 .build();
-        PagedResult<User> pagedResult = PagedResult.of(List.of(user), 0, 20, 1);
+        PagedResult<UserResult> pagedResult = PagedResult.of(List.of(user), 0, 20, 1);
         when(adminUserService.getUsers(any())).thenReturn(pagedResult);
 
         mockMvc.perform(get("/api/v1/users")

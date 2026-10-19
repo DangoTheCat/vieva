@@ -1,16 +1,17 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.ports.input.UserSearchCriteria;
+import com.example.vieva.application.ports.input.user.UserSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.example.vieva.domain.entities.UserStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -81,8 +82,13 @@ public class UserRepositoryImpl implements UserRepository {
             predicates.add(cb.isNull(root.get("deletedAt")));
 
             // 1. Filter by status if specified
-            if (criteria.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
+            if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+                try {
+                    UserStatus status = UserStatus.valueOf(criteria.getStatus().trim());
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (IllegalArgumentException ignored) {
+                    // Handled upstream or empty match
+                }
             }
 
             // 2. Filter by role if specified

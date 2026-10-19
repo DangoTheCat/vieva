@@ -1,17 +1,18 @@
 package com.example.vieva.application.usecases.user;
 
-import com.example.vieva.application.ports.input.ChangePasswordRequest;
-import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.application.ports.output.AvatarStoragePort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.UserRepository;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -26,16 +27,22 @@ public class UserServiceImpl implements UserService {
     private final AvatarStoragePort avatarStoragePort;
 
     @Override
-    public Optional<User> getById(UUID userId) {
+    public Optional<UserResult> getById(UUID userId) {
         return userRepository.findById(userId)
-                .filter(u -> !u.isDeleted());
+                .filter(u -> !u.isDeleted())
+                .map(UserResult::from);
+    }
+
+    private User findActiveUser(UUID userId) {
+        return userRepository.findById(userId)
+                .filter(u -> !u.isDeleted())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
     }
 
     @Override
     @UseCaseTransaction
-    public User updateProfile(UUID userId, UpdateProfileRequest request) {
-        User user = getById(userId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+    public UserResult updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = findActiveUser(userId);
 
         if (request.getFullName() != null) {
             String trimmedFullName = request.getFullName().trim();
@@ -65,14 +72,14 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setUpdatedAt(Instant.now());
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        return UserResult.from(saved);
     }
 
     @Override
     @UseCaseTransaction
     public void changePassword(UUID userId, ChangePasswordRequest request) {
-        User user = getById(userId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+        User user = findActiveUser(userId);
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             throw new ApplicationException(ErrorCode.INCORRECT_PASSWORD);
@@ -89,8 +96,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @UseCaseTransaction
     public String uploadAvatar(UUID userId, byte[] imageBytes, String contentType) {
-        User user = getById(userId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+        User user = findActiveUser(userId);
 
         String oldAvatarUrl = user.getAvatarUrl();
         String newAvatarUrl = avatarStoragePort.uploadAvatar(userId, imageBytes, contentType);
@@ -112,8 +118,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @UseCaseTransaction
     public void deleteAvatar(UUID userId) {
-        User user = getById(userId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+        User user = findActiveUser(userId);
 
         String oldAvatarUrl = user.getAvatarUrl();
         user.updateAvatar(null);

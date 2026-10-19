@@ -2,19 +2,20 @@ package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.adapters.controllers.request.ChangePasswordApiRequest;
 import com.example.vieva.adapters.controllers.request.UpdateProfileApiRequest;
-import com.example.vieva.adapters.presenters.PageResponse;
 import com.example.vieva.adapters.presenters.UserDto;
 import com.example.vieva.adapters.presenters.UserPresenter;
-import com.example.vieva.application.ports.input.ChangePasswordRequest;
-import com.example.vieva.application.ports.input.UpdateProfileRequest;
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.ports.input.user.AdminUserService;
-import com.example.vieva.application.ports.input.user.UserService;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.adapters.web.GlobalExceptionHandler;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.user.AdminUserService;
+import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
+import com.example.vieva.application.ports.input.user.UserService;
+import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
-import com.example.vieva.adapters.web.GlobalExceptionHandler;
+import com.example.vieva.domain.entities.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,9 +34,8 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import com.example.vieva.application.ports.input.common.ActorView;
-import java.util.Set;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -265,31 +265,23 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/v1/users: returns paged users successfully")
     void getAllUsers_Success() throws Exception {
-        User user1 = User.builder()
+        UserResult user1 = UserResult.builder()
                 .userId(UUID.randomUUID())
                 .email("user1@example.com")
                 .fullName("User One")
                 .build();
-        User user2 = User.builder()
+        UserResult user2 = UserResult.builder()
                 .userId(UUID.randomUUID())
                 .email("user2@example.com")
                 .fullName("User Two")
                 .build();
 
-        PagedResult<User> pagedResult = PagedResult.of(List.of(user1, user2), 0, 20, 2);
+        PagedResult<UserResult> pagedResult = PagedResult.of(List.of(user1, user2), 0, 20, 2);
         when(adminUserService.getUsers(any())).thenReturn(pagedResult);
-        when(userPresenter.toPageResponse(any())).thenReturn(
-                PageResponse.<UserDto>builder()
-                        .content(List.of(
-                                UserDto.builder().email("user1@example.com").build(),
-                                UserDto.builder().email("user2@example.com").build()
-                        ))
-                        .page(0)
-                        .size(20)
-                        .totalElements(2)
-                        .totalPages(1)
-                        .build()
-        );
+        when(userPresenter.toDto(any())).thenAnswer(inv -> {
+            UserResult ur = inv.getArgument(0);
+            return UserDto.builder().email(ur.getEmail()).build();
+        });
 
         mockMvc.perform(get("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -307,7 +299,7 @@ class UserControllerTest {
         org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
                 "file", "avatar.png", "image/png", new byte[]{1, 2, 3});
 
-        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(authenticatedUser));
+        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(UserResult.from(authenticatedUser)));
         when(userPresenter.toDto(any())).thenReturn(UserDto.builder()
                 .userId(authenticatedUser.getUserId())
                 .avatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png")
@@ -323,7 +315,7 @@ class UserControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/users/me/avatar: deletes avatar and returns updated UserDto")
     void deleteAvatar_Success() throws Exception {
-        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(authenticatedUser));
+        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(UserResult.from(authenticatedUser)));
         when(userPresenter.toDto(any())).thenReturn(UserDto.builder()
                 .userId(authenticatedUser.getUserId())
                 .avatarUrl(null)

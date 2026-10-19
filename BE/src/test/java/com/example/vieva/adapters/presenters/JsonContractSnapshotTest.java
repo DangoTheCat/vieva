@@ -45,7 +45,7 @@ class JsonContractSnapshotTest {
                 .fullName("Nguyen Van A")
                 .phoneNumber("0987654321")
                 .avatarUrl("https://res.cloudinary.com/avatar.png")
-                .status(UserStatus.ACTIVE)
+                .status("ACTIVE")
                 .role("ROLE_LECTURER")
                 .roles(Set.of("ROLE_LECTURER"))
                 .mustChangePassword(false)

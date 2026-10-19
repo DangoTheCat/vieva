@@ -1,23 +1,23 @@
 package com.example.vieva.application.usecases.auth;
 
-import com.example.vieva.application.ports.input.LoginRequest;
-import com.example.vieva.application.ports.input.RegisterRequest;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.auth.AuthResult;
 import com.example.vieva.application.ports.input.auth.AuthService;
-import com.example.vieva.application.ports.output.AuthResult;
+import com.example.vieva.application.ports.input.auth.LoginRequest;
+import com.example.vieva.application.ports.input.auth.RegisterRequest;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.TokenProviderPort;
 import com.example.vieva.application.ports.output.UserRepository;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.Collections;

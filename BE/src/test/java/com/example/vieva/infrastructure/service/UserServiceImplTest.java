@@ -1,15 +1,16 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.ports.input.ChangePasswordRequest;
-import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.output.AvatarStoragePort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.usecases.user.UserServiceImpl;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,7 @@ class UserServiceImplTest {
                 .phoneNumber("0987654321")
                 .build();
 
-        User result = userService.updateProfile(userId, request);
+        UserResult result = userService.updateProfile(userId, request);
 
         assertThat(result.getFullName()).isEqualTo("Nguyen Van B");
         assertThat(result.getPhoneNumber()).isEqualTo("0987654321");
@@ -90,7 +91,7 @@ class UserServiceImplTest {
                 .phoneNumber(null)
                 .build();
 
-        User result = userService.updateProfile(userId, request);
+        UserResult result = userService.updateProfile(userId, request);
 
         assertThat(result.getFullName()).isEqualTo("Nguyen Van C");
         assertThat(result.getPhoneNumber()).isEqualTo("0912345678");
@@ -108,7 +109,7 @@ class UserServiceImplTest {
                 .phoneNumber("0999888777")
                 .build();
 
-        User result = userService.updateProfile(userId, request);
+        UserResult result = userService.updateProfile(userId, request);
 
         assertThat(result.getFullName()).isEqualTo("Nguyen Van A");
         assertThat(result.getPhoneNumber()).isEqualTo("0999888777");

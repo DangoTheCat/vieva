@@ -1,4 +1,4 @@
-package com.example.vieva.application.ports.output;
+package com.example.vieva.application.ports.input.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * Output DTO returned by auth use cases.
- * Lives in the application layer so use cases don't depend on adapter-layer presenters.
+ * Lives in ports/input/auth as an application-layer response model.
  */
 @Data
 @Builder

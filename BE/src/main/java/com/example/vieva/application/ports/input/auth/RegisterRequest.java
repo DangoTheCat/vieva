@@ -1,4 +1,4 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,8 +12,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateProfileRequest {
+public class RegisterRequest {
+    private String email;
+    private String password;
     private String fullName;
     private String phoneNumber;
-    private String avatarUrl;
 }

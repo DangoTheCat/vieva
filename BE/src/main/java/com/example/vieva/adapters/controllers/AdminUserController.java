@@ -6,16 +6,15 @@ import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.adapters.presenters.PageResponse;
 import com.example.vieva.adapters.presenters.UserDto;
 import com.example.vieva.adapters.presenters.UserPresenter;
-import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
-import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
-import com.example.vieva.application.ports.input.UserSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.ports.input.common.ActorView;
-import com.example.vieva.application.ports.input.user.AdminUserService;
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.user.AdminUserService;
+import com.example.vieva.application.ports.input.user.CreateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UpdateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
+import com.example.vieva.application.ports.input.user.UserSearchCriteria;
+import com.example.vieva.application.ports.output.PagedResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,7 +41,7 @@ public class AdminUserController {
     public ResponseEntity<PageResponse<UserDto>> getUsers(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) UserStatus status,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -58,13 +57,13 @@ public class AdminUserController {
                 .sortDirection(sortDirection)
                 .build();
 
-        PagedResult<User> pagedUsers = adminUserService.getUsers(criteria);
-        return ResponseEntity.ok(userPresenter.toPageResponse(pagedUsers));
+        PagedResult<UserResult> pagedUsers = adminUserService.getUsers(criteria);
+        return ResponseEntity.ok(PageResponse.from(pagedUsers, userPresenter::toDto));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
-        User user = adminUserService.getUserById(id);
+        UserResult user = adminUserService.getUserById(id);
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 
@@ -85,7 +84,7 @@ public class AdminUserController {
                 .roleCode(resolveRoleCode(apiRequest.getRoleCode(), apiRequest.getRoleCodes()))
                 .build();
 
-        User createdUser = adminUserService.createUser(request, currentAdminId);
+        UserResult createdUser = adminUserService.createUser(request, currentAdminId);
         return ResponseEntity.status(HttpStatus.CREATED).body(userPresenter.toDto(createdUser));
     }
 
@@ -104,7 +103,7 @@ public class AdminUserController {
                 .roleCode(resolveRoleCode(apiRequest.getRoleCode(), apiRequest.getRoleCodes()))
                 .build();
 
-        User updatedUser = adminUserService.updateUser(id, request, currentAdminId);
+        UserResult updatedUser = adminUserService.updateUser(id, request, currentAdminId);
         return ResponseEntity.ok(userPresenter.toDto(updatedUser));
     }
 

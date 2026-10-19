@@ -1,6 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.user;
 
-import com.example.vieva.domain.entities.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,7 +23,7 @@ public class UserSearchCriteria {
 
     private String keyword;
     private String role;
-    private UserStatus status;
+    private String status;
 
     @Builder.Default
     private int page = 0;
