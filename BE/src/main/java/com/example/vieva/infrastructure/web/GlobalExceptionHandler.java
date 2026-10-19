@@ -1,5 +1,6 @@
 package com.example.vieva.infrastructure.web;
 
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +60,15 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(body(ErrorCode.INVALID_REQUEST, "Request conflicts with an existing resource", null));
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateKeyException(DuplicateKeyException exception) {
+        Throwable cause = exception.getCause();
+        if (cause instanceof DataIntegrityViolationException dive) {
+            return handleDataIntegrityViolation(dive);
+        }
+        return handleDataIntegrityViolation(new DataIntegrityViolationException(exception.getMessage(), exception));
     }
 
     /** {@code @Version} conflicts (BR-08): another request modified the same row first. */
