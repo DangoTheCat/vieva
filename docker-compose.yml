@@ -47,6 +47,13 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      VIEVA_MAIL_PROVIDER: ${VIEVA_MAIL_PROVIDER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      APP_LOGIN_URL: ${APP_LOGIN_URL:-http://localhost:5173/login}
     depends_on:
       postgres:
         condition: service_healthy
