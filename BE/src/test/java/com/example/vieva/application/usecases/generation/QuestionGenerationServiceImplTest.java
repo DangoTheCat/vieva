@@ -44,8 +44,10 @@ import com.example.vieva.domain.entities.QuestionGenerationStatus;
 import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Subject;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -278,19 +280,19 @@ class QuestionGenerationServiceImplTest {
     void documentChecks() {
         document.setIndexingStatus(DocumentStatus.INDEXING);
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_READY);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_READY);
 
         document.setIndexingStatus(DocumentStatus.READY);
         document.setSubjectId(UUID.randomUUID());
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_SUBJECT_MISMATCH);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_SUBJECT_MISMATCH);
         verify(llm, never()).generate(any());
     }
 
     @Test
     void distributionMustMatchTotal() {
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 2), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_BLOOM_DISTRIBUTION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION);
     }
 
     @Test
@@ -298,7 +300,7 @@ class QuestionGenerationServiceImplTest {
     void noContext() {
         when(chunkRepository.similaritySearch(any(), anyCollection(), any(), anyDouble(), anyInt())).thenReturn(List.of());
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INSUFFICIENT_CONTEXT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.INSUFFICIENT_CONTEXT);
         assertThat(requests.values()).singleElement()
                 .satisfies(r -> assertThat(r.getStatus()).isEqualTo(QuestionGenerationStatus.FAILED));
     }
@@ -311,7 +313,7 @@ class QuestionGenerationServiceImplTest {
             return List.of(candidate("Nêu bốn tính chất ACID?", "APPLY"));
         });
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
         verify(versionRepository, never()).saveAll(anyList());
     }
 
@@ -367,13 +369,13 @@ class QuestionGenerationServiceImplTest {
         when(llm.generate(any())).thenReturn(new ArrayList<>(List.of(candidate("Sai Bloom", "CREATE"))));
 
         assertThatThrownBy(() -> service.regenerate(draft.getQuestionVersionId(), null, null, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.AI_SERVICE_UNAVAILABLE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.AI_SERVICE_UNAVAILABLE);
         assertThat(draft.getQuestionContent()).isEqualTo("Câu cũ?");
 
         QuestionVersion manual = QuestionVersion.newDraft(question.getQuestionId(), 2, "x", "y", BloomLevel.APPLY,
                 QuestionGenerationMode.MANUAL, lecturer);
         versions.put(manual.getQuestionVersionId(), manual);
         assertThatThrownBy(() -> service.regenerate(manual.getQuestionVersionId(), null, null, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.REGENERATION_NOT_SUPPORTED);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.REGENERATION_NOT_SUPPORTED);
     }
 }

@@ -1,8 +1,10 @@
-package com.example.vieva.infrastructure.web;
+package com.example.vieva.adapters.web;
 
-import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCategory;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.common.ErrorTranslator;
+import com.example.vieva.application.ports.input.common.ErrorView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -24,20 +26,21 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(AppException exception) {
-        ErrorCode errorCode = exception.getErrorCode();
-        log.warn("Application exception [{} {}]: {}", errorCode.getCode(), errorCode.name(), exception.getMessage());
-        List<ErrorResponse.FieldError> fieldErrors = exception.getViolations().isEmpty() ? null
-                : exception.getViolations().stream()
-                .map(v -> ErrorResponse.FieldError.builder()
-                        .field(v.field())
-                        .error(v.code().name())
-                        .message(v.message())
-                        .build())
-                .toList();
-        return ResponseEntity.status(toHttpStatus(errorCode))
-                .body(body(errorCode, exception.getMessage(), fieldErrors));
+    private final ErrorTranslator errorTranslator;
+
+    public GlobalExceptionHandler(ErrorTranslator errorTranslator) {
+        this.errorTranslator = errorTranslator;
+    }
+
+    @ExceptionHandler(ApplicationException.class)
+    public ResponseEntity<ErrorResponse> handleApplicationException(ApplicationException exception) {
+        ErrorView view = errorTranslator.translate(exception);
+        log.warn("Application exception [{} {}]: {}", view.code(), view.error(), view.message());
+        return toResponseEntity(view);
+    }
+
+    public ResponseEntity<ErrorResponse> handleAppException(ApplicationException exception) {
+        return handleApplicationException(exception);
     }
 
     /**
@@ -50,7 +53,7 @@ public class GlobalExceptionHandler {
         log.warn("Data integrity violation: {}", msg);
 
         if (msg != null && (msg.contains("uq_users_active_email") || msg.contains("uq_users_active_user_code")
-                || msg.contains("email") && msg.contains("unique"))) {
+                || (msg.contains("email") && msg.contains("unique")))) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(body(ErrorCode.USER_EXISTED, ErrorCode.USER_EXISTED.getMessage(), null));
         }
@@ -60,15 +63,6 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(body(ErrorCode.INVALID_REQUEST, "Request conflicts with an existing resource", null));
-    }
-
-    @ExceptionHandler(DuplicateKeyException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateKeyException(DuplicateKeyException exception) {
-        Throwable cause = exception.getCause();
-        if (cause instanceof DataIntegrityViolationException dive) {
-            return handleDataIntegrityViolation(dive);
-        }
-        return handleDataIntegrityViolation(new DataIntegrityViolationException(exception.getMessage(), exception));
     }
 
     /** {@code @Version} conflicts (BR-08): another request modified the same row first. */
@@ -131,10 +125,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception exception) {
+        ErrorView view = errorTranslator.translate(exception);
+        if (view != null && view.category() != ErrorCategory.INTERNAL) {
+            log.warn("Translated exception [{} {}]: {}", view.code(), view.error(), view.message());
+            return toResponseEntity(view);
+        }
         // Full stack trace goes to the log only — never to the client.
         log.error("Unhandled exception: {}", exception.getMessage(), exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(body(ErrorCode.UNCATEGORIZED_EXCEPTION, ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage(), null));
+    }
+
+    private ResponseEntity<ErrorResponse> toResponseEntity(ErrorView view) {
+        List<ErrorResponse.FieldError> fieldErrors = (view.errors() == null || view.errors().isEmpty()) ? null
+                : view.errors().stream()
+                .map(v -> ErrorResponse.FieldError.builder()
+                        .field(v.field())
+                        .error(v.error())
+                        .message(v.message())
+                        .build())
+                .toList();
+
+        HttpStatus status = toHttpStatus(view.category());
+        ErrorResponse responseBody = ErrorResponse.builder()
+                .code(view.code())
+                .error(view.error())
+                .message(view.message())
+                .errors(fieldErrors)
+                .build();
+        return ResponseEntity.status(status).body(responseBody);
     }
 
     private static ErrorResponse body(ErrorCode errorCode, String message, List<ErrorResponse.FieldError> errors) {
@@ -146,30 +165,21 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
-    static HttpStatus toHttpStatus(ErrorCode errorCode) {
-        if (errorCode == null) {
+    static HttpStatus toHttpStatus(ErrorCategory category) {
+        if (category == null) {
             return HttpStatus.INTERNAL_SERVER_ERROR;
         }
-        return switch (errorCode) {
-            case USER_NOT_FOUND, SUBJECT_NOT_FOUND, ASSIGNMENT_NOT_FOUND, DOCUMENT_NOT_FOUND, QUESTION_NOT_FOUND,
-                 QUESTION_VERSION_NOT_FOUND, TOPIC_NOT_FOUND, GENERATION_REQUEST_NOT_FOUND,
-                 CRITERION_NOT_FOUND, AI_RULE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+        return switch (category) {
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
-            case UNAUTHORIZED, USER_INACTIVE, FORBIDDEN_SUBJECT, PASSWORD_CHANGE_REQUIRED, NOT_SUBJECT_HEAD,
-                 NOT_QUESTION_AUTHOR -> HttpStatus.FORBIDDEN;
-            case NOTIFICATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case VERSION_NOT_UNDER_REVIEW, SUBJECT_HEAD_REQUIRED -> HttpStatus.CONFLICT;
-            case DRAFT_ALREADY_EXISTS, VERSION_NOT_DRAFT, QUESTION_ARCHIVED, NO_APPROVED_VERSION,
-                 CONCURRENT_MODIFICATION, INVALID_DOCUMENT_STATE, DOCUMENT_NOT_RETRYABLE, RETRY_LIMIT_EXCEEDED,
-                 DOCUMENT_IN_USE, DOCUMENT_NOT_READY, REGENERATION_NOT_SUPPORTED, SUBJECT_INACTIVE -> HttpStatus.CONFLICT;
-            case RUBRIC_SCORE_MISMATCH, SOURCE_REQUIRED, BLOOM_NOT_CONFIRMED, RUBRIC_REQUIRED, CONTENT_REQUIRED,
-                 INVALID_CITATION_QUOTE, INSUFFICIENT_CONTEXT, EMPTY_DOCUMENT_TEXT, IMPORT_FILE_INVALID,
-                 INVALID_BLOOM_DISTRIBUTION, DOCUMENT_SUBJECT_MISMATCH -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case FILE_TOO_LARGE, IMPORT_LIMIT_EXCEEDED -> HttpStatus.PAYLOAD_TOO_LARGE;
-            case UNSUPPORTED_FILE_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
-            case AI_SERVICE_UNAVAILABLE -> HttpStatus.BAD_GATEWAY;
-            case UNCATEGORIZED_EXCEPTION -> HttpStatus.INTERNAL_SERVER_ERROR;
-            default -> HttpStatus.BAD_REQUEST;
+            case FORBIDDEN -> HttpStatus.FORBIDDEN;
+            case CONFLICT -> HttpStatus.CONFLICT;
+            case UNPROCESSABLE_ENTITY -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case PAYLOAD_TOO_LARGE -> HttpStatus.PAYLOAD_TOO_LARGE;
+            case UNSUPPORTED_MEDIA_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+            case BAD_GATEWAY -> HttpStatus.BAD_GATEWAY;
+            case INTERNAL -> HttpStatus.INTERNAL_SERVER_ERROR;
+            case VALIDATION, BAD_REQUEST -> HttpStatus.BAD_REQUEST;
         };
     }
 }

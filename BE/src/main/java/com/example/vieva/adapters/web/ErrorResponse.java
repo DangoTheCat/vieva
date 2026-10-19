@@ -1,4 +1,4 @@
-package com.example.vieva.infrastructure.web;
+package com.example.vieva.adapters.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

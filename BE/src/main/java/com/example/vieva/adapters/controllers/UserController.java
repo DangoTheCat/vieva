@@ -14,8 +14,8 @@ import com.example.vieva.application.usecases.user.AdminUserService;
 import com.example.vieva.application.usecases.user.UserService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -45,11 +45,11 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal User currentUser) {
         if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
         // Fetch fresh from service — avoids self-invocation AOP bypass
         User user = userService.getById(currentUser.getUserId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 
@@ -58,7 +58,7 @@ public class UserController {
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody UpdateProfileApiRequest apiRequest) {
         if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
 
         UpdateProfileRequest request = UpdateProfileRequest.builder()
@@ -76,7 +76,7 @@ public class UserController {
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody ChangePasswordApiRequest apiRequest) {
         if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
 
         ChangePasswordRequest request = ChangePasswordRequest.builder()
@@ -93,42 +93,42 @@ public class UserController {
             @AuthenticationPrincipal User currentUser,
             @RequestParam("file") MultipartFile file) {
         if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "File ảnh đại diện không được để trống");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "File ảnh đại diện không được để trống");
         }
 
         // Kích thước tối đa 5MB (5 * 1024 * 1024 bytes)
         long maxSizeBytes = 5L * 1024 * 1024;
         if (file.getSize() > maxSizeBytes) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Kích thước ảnh đại diện vượt quá giới hạn 5MB");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Kích thước ảnh đại diện vượt quá giới hạn 5MB");
         }
 
         // Kiểm tra định dạng ảnh
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Định dạng file không hợp lệ. Vui lòng chọn file hình ảnh (JPG, PNG, WEBP, GIF)");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Định dạng file không hợp lệ. Vui lòng chọn file hình ảnh (JPG, PNG, WEBP, GIF)");
         }
 
         try {
             userService.uploadAvatar(currentUser.getUserId(), file.getBytes(), contentType);
             User user = userService.getById(currentUser.getUserId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
             return ResponseEntity.ok(userPresenter.toDto(user));
         } catch (IOException e) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể đọc dữ liệu file ảnh");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Không thể đọc dữ liệu file ảnh");
         }
     }
 
     @DeleteMapping("/me/avatar")
     public ResponseEntity<UserDto> deleteAvatar(@AuthenticationPrincipal User currentUser) {
         if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
         userService.deleteAvatar(currentUser.getUserId());
         User user = userService.getById(currentUser.getUserId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 
@@ -172,7 +172,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.domain.entities.User) and authentication.principal.userId == #id)")
     public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
         User user = userService.getById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         return ResponseEntity.ok(userPresenter.toDto(user));
     }

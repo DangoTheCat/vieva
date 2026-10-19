@@ -8,8 +8,8 @@ import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.transaction.UseCaseTransaction;
@@ -31,12 +31,12 @@ public class SubjectServiceImpl implements SubjectService {
     public Subject createSubject(CreateSubjectRequest request, UUID currentAdminId) {
         if (request.getSubjectCode() == null || request.getSubjectCode().isBlank()
                 || request.getSubjectName() == null || request.getSubjectName().isBlank()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         String normalizedCode = request.getSubjectCode().trim().toUpperCase(Locale.ROOT);
         if (subjectRepository.existsBySubjectCode(normalizedCode)) {
-            throw new AppException(ErrorCode.SUBJECT_CODE_EXISTED);
+            throw new ApplicationException(ErrorCode.SUBJECT_CODE_EXISTED);
         }
 
         SubjectStatus status = request.getStatus() != null ? request.getStatus() : SubjectStatus.ACTIVE;
@@ -59,7 +59,7 @@ public class SubjectServiceImpl implements SubjectService {
             saved = subjectRepository.saveAndFlush(subject);
         } catch (DuplicateKeyException e) {
             // Concurrent creation with the same code won the race (unique index)
-            throw new AppException(ErrorCode.SUBJECT_CODE_EXISTED);
+            throw new ApplicationException(ErrorCode.SUBJECT_CODE_EXISTED);
         }
 
         Map<String, Object> auditValues = new HashMap<>();
@@ -75,7 +75,7 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     public Subject updateSubject(UUID subjectId, UpdateSubjectRequest request, UUID currentAdminId) {
         Subject subject = subjectRepository.findById(subjectId)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
 
         subject.update(request.getSubjectName(), request.getDescription(), request.getCredits(), request.getStatus());
         Subject updated = subjectRepository.save(subject);
@@ -93,7 +93,7 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     public void deactivateSubject(UUID subjectId, UUID currentAdminId) {
         Subject subject = subjectRepository.findById(subjectId)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
 
         subject.deactivate();
         subjectRepository.save(subject);
@@ -108,7 +108,7 @@ public class SubjectServiceImpl implements SubjectService {
     @UseCaseTransaction(readOnly = true)
     public Subject getSubjectById(UUID subjectId) {
         return subjectRepository.findById(subjectId)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,9 +22,9 @@ class QuestionVersionTest {
         return QuestionVersion.newDraft(UUID.randomUUID(), 1, "Nội dung câu hỏi", "Đáp án", BloomLevel.APPLY, mode, author);
     }
 
-    private static void assertCode(Runnable action, ErrorCode code) {
+    private static void assertCode(Runnable action, DomainErrorCode code) {
         assertThatThrownBy(action::run)
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(DomainException.class)
                 .extracting("errorCode").isEqualTo(code);
     }
 
@@ -62,7 +62,7 @@ class QuestionVersionTest {
         void rejectDraftRequiresReason() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
             version.submitForReview();
-            assertCode(() -> version.reject(reviewer, "  "), ErrorCode.INVALID_REQUEST);
+            assertCode(() -> version.reject(reviewer, "  "), DomainErrorCode.INVALID_REQUEST);
             version.reject(reviewer, " thiếu căn cứ ");
             assertThat(version.getApprovalStatus()).isEqualTo(QuestionStatus.REJECTED);
             assertThat(version.getRejectionReason()).isEqualTo("thiếu căn cứ");
@@ -73,10 +73,10 @@ class QuestionVersionTest {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
             version.submitForReview();
             version.approve(reviewer);
-            assertCode(() -> version.approve(reviewer), ErrorCode.VERSION_NOT_UNDER_REVIEW);
-            assertCode(() -> version.reject(reviewer, "x"), ErrorCode.VERSION_NOT_UNDER_REVIEW);
-            assertCode(() -> version.editContent("new", null, null, null), ErrorCode.VERSION_NOT_DRAFT);
-            assertCode(() -> version.confirmBloom(BloomLevel.CREATE), ErrorCode.VERSION_NOT_DRAFT);
+            assertCode(() -> version.approve(reviewer), DomainErrorCode.VERSION_NOT_UNDER_REVIEW);
+            assertCode(() -> version.reject(reviewer, "x"), DomainErrorCode.VERSION_NOT_UNDER_REVIEW);
+            assertCode(() -> version.editContent("new", null, null, null), DomainErrorCode.VERSION_NOT_DRAFT);
+            assertCode(() -> version.confirmBloom(BloomLevel.CREATE), DomainErrorCode.VERSION_NOT_DRAFT);
         }
 
         @Test
@@ -84,13 +84,13 @@ class QuestionVersionTest {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
             version.submitForReview();
             version.reject(reviewer, "sai");
-            assertCode(() -> version.approve(reviewer), ErrorCode.VERSION_NOT_UNDER_REVIEW);
+            assertCode(() -> version.approve(reviewer), DomainErrorCode.VERSION_NOT_UNDER_REVIEW);
         }
 
         @Test
         void onlyApprovedCanBeSuperseded() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
-            assertCode(version::supersede, ErrorCode.INVALID_REQUEST);
+            assertCode(version::supersede, DomainErrorCode.INVALID_REQUEST);
             version.submitForReview();
             version.approve(reviewer);
             version.supersede();
@@ -131,7 +131,7 @@ class QuestionVersionTest {
             version.setVersion(3L);
             version.ensureVersionMatches(null);
             version.ensureVersionMatches(3L);
-            assertCode(() -> version.ensureVersionMatches(2L), ErrorCode.CONCURRENT_MODIFICATION);
+            assertCode(() -> version.ensureVersionMatches(2L), DomainErrorCode.CONCURRENT_MODIFICATION);
         }
     }
 
@@ -165,7 +165,7 @@ class QuestionVersionTest {
         @Test
         void onlyApprovedVersionCanBeCopied() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
-            assertCode(() -> version.copyAsDraft(2, author), ErrorCode.NO_APPROVED_VERSION);
+            assertCode(() -> version.copyAsDraft(2, author), DomainErrorCode.NO_APPROVED_VERSION);
         }
     }
 
@@ -185,7 +185,7 @@ class QuestionVersionTest {
         @Test
         void manualDraftCannotBeRegenerated() {
             QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
-            assertCode(() -> version.replaceWithRegenerated("a", "b", BloomLevel.APPLY), ErrorCode.REGENERATION_NOT_SUPPORTED);
+            assertCode(() -> version.replaceWithRegenerated("a", "b", BloomLevel.APPLY), DomainErrorCode.REGENERATION_NOT_SUPPORTED);
         }
     }
 }

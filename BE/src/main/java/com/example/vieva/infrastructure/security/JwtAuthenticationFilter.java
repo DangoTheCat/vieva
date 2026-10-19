@@ -4,9 +4,9 @@ import com.example.vieva.application.ports.output.TokenProviderPort;
 import com.example.vieva.application.usecases.user.UserService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.infrastructure.web.ErrorResponse;
+import com.example.vieva.application.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -116,10 +116,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        objectMapper.writeValue(response.getOutputStream(), ErrorResponse.builder()
-                .code(ErrorCode.PASSWORD_CHANGE_REQUIRED.getCode())
-                .message(ErrorCode.PASSWORD_CHANGE_REQUIRED.getMessage())
-                .build());
+        objectMapper.writeValue(response.getOutputStream(), Map.of(
+                "code", ErrorCode.PASSWORD_CHANGE_REQUIRED.getCode(),
+                "message", ErrorCode.PASSWORD_CHANGE_REQUIRED.getMessage()
+        ));
     }
 
     private String resolveToken(HttpServletRequest request) {

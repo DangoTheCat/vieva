@@ -1,5 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
@@ -41,7 +42,11 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
         try {
             return mapper.toDomain(jpaRepository.saveAndFlush(toEntity(version)));
         } catch (DataIntegrityViolationException e) {
-            throw new DuplicateKeyException("QuestionVersion duplicate key violation: " + e.getMessage(), e);
+            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+            ErrorCode suggested = (msg != null && msg.contains("uq_question_draft_per_question"))
+                    ? ErrorCode.DRAFT_ALREADY_EXISTS
+                    : ErrorCode.INVALID_REQUEST;
+            throw new DuplicateKeyException("QuestionVersion duplicate key violation: " + e.getMessage(), e, suggested);
         }
     }
 

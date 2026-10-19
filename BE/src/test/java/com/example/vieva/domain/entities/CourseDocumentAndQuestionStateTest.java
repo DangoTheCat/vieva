@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,8 +21,8 @@ class CourseDocumentAndQuestionStateTest {
                 .build();
     }
 
-    private static void assertCode(Runnable action, ErrorCode code) {
-        assertThatThrownBy(action::run).isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(code);
+    private static void assertCode(Runnable action, DomainErrorCode code) {
+        assertThatThrownBy(action::run).isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(code);
     }
 
     @Test
@@ -44,10 +44,10 @@ class CourseDocumentAndQuestionStateTest {
     @DisplayName("document: storing the file is not enough — READY needs indexing with chunks")
     void readyRequiresIndexingAndChunks() {
         CourseDocument document = uploaded();
-        assertCode(() -> document.markReady(3, "s"), ErrorCode.INVALID_DOCUMENT_STATE);
+        assertCode(() -> document.markReady(3, "s"), DomainErrorCode.INVALID_DOCUMENT_STATE);
         document.startIndexing();
-        assertCode(() -> document.markReady(0, "s"), ErrorCode.INVALID_DOCUMENT_STATE);
-        assertCode(document::startIndexing, ErrorCode.INVALID_DOCUMENT_STATE);
+        assertCode(() -> document.markReady(0, "s"), DomainErrorCode.INVALID_DOCUMENT_STATE);
+        assertCode(document::startIndexing, DomainErrorCode.INVALID_DOCUMENT_STATE);
     }
 
     @Test
@@ -56,7 +56,7 @@ class CourseDocumentAndQuestionStateTest {
         CourseDocument document = uploaded();
         document.startIndexing();
         document.markReady(1, "s");
-        assertCode(() -> document.markFailed("boom"), ErrorCode.INVALID_DOCUMENT_STATE);
+        assertCode(() -> document.markFailed("boom"), DomainErrorCode.INVALID_DOCUMENT_STATE);
         document.softDelete();
         assertThat(document.isReady()).isFalse();
     }
@@ -65,7 +65,7 @@ class CourseDocumentAndQuestionStateTest {
     @DisplayName("document: FAILED → UPLOADED retry is bounded")
     void retryIsBounded() {
         CourseDocument document = uploaded();
-        assertCode(() -> document.requeueForRetry(3), ErrorCode.DOCUMENT_NOT_RETRYABLE);
+        assertCode(() -> document.requeueForRetry(3), DomainErrorCode.DOCUMENT_NOT_RETRYABLE);
         for (int attempt = 1; attempt <= 3; attempt++) {
             document.startIndexing();
             document.markFailed("Embedding service error");
@@ -76,7 +76,7 @@ class CourseDocumentAndQuestionStateTest {
                 assertThat(document.getErrorMessage()).isNull();
             }
         }
-        assertCode(() -> document.requeueForRetry(3), ErrorCode.RETRY_LIMIT_EXCEEDED);
+        assertCode(() -> document.requeueForRetry(3), DomainErrorCode.RETRY_LIMIT_EXCEEDED);
     }
 
     @Test
@@ -96,8 +96,8 @@ class CourseDocumentAndQuestionStateTest {
         question.archive();
         assertThat(question.getStatus()).isEqualTo(QuestionLifecycleStatus.ARCHIVED);
         assertThat(question.getUpdatedAt()).isAfterOrEqualTo(before);
-        assertCode(question::archive, ErrorCode.QUESTION_ARCHIVED);
-        assertCode(() -> question.publish(UUID.randomUUID()), ErrorCode.QUESTION_ARCHIVED);
+        assertCode(question::archive, DomainErrorCode.QUESTION_ARCHIVED);
+        assertCode(() -> question.publish(UUID.randomUUID()), DomainErrorCode.QUESTION_ARCHIVED);
     }
 
     @Test
@@ -117,7 +117,7 @@ class CourseDocumentAndQuestionStateTest {
         assertThat(request.getStatus()).isEqualTo(QuestionGenerationStatus.COMPLETED);
 
         request.beginAttempt(2);
-        assertCode(() -> request.beginAttempt(2), ErrorCode.RETRY_LIMIT_EXCEEDED);
-        assertCode(request::ensureRetryable, ErrorCode.INVALID_REQUEST);
+        assertCode(() -> request.beginAttempt(2), DomainErrorCode.RETRY_LIMIT_EXCEEDED);
+        assertCode(request::ensureRetryable, DomainErrorCode.INVALID_REQUEST);
     }
 }

@@ -4,8 +4,8 @@ import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
@@ -23,10 +23,10 @@ public class SubjectAccessGuard {
 
     public void requireManage(UUID actorId, UUID subjectId) {
         if (actorId == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
         if (subjectId == null) {
-            throw new AppException(ErrorCode.FORBIDDEN_SUBJECT);
+            throw new ApplicationException(ErrorCode.FORBIDDEN_SUBJECT);
         }
         if (lecturerSubjectRepository.isLecturerAssignedToSubject(actorId, subjectId)) {
             return;
@@ -36,7 +36,7 @@ public class SubjectAccessGuard {
                 .map(User::isAdmin)
                 .orElse(false);
         if (!activeAdmin) {
-            throw new AppException(ErrorCode.FORBIDDEN_SUBJECT);
+            throw new ApplicationException(ErrorCode.FORBIDDEN_SUBJECT);
         }
     }
 }

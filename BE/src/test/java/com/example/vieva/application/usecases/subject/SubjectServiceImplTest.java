@@ -7,8 +7,8 @@ import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -95,7 +95,7 @@ class SubjectServiceImplTest {
         when(subjectRepository.existsBySubjectCode("SWD392")).thenReturn(true);
 
         assertThatThrownBy(() -> subjectService.createSubject(request, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SUBJECT_CODE_EXISTED);
 
         verify(subjectRepository, never()).save(any());
@@ -139,7 +139,7 @@ class SubjectServiceImplTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.getSubjectById(subjectId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SUBJECT_NOT_FOUND);
     }
 }

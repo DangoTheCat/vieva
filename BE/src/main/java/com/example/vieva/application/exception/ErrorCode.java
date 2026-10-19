@@ -1,4 +1,4 @@
-package com.example.vieva.domain.exception;
+package com.example.vieva.application.exception;
 
 import lombok.Getter;
 

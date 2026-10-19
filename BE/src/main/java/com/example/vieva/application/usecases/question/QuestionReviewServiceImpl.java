@@ -22,8 +22,9 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import com.example.vieva.domain.exception.FieldViolation;
 import com.example.vieva.domain.services.QuestionApprovalPolicy;
 import lombok.RequiredArgsConstructor;
@@ -95,7 +96,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     @UseCaseTransaction(readOnly = true)
     public QuestionVersionView getVersion(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         return viewAssembler.assemble(version);
     }
 
@@ -149,7 +150,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         List<FieldViolation> violations = QuestionApprovalPolicy.validate(version, rubric, criteria, sources,
                 chunks, readyDocuments);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw DomainException.ofViolations(violations);
         }
 
         return rubric;

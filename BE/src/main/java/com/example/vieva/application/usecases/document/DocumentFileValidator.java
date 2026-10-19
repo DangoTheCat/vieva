@@ -1,8 +1,8 @@
 package com.example.vieva.application.usecases.document;
 
 import com.example.vieva.application.settings.DocumentSettings;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 
 import java.text.Normalizer;
 import java.util.Locale;
@@ -61,10 +61,10 @@ public final class DocumentFileValidator {
 
     public static void validateSize(byte[] content, DocumentSettings settings) {
         if (content == null || content.length == 0) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Uploaded file is empty");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Uploaded file is empty");
         }
         if (content.length > settings.getMaxSizeBytes()) {
-            throw new AppException(ErrorCode.FILE_TOO_LARGE,
+            throw new ApplicationException(ErrorCode.FILE_TOO_LARGE,
                     "File exceeds the maximum size of " + (settings.getMaxSizeBytes() / (1024 * 1024)) + " MB");
         }
     }
@@ -78,7 +78,7 @@ public final class DocumentFileValidator {
                 .anyMatch(ext -> ext.equalsIgnoreCase(extension));
         Set<String> expected = MIME_BY_EXTENSION.get(extension);
         if (!allowed || expected == null) {
-            throw new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE,
+            throw new ApplicationException(ErrorCode.UNSUPPORTED_FILE_TYPE,
                     "Allowed file types: " + String.join(", ", settings.getAllowedExtensions()));
         }
         String mime = detectedMime == null ? "" : detectedMime.toLowerCase(Locale.ROOT);
@@ -87,7 +87,7 @@ public final class DocumentFileValidator {
             mime = mime.substring(0, parameters).trim();
         }
         if (!expected.contains(mime)) {
-            throw new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE,
+            throw new ApplicationException(ErrorCode.UNSUPPORTED_FILE_TYPE,
                     "File content (" + (mime.isEmpty() ? "unknown" : mime) + ") does not match the ." + extension + " extension");
         }
         return mime;

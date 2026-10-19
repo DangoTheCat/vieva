@@ -5,9 +5,9 @@ import com.example.vieva.application.ports.input.RubricInput;
 import com.example.vieva.application.usecases.document.DocumentFileValidator;
 import com.example.vieva.application.settings.DocumentSettings;
 import com.example.vieva.domain.entities.PerformanceLevel;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -79,11 +79,11 @@ class RubricDraftFactoryTest {
         assertThat(DocumentFileValidator.validateType("a.PDF", "application/pdf", settings)).isEqualTo("application/pdf");
         assertThat(DocumentFileValidator.validateType("a.txt", "text/plain; charset=UTF-8", settings)).isEqualTo("text/plain");
         assertThatThrownBy(() -> DocumentFileValidator.validateType("a.pdf", "text/plain", settings))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
         assertThatThrownBy(() -> DocumentFileValidator.validateType("a.exe", "application/x-msdownload", settings))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
         settings.setAllowedExtensions(List.of("pdf"));
         assertThatThrownBy(() -> DocumentFileValidator.validateType("a.txt", "text/plain", settings))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
     }
 }

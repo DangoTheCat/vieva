@@ -8,7 +8,7 @@ import java.util.List;
 public interface QuestionSpreadsheetPort {
     /**
      * @return data rows keyed by lower-case header name; row numbers are 1-based as displayed in Excel
-     *         (the header is row 1). Throws AppException IMPORT_FILE_INVALID when the file is unreadable.
+     *         (the header is row 1). Throws ApplicationException IMPORT_FILE_INVALID when the file is unreadable.
      */
     List<ImportRow> read(byte[] content, String filename);
 

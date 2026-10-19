@@ -11,9 +11,10 @@ import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.usecases.user.AdminUserService;
 import com.example.vieva.application.usecases.user.UserService;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.infrastructure.web.GlobalExceptionHandler;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
+import com.example.vieva.adapters.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -94,7 +95,7 @@ class UserControllerTest {
         };
 
         mockMvc = MockMvcBuilders.standaloneSetup(userController)
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(new ErrorTranslatorImpl()))
                 .setCustomArgumentResolvers(authPrincipalResolver)
                 .build();
     }
@@ -222,7 +223,7 @@ class UserControllerTest {
                 .newPassword("newPassword456")
                 .build();
 
-        doThrow(new AppException(ErrorCode.INCORRECT_PASSWORD))
+        doThrow(new ApplicationException(ErrorCode.INCORRECT_PASSWORD))
                 .when(userService).changePassword(eq(authenticatedUser.getUserId()), any(ChangePasswordRequest.class));
 
         mockMvc.perform(put("/api/v1/users/me/password")

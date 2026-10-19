@@ -23,9 +23,9 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.transaction.UseCaseTransaction;
@@ -70,7 +70,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
                 QuestionGenerationMode.MANUAL, actorId);
         RubricDraft rubric = RubricDraftFactory.build(version.getQuestionVersionId(), command.rubric(), violations);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
 
         draftWriter.saveQuestionDraft(List.of(new NewDraft(question, version, rubric.rubric(), rubric.criteria(), List.of())));
@@ -100,7 +100,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         RubricDraft newRubric = command.rubric() == null ? null
                 : RubricDraftFactory.build(versionId, command.rubric(), violations);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
 
         Map<String, Object> before = snapshot(version);
@@ -166,13 +166,13 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         Question question = accessLoader.questionForWrite(questionId, actorId);
         question.ensureActive();
         if (question.getCurrentApprovedVersionId() == null) {
-            throw new AppException(ErrorCode.NO_APPROVED_VERSION);
+            throw new ApplicationException(ErrorCode.NO_APPROVED_VERSION);
         }
         if (questionVersionRepository.hasDraftVersion(questionId)) {
-            throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS);
+            throw new ApplicationException(ErrorCode.DRAFT_ALREADY_EXISTS);
         }
         QuestionVersion approved = questionVersionRepository.findById(question.getCurrentApprovedVersionId())
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         int nextNumber = questionVersionRepository.findLatestVersion(questionId)
                 .map(QuestionVersion::getVersionNumber)
                 .orElse(approved.getVersionNumber()) + 1;
@@ -182,7 +182,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
             questionVersionRepository.save(draft);
         } catch (DuplicateKeyException e) {
             // Concurrent request won the race on uq_question_draft_per_question / uq_question_version.
-            throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS);
+            throw new ApplicationException(ErrorCode.DRAFT_ALREADY_EXISTS);
         }
 
         rubricRepository.findByQuestionVersionId(approved.getQuestionVersionId()).ifPresent(rubric -> {
@@ -210,16 +210,16 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
             return;
         }
         if (topicRepository.findById(topicId).isEmpty()) {
-            throw new AppException(ErrorCode.TOPIC_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.TOPIC_NOT_FOUND);
         }
         if (!topicRepository.existsByIdAndSubjectId(topicId, subjectId)) {
-            throw new AppException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
+            throw new ApplicationException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
         }
     }
 
     private QuestionVersionView reloadView(UUID versionId) {
         QuestionVersion fresh = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         return viewAssembler.assemble(fresh);
     }
 

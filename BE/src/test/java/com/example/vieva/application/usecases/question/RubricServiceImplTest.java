@@ -22,8 +22,10 @@ import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,7 +109,7 @@ class RubricServiceImplTest {
         verify(versionRepository, org.mockito.Mockito.times(3)).save(version);
 
         assertThatThrownBy(() -> service.deleteCriterion(version.getQuestionVersionId(), UUID.randomUUID(), null, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.CRITERION_NOT_FOUND);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.CRITERION_NOT_FOUND);
     }
 
     @Test
@@ -117,7 +119,7 @@ class RubricServiceImplTest {
         version.approve(lecturer);
         assertThatThrownBy(() -> service.addCriterion(version.getQuestionVersionId(),
                 new CriterionInput("C", "d", BigDecimal.ONE, List.of(), null), null, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.VERSION_NOT_DRAFT);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.VERSION_NOT_DRAFT);
         verify(criterionRepository, never()).save(any());
     }
 

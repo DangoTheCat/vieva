@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.time.Instant;
@@ -75,7 +75,7 @@ public class QuestionGenerationRequest {
     /** Opens a new LLM attempt; fails once the configured budget is spent. */
     public void beginAttempt(int maxAttempts) {
         if (attemptCount >= maxAttempts) {
-            throw new AppException(ErrorCode.RETRY_LIMIT_EXCEEDED,
+            throw new DomainException(DomainErrorCode.RETRY_LIMIT_EXCEEDED,
                     "Generation attempt limit reached (" + maxAttempts + ")");
         }
         this.attemptCount++;
@@ -84,7 +84,7 @@ public class QuestionGenerationRequest {
 
     public void ensureRetryable() {
         if (status != QuestionGenerationStatus.FAILED && status != QuestionGenerationStatus.PARTIAL) {
-            throw new AppException(ErrorCode.INVALID_REQUEST,
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Only FAILED or PARTIAL generation requests can be retried (current: " + status + ")");
         }
     }

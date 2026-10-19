@@ -7,7 +7,9 @@ import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.adapters.presenters.*;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.domain.entities.*;
-import com.example.vieva.domain.exception.*;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +87,7 @@ public class LecturerStudioController {
     }
 
     private void checkVersion(UUID questionId,UUID versionId) {
-        var version=versions.findById(versionId).orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        if (!questionId.equals(version.getQuestionId())) throw new AppException(ErrorCode.INVALID_REQUEST,"Version belongs to another question");
+        var version=versions.findById(versionId).orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+        if (!questionId.equals(version.getQuestionId())) throw new ApplicationException(ErrorCode.INVALID_REQUEST,"Version belongs to another question");
     }
 }

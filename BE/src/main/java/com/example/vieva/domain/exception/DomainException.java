@@ -5,27 +5,26 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class AppException extends RuntimeException {
+public class DomainException extends RuntimeException {
 
-    private final ErrorCode errorCode;
+    private final DomainErrorCode errorCode;
     private final List<FieldViolation> violations;
 
-    public AppException(ErrorCode errorCode) {
-        this(errorCode, errorCode.getMessage(), List.of());
+    public DomainException(DomainErrorCode errorCode) {
+        this(errorCode, errorCode != null ? errorCode.getMessage() : null, List.of());
     }
 
-    public AppException(ErrorCode errorCode, String message) {
+    public DomainException(DomainErrorCode errorCode, String message) {
         this(errorCode, message, List.of());
     }
 
-    public AppException(ErrorCode errorCode, String message, List<FieldViolation> violations) {
+    public DomainException(DomainErrorCode errorCode, String message, List<FieldViolation> violations) {
         super(message);
         this.errorCode = errorCode;
         this.violations = violations == null ? List.of() : List.copyOf(violations);
     }
 
-    /** Field-level failure: the top-level code is the first violation's code. */
-    public static AppException ofViolations(List<FieldViolation> violations) {
+    public static DomainException ofViolations(List<FieldViolation> violations) {
         if (violations == null || violations.isEmpty()) {
             throw new IllegalArgumentException("violations must not be empty");
         }
@@ -33,6 +32,6 @@ public class AppException extends RuntimeException {
         String message = violations.size() == 1
                 ? first.message()
                 : first.message() + " (+" + (violations.size() - 1) + " more)";
-        return new AppException(first.code(), message, violations);
+        return new DomainException(first.code(), message, violations);
     }
 }

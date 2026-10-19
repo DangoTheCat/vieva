@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.time.Instant;
@@ -47,7 +47,7 @@ public class CourseDocument {
     }
 
     public void archive() {
-        if (!isReady()) throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE, "Only READY documents can be archived");
+        if (!isReady()) throw new DomainException(DomainErrorCode.INVALID_DOCUMENT_STATE, "Only READY documents can be archived");
         indexingStatus = DocumentStatus.ARCHIVED;
         updatedAt = Instant.now();
     }
@@ -55,7 +55,7 @@ public class CourseDocument {
     /** UPLOADED → INDEXING. Counts the attempt so retries stay bounded. */
     public void startIndexing() {
         if (indexingStatus != DocumentStatus.UPLOADED) {
-            throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE,
+            throw new DomainException(DomainErrorCode.INVALID_DOCUMENT_STATE,
                     "Only UPLOADED documents can start indexing (current: " + indexingStatus + ")");
         }
         this.indexingStatus = DocumentStatus.INDEXING;
@@ -67,11 +67,11 @@ public class CourseDocument {
     /** INDEXING → READY. */
     public void markReady(int chunkCount, String summary) {
         if (indexingStatus != DocumentStatus.INDEXING) {
-            throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE,
+            throw new DomainException(DomainErrorCode.INVALID_DOCUMENT_STATE,
                     "Only INDEXING documents can become READY (current: " + indexingStatus + ")");
         }
         if (chunkCount <= 0) {
-            throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE, "A READY document needs at least one chunk");
+            throw new DomainException(DomainErrorCode.INVALID_DOCUMENT_STATE, "A READY document needs at least one chunk");
         }
         this.indexingStatus = DocumentStatus.READY;
         this.totalChunks = chunkCount;
@@ -86,7 +86,7 @@ public class CourseDocument {
      */
     public void markFailed(String reason) {
         if (indexingStatus == DocumentStatus.READY || indexingStatus == DocumentStatus.ARCHIVED) {
-            throw new AppException(ErrorCode.INVALID_DOCUMENT_STATE, "A READY document cannot be marked as FAILED");
+            throw new DomainException(DomainErrorCode.INVALID_DOCUMENT_STATE, "A READY document cannot be marked as FAILED");
         }
         this.indexingStatus = DocumentStatus.FAILED;
         this.errorMessage = reason;
@@ -97,12 +97,12 @@ public class CourseDocument {
     /** FAILED → UPLOADED, only while the retry budget is not exhausted. */
     public void requeueForRetry(int maxAttempts) {
         if (indexingStatus != DocumentStatus.FAILED) {
-            throw new AppException(ErrorCode.DOCUMENT_NOT_RETRYABLE,
+            throw new DomainException(DomainErrorCode.DOCUMENT_NOT_RETRYABLE,
                     "Only FAILED documents can be re-indexed (current: " + indexingStatus + ")");
         }
         int attempts = indexAttempts == null ? 0 : indexAttempts;
         if (attempts >= maxAttempts) {
-            throw new AppException(ErrorCode.RETRY_LIMIT_EXCEEDED,
+            throw new DomainException(DomainErrorCode.RETRY_LIMIT_EXCEEDED,
                     "Indexing retry limit reached (" + maxAttempts + " attempts)");
         }
         this.indexingStatus = DocumentStatus.UPLOADED;

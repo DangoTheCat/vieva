@@ -13,8 +13,8 @@ import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.usecases.user.AdminUserService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -145,14 +145,14 @@ public class AdminUserController {
                 .distinct()
                 .toList();
         if (codes.size() > 1) {
-            throw new AppException(ErrorCode.MULTIPLE_ROLES_NOT_ALLOWED);
+            throw new ApplicationException(ErrorCode.MULTIPLE_ROLES_NOT_ALLOWED);
         }
         return codes.isEmpty() ? null : codes.get(0);
     }
 
     private UUID resolveCurrentAdminId(User currentAdmin) {
         if (currentAdmin == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
         return currentAdmin.getUserId();
     }

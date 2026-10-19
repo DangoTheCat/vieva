@@ -10,8 +10,8 @@ import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +39,12 @@ public class AuthServiceImpl implements AuthService {
         String email = new Email(request.getEmail()).getValue();
 
         if (userRepository.existsByEmail(email)) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
 
         // Self-registered accounts are students
         Role defaultRole = roleRepository.findByRoleCode("ROLE_STUDENT")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ROLE_NOT_FOUND));
 
         UUID newUserId = UUID.randomUUID();
         String userCode = "USR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -69,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
             savedUser = userRepository.saveAndFlush(user);
         } catch (DuplicateKeyException e) {
             // Concurrent registration with the same email won the race (unique index)
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
         String token = tokenProvider.generateToken(savedUser.getUserId(), savedUser.getEmail());
 
@@ -82,14 +82,14 @@ public class AuthServiceImpl implements AuthService {
         String email = new Email(request.getEmail()).getValue();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.UNAUTHENTICATED));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new AppException(ErrorCode.USER_INACTIVE);
+            throw new ApplicationException(ErrorCode.USER_INACTIVE);
         }
 
         String token = tokenProvider.generateToken(user.getUserId(), user.getEmail());

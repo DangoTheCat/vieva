@@ -17,9 +17,9 @@ import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -188,7 +188,7 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("422 with field errors when the rubric total does not match")
     void businessFieldErrors() throws Exception {
-        when(authoringService.createManualQuestion(any(), any(), any())).thenThrow(AppException.ofViolations(List.of(
+        when(authoringService.createManualQuestion(any(), any(), any())).thenThrow(ApplicationException.ofViolations(List.of(
                 FieldViolation.of("rubric.totalScore", ErrorCode.RUBRIC_SCORE_MISMATCH, "Total 12 must equal 10"))));
         mockMvc.perform(post("/api/v1/lecturer/subjects/{id}/questions", subjectId).with(as(lecturer, "LECTURER"))
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_QUESTION))
@@ -205,12 +205,12 @@ class LecturerQuestionBankApiTest {
         when(questionVersionRepository.findById(versionId)).thenReturn(Optional.of(view.version()));
         when(questionRepository.findById(view.question().getQuestionId())).thenReturn(Optional.of(view.question()));
 
-        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new AppException(ErrorCode.VERSION_NOT_DRAFT));
+        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new ApplicationException(ErrorCode.VERSION_NOT_DRAFT));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("VERSION_NOT_DRAFT"));
 
-        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(AppException.ofViolations(List.of(
+        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(ApplicationException.ofViolations(List.of(
                 FieldViolation.of("bloomConfirmed", ErrorCode.BLOOM_NOT_CONFIRMED, "confirm"),
                 FieldViolation.of("sources", ErrorCode.SOURCE_REQUIRED, "source"))));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER"))
@@ -219,7 +219,7 @@ class LecturerQuestionBankApiTest {
                 .andExpect(jsonPath("$.error").value("BLOOM_NOT_CONFIRMED"))
                 .andExpect(jsonPath("$.errors[1].error").value("SOURCE_REQUIRED"));
 
-        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new AppException(ErrorCode.CONCURRENT_MODIFICATION));
+        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new ApplicationException(ErrorCode.CONCURRENT_MODIFICATION));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("CONCURRENT_MODIFICATION"));
@@ -254,7 +254,7 @@ class LecturerQuestionBankApiTest {
                 .andExpect(jsonPath("$.indexingStatus").value("UPLOADED"));
 
         when(documentIndexingService.uploadDocument(any(), any(), any(), any()))
-                .thenThrow(new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE));
+                .thenThrow(new ApplicationException(ErrorCode.UNSUPPORTED_FILE_TYPE));
         mockMvc.perform(multipart("/api/v1/lecturer/subjects/{id}/documents", subjectId)
                         .file(new MockMultipartFile("file", "virus.exe", "application/pdf", "MZ".getBytes()))
                         .with(as(lecturer, "LECTURER")))
@@ -273,7 +273,7 @@ class LecturerQuestionBankApiTest {
                         .content(body.formatted(UUID.randomUUID(), UUID.randomUUID())))
                 .andExpect(status().isForbidden());
 
-        when(generationService.generate(any(), any())).thenThrow(new AppException(ErrorCode.DOCUMENT_NOT_READY));
+        when(generationService.generate(any(), any())).thenThrow(new ApplicationException(ErrorCode.DOCUMENT_NOT_READY));
         mockMvc.perform(post("/api/v1/lecturer/question-generation-requests").with(as(lecturer, "LECTURER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body.formatted(subjectId, UUID.randomUUID())))

@@ -1,7 +1,6 @@
 package com.example.vieva.infrastructure.security;
 
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.infrastructure.web.ErrorResponse;
+import com.example.vieva.application.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -63,21 +63,19 @@ public class SecurityConfig {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                            ErrorResponse errorResponse = ErrorResponse.builder()
-                                     .code(ErrorCode.UNAUTHENTICATED.getCode())
-                                    .message(ErrorCode.UNAUTHENTICATED.getMessage())
-                                    .build();
-                            objectMapper.writeValue(response.getOutputStream(), errorResponse);
+                            objectMapper.writeValue(response.getOutputStream(), Map.of(
+                                    "code", ErrorCode.UNAUTHENTICATED.getCode(),
+                                    "message", ErrorCode.UNAUTHENTICATED.getMessage()
+                            ));
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpStatus.FORBIDDEN.value());
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                            ErrorResponse errorResponse = ErrorResponse.builder()
-                                    .code(ErrorCode.UNAUTHORIZED.getCode())
-                                    .message(ErrorCode.UNAUTHORIZED.getMessage())
-                                    .build();
-                            objectMapper.writeValue(response.getOutputStream(), errorResponse);
+                            objectMapper.writeValue(response.getOutputStream(), Map.of(
+                                    "code", ErrorCode.UNAUTHORIZED.getCode(),
+                                    "message", ErrorCode.UNAUTHORIZED.getMessage()
+                            ));
                         })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

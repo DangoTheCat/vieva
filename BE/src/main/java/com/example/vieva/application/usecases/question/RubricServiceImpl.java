@@ -13,9 +13,9 @@ import com.example.vieva.application.usecases.question.RubricDraftFactory.Rubric
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 
@@ -39,7 +39,7 @@ public class RubricServiceImpl implements RubricService {
     @UseCaseTransaction(readOnly = true)
     public QuestionVersionView getRubric(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         return viewAssembler.assemble(version);
     }
 
@@ -50,7 +50,7 @@ public class RubricServiceImpl implements RubricService {
         List<FieldViolation> violations = new ArrayList<>();
         RubricDraft draft = RubricDraftFactory.build(versionId, input, violations);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
         BigDecimal before = currentTotal(versionId);
 
@@ -71,7 +71,7 @@ public class RubricServiceImpl implements RubricService {
         RubricCriterion criterion = RubricDraftFactory.buildCriterion(rubric.getRubricId(), input,
                 criteria.size() + 1, "criterion", violations);
         if (criterion == null) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
         criterion.setOrderIndex(criteria.size() + 1);
         criteria.add(criterion);
@@ -92,14 +92,14 @@ public class RubricServiceImpl implements RubricService {
         RubricCriterion target = criteria.stream()
                 .filter(c -> c.getCriterionId().equals(criterionId))
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.CRITERION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.CRITERION_NOT_FOUND));
 
         List<FieldViolation> violations = new ArrayList<>();
         int currentOrder = target.getOrderIndex() == null ? 1 : target.getOrderIndex();
         RubricCriterion validated = RubricDraftFactory.buildCriterion(rubric.getRubricId(), input,
                 currentOrder, "criterion", violations);
         if (validated == null) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
         target.update(validated.getCriterionName(), validated.getAchievementDescriptors(), validated.getMaxPoints(),
                 validated.getPerformanceLevels());
@@ -119,7 +119,7 @@ public class RubricServiceImpl implements RubricService {
         List<RubricCriterion> criteria = new ArrayList<>(rubricCriterionRepository.findByRubricId(rubric.getRubricId()));
         boolean removed = criteria.removeIf(c -> c.getCriterionId().equals(criterionId));
         if (!removed) {
-            throw new AppException(ErrorCode.CRITERION_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.CRITERION_NOT_FOUND);
         }
         rubricCriterionRepository.deleteById(criterionId);
         // Keep order indexes contiguous after a removal.
@@ -144,7 +144,7 @@ public class RubricServiceImpl implements RubricService {
 
     private Rubric rubricOf(UUID versionId) {
         return rubricRepository.findByQuestionVersionId(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.CRITERION_NOT_FOUND, "Version has no rubric yet"));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.CRITERION_NOT_FOUND, "Version has no rubric yet"));
     }
 
     private BigDecimal currentTotal(UUID versionId) {

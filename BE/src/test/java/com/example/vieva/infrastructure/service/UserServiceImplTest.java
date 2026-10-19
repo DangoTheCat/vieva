@@ -8,8 +8,8 @@ import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.usecases.user.UserServiceImpl;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,8 +125,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.updateProfile(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
 
         verify(userRepository, never()).save(any());
     }
@@ -141,8 +141,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.updateProfile(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
 
         verify(userRepository, never()).save(any());
     }
@@ -179,8 +179,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.changePassword(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.INCORRECT_PASSWORD));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.INCORRECT_PASSWORD));
 
         verify(userRepository, never()).save(any());
     }
@@ -197,8 +197,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.changePassword(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.PASSWORD_UNCHANGED));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.PASSWORD_UNCHANGED));
 
         verify(userRepository, never()).save(any());
     }
@@ -214,8 +214,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.changePassword(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
 
         verify(userRepository, never()).save(any());
     }

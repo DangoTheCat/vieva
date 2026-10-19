@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -43,21 +43,21 @@ public class RubricCriterion {
 
     public void update(String name, String description, BigDecimal maxPoints, List<PerformanceLevel> levels) {
         if (name == null || name.isBlank()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Criterion name is required");
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Criterion name is required");
         }
         if (description == null || description.isBlank()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Criterion description is required");
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Criterion description is required");
         }
         if (maxPoints == null || maxPoints.signum() <= 0) {
-            throw new AppException(ErrorCode.RUBRIC_SCORE_MISMATCH, "Criterion max score must be greater than 0");
+            throw new DomainException(DomainErrorCode.RUBRIC_SCORE_MISMATCH, "Criterion max score must be greater than 0");
         }
         List<PerformanceLevel> safeLevels = levels == null ? new ArrayList<>() : new ArrayList<>(levels);
         for (PerformanceLevel level : safeLevels) {
             if (level == null || level.label() == null || level.label().isBlank() || level.score() == null) {
-                throw new AppException(ErrorCode.INVALID_REQUEST, "Each performance level needs a label and a score");
+                throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Each performance level needs a label and a score");
             }
             if (level.score().signum() < 0 || level.score().compareTo(maxPoints) > 0) {
-                throw new AppException(ErrorCode.RUBRIC_SCORE_MISMATCH,
+                throw new DomainException(DomainErrorCode.RUBRIC_SCORE_MISMATCH,
                         "Performance level score must be between 0 and the criterion max score");
             }
         }

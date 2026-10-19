@@ -8,8 +8,8 @@ import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.*;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -119,7 +119,7 @@ class LecturerSubjectServiceImplTest {
         when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(regularUser));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_A_LECTURER);
 
         verify(lecturerSubjectRepository, never()).saveAll(any());
@@ -145,7 +145,7 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of(existing));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_ASSIGN_DUPLICATE);
     }
 
@@ -163,7 +163,7 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.saveAll(any())).thenThrow(new DuplicateKeyException("concurrent duplicate"));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_ASSIGN_DUPLICATE);
     }
 
@@ -204,7 +204,7 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.findById(assignmentId)).thenReturn(Optional.of(alreadyRevoked));
 
         assertThatThrownBy(() -> lecturerSubjectService.revokeAssignment(assignmentId, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSIGNMENT_NOT_FOUND);
 
         verify(lecturerSubjectRepository, never()).save(any());

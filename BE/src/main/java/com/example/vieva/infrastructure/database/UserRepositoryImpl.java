@@ -1,5 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.UserSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
@@ -163,7 +164,12 @@ public class UserRepositoryImpl implements UserRepository {
         try {
             return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
         } catch (DataIntegrityViolationException e) {
-            throw new DuplicateKeyException("User duplicate key violation: " + e.getMessage(), e);
+            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+            ErrorCode suggested = (msg != null && (msg.contains("uq_users_active_email") || msg.contains("uq_users_active_user_code")
+                    || (msg.contains("email") && msg.contains("unique"))))
+                    ? ErrorCode.USER_EXISTED
+                    : ErrorCode.INVALID_REQUEST;
+            throw new DuplicateKeyException("User duplicate key violation: " + e.getMessage(), e, suggested);
         }
     }
 }

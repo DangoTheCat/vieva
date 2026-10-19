@@ -12,8 +12,8 @@ import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 
@@ -68,7 +68,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     @UseCaseTransaction(readOnly = true)
     public QuestionDetailView getDetail(UUID questionId) {
         Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_NOT_FOUND));
         List<QuestionVersion> history = questionVersionRepository.findByQuestionId(questionId);
         QuestionVersion current = history.stream()
                 .filter(v -> v.getQuestionVersionId().equals(question.getCurrentApprovedVersionId()))
@@ -92,7 +92,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     @UseCaseTransaction(readOnly = true)
     public List<QuestionVersionView> getHistory(UUID questionId) {
         Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_NOT_FOUND));
         return viewAssembler.assemble(questionVersionRepository.findByQuestionId(questionId), Map.of(questionId, question));
     }
 

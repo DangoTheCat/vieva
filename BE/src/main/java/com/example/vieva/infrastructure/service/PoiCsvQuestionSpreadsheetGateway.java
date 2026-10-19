@@ -1,9 +1,9 @@
 package com.example.vieva.infrastructure.service;
 
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.output.ImportRow;
 import com.example.vieva.application.ports.output.QuestionSpreadsheetPort;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
@@ -46,10 +46,10 @@ public class PoiCsvQuestionSpreadsheetGateway implements QuestionSpreadsheetPort
         String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
         try {
             return lower.endsWith(".csv") ? readCsv(content) : readXlsx(content);
-        } catch (AppException e) {
+        } catch (ApplicationException e) {
             throw e;
         } catch (Exception e) {
-            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The file cannot be read as "
+            throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The file cannot be read as "
                     + (lower.endsWith(".csv") ? "CSV (UTF-8)" : "an Excel .xlsx workbook"));
         }
     }
@@ -57,13 +57,13 @@ public class PoiCsvQuestionSpreadsheetGateway implements QuestionSpreadsheetPort
     private List<ImportRow> readXlsx(byte[] content) throws IOException {
         try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
             if (workbook.getNumberOfSheets() == 0) {
-                throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The workbook has no sheet");
+                throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The workbook has no sheet");
             }
             Sheet sheet = workbook.getSheetAt(0);
             DataFormatter formatter = new DataFormatter(Locale.ROOT);
             Row headerRow = sheet.getRow(sheet.getFirstRowNum());
             if (headerRow == null) {
-                throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The header row is missing");
+                throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The header row is missing");
             }
             List<String> headers = new ArrayList<>();
             for (int c = 0; c < headerRow.getLastCellNum(); c++) {

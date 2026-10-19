@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,13 +56,13 @@ class BloomAndRubricTest {
         assertThat(distribution.asMap()).doesNotContainKey(BloomLevel.CREATE);
 
         assertThatThrownBy(() -> BloomDistribution.of(counts, 7))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_BLOOM_DISTRIBUTION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION);
         assertThatThrownBy(() -> BloomDistribution.of(Map.of(BloomLevel.APPLY, -1), -1))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_BLOOM_DISTRIBUTION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION);
         assertThatThrownBy(() -> BloomDistribution.of(Map.of(BloomLevel.APPLY, 0), 0))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_BLOOM_DISTRIBUTION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION);
         assertThatThrownBy(() -> BloomDistribution.of(Map.of(), 0))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_BLOOM_DISTRIBUTION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION);
     }
 
     @Test
@@ -94,12 +94,12 @@ class BloomAndRubricTest {
     void criterionValidatesScoresAndLevels() {
         UUID rubricId = UUID.randomUUID();
         assertThatThrownBy(() -> RubricCriterion.create(rubricId, "A", "d", BigDecimal.ZERO, List.of(), 1))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.RUBRIC_SCORE_MISMATCH);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.RUBRIC_SCORE_MISMATCH);
         assertThatThrownBy(() -> RubricCriterion.create(rubricId, " ", "d", BigDecimal.ONE, List.of(), 1))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_REQUEST);
         assertThatThrownBy(() -> RubricCriterion.create(rubricId, "A", "d", BigDecimal.ONE,
                 List.of(new PerformanceLevel("Giỏi", null, new BigDecimal("2"))), 1))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.RUBRIC_SCORE_MISMATCH);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.RUBRIC_SCORE_MISMATCH);
 
         RubricCriterion criterion = RubricCriterion.create(rubricId, "A", "d", new BigDecimal("4"),
                 List.of(new PerformanceLevel("Đạt", "đủ ý", new BigDecimal("4"))), 1);

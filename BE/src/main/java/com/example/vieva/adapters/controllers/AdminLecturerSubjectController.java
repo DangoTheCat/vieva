@@ -8,8 +8,8 @@ import com.example.vieva.application.ports.input.AssignLecturerRequest;
 import com.example.vieva.application.usecases.lecturer.LecturerSubjectService;
 import com.example.vieva.domain.entities.LecturerSubject;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -82,7 +82,7 @@ public class AdminLecturerSubjectController {
 
     private UUID resolveAdminId(User currentAdmin) {
         if (currentAdmin == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
         return currentAdmin.getUserId();
     }

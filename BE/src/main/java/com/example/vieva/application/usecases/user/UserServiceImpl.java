@@ -6,8 +6,8 @@ import com.example.vieva.application.ports.output.AvatarStoragePort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.example.vieva.application.transaction.UseCaseTransaction;
@@ -34,12 +34,12 @@ public class UserServiceImpl implements UserService {
     @UseCaseTransaction
     public User updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = getById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (request.getFullName() != null) {
             String trimmedFullName = request.getFullName().trim();
             if (trimmedFullName.isEmpty()) {
-                throw new AppException(ErrorCode.INVALID_REQUEST);
+                throw new ApplicationException(ErrorCode.INVALID_REQUEST);
             }
             user.setFullName(trimmedFullName);
         }
@@ -71,14 +71,14 @@ public class UserServiceImpl implements UserService {
     @UseCaseTransaction
     public void changePassword(UUID userId, ChangePasswordRequest request) {
         User user = getById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.INCORRECT_PASSWORD);
+            throw new ApplicationException(ErrorCode.INCORRECT_PASSWORD);
         }
 
         if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.PASSWORD_UNCHANGED);
+            throw new ApplicationException(ErrorCode.PASSWORD_UNCHANGED);
         }
 
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
@@ -89,7 +89,7 @@ public class UserServiceImpl implements UserService {
     @UseCaseTransaction
     public String uploadAvatar(UUID userId, byte[] imageBytes, String contentType) {
         User user = getById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         String oldAvatarUrl = user.getAvatarUrl();
         String newAvatarUrl = avatarStoragePort.uploadAvatar(userId, imageBytes, contentType);
@@ -112,7 +112,7 @@ public class UserServiceImpl implements UserService {
     @UseCaseTransaction
     public void deleteAvatar(UUID userId) {
         User user = getById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         String oldAvatarUrl = user.getAvatarUrl();
         user.updateAvatar(null);

@@ -7,8 +7,8 @@ import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.domain.entities.PerformanceLevel;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

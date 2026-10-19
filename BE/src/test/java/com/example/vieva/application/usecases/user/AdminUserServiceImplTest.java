@@ -11,8 +11,8 @@ import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -142,8 +142,8 @@ class AdminUserServiceImplTest {
                     .fullName("Someone")
                     .roleCode(code)
                     .build(), adminId))
-                    .isInstanceOf(AppException.class)
-                    .extracting(e -> ((AppException) e).getErrorCode())
+                    .isInstanceOf(ApplicationException.class)
+                    .extracting(e -> ((ApplicationException) e).getErrorCode())
                     .isEqualTo(ErrorCode.ROLE_NOT_FOUND);
         }
         verify(userRepository, never()).saveAndFlush(any(User.class));

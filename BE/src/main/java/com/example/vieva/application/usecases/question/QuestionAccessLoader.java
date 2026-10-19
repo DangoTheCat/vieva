@@ -5,8 +5,8 @@ import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
@@ -28,23 +28,23 @@ public class QuestionAccessLoader {
     public VersionContext versionForWrite(UUID versionId, UUID actorId) {
         VersionContext context = versionForReview(versionId, actorId);
         if (!actorId.equals(context.version().getCreatedBy())) {
-            throw new AppException(ErrorCode.NOT_QUESTION_AUTHOR);
+            throw new ApplicationException(ErrorCode.NOT_QUESTION_AUTHOR);
         }
         return context;
     }
 
     public VersionContext versionForReview(UUID versionId, UUID actorId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         Question question = questionRepository.findById(version.getQuestionId())
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId, question.getSubjectId());
         return new VersionContext(question, version);
     }
 
     public Question questionForWrite(UUID questionId, UUID actorId) {
         Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId, question.getSubjectId());
         return question;
     }

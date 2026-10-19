@@ -32,9 +32,10 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -137,7 +138,19 @@ class QuestionReviewAndAuthoringServiceTest {
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {
-        assertThatThrownBy(action::run).isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(code);
+        assertThatThrownBy(action::run)
+                .isInstanceOf(RuntimeException.class)
+                .satisfies(e -> {
+                    String actualName;
+                    if (e instanceof ApplicationException ae) {
+                        actualName = ae.getErrorCode() != null ? ae.getErrorCode().name() : null;
+                    } else if (e instanceof DomainException de) {
+                        actualName = de.getErrorCode() != null ? de.getErrorCode().name() : null;
+                    } else {
+                        throw new AssertionError("Expected ApplicationException or DomainException but was: " + e.getClass());
+                    }
+                    assertThat(actualName).isEqualTo(code.name());
+                });
     }
 
     @Test
@@ -193,12 +206,12 @@ class QuestionReviewAndAuthoringServiceTest {
         when(sourceRepository.findByQuestionVersionId(draft.getQuestionVersionId())).thenReturn(List.of());
 
         assertThatThrownBy(() -> reviewService.approve(draft.getQuestionVersionId(), null, lecturer))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(DomainException.class)
                 .satisfies(e -> {
-                    AppException app = (AppException) e;
-                    assertThat(app.getErrorCode()).isEqualTo(ErrorCode.BLOOM_NOT_CONFIRMED);
-                    assertThat(app.getViolations()).extracting(FieldViolation::code)
-                            .containsExactly(ErrorCode.BLOOM_NOT_CONFIRMED, ErrorCode.SOURCE_REQUIRED);
+                    DomainException domainEx = (DomainException) e;
+                    assertThat(domainEx.getErrorCode()).isEqualTo(DomainErrorCode.BLOOM_NOT_CONFIRMED);
+                    assertThat(domainEx.getViolations()).extracting(com.example.vieva.domain.exception.FieldViolation::code)
+                            .containsExactly(DomainErrorCode.BLOOM_NOT_CONFIRMED, DomainErrorCode.SOURCE_REQUIRED);
                 });
         assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.UNDER_REVIEW);
         verify(versionRepository, never()).save(any());
@@ -294,8 +307,8 @@ class QuestionReviewAndAuthoringServiceTest {
                         new CriterionInput("A", "d", new BigDecimal("4"), List.of(), null))))
                 .build();
         assertThatThrownBy(() -> authoringService.createManualQuestion(subjectId, command, lecturer))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getViolations()).extracting(FieldViolation::field)
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getViolations()).extracting(com.example.vieva.application.exception.FieldViolation::field)
                         .containsExactly("content", "rubric.totalScore"));
         verify(versionRepository, never()).saveAll(anyList());
     }

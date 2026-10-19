@@ -22,9 +22,9 @@ class ArchitectureTest {
 
     // R1: domain không biết vòng ngoài
     @ArchTest
-    static final ArchRule domainIsPure = FreezingArchRule.freeze(noClasses().that().resideInAPackage(DOMAIN)
+    static final ArchRule domainIsPure = noClasses().that().resideInAPackage(DOMAIN)
             .should().dependOnClassesThat().resideInAnyPackage(
-                    APPLICATION, ADAPTERS, INFRA, "org.springframework..", "jakarta.persistence.."));
+                    APPLICATION, ADAPTERS, INFRA, "org.springframework..", "jakarta.persistence..");
 
     // R2: application không biết framework và vòng ngoài
     @ArchTest

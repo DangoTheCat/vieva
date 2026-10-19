@@ -1,8 +1,9 @@
-package com.example.vieva.infrastructure.web;
+package com.example.vieva.adapters.web;
 
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler(new ErrorTranslatorImpl());
 
     private static final Map<ErrorCode, HttpStatus> EXPECTED_STATUSES = Map.ofEntries(
             // 404 NOT_FOUND
@@ -120,7 +121,7 @@ class GlobalExceptionHandlerTest {
     @EnumSource(ErrorCode.class)
     @DisplayName("GlobalExceptionHandler must return expected HTTP status and code for each ErrorCode")
     void allErrorsReturnExpectedHttpStatus(ErrorCode errorCode) {
-        ResponseEntity<ErrorResponse> response = handler.handleAppException(new AppException(errorCode));
+        ResponseEntity<ErrorResponse> response = handler.handleApplicationException(new ApplicationException(errorCode));
         HttpStatus expectedStatus = EXPECTED_STATUSES.get(errorCode);
 
         assertThat(response.getStatusCode())
@@ -139,7 +140,7 @@ class GlobalExceptionHandlerTest {
                 "User duplicate",
                 new DataIntegrityViolationException("duplicate", new RuntimeException("violates unique constraint \"uq_users_active_email\""))
         );
-        ResponseEntity<ErrorResponse> res1 = handler.handleDuplicateKeyException(emailEx);
+        ResponseEntity<ErrorResponse> res1 = handler.handleApplicationException(emailEx);
         assertThat(res1.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(res1.getBody()).isNotNull();
         assertThat(res1.getBody().getCode()).isEqualTo(ErrorCode.USER_EXISTED.getCode());
@@ -148,7 +149,7 @@ class GlobalExceptionHandlerTest {
                 "User duplicate",
                 new DataIntegrityViolationException("duplicate", new RuntimeException("violates unique constraint \"uq_users_active_user_code\""))
         );
-        ResponseEntity<ErrorResponse> res2 = handler.handleDuplicateKeyException(userCodeEx);
+        ResponseEntity<ErrorResponse> res2 = handler.handleApplicationException(userCodeEx);
         assertThat(res2.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(res2.getBody()).isNotNull();
         assertThat(res2.getBody().getCode()).isEqualTo(ErrorCode.USER_EXISTED.getCode());
@@ -157,7 +158,7 @@ class GlobalExceptionHandlerTest {
                 "User duplicate",
                 new DataIntegrityViolationException("duplicate", new RuntimeException("email unique constraint"))
         );
-        ResponseEntity<ErrorResponse> res3 = handler.handleDuplicateKeyException(genericEmailEx);
+        ResponseEntity<ErrorResponse> res3 = handler.handleApplicationException(genericEmailEx);
         assertThat(res3.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(res3.getBody()).isNotNull();
         assertThat(res3.getBody().getCode()).isEqualTo(ErrorCode.USER_EXISTED.getCode());
@@ -170,7 +171,7 @@ class GlobalExceptionHandlerTest {
                 "QuestionVersion duplicate",
                 new DataIntegrityViolationException("duplicate", new RuntimeException("violates unique constraint \"uq_question_draft_per_question\""))
         );
-        ResponseEntity<ErrorResponse> res = handler.handleDuplicateKeyException(draftEx);
+        ResponseEntity<ErrorResponse> res = handler.handleApplicationException(draftEx);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(res.getBody()).isNotNull();
         assertThat(res.getBody().getCode()).isEqualTo(ErrorCode.DRAFT_ALREADY_EXISTS.getCode());
@@ -183,7 +184,7 @@ class GlobalExceptionHandlerTest {
                 "Other duplicate",
                 new DataIntegrityViolationException("duplicate", new RuntimeException("violates unique constraint \"uq_subject_code\""))
         );
-        ResponseEntity<ErrorResponse> res = handler.handleDuplicateKeyException(otherEx);
+        ResponseEntity<ErrorResponse> res = handler.handleApplicationException(otherEx);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(res.getBody()).isNotNull();
         assertThat(res.getBody().getCode()).isEqualTo(ErrorCode.INVALID_REQUEST.getCode());

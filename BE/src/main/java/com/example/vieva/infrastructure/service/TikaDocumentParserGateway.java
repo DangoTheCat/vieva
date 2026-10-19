@@ -1,9 +1,9 @@
 package com.example.vieva.infrastructure.service;
 
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.output.DocumentParserPort;
 import com.example.vieva.application.ports.output.ParsedSection;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.exception.EncryptedDocumentException;
 import org.apache.tika.metadata.Metadata;
@@ -43,18 +43,18 @@ public class TikaDocumentParserGateway implements DocumentParserPort {
         try (InputStream input = new ByteArrayInputStream(content)) {
             parser.parse(input, handler, metadata, new ParseContext());
         } catch (EncryptedDocumentException e) {
-            throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT, "Document is password-protected; text cannot be extracted");
+            throw new ApplicationException(ErrorCode.EMPTY_DOCUMENT_TEXT, "Document is password-protected; text cannot be extracted");
         } catch (Exception e) {
             if (handler.sections().isEmpty()) {
                 log.warn("Tika failed to parse a {} document: {}", mimeType, e.getClass().getSimpleName());
-                throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT,
+                throw new ApplicationException(ErrorCode.EMPTY_DOCUMENT_TEXT,
                         "The file could not be read as " + (mimeType == null ? "a document" : mimeType));
             }
             // Keep what was extracted before a late failure (e.g. a corrupt trailing object).
             log.warn("Partial text extraction for a {} document: {}", mimeType, e.getClass().getSimpleName());
         }
         if (metadata.get(TikaCoreProperties.TIKA_PARSED_BY) == null && handler.sections().isEmpty()) {
-            throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT);
+            throw new ApplicationException(ErrorCode.EMPTY_DOCUMENT_TEXT);
         }
         return handler.sections();
     }

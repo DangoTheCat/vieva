@@ -42,8 +42,8 @@ import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.Topic;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.domain.services.QuestionSimilarity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,8 +75,8 @@ import java.util.stream.Collectors;
 public class QuestionGenCoordinator {
 
     public QuestionVersionView coordinateRAGPipeline(UUID topicId, BloomLevel difficulty, List<UUID> documentIds, UUID actorId) {
-        if(topicId==null || difficulty==null) throw new AppException(ErrorCode.INVALID_REQUEST,"topicId and difficulty are required");
-        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new AppException(ErrorCode.TOPIC_NOT_FOUND));
+        if(topicId==null || difficulty==null) throw new ApplicationException(ErrorCode.INVALID_REQUEST,"topicId and difficulty are required");
+        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new ApplicationException(ErrorCode.TOPIC_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId,topic.getSubjectId());
         List<UUID> selected = documentIds == null || documentIds.isEmpty()
                 ? courseDocumentRepository.findActiveBySubjectId(topic.getSubjectId()).stream()
@@ -84,7 +84,7 @@ public class QuestionGenCoordinator {
         GenerationResult result = generate(GenerateQuestionsCommand.builder().subjectId(topic.getSubjectId())
                 .topicId(topicId).documentIds(selected).totalQuestions(1)
                 .bloomDistribution(Map.of(difficulty,1)).build(),actorId);
-        if (result.drafts().isEmpty()) throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE,
+        if (result.drafts().isEmpty()) throw new ApplicationException(ErrorCode.AI_SERVICE_UNAVAILABLE,
                 "Generation failed; inspect request " + result.request().getGenerationRequestId());
         return result.drafts().get(0);
     }
@@ -141,11 +141,11 @@ public class QuestionGenCoordinator {
     public GenerationResult retry(UUID generationRequestId, UUID actorId) {
         QuestionGenerationRequest request = transactionRunner.inNewTransaction(() -> {
             QuestionGenerationRequest loaded = generationRequestRepository.findById(generationRequestId)
-                    .orElseThrow(() -> new AppException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
             subjectAccessGuard.requireManage(actorId, loaded.getSubjectId());
             loaded.ensureRetryable();
             if (loaded.getAttemptCount() >= settings.getMaxTotalAttempts()) {
-                throw new AppException(ErrorCode.RETRY_LIMIT_EXCEEDED,
+                throw new ApplicationException(ErrorCode.RETRY_LIMIT_EXCEEDED,
                         "Generation attempt limit reached (" + settings.getMaxTotalAttempts() + ")");
             }
             requireReadyDocuments(loaded.getSubjectId(), loaded.getDocumentIds());
@@ -172,7 +172,7 @@ public class QuestionGenCoordinator {
     @UseCaseTransaction(readOnly = true)
     public GenerationResult getRequest(UUID generationRequestId) {
         QuestionGenerationRequest request = generationRequestRepository.findById(generationRequestId)
-                .orElseThrow(() -> new AppException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
         return new GenerationResult(request,
                 viewAssembler.assemble(questionVersionRepository.findByGenerationRequestId(generationRequestId)));
     }
@@ -189,14 +189,14 @@ public class QuestionGenCoordinator {
             version.ensureDraft();
             ctx.question().ensureActive();
             if (!version.isAiGenerated() || version.getGenerationRequestId() == null) {
-                throw new AppException(ErrorCode.REGENERATION_NOT_SUPPORTED);
+                throw new ApplicationException(ErrorCode.REGENERATION_NOT_SUPPORTED);
             }
             if (version.getRegenerationCount() >= settings.getMaxRegenerationsPerVersion()) {
-                throw new AppException(ErrorCode.RETRY_LIMIT_EXCEEDED,
+                throw new ApplicationException(ErrorCode.RETRY_LIMIT_EXCEEDED,
                         "Regeneration limit reached (" + settings.getMaxRegenerationsPerVersion() + ") for this draft");
             }
             QuestionGenerationRequest request = generationRequestRepository.findById(version.getGenerationRequestId())
-                    .orElseThrow(() -> new AppException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
             Context context = storedContext(request);
             List<Set<String>> others = questionVersionRepository.findActiveContentsBySubject(request.getSubjectId()).stream()
                     .filter(content -> !Objects.equals(content, version.getQuestionContent()))
@@ -211,7 +211,7 @@ public class QuestionGenCoordinator {
                 List.of(), original.getQuestionContent(), feedback);
         RunOutcome outcome = runAttempts(null, basePrompt, single, prepared.context(), prepared.otherQuestions());
         if (outcome.accepted().isEmpty()) {
-            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE,
+            throw new ApplicationException(ErrorCode.AI_SERVICE_UNAVAILABLE,
                     "No valid replacement was produced; the draft was kept unchanged"
                             + (outcome.lastError() != null ? " (" + outcome.lastError() + ")" : ""));
         }
@@ -240,14 +240,14 @@ public class QuestionGenCoordinator {
 
     private BloomDistribution validateCommand(GenerateQuestionsCommand command) {
         if (command.subjectId() == null) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "subjectId is required");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "subjectId is required");
         }
         if (command.totalQuestions() < 1 || command.totalQuestions() > settings.getMaxQuestionsPerRequest()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST,
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST,
                     "totalQuestions must be between 1 and " + settings.getMaxQuestionsPerRequest());
         }
         if (command.documentIds() == null || command.documentIds().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Select at least one READY document");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Select at least one READY document");
         }
         return BloomDistribution.of(command.bloomDistribution(), command.totalQuestions());
     }
@@ -260,14 +260,14 @@ public class QuestionGenCoordinator {
         for (UUID id : ids) {
             CourseDocument document = documents.get(id);
             if (document == null) {
-                throw new AppException(ErrorCode.DOCUMENT_NOT_FOUND, "Document " + id + " not found");
+                throw new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND, "Document " + id + " not found");
             }
             if (!Objects.equals(document.getSubjectId(), subjectId)) {
-                throw new AppException(ErrorCode.DOCUMENT_SUBJECT_MISMATCH,
+                throw new ApplicationException(ErrorCode.DOCUMENT_SUBJECT_MISMATCH,
                         "Document '" + document.getFileName() + "' belongs to another subject");
             }
             if (!document.isReady()) {
-                throw new AppException(ErrorCode.DOCUMENT_NOT_READY,
+                throw new ApplicationException(ErrorCode.DOCUMENT_NOT_READY,
                         "Document '" + document.getFileName() + "' is " + document.getIndexingStatus());
             }
         }
@@ -276,16 +276,16 @@ public class QuestionGenCoordinator {
 
     private Subject requireSubject(UUID subjectId) {
         return subjectRepository.findById(subjectId)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
     }
 
     private Topic loadTopic(UUID subjectId, UUID topicId) {
         if (topicId == null) {
             return null;
         }
-        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new AppException(ErrorCode.TOPIC_NOT_FOUND));
+        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new ApplicationException(ErrorCode.TOPIC_NOT_FOUND));
         if (!Objects.equals(topic.getSubjectId(), subjectId)) {
-            throw new AppException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
+            throw new ApplicationException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
         }
         return topic;
     }
@@ -304,13 +304,13 @@ public class QuestionGenCoordinator {
                     query, settings.getMinSimilarity(), topK * 2);
         } catch (AiServiceException e) {
             failRequest(request, "Embedding service error: " + e.getMessage());
-            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE,
+            throw new ApplicationException(ErrorCode.AI_SERVICE_UNAVAILABLE,
                     "Embedding service failed; generation request " + request.getGenerationRequestId()
                             + " can be retried");
         }
         if (chunks.isEmpty()) {
             failRequest(request, ErrorCode.INSUFFICIENT_CONTEXT.getMessage());
-            throw new AppException(ErrorCode.INSUFFICIENT_CONTEXT,
+            throw new ApplicationException(ErrorCode.INSUFFICIENT_CONTEXT,
                     "No chunk of the selected documents is similar enough (>= " + settings.getMinSimilarity()
                             + ") to the subject/topic; refine the topic or select other documents");
         }
@@ -362,7 +362,7 @@ public class QuestionGenCoordinator {
             }
         }
         if (ordered.isEmpty()) {
-            throw new AppException(ErrorCode.INSUFFICIENT_CONTEXT,
+            throw new ApplicationException(ErrorCode.INSUFFICIENT_CONTEXT,
                     "The documents used by this generation request are no longer READY");
         }
         return context(subject, topic, ordered);
@@ -488,7 +488,7 @@ public class QuestionGenCoordinator {
                 // Lost assignment during the LLM call → nothing is saved (WF01 exception flow).
                 subjectAccessGuard.requireManage(actorId, request.getSubjectId());
                 QuestionGenerationRequest fresh = generationRequestRepository.findById(request.getGenerationRequestId())
-                        .orElseThrow(() -> new AppException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
+                        .orElseThrow(() -> new ApplicationException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
                 fresh.setAttemptCount(request.getAttemptCount());
 
                 List<NewDraft> drafts = outcome.accepted().stream()
@@ -516,7 +516,7 @@ public class QuestionGenCoordinator {
                         drafts.stream().map(d -> d.version().getQuestionVersionId()).toList());
                 return new GenerationResult(saved, viewAssembler.assemble(versions));
             });
-        } catch (AppException e) {
+        } catch (ApplicationException e) {
             if (e.getErrorCode() == ErrorCode.FORBIDDEN_SUBJECT) {
                 failRequest(request, "Permission on the subject was revoked during generation");
             }

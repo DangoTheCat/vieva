@@ -22,8 +22,8 @@ import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
 import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.example.vieva.application.transaction.UseCaseTransaction;
@@ -49,7 +49,7 @@ public class DocumentService {
     @UseCaseTransaction
     public void archiveDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findByIdForUpdate(documentId)
-                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId,document.getSubjectId());
         document.archive();
         courseDocumentRepository.save(document);
@@ -82,7 +82,7 @@ public class DocumentService {
         subjectAccessGuard.requireManage(actorId, subjectId);
         subjectRepository.findById(subjectId)
                 .filter(subject -> subject.getStatus() == SubjectStatus.ACTIVE)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_INACTIVE));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_INACTIVE));
 
         DocumentFileValidator.validateSize(content, documentSettings);
         String safeName = DocumentFileValidator.sanitizeFilename(filename);
@@ -96,7 +96,7 @@ public class DocumentService {
                         && doc.getFileSizeBytes().equals((long) content.length)
                         && doc.getFileName().equalsIgnoreCase(safeName));
         if (isDuplicate) {
-            throw new AppException(ErrorCode.DOCUMENT_ALREADY_EXISTS, "Tệp tài liệu này (\"" + safeName + "\") đã được tải lên trước đó trong môn học này.");
+            throw new ApplicationException(ErrorCode.DOCUMENT_ALREADY_EXISTS, "Tệp tài liệu này (\"" + safeName + "\") đã được tải lên trước đó trong môn học này.");
         }
 
         StoredFile stored = fileStorage.store(safeName, content, mimeType);
@@ -144,7 +144,7 @@ public class DocumentService {
             String fullText = joinText(sections);
             int totalChars = fullText.replaceAll("\\s+", "").length();
             if (totalChars < documentSettings.getMinTextChars()) {
-                throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT);
+                throw new ApplicationException(ErrorCode.EMPTY_DOCUMENT_TEXT);
             }
 
             // Quality check for scanned / unextractable PDFs
@@ -160,12 +160,12 @@ public class DocumentService {
 
             var problem = com.example.vieva.domain.services.ExtractionCheck.checkProblem(ext, pageCount, totalChars, sections.size());
             if (problem.isPresent()) {
-                throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT, problem.get());
+                throw new ApplicationException(ErrorCode.EMPTY_DOCUMENT_TEXT, problem.get());
             }
 
             List<TextChunk> pieces = textSplitter.split(sections);
             if (pieces.isEmpty()) {
-                throw new AppException(ErrorCode.EMPTY_DOCUMENT_TEXT);
+                throw new ApplicationException(ErrorCode.EMPTY_DOCUMENT_TEXT);
             }
             // Embed chunks with document context prefix for enhanced retrieval accuracy
             List<String> textsToEmbed = pieces.stream()
@@ -177,7 +177,7 @@ public class DocumentService {
 
             transactionRunner.inNewTransaction(() -> {
                 CourseDocument doc = courseDocumentRepository.findById(documentId)
-                        .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+                        .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
                 // Clean slate: a previous partial run never leaves chunks behind.
                 documentChunkRepository.deleteByDocumentId(documentId);
                 documentChunkRepository.storeEmbeddings(chunks);
@@ -196,7 +196,7 @@ public class DocumentService {
     @UseCaseTransaction
     public CourseDocument retryIndexing(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId, document.getSubjectId());
         document.requeueForRetry(documentSettings.getMaxIndexAttempts());
         documentChunkRepository.deleteByDocumentId(documentId);
@@ -213,13 +213,13 @@ public class DocumentService {
     @UseCaseTransaction(readOnly = true)
     public CourseDocument getDocumentById(UUID documentId) {
         return courseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 
     @UseCaseTransaction(readOnly = true)
     public DocumentPreview previewDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId, document.getSubjectId());
 
         List<DocumentChunk> chunks = documentChunkRepository.findByDocumentId(documentId);
@@ -251,11 +251,11 @@ public class DocumentService {
     @UseCaseTransaction
     public void softDeleteDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId, document.getSubjectId());
         // Chunks of this document are evidence for questions (BR-03/BR-04).
         if (questionSourceRepository.existsByDocumentId(documentId)) {
-            throw new AppException(ErrorCode.DOCUMENT_IN_USE);
+            throw new ApplicationException(ErrorCode.DOCUMENT_IN_USE);
         }
         document.softDelete();
         courseDocumentRepository.save(document);
@@ -382,7 +382,7 @@ public class DocumentService {
 
     /** User-facing reason; never includes stack traces or provider secrets. */
     private static String failureReason(Exception e) {
-        if (e instanceof AppException app) {
+        if (e instanceof ApplicationException app) {
             return app.getMessage();
         }
         if (e instanceof AiServiceException) {

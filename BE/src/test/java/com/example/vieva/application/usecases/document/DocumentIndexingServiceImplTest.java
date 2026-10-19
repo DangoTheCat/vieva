@@ -28,8 +28,10 @@ import com.example.vieva.domain.entities.DocumentChunk;
 import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -152,7 +154,7 @@ class DocumentIndexingServiceImplTest {
         byte[] content = "MZ....".getBytes();
         when(typeDetector.detect(any(), anyString())).thenReturn("application/x-msdownload");
         assertThatThrownBy(() -> service.uploadDocument(subjectId, "slides.pptx", content, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
         verify(storage, never()).store(any(), any(), any());
         verify(events, never()).publishDocumentIndexingRequested(any());
     }
@@ -161,7 +163,7 @@ class DocumentIndexingServiceImplTest {
     void uploadRequiresAssignment() {
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(false);
         assertThatThrownBy(() -> service.uploadDocument(subjectId, "a.txt", "hello".getBytes(), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
     }
 
     @Test
@@ -264,7 +266,7 @@ class DocumentIndexingServiceImplTest {
         document.startIndexing();
         document.markFailed("y");
         assertThatThrownBy(() -> service.retryIndexing(document.getDocumentId(), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.RETRY_LIMIT_EXCEEDED);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.RETRY_LIMIT_EXCEEDED);
     }
 
     @Test
@@ -273,7 +275,7 @@ class DocumentIndexingServiceImplTest {
         CourseDocument document = uploadedDocument();
         when(sourceRepository.existsByDocumentId(document.getDocumentId())).thenReturn(true);
         assertThatThrownBy(() -> service.softDeleteDocument(document.getDocumentId(), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_IN_USE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_IN_USE);
 
         when(sourceRepository.existsByDocumentId(document.getDocumentId())).thenReturn(false);
         service.softDeleteDocument(document.getDocumentId(), lecturer);

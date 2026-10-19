@@ -12,8 +12,8 @@ import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
@@ -45,10 +45,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     @UseCaseTransaction(readOnly = true)
     public User getUserById(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
         return user;
@@ -58,14 +58,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     public User createUser(CreateUserByAdminRequest request, UUID currentAdminId) {
         String email = new Email(request.getEmail()).getValue();
         if (userRepository.existsByEmail(email)) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
 
         String userCode;
         if (request.getUserCode() != null && !request.getUserCode().trim().isEmpty()) {
             userCode = request.getUserCode().trim();
             if (userRepository.existsByUserCode(userCode)) {
-                throw new AppException(ErrorCode.USER_CODE_EXISTED);
+                throw new ApplicationException(ErrorCode.USER_CODE_EXISTED);
             }
         } else {
             userCode = "USR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -73,7 +73,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         UserStatus status = request.getStatus() != null ? request.getStatus() : UserStatus.ACTIVE;
         if (status == UserStatus.DELETED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         Role roleToAssign = resolveRole(request.getRoleCode());
@@ -105,7 +105,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             savedUser = userRepository.saveAndFlush(user);
         } catch (DuplicateKeyException e) {
             // Concurrent creation with the same email/userCode won the race (unique indexes)
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
 
         Map<String, Object> auditValues = new HashMap<>();
@@ -126,22 +126,22 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public User updateUser(UUID targetUserId, UpdateUserByAdminRequest request, UUID currentAdminId) {
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
         // Rule: PUT cannot set status = DELETED
         if (request.getStatus() == UserStatus.DELETED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         boolean isTargetAdmin = user.isAdmin();
 
         // Rule: ADMIN cannot self-lock / deactivate
         if (targetUserId.equals(currentAdminId) && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
-            throw new AppException(ErrorCode.CANNOT_LOCK_SELF);
+            throw new ApplicationException(ErrorCode.CANNOT_LOCK_SELF);
         }
 
         // Rule: ADMIN cannot lock / deactivate the last active ADMIN
@@ -149,7 +149,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE
                 && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
             if (userRepository.countActiveAdmins() <= 1) {
-                throw new AppException(ErrorCode.CANNOT_LOCK_LAST_ADMIN);
+                throw new ApplicationException(ErrorCode.CANNOT_LOCK_LAST_ADMIN);
             }
         }
 
@@ -157,7 +157,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (targetUserId.equals(currentAdminId) && request.getRoleCode() != null) {
             boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin) {
-                throw new AppException(ErrorCode.CANNOT_DEMOTE_SELF);
+                throw new ApplicationException(ErrorCode.CANNOT_DEMOTE_SELF);
             }
         }
 
@@ -166,7 +166,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE && request.getRoleCode() != null) {
             boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin && userRepository.countActiveAdmins() <= 1) {
-                throw new AppException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
+                throw new ApplicationException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
             }
         }
 
@@ -197,23 +197,23 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public void deleteUser(UUID targetUserId, UUID currentAdminId) {
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         // Rule: Trying to delete an already DELETED user returns 404
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
         // Rule: ADMIN cannot delete self
         if (targetUserId.equals(currentAdminId)) {
-            throw new AppException(ErrorCode.CANNOT_DELETE_SELF);
+            throw new ApplicationException(ErrorCode.CANNOT_DELETE_SELF);
         }
 
         // Rule: ADMIN cannot delete the last active ADMIN
         // Use FOR UPDATE lock to serialize concurrent delete attempts at the DB level
         if (user.isAdmin() && user.getStatus() == UserStatus.ACTIVE
                 && userRepository.countActiveAdmins() <= 1) {
-            throw new AppException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
+            throw new ApplicationException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
         }
 
         user.delete();
@@ -226,14 +226,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public void resetPassword(UUID targetUserId, String newPassword, UUID currentAdminId) {
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
         if (newPassword == null || newPassword.isBlank() || newPassword.trim().length() < 6) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         // The admin knows this password, so the user must replace it on next login
@@ -252,12 +252,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             return findDefaultRole();
         }
         return roleRepository.findByRoleCode(canonicalRoleCode(roleCode))
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     private Role findDefaultRole() {
         return roleRepository.findByRoleCode("ROLE_STUDENT")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     private boolean isAdminRoleCode(String roleCode) {

@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.time.Instant;
@@ -70,7 +70,7 @@ public class QuestionVersion {
 
     public void ensureDraft() {
         if (!isDraft() && approvalStatus != QuestionStatus.REJECTED) {
-            throw new AppException(ErrorCode.VERSION_NOT_DRAFT,
+            throw new DomainException(DomainErrorCode.VERSION_NOT_DRAFT,
                     "Only DRAFT versions can be changed (current: " + approvalStatus + ")");
         }
     }
@@ -84,14 +84,14 @@ public class QuestionVersion {
 
     public void ensureUnderReview() {
         if (approvalStatus != QuestionStatus.UNDER_REVIEW) {
-            throw new AppException(ErrorCode.VERSION_NOT_UNDER_REVIEW);
+            throw new DomainException(DomainErrorCode.VERSION_NOT_UNDER_REVIEW);
         }
     }
 
     /** Rejects stale writes when the client sends the lock token it last saw (BR-08). */
     public void ensureVersionMatches(Long expectedVersion) {
         if (expectedVersion != null && !Objects.equals(expectedVersion, version)) {
-            throw new AppException(ErrorCode.CONCURRENT_MODIFICATION);
+            throw new DomainException(DomainErrorCode.CONCURRENT_MODIFICATION);
         }
     }
 
@@ -123,7 +123,7 @@ public class QuestionVersion {
             this.bloomLevel = level;
         }
         if (this.bloomLevel == null) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Bloom level is required");
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Bloom level is required");
         }
         this.bloomConfirmed = true;
         touch();
@@ -133,7 +133,7 @@ public class QuestionVersion {
     public void replaceWithRegenerated(String content, String answer, BloomLevel level) {
         ensureDraft();
         if (!isAiGenerated()) {
-            throw new AppException(ErrorCode.REGENERATION_NOT_SUPPORTED);
+            throw new DomainException(DomainErrorCode.REGENERATION_NOT_SUPPORTED);
         }
         this.questionContent = content;
         this.referenceAnswer = answer;
@@ -155,7 +155,7 @@ public class QuestionVersion {
     public void reject(UUID reviewer, String reason) {
         ensureUnderReview();
         if (reason == null || reason.isBlank()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Rejection reason is required");
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Rejection reason is required");
         }
         this.approvalStatus = QuestionStatus.REJECTED;
         this.rejectionReason = reason.trim();
@@ -166,7 +166,7 @@ public class QuestionVersion {
 
     public void supersede() {
         if (approvalStatus != QuestionStatus.APPROVED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Only APPROVED versions can be superseded");
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Only APPROVED versions can be superseded");
         }
         this.approvalStatus = QuestionStatus.SUPERSEDED;
         touch();
@@ -178,7 +178,7 @@ public class QuestionVersion {
      */
     public QuestionVersion copyAsDraft(int newVersionNumber, UUID author) {
         if (approvalStatus != QuestionStatus.APPROVED) {
-            throw new AppException(ErrorCode.NO_APPROVED_VERSION,
+            throw new DomainException(DomainErrorCode.NO_APPROVED_VERSION,
                     "Only the APPROVED version can be copied into a new draft");
         }
         Instant now = Instant.now();

@@ -26,8 +26,10 @@ import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionGenerationStatus;
 import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -221,7 +223,7 @@ class QuestionBankIntegrationTest {
                 documentService.getDocumentById(failed.getDocumentId()).getIndexAttempts() == 2
                         && documentService.getDocumentById(failed.getDocumentId()).getIndexingStatus() == DocumentStatus.FAILED);
         assertThatThrownBy(() -> documentService.retryIndexing(failed.getDocumentId(), fixture.lecturerId()))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.RETRY_LIMIT_EXCEEDED);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.RETRY_LIMIT_EXCEEDED);
     }
 
     @Test
@@ -257,7 +259,7 @@ class QuestionBankIntegrationTest {
         assertThat(bankService.search(bankCriteria(fixture, null)).getContent()).isEmpty();
 
         assertThatThrownBy(() -> reviewService.submitForReview(v1, null, fixture.lecturerId()))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.BLOOM_NOT_CONFIRMED);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.BLOOM_NOT_CONFIRMED);
         assertThat(versionRepository.findById(v1).orElseThrow().getApprovalStatus()).isEqualTo(QuestionStatus.DRAFT);
 
         // Regenerate one draft only; the others stay untouched.
@@ -289,7 +291,7 @@ class QuestionBankIntegrationTest {
         assertThat(draft2.sources()).hasSameSizeAs(approved.sources());
         assertThat(draft2.criteria()).hasSameSizeAs(approved.criteria());
         assertThatThrownBy(() -> authoringService.createDraftFromApproved(questionId, fixture.lecturerId()))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DRAFT_ALREADY_EXISTS);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DRAFT_ALREADY_EXISTS);
         assertThat(bankService.getDetail(questionId).currentVersion().version().getQuestionVersionId()).isEqualTo(v1);
 
         QuestionVersionView edited = authoringService.updateDraft(draft2.version().getQuestionVersionId(),
@@ -323,7 +325,7 @@ class QuestionBankIntegrationTest {
                 fixture.lecturerId());
 
         assertThatThrownBy(() -> reviewService.approve(draft.version().getQuestionVersionId(), null, fixture.lecturerId()))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
         assertThat(versionRepository.findById(draft.version().getQuestionVersionId()).orElseThrow().getApprovalStatus())
                 .isEqualTo(QuestionStatus.DRAFT);
         assertThat(jdbc.queryForObject("SELECT current_approved_version_id FROM questions WHERE question_id = ?",
@@ -342,7 +344,7 @@ class QuestionBankIntegrationTest {
                 fixture.lecturerId());
         assertThatThrownBy(() -> authoringService.updateDraft(versionId,
                 UpdateDraftCommand.builder().content("Lần sửa song song").expectedVersion(token).build(), fixture.lecturerId()))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.CONCURRENT_MODIFICATION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.CONCURRENT_MODIFICATION);
 
         QuestionVersion copyA = versionRepository.findById(versionId).orElseThrow();
         QuestionVersion copyB = versionRepository.findById(versionId).orElseThrow();

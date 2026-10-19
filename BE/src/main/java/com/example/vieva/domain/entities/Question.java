@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.time.Instant;
@@ -52,7 +52,7 @@ public class Question {
 
     public void ensureActive() {
         if (isArchived()) {
-            throw new AppException(ErrorCode.QUESTION_ARCHIVED);
+            throw new DomainException(DomainErrorCode.QUESTION_ARCHIVED);
         }
     }
 

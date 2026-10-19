@@ -8,8 +8,8 @@ import com.example.vieva.application.ports.output.DocumentPreview;
 import com.example.vieva.application.usecases.document.DocumentService;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,18 +42,18 @@ public class LecturerDocumentController {
             @AuthenticationPrincipal User currentUser) {
         UUID userId = CurrentUser.id(currentUser);
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Uploaded file must not be empty");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Uploaded file must not be empty");
         }
         // Fail fast on size before loading bytes into heap (OOM guard for concurrent 20MB uploads).
         if (file.getSize() > 20L * 1024 * 1024) {
-            throw new AppException(ErrorCode.FILE_TOO_LARGE, "File exceeds the maximum size of 20 MB");
+            throw new ApplicationException(ErrorCode.FILE_TOO_LARGE, "File exceeds the maximum size of 20 MB");
         }
         try {
             CourseDocument document = documentIndexingService.uploadDocument(
                     subjectId, file.getOriginalFilename(), file.getBytes(), userId);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(presenter.toDto(document));
         } catch (IOException e) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Failed to read uploaded file");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Failed to read uploaded file");
         }
     }
 
