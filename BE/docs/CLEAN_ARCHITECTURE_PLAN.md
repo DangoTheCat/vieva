@@ -125,16 +125,24 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - Xong khi: adapters không import `application.usecases` và các repository/port trong `ports.output`. View model trong `ports.output` còn được dùng đến giai đoạn 4.
 
 ### Giai đoạn 4 — Dữ liệu qua ranh giới là model của application (V3, V7)
-- Request model: thay field enum domain bằng `String`; use case parse sang enum domain, sai thì ném `ApplicationException(INVALID_REQUEST)`.
-- Response model mới: `SubjectResult`, `UserResult`, `TopicResult`, `LecturerSubjectResult`, `CourseDocumentResult`. Thêm `NotificationView`. JSON phải giống hệt JSON đang trả từ entity Notification. Use case map entity sang Result trước khi trả.
-- Chuyển `QuestionDetailView`, `QuestionVersionView`, `QuestionBankItemView`, `AuthResult`, `ImportReport`, `GenerationResult`, `DocumentPreview` sang `ports/input`; bỏ kiểu domain bên trong. `PagedResult` thành `ports/input/common/PageResult`.
-- Presenter map Result sang DTO JSON hiện tại. Giữ nguyên tên field JSON.
-- Principal: `ActorView(id, email, role, mustChangePassword)` trong `ports/input/common`. Controller dùng `@AuthenticationPrincipal ActorView`; cập nhật `CurrentUser`.
+
+#### Giai đoạn 4A — Contracts, ActorView, User/Auth, Catalog/Notification [ĐÃ HOÀN THÀNH - 20/10/2026]
+- **Commit 1:** Snapshot JSON contracts (`JsonContractSnapshotTest`, `EnumValidationContractTest`) với 15 `@JsonTest` contract snapshots và 2 enum validation tests để bảo vệ tuyệt đối cấu trúc payload JSON và mã lỗi HTTP.
+- **Commit 2:** Chuẩn hóa Principal bằng `ActorView(UUID id, String email, Set<String> roleCodes, boolean mustChangePassword)` (`ports/input/common/ActorView`); `JwtAuthenticationFilter` gọi input port `ResolveActorUseCase` để phân giải actor; mọi controller dùng `@AuthenticationPrincipal ActorView`; cập nhật `CurrentUser.id(ActorView)`; `CourseSecurityEvaluator` đọc user id từ `ActorView`.
+- **Commit 3:** Subject & Lecturer Assignment use cases trả application models (`SubjectResult`, `LecturerSubjectResult` trong `ports/input/subject` và `ports/input/lecturer`). Cập nhật `SubjectDto` và request models dùng `String` status; loại bỏ `toPageResponse` khỏi `SubjectPresenter` (controller gọi trực tiếp `PageResponse.from(...)`). Thêm helper `EnumValues.parse(Class<E>, String, String)` ném `ApplicationException(INVALID_REQUEST, errorMessage)` cùng quy tắc giữ nguyên message lỗi ("Malformed request body" cho body, "Invalid value for parameter '<tên>'" cho query param).
+- **Commit 4:** User & Auth use cases trả application models (`UserResult`, `AuthResult` trong `ports/input/user` và `ports/input/auth`). Request models (`CreateUserByAdminRequest`, `UpdateUserByAdminRequest`, `UserSearchCriteria`, `ChangePasswordRequest`, `UpdateProfileRequest`, `LoginRequest`, `RegisterRequest`) chuyển vào `ports/input/*` với `String` status dùng helper `EnumValues`. `UserPresenter` loại bỏ phụ thuộc entity; `AdminUserController` và `UserController` map kết quả trang qua `PageResponse.from(...)`.
+- **Commit 5:** Catalog & Notification use cases trả application models (`TopicResult` trong `ports/input/catalog`, `NotificationView` trong `ports/input/notification`). `NotificationController` và `LecturerCatalogController` không còn phụ thuộc domain entities; `QuestionBankPresenter.toTopic` nhận `TopicResult`. Giảm mạnh số vi phạm trong `archunit_store`.
+
+#### Giai đoạn 4B — Question Bank, Document, Import, Rubric & PageResult [CHƯA THỰC HIỆN]
+- Request model: thay field enum domain trong question bank và document bằng `String`.
+- Response model mới: `CourseDocumentResult`.
+- Chuyển `QuestionDetailView`, `QuestionVersionView`, `QuestionBankItemView`, `ImportReport`, `GenerationResult`, `DocumentPreview` sang `ports/input`; bỏ kiểu domain bên trong.
+- Chuẩn hóa phân trang: `PagedResult` thành `ports/input/common/PageResult`.
+- Gỡ freeze và bật hoàn toàn luật R3 cho `adapters`.
 - Xong khi: adapters không import `domain`; test controller và presenter xanh với JSON cũ.
 
 ### Giai đoạn 5 — Infrastructure chỉ vào qua input port (V5, V6 còn lại)
 - Input port `CourseAccessQuery` (`canAccessSubject`, `canAccessDocument`, `canAccessQuestion`, `canAccessVersion`, `canAccessGenerationRequest`), implement trong `usecases/access`, dùng lại `SubjectAccessGuard`. `CourseSecurityEvaluator` chỉ lấy id và role từ `Authentication` rồi gọi port.
-- Input port `ResolveActorUseCase`: nhận user id từ token, kiểm tra trạng thái, trả `ActorView`. `JwtAuthenticationFilter` chỉ gọi port này.
 - Input port `DocumentIndexingUseCase`, `DocumentCleanupUseCase` cho worker và scheduler (DocumentService đang tạm chứa method cho worker và scheduler, cần tách ra).
 - Chuyển `DocumentUploadedEvent`, `AccountCreatedEvent` sang `ports/output/event`.
 - Xóa `DataInitializer`: role đã được seed bởi `V10__seed_initial_data.sql` và chỉnh ở `V14`. Trước khi xóa, kiểm tra profile test cũng chạy Flyway.
