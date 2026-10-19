@@ -28,9 +28,9 @@ class ArchitectureTest {
 
     // R2: application không biết framework và vòng ngoài
     @ArchTest
-    static final ArchRule applicationIsFrameworkFree = FreezingArchRule.freeze(noClasses().that().resideInAPackage(APPLICATION)
+    static final ArchRule applicationIsFrameworkFree = noClasses().that().resideInAPackage(APPLICATION)
             .should().dependOnClassesThat().resideInAnyPackage(
-                    ADAPTERS, INFRA, "org.springframework..", "jakarta.persistence.."));
+                    ADAPTERS, INFRA, "org.springframework..", "jakarta.persistence..");
 
     // R3: adapters chỉ đi qua input port, không nhảy bậc
     @ArchTest

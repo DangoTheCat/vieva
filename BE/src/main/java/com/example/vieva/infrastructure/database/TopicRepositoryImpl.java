@@ -1,8 +1,10 @@
 package com.example.vieva.infrastructure.database;
 
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.domain.entities.Topic;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -40,7 +42,11 @@ public class TopicRepositoryImpl implements TopicRepository {
 
     @Override
     public Topic saveAndFlush(Topic topic) {
-        return mapper.toDomain(jpaRepository.saveAndFlush(mapper.toEntity(topic)));
+        try {
+            return mapper.toDomain(jpaRepository.saveAndFlush(mapper.toEntity(topic)));
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("Topic duplicate key violation: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -51,9 +57,13 @@ public class TopicRepositoryImpl implements TopicRepository {
         List<TopicJpaEntity> entities = topics.stream()
                 .map(mapper::toEntity)
                 .collect(Collectors.toList());
-        return jpaRepository.saveAllAndFlush(entities).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        try {
+            return jpaRepository.saveAllAndFlush(entities).stream()
+                    .map(mapper::toDomain)
+                    .collect(Collectors.toList());
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("Topic duplicate key violation: " + e.getMessage(), e);
+        }
     }
 
     @Override

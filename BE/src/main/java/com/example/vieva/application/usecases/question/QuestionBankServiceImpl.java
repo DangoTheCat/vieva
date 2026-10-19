@@ -15,7 +15,7 @@ import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public PagedResult<QuestionBankItemView> search(QuestionBankSearchCriteria criteria) {
         PagedResult<Question> page = questionRepository.searchBank(criteria);
         List<Question> questions = page.getContent();
@@ -65,7 +65,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public QuestionDetailView getDetail(UUID questionId) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
@@ -89,7 +89,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public List<QuestionVersionView> getHistory(UUID questionId) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
@@ -97,7 +97,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public void archive(UUID questionId, UUID actorId) {
         Question question = accessLoader.questionForWrite(questionId, actorId);
         question.archive();

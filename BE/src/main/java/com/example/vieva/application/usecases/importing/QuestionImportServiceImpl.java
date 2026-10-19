@@ -23,9 +23,9 @@ import com.example.vieva.domain.entities.Topic;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -85,7 +85,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public ImportReport importQuestions(UUID subjectId, String filename, byte[] content, boolean dryRun, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         if (subjectRepository.findById(subjectId).isEmpty()) {
@@ -292,7 +292,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
         try {
             // Flush forces the INSERTs now so a concurrent duplicate surfaces here (unique index)
             topicRepository.saveAllAndFlush(toCreate);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             Map<String, Topic> fresh = topicRepository.findBySubjectId(subjectId).stream()
                     .filter(topic -> topic.getTopicName() != null)
                     .collect(Collectors.toMap(topic -> key(topic.getTopicName()), topic -> topic, (a, b) -> a));

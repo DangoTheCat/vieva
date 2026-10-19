@@ -1,9 +1,11 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.input.UserSearchCriteria;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
+import org.springframework.dao.DataIntegrityViolationException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -158,6 +160,10 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     @Transactional
     public User saveAndFlush(User user) {
-        return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
+        try {
+            return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("User duplicate key violation: " + e.getMessage(), e);
+        }
     }
 }

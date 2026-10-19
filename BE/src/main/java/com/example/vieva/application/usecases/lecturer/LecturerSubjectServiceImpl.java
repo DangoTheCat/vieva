@@ -15,9 +15,9 @@ import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-@Transactional
+@UseCaseTransaction
 public class LecturerSubjectServiceImpl implements LecturerSubjectService {
 
     private final LecturerSubjectRepository lecturerSubjectRepository;
@@ -121,7 +121,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
         try {
             assignedList = lecturerSubjectRepository.saveAll(assignmentsToSave);
             auditEventRepository.saveAll(auditEventsToSave);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent assign won the race (partial unique index uq_lecturer_subject)
             throw new AppException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
         }
@@ -149,19 +149,19 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public List<LecturerSubject> getLecturersBySubject(UUID subjectId) {
         return lecturerSubjectRepository.findActiveBySubjectId(subjectId);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public List<LecturerSubject> getSubjectsByLecturer(UUID lecturerId) {
         return lecturerSubjectRepository.findActiveByLecturerId(lecturerId);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public boolean isLecturerAssignedToSubject(UUID lecturerId, UUID subjectId) {
         return lecturerSubjectRepository.isLecturerAssignedToSubject(lecturerId, subjectId);
     }

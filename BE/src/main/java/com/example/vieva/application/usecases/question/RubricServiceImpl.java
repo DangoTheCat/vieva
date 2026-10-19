@@ -17,7 +17,7 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ public class RubricServiceImpl implements RubricService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public QuestionVersionView getRubric(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
@@ -44,7 +44,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView replaceRubric(UUID versionId, RubricInput input, Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
         List<FieldViolation> violations = new ArrayList<>();
@@ -59,7 +59,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView addCriterion(UUID versionId, CriterionInput input, Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
         BigDecimal before = currentTotal(versionId);
@@ -82,7 +82,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView updateCriterion(UUID versionId, UUID criterionId, CriterionInput input,
                                                Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
@@ -111,7 +111,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView deleteCriterion(UUID versionId, UUID criterionId, Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
         BigDecimal before = currentTotal(versionId);

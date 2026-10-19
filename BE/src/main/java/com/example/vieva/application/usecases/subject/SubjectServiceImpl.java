@@ -11,9 +11,8 @@ import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -22,7 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-@Transactional
+@UseCaseTransaction
 public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
@@ -30,7 +29,8 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public Subject createSubject(CreateSubjectRequest request, UUID currentAdminId) {
-        if (!StringUtils.hasText(request.getSubjectCode()) || !StringUtils.hasText(request.getSubjectName())) {
+        if (request.getSubjectCode() == null || request.getSubjectCode().isBlank()
+                || request.getSubjectName() == null || request.getSubjectName().isBlank()) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
@@ -57,7 +57,7 @@ public class SubjectServiceImpl implements SubjectService {
         try {
             // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique index)
             saved = subjectRepository.saveAndFlush(subject);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent creation with the same code won the race (unique index)
             throw new AppException(ErrorCode.SUBJECT_CODE_EXISTED);
         }
@@ -105,14 +105,14 @@ public class SubjectServiceImpl implements SubjectService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public Subject getSubjectById(UUID subjectId) {
         return subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public PagedResult<Subject> getSubjects(SubjectSearchCriteria criteria) {
         return subjectRepository.findAll(criteria);
     }

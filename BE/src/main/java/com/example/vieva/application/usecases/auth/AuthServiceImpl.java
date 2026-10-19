@@ -15,8 +15,8 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
     private final TokenProviderPort tokenProvider;
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public AuthResult register(RegisterRequest request) {
         String email = new Email(request.getEmail()).getValue();
 
@@ -67,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique index)
             savedUser = userRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent registration with the same email won the race (unique index)
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -77,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public AuthResult login(LoginRequest request) {
         String email = new Email(request.getEmail()).getValue();
 

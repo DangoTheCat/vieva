@@ -11,8 +11,8 @@ import com.example.vieva.domain.entities.Topic;
 import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -32,7 +32,7 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public List<Subject> listAssignedSubjects(UUID lecturerId) {
         List<UUID> subjectIds = lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
                 .map(LecturerSubject::getSubjectId)
@@ -44,7 +44,7 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public List<Topic> listTopics(UUID subjectId) {
         if (subjectRepository.findById(subjectId).isEmpty()) {
             throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
@@ -53,7 +53,7 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public Topic createTopic(UUID subjectId, String name, String description, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         if (subjectRepository.findById(subjectId).isEmpty()) {
@@ -83,7 +83,7 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
                     .orderIndex(nextOrder)
                     .createdAt(Instant.now())
                     .build());
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent creation with the same name won the race (unique index uq_topics_subject_lower_name)
             throw new AppException(ErrorCode.INVALID_REQUEST, "Topic '" + trimmed + "' already exists in this subject");
         }

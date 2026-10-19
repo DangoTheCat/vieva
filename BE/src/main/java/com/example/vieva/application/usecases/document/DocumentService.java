@@ -26,7 +26,7 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import com.example.vieva.application.ports.output.DocumentPreview;
 
@@ -46,7 +46,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class DocumentService {
-    @Transactional
+    @UseCaseTransaction
     public void archiveDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findByIdForUpdate(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
@@ -55,7 +55,7 @@ public class DocumentService {
         courseDocumentRepository.save(document);
     }
 
-    @Transactional
+    @UseCaseTransaction
     public CourseDocument processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId) {
         return uploadDocument(subjectId,filename,content,actorId);
     }
@@ -77,7 +77,7 @@ public class DocumentService {
     private final QuestionBankAuditor auditor;
     private final DocumentSettings documentSettings;
     private final com.example.vieva.application.ports.output.QuestionDraftWriter db;
-    @Transactional
+    @UseCaseTransaction
     public CourseDocument uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         subjectRepository.findById(subjectId)
@@ -193,7 +193,7 @@ public class DocumentService {
             markIndexingFailed(documentId, reason);
         }
     }
-    @Transactional
+    @UseCaseTransaction
     public CourseDocument retryIndexing(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
@@ -206,17 +206,17 @@ public class DocumentService {
         domainEventPublisher.publishDocumentIndexingRequested(documentId);
         return saved;
     }
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public List<CourseDocument> getDocumentsBySubject(UUID subjectId) {
         return courseDocumentRepository.findActiveBySubjectId(subjectId);
     }
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public CourseDocument getDocumentById(UUID documentId) {
         return courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public DocumentPreview previewDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
@@ -248,7 +248,7 @@ public class DocumentService {
 
         return new DocumentPreview(document, previewChunks);
     }
-    @Transactional
+    @UseCaseTransaction
     public void softDeleteDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
@@ -262,7 +262,7 @@ public class DocumentService {
         auditor.record(actorId, "DOCUMENT_DELETED", QuestionBankAuditor.DOCUMENT, documentId,
                 Map.of("fileName", document.getFileName()));
     }
-    @Transactional
+    @UseCaseTransaction
     public int failStaleDocuments(Instant indexingThreshold, Instant uploadedThreshold) {
         List<CourseDocument> stale = new ArrayList<>();
         for (CourseDocument doc : courseDocumentRepository.findStaleIndexingDocuments(indexingThreshold)) {

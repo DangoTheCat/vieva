@@ -4,7 +4,7 @@ import com.example.vieva.application.ports.output.*;
 import com.example.vieva.domain.entities.*;
 import com.example.vieva.domain.exception.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -13,7 +13,7 @@ public class SubjectHeadService {
     private final LecturerSubjectRepository assignments;
     private final UserRepository users;
 
-    @Transactional
+    @UseCaseTransaction
     public Subject assign(UUID subjectId, UUID lecturerId, UUID adminId) {
         users.findById(adminId).filter(u -> u.isAdmin() && !u.isDeleted() && u.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
@@ -24,7 +24,7 @@ public class SubjectHeadService {
         return subjects.save(subject);
     }
 
-    @Transactional
+    @UseCaseTransaction
     public UUID headOf(UUID subjectId) {
         Subject subject = subjects.findByIdForUpdate(subjectId).orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
         if (subject.getHeadLecturerId() == null) throw new AppException(ErrorCode.SUBJECT_HEAD_REQUIRED);
@@ -32,7 +32,7 @@ public class SubjectHeadService {
         return subject.getHeadLecturerId();
     }
 
-    @Transactional
+    @UseCaseTransaction
     public void requireHead(UUID actorId, UUID subjectId) {
         if (actorId == null) throw new AppException(ErrorCode.UNAUTHENTICATED);
         if (!actorId.equals(headOf(subjectId))) throw new AppException(ErrorCode.NOT_SUBJECT_HEAD);

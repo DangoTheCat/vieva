@@ -47,7 +47,7 @@ import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.services.QuestionSimilarity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -169,7 +169,7 @@ public class QuestionGenCoordinator {
                 : storedContext(request);
         return runAndPersist(request, context, remaining, actorId);
     }
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public GenerationResult getRequest(UUID generationRequestId) {
         QuestionGenerationRequest request = generationRequestRepository.findById(generationRequestId)
                 .orElseThrow(() -> new AppException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));

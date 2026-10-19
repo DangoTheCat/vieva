@@ -16,9 +16,8 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -27,7 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-@Transactional
+@UseCaseTransaction
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
@@ -37,13 +36,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final DomainEventPublisherPort domainEventPublisher;
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public PagedResult<User> getUsers(UserSearchCriteria criteria) {
         return userRepository.findAll(criteria);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public User getUserById(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -80,7 +79,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         Role roleToAssign = resolveRole(request.getRoleCode());
 
         // Admin-created accounts get a temporary password that must be changed on first login
-        String temporaryPassword = StringUtils.hasText(request.getPassword())
+        String temporaryPassword = request.getPassword() != null && !request.getPassword().isBlank()
                 ? request.getPassword()
                 : TemporaryPasswordGenerator.generate();
 
@@ -104,7 +103,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         try {
             // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique indexes)
             savedUser = userRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent creation with the same email/userCode won the race (unique indexes)
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -233,7 +232,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
 
-        if (!StringUtils.hasText(newPassword) || newPassword.trim().length() < 6) {
+        if (newPassword == null || newPassword.isBlank() || newPassword.trim().length() < 6) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
@@ -249,7 +248,7 @@ public class AdminUserServiceImpl implements AdminUserService {
      * The {@code ROLE_} prefix is optional ({@code LECTURER} works); a blank code means ROLE_STUDENT.
      */
     private Role resolveRole(String roleCode) {
-        if (!StringUtils.hasText(roleCode)) {
+        if (roleCode == null || roleCode.isBlank()) {
             return findDefaultRole();
         }
         return roleRepository.findByRoleCode(canonicalRoleCode(roleCode))

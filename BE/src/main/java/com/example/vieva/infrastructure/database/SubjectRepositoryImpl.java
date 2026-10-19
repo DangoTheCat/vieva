@@ -1,9 +1,11 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.input.SubjectSearchCriteria;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.domain.entities.Subject;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.example.vieva.domain.entities.SubjectStatus;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -41,9 +43,13 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     @Override
     @Transactional
     public Subject saveAndFlush(Subject subject) {
-        SubjectJpaEntity entity = subjectMapper.toEntity(subject);
-        SubjectJpaEntity saved = subjectJpaRepository.saveAndFlush(entity);
-        return subjectMapper.toDomain(saved);
+        try {
+            SubjectJpaEntity entity = subjectMapper.toEntity(subject);
+            SubjectJpaEntity saved = subjectJpaRepository.saveAndFlush(entity);
+            return subjectMapper.toDomain(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("Subject duplicate key violation: " + e.getMessage(), e);
+        }
     }
 
     @Override

@@ -27,8 +27,8 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,7 +52,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView createManualQuestion(UUID subjectId, CreateManualQuestionCommand command, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         validateTopic(subjectId, command.topicId());
@@ -81,7 +81,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView updateDraft(UUID versionId, UpdateDraftCommand command, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -122,7 +122,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView confirmBloom(UUID versionId, BloomLevel bloomLevel, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -138,7 +138,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public void deleteDraft(UUID versionId, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -161,7 +161,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView createDraftFromApproved(UUID questionId, UUID actorId) {
         Question question = accessLoader.questionForWrite(questionId, actorId);
         question.ensureActive();
@@ -180,7 +180,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         QuestionVersion draft = approved.copyAsDraft(nextNumber, actorId);
         try {
             questionVersionRepository.save(draft);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent request won the race on uq_question_draft_per_question / uq_question_version.
             throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS);
         }

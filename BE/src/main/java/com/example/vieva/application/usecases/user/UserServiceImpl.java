@@ -10,7 +10,7 @@ import com.example.vieva.domain.exception.AppException;
 import com.example.vieva.domain.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -31,7 +31,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public User updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = getById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -68,7 +68,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public void changePassword(UUID userId, ChangePasswordRequest request) {
         User user = getById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -86,7 +86,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public String uploadAvatar(UUID userId, byte[] imageBytes, String contentType) {
         User user = getById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -109,7 +109,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public void deleteAvatar(UUID userId) {
         User user = getById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));

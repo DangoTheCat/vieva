@@ -1,9 +1,11 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.domain.entities.QuestionStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.example.vieva.domain.entities.QuestionVersion;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +38,11 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
     @Transactional
     public QuestionVersion save(QuestionVersion version) {
         // saveAndFlush surfaces optimistic-lock and unique-index conflicts inside the use case.
-        return mapper.toDomain(jpaRepository.saveAndFlush(toEntity(version)));
+        try {
+            return mapper.toDomain(jpaRepository.saveAndFlush(toEntity(version)));
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("QuestionVersion duplicate key violation: " + e.getMessage(), e);
+        }
     }
 
     @Override

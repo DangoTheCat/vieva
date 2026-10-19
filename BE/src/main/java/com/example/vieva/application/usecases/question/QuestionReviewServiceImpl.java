@@ -28,7 +28,7 @@ import com.example.vieva.domain.exception.FieldViolation;
 import com.example.vieva.domain.services.QuestionApprovalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +58,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private final QuestionDraftWriter db;
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView submitForReview(UUID versionId, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         ctx.question().ensureActive();
@@ -75,7 +75,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView reviewQuestion(UUID versionId, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         heads.requireHead(actorId, ctx.question().getSubjectId());
@@ -84,7 +84,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public PagedResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria) {
         PagedResult<QuestionVersion> page = questionVersionRepository.search(criteria);
         return PagedResult.of(viewAssembler.assemble(page.getContent()), page.getPage(), page.getSize(),
@@ -92,7 +92,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public QuestionVersionView getVersion(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
@@ -104,7 +104,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
      * confirmation, rubric totals and RAG sources; then publish the version and supersede the old one.
      */
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView approve(UUID versionId, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -156,7 +156,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView reject(UUID versionId, String reason, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
