@@ -10,7 +10,7 @@ import com.example.vieva.application.ports.input.CreateSubjectRequest;
 import com.example.vieva.application.ports.input.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateSubjectRequest;
 import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.usecases.subject.SubjectService;
+import com.example.vieva.application.ports.input.subject.SubjectService;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.entities.User;

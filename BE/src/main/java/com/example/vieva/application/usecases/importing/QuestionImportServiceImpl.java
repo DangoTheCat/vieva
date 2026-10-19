@@ -2,6 +2,7 @@ package com.example.vieva.application.usecases.importing;
 
 import com.example.vieva.application.ports.input.CriterionInput;
 import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.input.importing.QuestionImportService;
 import com.example.vieva.application.ports.output.ImportReport;
 import com.example.vieva.application.ports.output.ImportReport.RowError;
 import com.example.vieva.application.ports.output.ImportRow;

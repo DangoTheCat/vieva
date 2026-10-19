@@ -5,7 +5,7 @@ import com.example.vieva.adapters.presenters.CourseDocumentPresenter;
 import com.example.vieva.adapters.presenters.DocumentPreviewDto;
 import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.application.ports.output.DocumentPreview;
-import com.example.vieva.application.usecases.document.DocumentService;
+import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.application.exception.ApplicationException;

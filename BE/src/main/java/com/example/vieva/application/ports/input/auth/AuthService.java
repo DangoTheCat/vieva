@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.auth;
+package com.example.vieva.application.ports.input.auth;
 
 import com.example.vieva.application.ports.input.LoginRequest;
 import com.example.vieva.application.ports.input.RegisterRequest;

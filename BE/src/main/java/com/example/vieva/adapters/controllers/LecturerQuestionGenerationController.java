@@ -4,7 +4,7 @@ import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.Ge
 import com.example.vieva.adapters.presenters.QuestionBankDtos.GenerationRequestDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
-import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

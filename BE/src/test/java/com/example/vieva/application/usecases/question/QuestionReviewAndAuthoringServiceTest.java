@@ -85,7 +85,7 @@ class QuestionReviewAndAuthoringServiceTest {
     @Mock private AuditEventRepository auditEventRepository;
     @Mock private JsonSerializerPort jsonSerializer;
 
-    @Mock private com.example.vieva.application.usecases.access.SubjectHeadService heads;
+    @Mock private com.example.vieva.application.ports.input.access.SubjectHeadService heads;
     @Mock private ReviewNotifications notifications;
     private QuestionReviewServiceImpl reviewService;
     private QuestionAuthoringServiceImpl authoringService;

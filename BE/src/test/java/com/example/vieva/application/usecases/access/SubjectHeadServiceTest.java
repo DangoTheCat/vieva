@@ -16,7 +16,7 @@ class SubjectHeadServiceTest {
         var subjects=mock(SubjectRepository.class);
         var assignments=mock(LecturerSubjectRepository.class);
         var users=mock(UserRepository.class);
-        var service=new SubjectHeadService(subjects,assignments,users);
+        var service=new SubjectHeadServiceImpl(subjects,assignments,users);
         UUID subjectId=UUID.randomUUID(),head=UUID.randomUUID(),admin=UUID.randomUUID();
         Subject subject=Subject.builder().subjectId(subjectId).status(SubjectStatus.ACTIVE).headLecturerId(head).build();
         User lecturer=mock(User.class),administrator=mock(User.class);

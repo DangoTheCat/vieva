@@ -5,7 +5,7 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.TopicDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.adapters.presenters.SubjectDto;
 import com.example.vieva.adapters.presenters.SubjectPresenter;
-import com.example.vieva.application.usecases.catalog.LecturerCatalogService;
+import com.example.vieva.application.ports.input.catalog.LecturerCatalogService;
 import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

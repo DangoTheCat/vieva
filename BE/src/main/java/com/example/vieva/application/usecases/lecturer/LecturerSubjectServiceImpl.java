@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.lecturer;
 
 import com.example.vieva.application.ports.input.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;

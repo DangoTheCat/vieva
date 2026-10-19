@@ -3,6 +3,7 @@ package com.example.vieva.application.usecases.question;
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.CriterionInput;
 import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.input.question.RubricService;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;

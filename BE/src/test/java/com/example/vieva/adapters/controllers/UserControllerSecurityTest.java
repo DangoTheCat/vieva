@@ -1,8 +1,8 @@
 package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.usecases.user.AdminUserService;
-import com.example.vieva.application.usecases.user.UserService;
+import com.example.vieva.application.ports.input.user.AdminUserService;
+import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.infrastructure.database.RoleJpaRepository;
 import com.example.vieva.infrastructure.database.UserJpaRepository;

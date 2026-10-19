@@ -1,8 +1,8 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.usecases.document.DocumentService;
-import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
-import com.example.vieva.application.usecases.question.QuestionReviewService;
+import com.example.vieva.application.ports.input.document.DocumentService;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
+import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.adapters.presenters.*;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;

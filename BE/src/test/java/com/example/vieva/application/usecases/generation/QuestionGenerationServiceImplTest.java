@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.generation;
 
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AuditEventRepository;
@@ -121,7 +122,7 @@ class QuestionGenerationServiceImplTest {
         SubjectAccessGuard guard = new SubjectAccessGuard(lecturerSubjectRepository, userRepository);
         QuestionVersionViewAssembler assembler = new QuestionVersionViewAssembler(questionRepository, topicRepository,
                 rubricRepository, criterionRepository, sourceRepository);
-        service = new QuestionGenCoordinator(requestRepository, versionRepository, rubricRepository,
+        service = new QuestionGenCoordinatorImpl(requestRepository, versionRepository, rubricRepository,
                 criterionRepository, sourceRepository, documentRepository, chunkRepository, subjectRepository,
                 topicRepository, llm, direct, guard,
                 new QuestionAccessLoader(questionRepository, versionRepository, guard),

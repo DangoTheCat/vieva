@@ -7,7 +7,7 @@ import com.example.vieva.adapters.controllers.request.RegisterApiRequest;
 import com.example.vieva.application.ports.input.LoginRequest;
 import com.example.vieva.application.ports.input.RegisterRequest;
 import com.example.vieva.application.ports.output.AuthResult;
-import com.example.vieva.application.usecases.auth.AuthService;
+import com.example.vieva.application.ports.input.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

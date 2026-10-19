@@ -2,6 +2,7 @@ package com.example.vieva.application.usecases.user;
 
 import com.example.vieva.application.ports.input.ChangePasswordRequest;
 import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.application.ports.output.AvatarStoragePort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.UserRepository;

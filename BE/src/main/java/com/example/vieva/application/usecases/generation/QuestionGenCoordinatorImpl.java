@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.generation;
 
 import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
@@ -72,8 +73,9 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class QuestionGenCoordinator {
+public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
 
+    @Override
     public QuestionVersionView coordinateRAGPipeline(UUID topicId, BloomLevel difficulty, List<UUID> documentIds, UUID actorId) {
         if(topicId==null || difficulty==null) throw new ApplicationException(ErrorCode.INVALID_REQUEST,"topicId and difficulty are required");
         Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new ApplicationException(ErrorCode.TOPIC_NOT_FOUND));
@@ -123,6 +125,7 @@ public class QuestionGenCoordinator {
     }
 
     // ─── UC1.2: generate ──────────────────────────────────────────────────────
+    @Override
     public GenerationResult generate(GenerateQuestionsCommand command, UUID actorId) {
         BloomDistribution distribution = validateCommand(command);
         QuestionGenerationRequest request = transactionRunner.inNewTransaction(() -> {
@@ -138,6 +141,8 @@ public class QuestionGenCoordinator {
         Context context = retrieveContext(request);
         return runAndPersist(request, context, distribution, actorId);
     }
+
+    @Override
     public GenerationResult retry(UUID generationRequestId, UUID actorId) {
         QuestionGenerationRequest request = transactionRunner.inNewTransaction(() -> {
             QuestionGenerationRequest loaded = generationRequestRepository.findById(generationRequestId)
@@ -169,6 +174,8 @@ public class QuestionGenCoordinator {
                 : storedContext(request);
         return runAndPersist(request, context, remaining, actorId);
     }
+
+    @Override
     @UseCaseTransaction(readOnly = true)
     public GenerationResult getRequest(UUID generationRequestId) {
         QuestionGenerationRequest request = generationRequestRepository.findById(generationRequestId)
@@ -178,6 +185,7 @@ public class QuestionGenCoordinator {
     }
 
     // ─── UC1.2: regenerate one draft ─────────────────────────────────────────
+    @Override
     public QuestionVersionView regenerate(UUID versionId, String feedback, Long expectedVersion, UUID actorId) {
         record Prepared(QuestionVersion version, QuestionGenerationRequest request, Context context,
                         List<Set<String>> otherQuestions) {

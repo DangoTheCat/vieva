@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.question;
+package com.example.vieva.application.ports.input.question;
 
 import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
 import com.example.vieva.application.ports.input.UpdateDraftCommand;

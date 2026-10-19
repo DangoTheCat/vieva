@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.security;
 
 import com.example.vieva.application.ports.output.TokenProviderPort;
-import com.example.vieva.application.usecases.user.UserService;
+import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.application.exception.ErrorCode;

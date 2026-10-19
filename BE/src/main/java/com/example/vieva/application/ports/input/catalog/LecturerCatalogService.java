@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.catalog;
+package com.example.vieva.application.ports.input.catalog;
 
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.Topic;

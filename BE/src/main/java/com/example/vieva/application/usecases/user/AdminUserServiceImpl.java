@@ -3,6 +3,7 @@ package com.example.vieva.application.usecases.user;
 import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
 import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
 import com.example.vieva.application.ports.input.UserSearchCriteria;
+import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;

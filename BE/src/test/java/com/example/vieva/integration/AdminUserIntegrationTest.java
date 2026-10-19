@@ -3,7 +3,7 @@ package com.example.vieva.integration;
 import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
 import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
 import com.example.vieva.application.ports.output.EmailSenderPort;
-import com.example.vieva.application.usecases.user.AdminUserService;
+import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.domain.entities.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

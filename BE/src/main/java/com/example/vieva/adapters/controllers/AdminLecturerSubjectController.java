@@ -5,7 +5,8 @@ import com.example.vieva.adapters.presenters.LecturerSubjectDto;
 import com.example.vieva.adapters.presenters.LecturerSubjectPresenter;
 import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.application.ports.input.AssignLecturerRequest;
-import com.example.vieva.application.usecases.lecturer.LecturerSubjectService;
+import com.example.vieva.application.ports.input.access.SubjectHeadService;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import com.example.vieva.domain.entities.LecturerSubject;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.application.exception.ApplicationException;
@@ -30,7 +31,7 @@ public class AdminLecturerSubjectController {
 
     private final LecturerSubjectService lecturerSubjectService;
     private final LecturerSubjectPresenter presenter;
-    private final com.example.vieva.application.usecases.access.SubjectHeadService heads;
+    private final SubjectHeadService heads;
 
     public record AssignHeadRequest(@NotNull UUID lecturerId) { }
 

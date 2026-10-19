@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.user;
+package com.example.vieva.application.ports.input.user;
 
 import com.example.vieva.application.ports.input.ChangePasswordRequest;
 import com.example.vieva.application.ports.input.UpdateProfileRequest;

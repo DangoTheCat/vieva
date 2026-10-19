@@ -11,9 +11,9 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateDraftCommand;
-import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
-import com.example.vieva.application.usecases.question.QuestionAuthoringService;
-import com.example.vieva.application.usecases.question.QuestionReviewService;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
+import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
+import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;

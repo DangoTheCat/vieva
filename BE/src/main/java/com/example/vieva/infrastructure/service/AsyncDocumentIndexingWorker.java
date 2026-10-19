@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.usecases.document.DocumentService;
+import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.usecases.document.DocumentUploadedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

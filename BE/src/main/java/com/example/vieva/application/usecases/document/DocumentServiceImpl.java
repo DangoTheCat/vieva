@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.document;
 
+import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
@@ -45,7 +46,8 @@ import java.util.UUID;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class DocumentService {
+public class DocumentServiceImpl implements DocumentService {
+    @Override
     @UseCaseTransaction
     public void archiveDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findByIdForUpdate(documentId)
@@ -55,6 +57,7 @@ public class DocumentService {
         courseDocumentRepository.save(document);
     }
 
+    @Override
     @UseCaseTransaction
     public CourseDocument processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId) {
         return uploadDocument(subjectId,filename,content,actorId);
@@ -77,6 +80,8 @@ public class DocumentService {
     private final QuestionBankAuditor auditor;
     private final DocumentSettings documentSettings;
     private final com.example.vieva.application.ports.output.QuestionDraftWriter db;
+
+    @Override
     @UseCaseTransaction
     public CourseDocument uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
@@ -122,6 +127,8 @@ public class DocumentService {
         domainEventPublisher.publishDocumentIndexingRequested(document.getDocumentId());
         return document;
     }
+
+    @Override
     public void indexDocument(UUID documentId) {
         CourseDocument document = transactionRunner.inNewTransaction(() -> {
             // Row write-lock: a concurrent worker/scheduler retry blocks here instead of
@@ -193,6 +200,8 @@ public class DocumentService {
             markIndexingFailed(documentId, reason);
         }
     }
+
+    @Override
     @UseCaseTransaction
     public CourseDocument retryIndexing(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
@@ -206,16 +215,21 @@ public class DocumentService {
         domainEventPublisher.publishDocumentIndexingRequested(documentId);
         return saved;
     }
+
+    @Override
     @UseCaseTransaction(readOnly = true)
     public List<CourseDocument> getDocumentsBySubject(UUID subjectId) {
         return courseDocumentRepository.findActiveBySubjectId(subjectId);
     }
+
+    @Override
     @UseCaseTransaction(readOnly = true)
     public CourseDocument getDocumentById(UUID documentId) {
         return courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 
+    @Override
     @UseCaseTransaction(readOnly = true)
     public DocumentPreview previewDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
@@ -248,6 +262,8 @@ public class DocumentService {
 
         return new DocumentPreview(document, previewChunks);
     }
+
+    @Override
     @UseCaseTransaction
     public void softDeleteDocument(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
@@ -262,6 +278,8 @@ public class DocumentService {
         auditor.record(actorId, "DOCUMENT_DELETED", QuestionBankAuditor.DOCUMENT, documentId,
                 Map.of("fileName", document.getFileName()));
     }
+
+    @Override
     @UseCaseTransaction
     public int failStaleDocuments(Instant indexingThreshold, Instant uploadedThreshold) {
         List<CourseDocument> stale = new ArrayList<>();

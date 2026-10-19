@@ -4,7 +4,7 @@ import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.Cr
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.RubricRequest;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
-import com.example.vieva.application.usecases.question.RubricService;
+import com.example.vieva.application.ports.input.question.RubricService;
 import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

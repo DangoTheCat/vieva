@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.document;
 
+import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
@@ -98,7 +99,7 @@ class DocumentIndexingServiceImplTest {
         ragSettings.setEmbeddingBatchSize(2);
         ragSettings.setEmbeddingDimensions(4);
         documentSettings.setMinTextChars(10);
-        service = new DocumentService(documentRepository, chunkRepository, sourceRepository, subjectRepository,
+        service = new DocumentServiceImpl(documentRepository, chunkRepository, sourceRepository, subjectRepository,
                 parser, storage, typeDetector, splitter, events, direct, json,
                 new SubjectAccessGuard(lecturerSubjectRepository, userRepository),
                 new QuestionBankAuditor(auditEventRepository, json), documentSettings, db);

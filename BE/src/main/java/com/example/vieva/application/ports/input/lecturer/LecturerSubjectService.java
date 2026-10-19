@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.lecturer;
+package com.example.vieva.application.ports.input.lecturer;
 
 import com.example.vieva.application.ports.input.AssignLecturerRequest;
 import com.example.vieva.domain.entities.LecturerSubject;

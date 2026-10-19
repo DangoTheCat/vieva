@@ -1,7 +1,7 @@
 package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.application.ports.output.ImportReport;
-import com.example.vieva.application.usecases.importing.QuestionImportService;
+import com.example.vieva.application.ports.input.importing.QuestionImportService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;

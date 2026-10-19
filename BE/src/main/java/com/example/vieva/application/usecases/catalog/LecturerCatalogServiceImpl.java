@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.catalog;
 
+import com.example.vieva.application.ports.input.catalog.LecturerCatalogService;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.TopicRepository;

@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.subject;
+package com.example.vieva.application.ports.input.subject;
 
 import com.example.vieva.application.ports.input.CreateSubjectRequest;
 import com.example.vieva.application.ports.input.SubjectSearchCriteria;

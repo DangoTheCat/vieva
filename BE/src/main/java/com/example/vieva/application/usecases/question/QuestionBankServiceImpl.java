@@ -2,6 +2,7 @@ package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionBankService;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
 import com.example.vieva.application.ports.output.QuestionDetailView;

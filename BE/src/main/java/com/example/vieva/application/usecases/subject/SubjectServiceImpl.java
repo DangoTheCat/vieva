@@ -3,6 +3,7 @@ package com.example.vieva.application.usecases.subject;
 import com.example.vieva.application.ports.input.CreateSubjectRequest;
 import com.example.vieva.application.ports.input.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateSubjectRequest;
+import com.example.vieva.application.ports.input.subject.SubjectService;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
