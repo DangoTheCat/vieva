@@ -1,16 +1,16 @@
 package com.example.vieva.adapters.controllers;
 
+import com.example.vieva.adapters.presenters.PageResponse;
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.notification.NotificationService;
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.domain.entities.Notification;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.ports.input.notification.NotificationView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -19,10 +19,10 @@ public class NotificationController {
     private final NotificationService notifications;
 
     @GetMapping
-    public PagedResult<Notification> list(@AuthenticationPrincipal User user,
-                                          @RequestParam(defaultValue="0") int page,
-                                          @RequestParam(defaultValue="20") int size) {
-        return notifications.list(CurrentUser.id(user), page, size);
+    public PageResponse<NotificationView> list(@AuthenticationPrincipal ActorView user,
+                                              @RequestParam(defaultValue="0") int page,
+                                              @RequestParam(defaultValue="20") int size) {
+        return PageResponse.from(notifications.list(CurrentUser.id(user), page, size), Function.identity());
     }
 
     @GetMapping("/unread-count")

@@ -1,20 +1,21 @@
 package com.example.vieva.application.usecases.catalog;
 
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.catalog.LecturerCatalogService;
+import com.example.vieva.application.ports.input.catalog.TopicResult;
 import com.example.vieva.application.ports.input.subject.SubjectResult;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.TopicRepository;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.domain.entities.LecturerSubject;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.Topic;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -48,16 +49,18 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public List<Topic> listTopics(UUID subjectId) {
+    public List<TopicResult> listTopics(UUID subjectId) {
         if (subjectRepository.findById(subjectId).isEmpty()) {
             throw new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND);
         }
-        return topicRepository.findBySubjectId(subjectId);
+        return topicRepository.findBySubjectId(subjectId).stream()
+                .map(TopicResult::from)
+                .toList();
     }
 
     @Override
     @UseCaseTransaction
-    public Topic createTopic(UUID subjectId, String name, String description, UUID actorId) {
+    public TopicResult createTopic(UUID subjectId, String name, String description, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         if (subjectRepository.findById(subjectId).isEmpty()) {
             throw new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND);
@@ -92,6 +95,6 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
         }
         auditor.record(actorId, "TOPIC_CREATED", QuestionBankAuditor.SUBJECT, subjectId,
                 Map.of("topicId", topic.getTopicId(), "topicName", trimmed));
-        return topic;
+        return TopicResult.from(topic);
     }
 }

@@ -2,6 +2,7 @@ package com.example.vieva.application.usecases.notification;
 
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.notification.NotificationView;
 import com.example.vieva.application.ports.output.NotificationRepository;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.domain.entities.Notification;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,12 +55,16 @@ class NotificationServiceImplTest {
     @Test
     @DisplayName("list delegates to repository when pagination is valid")
     void listDelegatesToRepository() {
-        PagedResult<Notification> expected = PagedResult.of(List.of(), 0, 20, 0);
+        Notification notification = new Notification(UUID.randomUUID(), recipientId, UUID.randomUUID(), UUID.randomUUID(),
+                "QUESTION_REVIEWED", "Your question was approved", Instant.now(), null);
+        PagedResult<Notification> expected = PagedResult.of(List.of(notification), 0, 20, 1);
         when(notificationRepository.findByRecipient(recipientId, 0, 20)).thenReturn(expected);
 
-        PagedResult<Notification> actual = notificationService.list(recipientId, 0, 20);
+        PagedResult<NotificationView> actual = notificationService.list(recipientId, 0, 20);
 
-        assertThat(actual).isSameAs(expected);
+        assertThat(actual.getContent()).hasSize(1);
+        assertThat(actual.getContent().get(0).notificationId()).isEqualTo(notification.notificationId());
+        assertThat(actual.getContent().get(0).type()).isEqualTo("QUESTION_REVIEWED");
         verify(notificationRepository).findByRecipient(recipientId, 0, 20);
     }
 

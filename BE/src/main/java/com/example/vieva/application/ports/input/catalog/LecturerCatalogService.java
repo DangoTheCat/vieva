@@ -1,7 +1,6 @@
 package com.example.vieva.application.ports.input.catalog;
 
 import com.example.vieva.application.ports.input.subject.SubjectResult;
-import com.example.vieva.domain.entities.Topic;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +12,7 @@ import java.util.UUID;
 public interface LecturerCatalogService {
     List<SubjectResult> listAssignedSubjects(UUID lecturerId);
 
-    List<Topic> listTopics(UUID subjectId);
+    List<TopicResult> listTopics(UUID subjectId);
 
-    Topic createTopic(UUID subjectId, String name, String description, UUID actorId);
+    TopicResult createTopic(UUID subjectId, String name, String description, UUID actorId);
 }
