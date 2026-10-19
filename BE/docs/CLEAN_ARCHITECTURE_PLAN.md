@@ -114,16 +114,19 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - `TikaDocumentParserGateway`, `PoiCsvQuestionSpreadsheetGateway`, `SecurityConfig` dùng exception/mã lỗi của application.
 - Xong khi: chỉ domain và application import `domain.exception`; mã lỗi và HTTP status trả về không đổi.
 
-### Giai đoạn 3 — Controller chỉ gọi input port (V2, V4)
-- Chuyển các interface use case từ `usecases/*` sang `ports/input/<feature>`.
-- Tách interface theo D2: `DocumentService` và `QuestionGenCoordinator` thành interface trong `ports/input`; phần code hiện tại chuyển sang `DocumentServiceImpl` và `QuestionGenCoordinatorImpl` trong `usecases`.
-- Bỏ `QuestionVersionRepository` khỏi `LecturerStudioController`. Thêm `questionId` vào các method của `QuestionReviewService` (submit, review, approve, reject); use case kiểm tra version thuộc câu hỏi.
-- Tạo input port `NotificationService` (list, unreadCount, markRead) + `NotificationServiceImpl` trong `usecases/notification`, có `@UseCaseTransaction`. `NotificationController` bỏ `NotificationRepository` và `@Transactional`, chỉ gọi port.
-- Xong khi: adapters không import `application.usecases` và `application.ports.output`.
+### Giai đoạn 3 — Controller chỉ gọi input port (V2, V4) [ĐÃ HOÀN THÀNH - 20/10/2026]
+- Chuyển toàn bộ 14 interface use case từ `usecases/*` sang `ports/input/<feature>`.
+- Tách interface theo D2: `DocumentService`, `QuestionGenCoordinator`, và `SubjectHeadService` thành interface trong `ports/input`; phần code hiện tại chuyển sang `DocumentServiceImpl`, `QuestionGenCoordinatorImpl`, `SubjectHeadServiceImpl` trong `usecases`.
+- Bỏ `QuestionVersionRepository` khỏi `LecturerStudioController`. Thêm các overload nhận `questionId` vào `QuestionReviewService` và `QuestionReviewServiceImpl` (submit, review, approve, reject); use case kiểm tra version thuộc đúng question (`QUESTION_VERSION_NOT_FOUND` và `INVALID_REQUEST` "Version belongs to another question"). Giữ nguyên các overload cũ để tương thích ngược.
+- Tạo input port `NotificationService` (list, unreadCount, markRead) + `NotificationServiceImpl` trong `usecases/notification`, có `@UseCaseTransaction`. `NotificationController` bỏ `NotificationRepository` và `@Transactional`, chỉ gọi port `NotificationService`.
+- Thêm và kích hoạt 2 luật ArchUnit không freeze:
+  - R7: `adaptersDoNotDependOnUseCases` — `adapters` cấm phụ thuộc `application.usecases..`.
+  - R8: `adaptersDoNotDependOnOutputRepositoriesOrPorts` — `adapters` cấm phụ thuộc `*Repository` hoặc `*Port` từ `ports.output`.
+- Xong khi: adapters không import `application.usecases` và các repository/port trong `ports.output`. View model trong `ports.output` còn được dùng đến giai đoạn 4.
 
 ### Giai đoạn 4 — Dữ liệu qua ranh giới là model của application (V3, V7)
 - Request model: thay field enum domain bằng `String`; use case parse sang enum domain, sai thì ném `ApplicationException(INVALID_REQUEST)`.
-- Response model mới: `SubjectResult`, `UserResult`, `TopicResult`, `LecturerSubjectResult`, `CourseDocumentResult`. Use case map entity sang Result trước khi trả.
+- Response model mới: `SubjectResult`, `UserResult`, `TopicResult`, `LecturerSubjectResult`, `CourseDocumentResult`. Thêm `NotificationView`. JSON phải giống hệt JSON đang trả từ entity Notification. Use case map entity sang Result trước khi trả.
 - Chuyển `QuestionDetailView`, `QuestionVersionView`, `QuestionBankItemView`, `AuthResult`, `ImportReport`, `GenerationResult`, `DocumentPreview` sang `ports/input`; bỏ kiểu domain bên trong. `PagedResult` thành `ports/input/common/PageResult`.
 - Presenter map Result sang DTO JSON hiện tại. Giữ nguyên tên field JSON.
 - Principal: `ActorView(id, email, role, mustChangePassword)` trong `ports/input/common`. Controller dùng `@AuthenticationPrincipal ActorView`; cập nhật `CurrentUser`.
@@ -132,7 +135,7 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 ### Giai đoạn 5 — Infrastructure chỉ vào qua input port (V5, V6 còn lại)
 - Input port `CourseAccessQuery` (`canAccessSubject`, `canAccessDocument`, `canAccessQuestion`, `canAccessVersion`, `canAccessGenerationRequest`), implement trong `usecases/access`, dùng lại `SubjectAccessGuard`. `CourseSecurityEvaluator` chỉ lấy id và role từ `Authentication` rồi gọi port.
 - Input port `ResolveActorUseCase`: nhận user id từ token, kiểm tra trạng thái, trả `ActorView`. `JwtAuthenticationFilter` chỉ gọi port này.
-- Input port `DocumentIndexingUseCase`, `DocumentCleanupUseCase` cho worker và scheduler.
+- Input port `DocumentIndexingUseCase`, `DocumentCleanupUseCase` cho worker và scheduler (DocumentService đang tạm chứa method cho worker và scheduler, cần tách ra).
 - Chuyển `DocumentUploadedEvent`, `AccountCreatedEvent` sang `ports/output/event`.
 - Xóa `DataInitializer`: role đã được seed bởi `V10__seed_initial_data.sql` và chỉnh ở `V14`. Trước khi xóa, kiểm tra profile test cũng chạy Flyway.
 - `QuestionGenerationPrompt` mang bloom level dạng `String` + mô tả; `QuestionPromptBuilder` bỏ import domain. Mock gateway thay `QuestionSimilarity` bằng hàm tách từ nội bộ.
@@ -198,6 +201,23 @@ class ArchitectureTest {
     static final ArchRule entitiesHaveNoSetters = noMethods()
             .that().arePublic().and().haveNameMatching("set[A-Z].*")
             .should().beDeclaredInClassesThat().resideInAPackage("com.example.vieva.domain.entities..");
+
+    // R7: adapters không phụ thuộc vào usecases cụ thể
+    @ArchTest
+    static final ArchRule adaptersDoNotDependOnUseCases = noClasses().that().resideInAPackage(ADAPTERS)
+            .should().dependOnClassesThat().resideInAnyPackage(USE_CASES);
+
+    // R8: adapters không phụ thuộc vào *Repository hoặc *Port trong output ports
+    @ArchTest
+    static final ArchRule adaptersDoNotDependOnOutputRepositoriesOrPorts = noClasses().that().resideInAPackage(ADAPTERS)
+            .should().dependOnClassesThat(
+                    new com.tngtech.archunit.base.DescribedPredicate<>("are output repositories or ports") {
+                        @Override
+                        public boolean test(com.tngtech.archunit.core.domain.JavaClass javaClass) {
+                            return javaClass.getPackageName().startsWith("com.example.vieva.application.ports.output")
+                                    && (javaClass.getSimpleName().endsWith("Repository") || javaClass.getSimpleName().endsWith("Port"));
+                        }
+                    });
 }
 ```
 
