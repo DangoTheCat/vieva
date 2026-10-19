@@ -2,6 +2,7 @@ package com.example.vieva.application.usecases.lecturer;
 
 import com.example.vieva.application.ports.input.AssignLecturerRequest;
 import com.example.vieva.application.ports.output.AuditEventRepository;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
@@ -142,6 +143,24 @@ class LecturerSubjectServiceImplTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
         when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(sampleLecturer));
         when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of(existing));
+
+        assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_ASSIGN_DUPLICATE);
+    }
+
+    @Test
+    @DisplayName("assignLecturersToSubject should map DuplicateKeyException from repository to CANNOT_ASSIGN_DUPLICATE")
+    void assignLecturers_concurrentDuplicateKeyException_throwsCannotAssignDuplicate() {
+        AssignLecturerRequest request = AssignLecturerRequest.builder()
+                .subjectId(subjectId)
+                .lecturerIds(List.of(lecturerId))
+                .build();
+
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
+        when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(sampleLecturer));
+        when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of());
+        when(lecturerSubjectRepository.saveAll(any())).thenThrow(new DuplicateKeyException("concurrent duplicate"));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
                 .isInstanceOf(AppException.class)

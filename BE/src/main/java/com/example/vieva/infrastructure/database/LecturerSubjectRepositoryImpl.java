@@ -40,7 +40,7 @@ public class LecturerSubjectRepositoryImpl implements LecturerSubjectRepository 
                 .map(mapper::toEntity)
                 .collect(Collectors.toList());
         try {
-            return jpaRepository.saveAll(entities).stream()
+            return jpaRepository.saveAllAndFlush(entities).stream()
                     .map(mapper::toDomain)
                     .collect(Collectors.toList());
         } catch (DataIntegrityViolationException e) {

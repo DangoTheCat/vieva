@@ -106,7 +106,7 @@ class DuplicateKeyExceptionTranslationTest {
         LecturerSubjectJpaRepository jpa = mock(LecturerSubjectJpaRepository.class);
         LecturerSubjectPersistenceMapper mapper = mock(LecturerSubjectPersistenceMapper.class);
         when(mapper.toEntity(any())).thenReturn(new LecturerSubjectJpaEntity());
-        when(jpa.saveAll(any())).thenThrow(new DataIntegrityViolationException("duplicate assignment"));
+        when(jpa.saveAllAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate assignment"));
 
         LecturerSubjectRepositoryImpl repo = new LecturerSubjectRepositoryImpl(jpa, mapper);
         LecturerSubject assignment = LecturerSubject.builder().lecturerSubjectId(UUID.randomUUID()).build();
@@ -114,5 +114,7 @@ class DuplicateKeyExceptionTranslationTest {
         assertThatThrownBy(() -> repo.saveAll(List.of(assignment)))
                 .isInstanceOf(DuplicateKeyException.class)
                 .hasCauseInstanceOf(DataIntegrityViolationException.class);
+
+        org.mockito.Mockito.verify(jpa).saveAllAndFlush(any());
     }
 }
