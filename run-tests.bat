@@ -4,6 +4,8 @@ REM Chay test case du an AIVES (vieva) bang Docker
 REM Khong can cai dat Java 17 hay Maven tren may host
 REM ==============================================================================
 
+echo [AIVES] Luu y: Script bo qua test tich hop; muon chay du thi dung BE/mvnw test tren may co Docker Desktop.
+
 if "%~1"=="" (
     echo [AIVES] Running full unit & slice test suite via Docker...
     docker compose run --rm test

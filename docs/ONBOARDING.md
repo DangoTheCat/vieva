@@ -228,6 +228,8 @@ Trên PowerShell dùng `.\mvnw.cmd test`. Chạy một class:
 ./mvnw test -Dtest=UserControllerTest
 ```
 
+Lưu ý: script chạy test qua Docker (`run-tests.ps1`, `run-tests.bat` hoặc service `test` trong `docker-compose.yml`) bỏ qua test tích hợp; muốn chạy đủ thì dùng `BE/mvnw test` trên máy có Docker Desktop.
+
 **Frontend**: hiện chưa có test tự động. Kiểm tra bằng build:
 
 ```bash
