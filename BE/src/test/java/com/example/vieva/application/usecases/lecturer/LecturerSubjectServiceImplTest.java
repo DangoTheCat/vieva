@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.lecturer;
 
-import com.example.vieva.application.ports.input.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
@@ -91,7 +92,7 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of());
         when(lecturerSubjectRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        List<LecturerSubject> result = lecturerSubjectService.assignLecturersToSubject(request, adminId);
+        List<LecturerSubjectResult> result = lecturerSubjectService.assignLecturersToSubject(request, adminId);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getLecturerId()).isEqualTo(lecturerId);

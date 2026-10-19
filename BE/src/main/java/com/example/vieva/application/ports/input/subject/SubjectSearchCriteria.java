@@ -1,6 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.subject;
 
-import com.example.vieva.domain.entities.SubjectStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +18,7 @@ public class SubjectSearchCriteria {
     );
 
     private String keyword;
-    private SubjectStatus status;
+    private String status;
 
     @Builder.Default
     private int page = 0;

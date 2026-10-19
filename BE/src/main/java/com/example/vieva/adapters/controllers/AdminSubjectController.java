@@ -6,16 +6,13 @@ import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.adapters.presenters.PageResponse;
 import com.example.vieva.adapters.presenters.SubjectDto;
 import com.example.vieva.adapters.presenters.SubjectPresenter;
-import com.example.vieva.application.ports.input.CreateSubjectRequest;
-import com.example.vieva.application.ports.input.SubjectSearchCriteria;
-import com.example.vieva.application.ports.input.UpdateSubjectRequest;
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.ports.input.subject.SubjectService;
 import com.example.vieva.application.ports.input.common.ActorView;
-import com.example.vieva.domain.entities.Subject;
-import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.subject.CreateSubjectRequest;
+import com.example.vieva.application.ports.input.subject.SubjectResult;
+import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.input.subject.SubjectService;
+import com.example.vieva.application.ports.input.subject.UpdateSubjectRequest;
+import com.example.vieva.application.ports.output.PagedResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -38,7 +35,7 @@ public class AdminSubjectController {
     @GetMapping
     public ResponseEntity<PageResponse<SubjectDto>> getSubjects(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) SubjectStatus status,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -53,13 +50,13 @@ public class AdminSubjectController {
                 .sortDirection(sortDirection)
                 .build();
 
-        PagedResult<Subject> pagedSubjects = subjectService.getSubjects(criteria);
-        return ResponseEntity.ok(subjectPresenter.toPageResponse(pagedSubjects));
+        PagedResult<SubjectResult> pagedSubjects = subjectService.getSubjects(criteria);
+        return ResponseEntity.ok(PageResponse.from(pagedSubjects, subjectPresenter::toDto));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SubjectDto> getSubjectById(@PathVariable UUID id) {
-        Subject subject = subjectService.getSubjectById(id);
+        SubjectResult subject = subjectService.getSubjectById(id);
         return ResponseEntity.ok(subjectPresenter.toDto(subject));
     }
 
@@ -78,7 +75,7 @@ public class AdminSubjectController {
                 .status(request.getStatus())
                 .build();
 
-        Subject created = subjectService.createSubject(createRequest, adminId);
+        SubjectResult created = subjectService.createSubject(createRequest, adminId);
         return ResponseEntity.status(HttpStatus.CREATED).body(subjectPresenter.toDto(created));
     }
 
@@ -97,7 +94,7 @@ public class AdminSubjectController {
                 .status(request.getStatus())
                 .build();
 
-        Subject updated = subjectService.updateSubject(id, updateRequest, adminId);
+        SubjectResult updated = subjectService.updateSubject(id, updateRequest, adminId);
         return ResponseEntity.ok(subjectPresenter.toDto(updated));
     }
 

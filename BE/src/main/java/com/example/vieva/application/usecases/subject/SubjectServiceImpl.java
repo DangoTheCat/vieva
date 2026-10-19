@@ -1,22 +1,25 @@
 package com.example.vieva.application.usecases.subject;
 
-import com.example.vieva.application.ports.input.CreateSubjectRequest;
-import com.example.vieva.application.ports.input.SubjectSearchCriteria;
-import com.example.vieva.application.ports.input.UpdateSubjectRequest;
-import com.example.vieva.application.ports.input.subject.SubjectService;
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.ports.output.SubjectRepository;
-import com.example.vieva.application.usecases.access.QuestionBankAuditor;
-import com.example.vieva.domain.entities.Subject;
-import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
-import lombok.RequiredArgsConstructor;
+import com.example.vieva.application.ports.input.subject.CreateSubjectRequest;
+import com.example.vieva.application.ports.input.subject.SubjectResult;
+import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.input.subject.SubjectService;
+import com.example.vieva.application.ports.input.subject.UpdateSubjectRequest;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.transaction.UseCaseTransaction;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
+import com.example.vieva.application.usecases.common.EnumValues;
+import com.example.vieva.domain.entities.Subject;
+import com.example.vieva.domain.entities.SubjectStatus;
+import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +32,7 @@ public class SubjectServiceImpl implements SubjectService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    public Subject createSubject(CreateSubjectRequest request, UUID currentAdminId) {
+    public SubjectResult createSubject(CreateSubjectRequest request, UUID currentAdminId) {
         if (request.getSubjectCode() == null || request.getSubjectCode().isBlank()
                 || request.getSubjectName() == null || request.getSubjectName().isBlank()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST);
@@ -40,7 +43,8 @@ public class SubjectServiceImpl implements SubjectService {
             throw new ApplicationException(ErrorCode.SUBJECT_CODE_EXISTED);
         }
 
-        SubjectStatus status = request.getStatus() != null ? request.getStatus() : SubjectStatus.ACTIVE;
+        SubjectStatus parsedStatus = EnumValues.parse(SubjectStatus.class, request.getStatus(), "Malformed request body");
+        SubjectStatus status = parsedStatus != null ? parsedStatus : SubjectStatus.ACTIVE;
         Integer credits = request.getCredits() != null && request.getCredits() > 0 ? request.getCredits() : 3;
 
         Subject subject = Subject.builder()
@@ -70,15 +74,16 @@ public class SubjectServiceImpl implements SubjectService {
 
         auditor.record(currentAdminId, "SUBJECT_CREATED", "SUBJECT", saved.getSubjectId(), auditValues);
 
-        return saved;
+        return SubjectResult.from(saved);
     }
 
     @Override
-    public Subject updateSubject(UUID subjectId, UpdateSubjectRequest request, UUID currentAdminId) {
+    public SubjectResult updateSubject(UUID subjectId, UpdateSubjectRequest request, UUID currentAdminId) {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
 
-        subject.update(request.getSubjectName(), request.getDescription(), request.getCredits(), request.getStatus());
+        SubjectStatus parsedStatus = EnumValues.parse(SubjectStatus.class, request.getStatus(), "Malformed request body");
+        subject.update(request.getSubjectName(), request.getDescription(), request.getCredits(), parsedStatus);
         Subject updated = subjectRepository.save(subject);
 
         Map<String, Object> auditValues = new HashMap<>();
@@ -88,7 +93,7 @@ public class SubjectServiceImpl implements SubjectService {
 
         auditor.record(currentAdminId, "SUBJECT_UPDATED", "SUBJECT", updated.getSubjectId(), auditValues);
 
-        return updated;
+        return SubjectResult.from(updated);
     }
 
     @Override
@@ -107,14 +112,30 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public Subject getSubjectById(UUID subjectId) {
-        return subjectRepository.findById(subjectId)
+    public SubjectResult getSubjectById(UUID subjectId) {
+        Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
+        return SubjectResult.from(subject);
     }
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public PagedResult<Subject> getSubjects(SubjectSearchCriteria criteria) {
-        return subjectRepository.findAll(criteria);
+    public PagedResult<SubjectResult> getSubjects(SubjectSearchCriteria criteria) {
+        if (criteria != null && criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+            EnumValues.parse(SubjectStatus.class, criteria.getStatus(), "Invalid value for parameter 'status'");
+        }
+        PagedResult<Subject> paged = subjectRepository.findAll(criteria);
+        List<SubjectResult> content = paged.getContent().stream()
+                .map(SubjectResult::from)
+                .toList();
+        return PagedResult.<SubjectResult>builder()
+                .content(content)
+                .page(paged.getPage())
+                .size(paged.getSize())
+                .totalElements(paged.getTotalElements())
+                .totalPages(paged.getTotalPages())
+                .isFirst(paged.isFirst())
+                .isLast(paged.isLast())
+                .build();
     }
 }

@@ -2,14 +2,16 @@ package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.adapters.presenters.SubjectPresenter;
 import com.example.vieva.adapters.web.GlobalExceptionHandler;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.subject.SubjectService;
+import com.example.vieva.application.ports.output.SubjectRepository;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.usecases.subject.SubjectServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
@@ -24,6 +26,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.UUID;
 
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,23 +36,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EnumValidationContractTest {
 
     @Mock
-    private SubjectService subjectService;
-
-    @Mock
     private SubjectPresenter subjectPresenter;
 
-    @InjectMocks
     private AdminSubjectController adminSubjectController;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        User testAdmin = User.builder()
-                .userId(UUID.randomUUID())
-                .email("admin@vieva.edu.vn")
-                .fullName("Admin User")
-                .build();
+        SubjectRepository subjectRepository = mock(SubjectRepository.class);
+        QuestionBankAuditor auditor = mock(QuestionBankAuditor.class);
+        SubjectService subjectService = new SubjectServiceImpl(subjectRepository, auditor);
+        adminSubjectController = new AdminSubjectController(subjectService, subjectPresenter);
+
+        ActorView testAdmin = new ActorView(
+                UUID.randomUUID(),
+                "admin@vieva.edu.vn",
+                java.util.Set.of("ROLE_ADMIN"),
+                false
+        );
 
         HandlerMethodArgumentResolver authPrincipalResolver = new HandlerMethodArgumentResolver() {
             @Override

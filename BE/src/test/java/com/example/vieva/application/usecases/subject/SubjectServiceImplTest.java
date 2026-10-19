@@ -1,7 +1,9 @@
 package com.example.vieva.application.usecases.subject;
 
-import com.example.vieva.application.ports.input.CreateSubjectRequest;
-import com.example.vieva.application.ports.input.UpdateSubjectRequest;
+import com.example.vieva.application.ports.input.subject.CreateSubjectRequest;
+import com.example.vieva.application.ports.input.subject.SubjectResult;
+import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.input.subject.UpdateSubjectRequest;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.SubjectRepository;
@@ -69,13 +71,13 @@ class SubjectServiceImplTest {
                 .subjectCode("swd392")
                 .subjectName("Software Architecture & Design")
                 .credits(3)
-                .status(SubjectStatus.ACTIVE)
+                .status("ACTIVE")
                 .build();
 
         when(subjectRepository.existsBySubjectCode("SWD392")).thenReturn(false);
         when(subjectRepository.saveAndFlush(any(Subject.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Subject result = subjectService.createSubject(request, adminId);
+        SubjectResult result = subjectService.createSubject(request, adminId);
 
         assertThat(result).isNotNull();
         assertThat(result.getSubjectCode()).isEqualTo("SWD392");
@@ -102,22 +104,68 @@ class SubjectServiceImplTest {
     }
 
     @Test
+    @DisplayName("createSubject should throw INVALID_REQUEST with Malformed request body when status is invalid")
+    void createSubject_invalidStatus_throwsException() {
+        CreateSubjectRequest request = CreateSubjectRequest.builder()
+                .subjectCode("SWD392")
+                .subjectName("Software Architecture & Design")
+                .status("INVALID_STATUS")
+                .build();
+
+        assertThatThrownBy(() -> subjectService.createSubject(request, adminId))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST)
+                .hasMessage("Malformed request body");
+    }
+
+    @Test
     @DisplayName("updateSubject should update properties and record audit event")
     void updateSubject_success() {
         UpdateSubjectRequest request = UpdateSubjectRequest.builder()
                 .subjectName("Updated Course Name")
                 .credits(4)
+                .status("ACTIVE")
                 .build();
 
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
         when(subjectRepository.save(any(Subject.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Subject updated = subjectService.updateSubject(subjectId, request, adminId);
+        SubjectResult updated = subjectService.updateSubject(subjectId, request, adminId);
 
         assertThat(updated.getSubjectName()).isEqualTo("Updated Course Name");
         assertThat(updated.getCredits()).isEqualTo(4);
         verify(subjectRepository).save(sampleSubject);
         verify(auditEventRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("updateSubject should throw INVALID_REQUEST with Malformed request body when status is invalid")
+    void updateSubject_invalidStatus_throwsException() {
+        UpdateSubjectRequest request = UpdateSubjectRequest.builder()
+                .subjectName("Updated Course Name")
+                .credits(4)
+                .status("INVALID_STATUS")
+                .build();
+
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
+
+        assertThatThrownBy(() -> subjectService.updateSubject(subjectId, request, adminId))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST)
+                .hasMessage("Malformed request body");
+    }
+
+    @Test
+    @DisplayName("getSubjects should throw INVALID_REQUEST with Invalid value for parameter 'status' when status is invalid")
+    void getSubjects_invalidStatus_throwsException() {
+        SubjectSearchCriteria criteria = SubjectSearchCriteria.builder()
+                .status("INVALID_STATUS")
+                .build();
+
+        assertThatThrownBy(() -> subjectService.getSubjects(criteria))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST)
+                .hasMessage("Invalid value for parameter 'status'");
     }
 
     @Test

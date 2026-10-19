@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.access;
 
 import com.example.vieva.application.ports.input.access.SubjectHeadService;
+import com.example.vieva.application.ports.input.subject.SubjectResult;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.UserRepository;
@@ -22,14 +23,14 @@ public class SubjectHeadServiceImpl implements SubjectHeadService {
 
     @Override
     @UseCaseTransaction
-    public Subject assign(UUID subjectId, UUID lecturerId, UUID adminId) {
+    public SubjectResult assign(UUID subjectId, UUID lecturerId, UUID adminId) {
         users.findById(adminId).filter(u -> u.isAdmin() && !u.isDeleted() && u.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.UNAUTHORIZED));
         Subject subject = subjects.findByIdForUpdate(subjectId).orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
         if (subject.getStatus() != SubjectStatus.ACTIVE) throw new ApplicationException(ErrorCode.SUBJECT_INACTIVE);
         requireActiveLecturer(lecturerId, subjectId);
         subject.setHeadLecturerId(lecturerId);
-        return subjects.save(subject);
+        return SubjectResult.from(subjects.save(subject));
     }
 
     @Override

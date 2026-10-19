@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.SubjectSearchCriteria;
+import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
@@ -98,8 +98,13 @@ public class SubjectRepositoryImpl implements SubjectRepository {
         Specification<SubjectJpaEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (criteria.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
+            if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+                try {
+                    SubjectStatus status = SubjectStatus.valueOf(criteria.getStatus().trim());
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (IllegalArgumentException ignored) {
+                    // Handled upstream or empty match
+                }
             }
 
             String escapedKeyword = criteria.getEscapedKeyword();

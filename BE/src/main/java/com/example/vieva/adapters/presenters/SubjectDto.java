@@ -1,6 +1,5 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.domain.entities.SubjectStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +19,7 @@ public class SubjectDto {
     private String subjectName;
     private String description;
     private Integer credits;
-    private SubjectStatus status;
+    private String status;
     private Instant createdAt;
     private Instant updatedAt;
 }

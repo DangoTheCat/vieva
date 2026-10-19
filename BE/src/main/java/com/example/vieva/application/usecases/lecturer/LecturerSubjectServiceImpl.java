@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.lecturer;
 
-import com.example.vieva.application.ports.input.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
 import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
@@ -41,7 +42,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    public List<LecturerSubject> assignLecturersToSubject(AssignLecturerRequest request, UUID currentAdminId) {
+    public List<LecturerSubjectResult> assignLecturersToSubject(AssignLecturerRequest request, UUID currentAdminId) {
         if (request.getSubjectId() == null || request.getLecturerIds() == null || request.getLecturerIds().isEmpty()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
@@ -127,7 +128,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
             throw new ApplicationException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
         }
 
-        return assignedList;
+        return assignedList.stream().map(LecturerSubjectResult::from).toList();
     }
 
     @Override
@@ -151,14 +152,18 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public List<LecturerSubject> getLecturersBySubject(UUID subjectId) {
-        return lecturerSubjectRepository.findActiveBySubjectId(subjectId);
+    public List<LecturerSubjectResult> getLecturersBySubject(UUID subjectId) {
+        return lecturerSubjectRepository.findActiveBySubjectId(subjectId).stream()
+                .map(LecturerSubjectResult::from)
+                .toList();
     }
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public List<LecturerSubject> getSubjectsByLecturer(UUID lecturerId) {
-        return lecturerSubjectRepository.findActiveByLecturerId(lecturerId);
+    public List<LecturerSubjectResult> getSubjectsByLecturer(UUID lecturerId) {
+        return lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
+                .map(LecturerSubjectResult::from)
+                .toList();
     }
 
     @Override

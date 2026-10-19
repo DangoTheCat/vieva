@@ -4,13 +4,11 @@ import com.example.vieva.adapters.controllers.request.AssignLecturerApiRequest;
 import com.example.vieva.adapters.presenters.LecturerSubjectDto;
 import com.example.vieva.adapters.presenters.LecturerSubjectPresenter;
 import com.example.vieva.adapters.presenters.MessageResponse;
-import com.example.vieva.application.ports.input.AssignLecturerRequest;
 import com.example.vieva.application.ports.input.access.SubjectHeadService;
-import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import com.example.vieva.application.ports.input.common.ActorView;
-import com.example.vieva.domain.entities.LecturerSubject;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +53,7 @@ public class AdminLecturerSubjectController {
                 .lecturerIds(apiRequest.getLecturerIds())
                 .build();
 
-        List<LecturerSubject> assignments = lecturerSubjectService.assignLecturersToSubject(request, adminId);
+        List<LecturerSubjectResult> assignments = lecturerSubjectService.assignLecturersToSubject(request, adminId);
         return ResponseEntity.status(HttpStatus.CREATED).body(presenter.toDtoList(assignments));
     }
 
@@ -71,13 +69,13 @@ public class AdminLecturerSubjectController {
 
     @GetMapping("/by-subject/{subjectId}")
     public ResponseEntity<List<LecturerSubjectDto>> getLecturersBySubject(@PathVariable UUID subjectId) {
-        List<LecturerSubject> assignments = lecturerSubjectService.getLecturersBySubject(subjectId);
+        List<LecturerSubjectResult> assignments = lecturerSubjectService.getLecturersBySubject(subjectId);
         return ResponseEntity.ok(presenter.toDtoList(assignments));
     }
 
     @GetMapping("/by-lecturer/{lecturerId}")
     public ResponseEntity<List<LecturerSubjectDto>> getSubjectsByLecturer(@PathVariable UUID lecturerId) {
-        List<LecturerSubject> assignments = lecturerSubjectService.getSubjectsByLecturer(lecturerId);
+        List<LecturerSubjectResult> assignments = lecturerSubjectService.getSubjectsByLecturer(lecturerId);
         return ResponseEntity.ok(presenter.toDtoList(assignments));
     }
 

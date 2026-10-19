@@ -602,7 +602,7 @@ class JsonContractSnapshotTest {
                 .subjectName("Java Web")
                 .description("Java Web Course")
                 .credits(3)
-                .status(SubjectStatus.ACTIVE)
+                .status("ACTIVE")
                 .createdAt(T1)
                 .updatedAt(T2)
                 .build();

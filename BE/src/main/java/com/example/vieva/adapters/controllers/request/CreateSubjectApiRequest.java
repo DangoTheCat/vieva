@@ -1,6 +1,5 @@
 package com.example.vieva.adapters.controllers.request;
 
-import com.example.vieva.domain.entities.SubjectStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -32,5 +31,5 @@ public class CreateSubjectApiRequest {
     private Integer credits = 3;
 
     @Builder.Default
-    private SubjectStatus status = SubjectStatus.ACTIVE;
+    private String status = "ACTIVE";
 }

@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.catalog;
 
 import com.example.vieva.application.ports.input.catalog.LecturerCatalogService;
+import com.example.vieva.application.ports.input.subject.SubjectResult;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.TopicRepository;
@@ -34,13 +35,14 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public List<Subject> listAssignedSubjects(UUID lecturerId) {
+    public List<SubjectResult> listAssignedSubjects(UUID lecturerId) {
         List<UUID> subjectIds = lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
                 .map(LecturerSubject::getSubjectId)
                 .distinct()
                 .toList();
         return subjectRepository.findAllByIds(subjectIds).stream()
                 .sorted(Comparator.comparing(Subject::getSubjectCode, Comparator.nullsLast(String::compareTo)))
+                .map(SubjectResult::from)
                 .toList();
     }
 

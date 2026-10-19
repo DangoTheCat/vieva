@@ -1,6 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.subject;
 
-import com.example.vieva.domain.entities.SubjectStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,9 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateSubjectRequest {
+public class CreateSubjectRequest {
+    private String subjectCode;
     private String subjectName;
     private String description;
     private Integer credits;
-    private SubjectStatus status;
+    private String status;
 }
