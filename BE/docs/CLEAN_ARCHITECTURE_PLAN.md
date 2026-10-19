@@ -51,7 +51,7 @@ Bảng phụ thuộc cho phép (hàng = lớp gọi, cột = lớp bị gọi):
 | Mã | Vi phạm | Bằng chứng |
 |---|---|---|
 | V1 | Application dùng Spring | 14 file `@Transactional`, 7 file bắt `DataIntegrityViolationException`, 2 file `org.springframework.util.StringUtils` |
-| V2 | Controller nhảy qua use case, gọi thẳng output port | `LecturerStudioController` dùng `QuestionVersionRepository` trong `checkVersion` |
+| V2 | Controller nhảy qua use case, gọi thẳng output port | `LecturerStudioController` dùng `QuestionVersionRepository` trong `checkVersion`; `NotificationController` dùng thẳng `NotificationRepository`, tự mở `@Transactional` và trả domain `Notification` |
 | V3 | Adapters chạm domain | 13 file import `domain.entities.User`; controller dùng `BloomLevel`, `UserStatus`, `SubjectStatus`, `QuestionStatus`…; presenter map thẳng entity; 16 method use case trả entity (`Subject`, `User`, `Topic`, `LecturerSubject`); 12 request model chứa kiểu domain |
 | V4 | Controller phụ thuộc class cụ thể | `DocumentService`, `QuestionGenCoordinator` không có interface |
 | V5 | Infrastructure nhảy qua use case | `CourseSecurityEvaluator` gọi 5 repository và tự quyết phân quyền; `JwtAuthenticationFilter` đọc `User`, `UserStatus`; `AsyncDocumentIndexingWorker`, `StaleDocumentCleanupScheduler` gọi `DocumentService` cụ thể; `DataInitializer` ghi `Role` qua `RoleRepository` |
@@ -105,6 +105,8 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - Xong khi: `grep org.springframework application/` trả 0 dòng; bỏ freeze luật R2.
 
 ### Giai đoạn 2 — Lỗi đi đúng tầng (V6 phần lỗi)
+- **Bước 0 (sửa lỗi do giai đoạn 1 gây ra, commit riêng trước):** `DuplicateKeyException` không được use case bắt đang rơi vào handler `Exception` và trả HTTP 500 `9999`. Trước giai đoạn 1, lỗi này là `DataIntegrityViolationException` và trả 409 (hoặc 400 `USER_EXISTED`). Các chỗ bị ảnh hưởng: `QuestionGenCoordinator` (`questionVersionRepository.save`), `QuestionAuthoringServiceImpl` (2 chỗ `save` ngoài try), `RubricServiceImpl`, lần `saveAllAndFlush` thử lại trong `QuestionImportServiceImpl`. Thêm `@ExceptionHandler(DuplicateKeyException.class)` vào `GlobalExceptionHandler` hiện tại, xử lý giống hệt nhánh `DataIntegrityViolationException` (dựa trên cause). Viết test cho cả 3 nhánh: `uq_users_active_email` → 400 `USER_EXISTED`, `uq_question_draft_per_question` → 409 `DRAFT_ALREADY_EXISTS`, còn lại → 409 `INVALID_REQUEST`.
+- Khi chuyển handler sang `adapters/web`, adapters không được import `ports/output` (luật R3). Vì vậy: `DuplicateKeyException` mang thêm `ErrorCode` gợi ý do gateway đặt (gateway đọc tên constraint: `UserRepositoryImpl` → `USER_EXISTED`, `QuestionVersionRepositoryImpl` → `DRAFT_ALREADY_EXISTS`). `ErrorTranslator` dùng mã gợi ý nếu có, nếu không thì trả `CONFLICT` + `INVALID_REQUEST`. Status và mã trả về giữ nguyên như bước 0.
 - Domain: `DomainException` + `DomainErrorCode` chỉ gồm mã entity đang ném (`QUESTION_ARCHIVED`, `VERSION_NOT_DRAFT`…).
 - Application: `ApplicationException` + `ErrorCode` (giữ nguyên mã `1001`… để `FE/src/utils/errorCodes.js` không đổi) + `ErrorCategory` (`NOT_FOUND`, `CONFLICT`, `FORBIDDEN`, `UNAUTHENTICATED`, `VALIDATION`, `INTERNAL`).
 - Input port `ErrorTranslator`: đổi `DomainException` hoặc `ApplicationException` thành `ErrorView(code, message, category)`. Implement trong application.
@@ -116,6 +118,7 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - Chuyển các interface use case từ `usecases/*` sang `ports/input/<feature>`.
 - Tách interface theo D2: `DocumentService` và `QuestionGenCoordinator` thành interface trong `ports/input`; phần code hiện tại chuyển sang `DocumentServiceImpl` và `QuestionGenCoordinatorImpl` trong `usecases`.
 - Bỏ `QuestionVersionRepository` khỏi `LecturerStudioController`. Thêm `questionId` vào các method của `QuestionReviewService` (submit, review, approve, reject); use case kiểm tra version thuộc câu hỏi.
+- Tạo input port `NotificationService` (list, unreadCount, markRead) + `NotificationServiceImpl` trong `usecases/notification`, có `@UseCaseTransaction`. `NotificationController` bỏ `NotificationRepository` và `@Transactional`, chỉ gọi port.
 - Xong khi: adapters không import `application.usecases` và `application.ports.output`.
 
 ### Giai đoạn 4 — Dữ liệu qua ranh giới là model của application (V3, V7)
