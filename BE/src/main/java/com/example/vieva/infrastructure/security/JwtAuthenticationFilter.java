@@ -1,9 +1,8 @@
 package com.example.vieva.infrastructure.security;
 
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.user.ResolveActorUseCase;
 import com.example.vieva.application.ports.output.TokenProviderPort;
-import com.example.vieva.application.ports.input.user.UserService;
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.application.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
@@ -25,7 +24,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -42,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "PUT /api/v1/users/me/password");
 
     private final TokenProviderPort tokenProvider;
-    private final UserService userService;
+    private final ResolveActorUseCase resolveActorUseCase;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -55,39 +53,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && tokenProvider.validateToken(token)) {
             try {
                 UUID userId = tokenProvider.getUserIdFromToken(token);
-                Optional<User> userOptional = userService.getById(userId);
+                Instant tokenIssuedAt = tokenProvider.getIssuedAtFromToken(token);
 
-                if (userOptional.isPresent() && userOptional.get().getStatus() == UserStatus.ACTIVE) {
-                    User user = userOptional.get();
+                Optional<ActorView> actorOptional = resolveActorUseCase.resolve(userId, tokenIssuedAt);
 
-                    // Check if token was issued before the user changed password (revocation)
-                    if (user.getPasswordChangedAt() != null) {
-                        Instant tokenIssuedAt = tokenProvider.getIssuedAtFromToken(token);
-                        if (tokenIssuedAt == null || tokenIssuedAt.isBefore(user.getPasswordChangedAt().truncatedTo(ChronoUnit.SECONDS))) {
-                            log.warn("JWT token rejected: issued before user {} changed password (revoked)", userId);
-                            filterChain.doFilter(request, response);
-                            return;
-                        }
-                    }
+                if (actorOptional.isPresent()) {
+                    ActorView actor = actorOptional.get();
 
-                    Set<SimpleGrantedAuthority> authorities = user.getUserRoles() != null
-                            ? user.getUserRoles().stream()
-                            .filter(ur -> ur.getRole() != null && StringUtils.hasText(ur.getRole().getRoleCode()))
-                            .map(ur -> {
-                                String code = ur.getRole().getRoleCode();
-                                return new SimpleGrantedAuthority(code.startsWith("ROLE_") ? code : "ROLE_" + code);
-                            })
+                    Set<SimpleGrantedAuthority> authorities = actor.roleCodes() != null
+                            ? actor.roleCodes().stream()
+                            .filter(StringUtils::hasText)
+                            .map(code -> new SimpleGrantedAuthority(code.startsWith("ROLE_") ? code : "ROLE_" + code))
                             .collect(Collectors.toSet())
                             : Set.of();
 
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(user, null, authorities);
+                            new UsernamePasswordAuthenticationToken(actor, null, authorities);
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
                     // First login after an admin created the account (or reset its password):
                     // block everything except changing the password
-                    passwordChangeRequired = user.isMustChangePassword() && !isPasswordChangeAllowed(request);
+                    passwordChangeRequired = actor.mustChangePassword() && !isPasswordChangeAllowed(request);
                 }
             } catch (Exception e) {
                 log.error("Could not set user authentication in security context", e);

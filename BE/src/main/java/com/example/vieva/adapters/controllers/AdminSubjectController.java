@@ -11,9 +11,9 @@ import com.example.vieva.application.ports.input.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.UpdateSubjectRequest;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.application.ports.input.subject.SubjectService;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.domain.entities.User;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import jakarta.validation.Valid;
@@ -65,7 +65,7 @@ public class AdminSubjectController {
 
     @PostMapping
     public ResponseEntity<SubjectDto> createSubject(
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody CreateSubjectApiRequest request) {
 
         UUID adminId = resolveAdminId(currentAdmin);
@@ -85,7 +85,7 @@ public class AdminSubjectController {
     @PutMapping("/{id}")
     public ResponseEntity<SubjectDto> updateSubject(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody UpdateSubjectApiRequest request) {
 
         UUID adminId = resolveAdminId(currentAdmin);
@@ -104,17 +104,14 @@ public class AdminSubjectController {
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<MessageResponse> deactivateSubject(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin) {
+            @AuthenticationPrincipal ActorView currentAdmin) {
 
         UUID adminId = resolveAdminId(currentAdmin);
         subjectService.deactivateSubject(id, adminId);
         return ResponseEntity.ok(new MessageResponse("Subject deactivated successfully"));
     }
 
-    private UUID resolveAdminId(User currentAdmin) {
-        if (currentAdmin == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
-        return currentAdmin.getUserId();
+    private UUID resolveAdminId(ActorView currentAdmin) {
+        return CurrentUser.id(currentAdmin);
     }
 }

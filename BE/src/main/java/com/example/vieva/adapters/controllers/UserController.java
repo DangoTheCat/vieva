@@ -10,6 +10,7 @@ import com.example.vieva.application.ports.input.ChangePasswordRequest;
 import com.example.vieva.application.ports.input.UpdateProfileRequest;
 import com.example.vieva.application.ports.input.UserSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.domain.entities.User;
@@ -43,23 +44,19 @@ public class UserController {
      * which would bypass @PreAuthorize on getUserById.
      */
     @GetMapping("/me")
-    public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal User currentUser) {
-        if (currentUser == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
+    public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal ActorView currentUser) {
+        UUID userId = CurrentUser.id(currentUser);
         // Fetch fresh from service — avoids self-invocation AOP bypass
-        User user = userService.getById(currentUser.getUserId())
+        User user = userService.getById(userId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 
     @PatchMapping("/me")
     public ResponseEntity<MessageResponse> updateCurrentUser(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal ActorView currentUser,
             @Valid @RequestBody UpdateProfileApiRequest apiRequest) {
-        if (currentUser == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
+        UUID userId = CurrentUser.id(currentUser);
 
         UpdateProfileRequest request = UpdateProfileRequest.builder()
                 .fullName(apiRequest.getFullName())
@@ -67,34 +64,30 @@ public class UserController {
                 .avatarUrl(apiRequest.getAvatarUrl())
                 .build();
 
-        userService.updateProfile(currentUser.getUserId(), request);
+        userService.updateProfile(userId, request);
         return ResponseEntity.ok(new MessageResponse("Profile updated successfully"));
     }
 
     @PutMapping("/me/password")
     public ResponseEntity<MessageResponse> changePassword(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal ActorView currentUser,
             @Valid @RequestBody ChangePasswordApiRequest apiRequest) {
-        if (currentUser == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
+        UUID userId = CurrentUser.id(currentUser);
 
         ChangePasswordRequest request = ChangePasswordRequest.builder()
                 .oldPassword(apiRequest.getOldPassword())
                 .newPassword(apiRequest.getNewPassword())
                 .build();
 
-        userService.changePassword(currentUser.getUserId(), request);
+        userService.changePassword(userId, request);
         return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
     }
 
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserDto> uploadAvatar(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal ActorView currentUser,
             @RequestParam("file") MultipartFile file) {
-        if (currentUser == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
+        UUID userId = CurrentUser.id(currentUser);
         if (file == null || file.isEmpty()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "File ảnh đại diện không được để trống");
         }
@@ -112,8 +105,8 @@ public class UserController {
         }
 
         try {
-            userService.uploadAvatar(currentUser.getUserId(), file.getBytes(), contentType);
-            User user = userService.getById(currentUser.getUserId())
+            userService.uploadAvatar(userId, file.getBytes(), contentType);
+            User user = userService.getById(userId)
                     .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
             return ResponseEntity.ok(userPresenter.toDto(user));
         } catch (IOException e) {
@@ -122,12 +115,10 @@ public class UserController {
     }
 
     @DeleteMapping("/me/avatar")
-    public ResponseEntity<UserDto> deleteAvatar(@AuthenticationPrincipal User currentUser) {
-        if (currentUser == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
-        userService.deleteAvatar(currentUser.getUserId());
-        User user = userService.getById(currentUser.getUserId())
+    public ResponseEntity<UserDto> deleteAvatar(@AuthenticationPrincipal ActorView currentUser) {
+        UUID userId = CurrentUser.id(currentUser);
+        userService.deleteAvatar(userId);
+        User user = userService.getById(userId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
@@ -169,7 +160,7 @@ public class UserController {
      * Also returns 404 for soft-deleted users (consistent with admin endpoint).
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.domain.entities.User) and authentication.principal.userId == #id)")
+    @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.application.ports.input.common.ActorView) and authentication.principal.id == #id)")
     public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
         User user = userService.getById(id)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));

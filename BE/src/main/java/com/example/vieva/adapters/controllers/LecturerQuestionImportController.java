@@ -1,8 +1,7 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.ports.output.ImportReport;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.importing.QuestionImportService;
-import com.example.vieva.domain.entities.User;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -53,10 +52,10 @@ public class LecturerQuestionImportController {
 
     @PostMapping(value = "/subjects/{subjectId}/questions/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
-    public ResponseEntity<ImportReport> importQuestions(@PathVariable UUID subjectId,
+    public ResponseEntity<?> importQuestions(@PathVariable UUID subjectId,
                                                         @RequestParam("file") MultipartFile file,
                                                         @RequestParam(defaultValue = "true") boolean dryRun,
-                                                        @AuthenticationPrincipal User currentUser) {
+                                                        @AuthenticationPrincipal ActorView currentUser) {
         UUID userId = CurrentUser.id(currentUser);
         if (file == null || file.isEmpty()) {
             throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");

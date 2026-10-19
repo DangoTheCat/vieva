@@ -7,8 +7,8 @@ import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.application.ports.input.AssignLecturerRequest;
 import com.example.vieva.application.ports.input.access.SubjectHeadService;
 import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.domain.entities.LecturerSubject;
-import com.example.vieva.domain.entities.User;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import jakarta.validation.Valid;
@@ -38,14 +38,14 @@ public class AdminLecturerSubjectController {
     @PutMapping("/by-subject/{subjectId}/head")
     public java.util.Map<String,UUID> assignHead(@PathVariable UUID subjectId,
                                                 @Valid @RequestBody AssignHeadRequest request,
-                                                @AuthenticationPrincipal User admin) {
+                                                @AuthenticationPrincipal ActorView admin) {
         heads.assign(subjectId,request.lecturerId(),CurrentUser.id(admin));
         return java.util.Map.of("subjectId",subjectId,"headLecturerId",request.lecturerId());
     }
 
     @PostMapping
     public ResponseEntity<List<LecturerSubjectDto>> assignLecturers(
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody AssignLecturerApiRequest apiRequest) {
 
         UUID adminId = resolveAdminId(currentAdmin);
@@ -62,7 +62,7 @@ public class AdminLecturerSubjectController {
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> revokeAssignment(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin) {
+            @AuthenticationPrincipal ActorView currentAdmin) {
 
         UUID adminId = resolveAdminId(currentAdmin);
         lecturerSubjectService.revokeAssignment(id, adminId);
@@ -81,10 +81,7 @@ public class AdminLecturerSubjectController {
         return ResponseEntity.ok(presenter.toDtoList(assignments));
     }
 
-    private UUID resolveAdminId(User currentAdmin) {
-        if (currentAdmin == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
-        return currentAdmin.getUserId();
+    private UUID resolveAdminId(ActorView currentAdmin) {
+        return CurrentUser.id(currentAdmin);
     }
 }

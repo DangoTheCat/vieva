@@ -14,10 +14,10 @@ import com.example.vieva.application.ports.input.UpdateDraftCommand;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.domain.entities.QuestionStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -84,7 +84,7 @@ public class LecturerQuestionVersionController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> updateDraft(@PathVariable UUID versionId,
                                                           @Valid @RequestBody UpdateDraftRequest request,
-                                                          @AuthenticationPrincipal User currentUser) {
+                                                          @AuthenticationPrincipal ActorView currentUser) {
         UpdateDraftCommand command = UpdateDraftCommand.builder()
                 .topicId(request.topicId())
                 .content(request.content())
@@ -101,7 +101,7 @@ public class LecturerQuestionVersionController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> confirmBloom(@PathVariable UUID versionId,
                                                            @Valid @RequestBody ConfirmBloomRequest request,
-                                                           @AuthenticationPrincipal User currentUser) {
+                                                           @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toDto(authoringService.confirmBloom(versionId, request.bloomLevel(),
                 request.expectedVersion(), CurrentUser.id(currentUser))));
     }
@@ -110,7 +110,7 @@ public class LecturerQuestionVersionController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> approve(@PathVariable UUID versionId,
                                                       @RequestBody(required = false) ApproveRequest request,
-                                                      @AuthenticationPrincipal User currentUser) {
+                                                      @AuthenticationPrincipal ActorView currentUser) {
         Long expected = request == null ? null : request.expectedVersion();
         return ResponseEntity.ok(presenter.toDto(reviewService.approve(versionId, expected, CurrentUser.id(currentUser))));
     }
@@ -119,7 +119,7 @@ public class LecturerQuestionVersionController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> reject(@PathVariable UUID versionId,
                                                      @Valid @RequestBody RejectRequest request,
-                                                     @AuthenticationPrincipal User currentUser) {
+                                                     @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toDto(reviewService.reject(versionId, request.reason(),
                 request.expectedVersion(), CurrentUser.id(currentUser))));
     }
@@ -128,7 +128,7 @@ public class LecturerQuestionVersionController {
     @DeleteMapping("/{versionId}")
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<MessageResponse> deleteDraft(@PathVariable UUID versionId,
-                                                       @AuthenticationPrincipal User currentUser) {
+                                                       @AuthenticationPrincipal ActorView currentUser) {
         authoringService.deleteDraft(versionId, CurrentUser.id(currentUser));
         return ResponseEntity.ok(new MessageResponse("Draft deleted"));
     }
@@ -137,7 +137,7 @@ public class LecturerQuestionVersionController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> regenerate(@PathVariable UUID versionId,
                                                          @Valid @RequestBody(required = false) RegenerateRequest request,
-                                                         @AuthenticationPrincipal User currentUser) {
+                                                         @AuthenticationPrincipal ActorView currentUser) {
         String feedback = request == null ? null : request.feedback();
         Long expected = request == null ? null : request.expectedVersion();
         return ResponseEntity.ok(presenter.toDto(generationService.regenerate(versionId, feedback, expected,

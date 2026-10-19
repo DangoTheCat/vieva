@@ -10,6 +10,7 @@ import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
 import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
 import com.example.vieva.application.ports.input.UserSearchCriteria;
 import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
@@ -69,7 +70,7 @@ public class AdminUserController {
 
     @PostMapping
     public ResponseEntity<UserDto> createUser(
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody CreateUserByAdminApiRequest apiRequest) {
 
         UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
@@ -91,7 +92,7 @@ public class AdminUserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody UpdateUserByAdminApiRequest apiRequest) {
 
         UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
@@ -110,7 +111,7 @@ public class AdminUserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> deleteUser(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin) {
+            @AuthenticationPrincipal ActorView currentAdmin) {
 
         UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
         adminUserService.deleteUser(id, currentAdminId);
@@ -120,7 +121,7 @@ public class AdminUserController {
     @PostMapping("/{id}/reset-password")
     public ResponseEntity<MessageResponse> resetPassword(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody com.example.vieva.adapters.controllers.request.AdminResetPasswordApiRequest request) {
 
         UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
@@ -150,10 +151,7 @@ public class AdminUserController {
         return codes.isEmpty() ? null : codes.get(0);
     }
 
-    private UUID resolveCurrentAdminId(User currentAdmin) {
-        if (currentAdmin == null) {
-            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
-        }
-        return currentAdmin.getUserId();
+    private UUID resolveCurrentAdminId(ActorView currentAdmin) {
+        return CurrentUser.id(currentAdmin);
     }
 }

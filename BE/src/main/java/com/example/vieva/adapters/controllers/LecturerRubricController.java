@@ -4,8 +4,8 @@ import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.Cr
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.RubricRequest;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.question.RubricService;
-import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,7 +45,7 @@ public class LecturerRubricController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> replaceRubric(@PathVariable UUID versionId,
                                                             @Valid @RequestBody RubricRequest request,
-                                                            @AuthenticationPrincipal User currentUser) {
+                                                            @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toDto(rubricService.replaceRubric(versionId, request.toInput(),
                 request.expectedVersion(), CurrentUser.id(currentUser))));
     }
@@ -54,7 +54,7 @@ public class LecturerRubricController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestionVersion(#versionId, authentication)")
     public ResponseEntity<QuestionVersionDto> addCriterion(@PathVariable UUID versionId,
                                                            @Valid @RequestBody CriterionRequest request,
-                                                           @AuthenticationPrincipal User currentUser) {
+                                                           @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(presenter.toDto(rubricService.addCriterion(versionId,
                 request.toInput(), request.expectedVersion(), CurrentUser.id(currentUser))));
     }
@@ -64,7 +64,7 @@ public class LecturerRubricController {
     public ResponseEntity<QuestionVersionDto> updateCriterion(@PathVariable UUID versionId,
                                                               @PathVariable UUID criterionId,
                                                               @Valid @RequestBody CriterionRequest request,
-                                                              @AuthenticationPrincipal User currentUser) {
+                                                              @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toDto(rubricService.updateCriterion(versionId, criterionId,
                 request.toInput(), request.expectedVersion(), CurrentUser.id(currentUser))));
     }
@@ -74,7 +74,7 @@ public class LecturerRubricController {
     public ResponseEntity<QuestionVersionDto> deleteCriterion(@PathVariable UUID versionId,
                                                               @PathVariable UUID criterionId,
                                                               @RequestParam(required = false) Long expectedVersion,
-                                                              @AuthenticationPrincipal User currentUser) {
+                                                              @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toDto(rubricService.deleteCriterion(versionId, criterionId,
                 expectedVersion, CurrentUser.id(currentUser))));
     }

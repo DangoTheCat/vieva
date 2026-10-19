@@ -11,9 +11,9 @@ import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
 import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
 import com.example.vieva.application.ports.input.question.QuestionBankService;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.QuestionLifecycleStatus;
-import com.example.vieva.domain.entities.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -48,7 +48,7 @@ public class LecturerQuestionController {
     public ResponseEntity<QuestionVersionDto> createManualQuestion(
             @PathVariable UUID subjectId,
             @Valid @RequestBody CreateManualQuestionRequest request,
-            @AuthenticationPrincipal User currentUser) {
+            @AuthenticationPrincipal ActorView currentUser) {
         CreateManualQuestionCommand command = CreateManualQuestionCommand.builder()
                 .topicId(request.topicId())
                 .content(request.content())
@@ -103,7 +103,7 @@ public class LecturerQuestionController {
     @PostMapping("/questions/{questionId}/versions")
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestion(#questionId, authentication)")
     public ResponseEntity<QuestionVersionDto> createDraftVersion(@PathVariable UUID questionId,
-                                                                 @AuthenticationPrincipal User currentUser) {
+                                                                 @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(presenter.toDto(authoringService.createDraftFromApproved(questionId, CurrentUser.id(currentUser))));
     }
@@ -111,7 +111,7 @@ public class LecturerQuestionController {
     @PostMapping("/questions/{questionId}/archive")
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestion(#questionId, authentication)")
     public ResponseEntity<MessageResponse> archiveQuestion(@PathVariable UUID questionId,
-                                                           @AuthenticationPrincipal User currentUser) {
+                                                           @AuthenticationPrincipal ActorView currentUser) {
         bankService.archive(questionId, CurrentUser.id(currentUser));
         return ResponseEntity.ok(new MessageResponse("Question archived"));
     }

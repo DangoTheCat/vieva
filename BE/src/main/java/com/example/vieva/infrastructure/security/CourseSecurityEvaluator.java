@@ -1,5 +1,6 @@
 package com.example.vieva.infrastructure.security;
 
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionGenerationRequestRepository;
@@ -9,7 +10,6 @@ import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationRequest;
 import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.entities.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -93,8 +93,8 @@ public class CourseSecurityEvaluator {
     }
 
     private static UUID extractUserId(Authentication authentication) {
-        if (authentication.getPrincipal() instanceof User user) {
-            return user.getUserId();
+        if (authentication.getPrincipal() instanceof ActorView actor) {
+            return actor.id();
         }
         return null;
     }

@@ -34,9 +34,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import com.example.vieva.application.ports.input.common.ActorView;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -110,7 +113,11 @@ class LecturerQuestionBankApiTest {
         List<SimpleGrantedAuthority> authorities = java.util.Arrays.stream(roles)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .toList();
-        return authentication(new UsernamePasswordAuthenticationToken(user, null, authorities));
+        Set<String> roleCodes = java.util.Arrays.stream(roles)
+                .map(role -> "ROLE_" + role)
+                .collect(Collectors.toSet());
+        ActorView actor = new ActorView(user.getUserId(), user.getEmail(), roleCodes, false);
+        return authentication(new UsernamePasswordAuthenticationToken(actor, null, authorities));
     }
 
     private QuestionVersionView draftView() {

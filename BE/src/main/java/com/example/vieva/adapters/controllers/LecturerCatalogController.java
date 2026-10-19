@@ -6,7 +6,7 @@ import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.adapters.presenters.SubjectDto;
 import com.example.vieva.adapters.presenters.SubjectPresenter;
 import com.example.vieva.application.ports.input.catalog.LecturerCatalogService;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.ports.input.common.ActorView;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,7 +36,7 @@ public class LecturerCatalogController {
     private final QuestionBankPresenter presenter;
 
     @GetMapping("/subjects")
-    public ResponseEntity<List<SubjectDto>> listAssignedSubjects(@AuthenticationPrincipal User currentUser) {
+    public ResponseEntity<List<SubjectDto>> listAssignedSubjects(@AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(subjectPresenter.toDtoList(catalogService.listAssignedSubjects(CurrentUser.id(currentUser))));
     }
 
@@ -50,7 +50,7 @@ public class LecturerCatalogController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
     public ResponseEntity<TopicDto> createTopic(@PathVariable UUID subjectId,
                                                 @Valid @RequestBody CreateTopicRequest request,
-                                                @AuthenticationPrincipal User currentUser) {
+                                                @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(presenter.toTopic(
                 catalogService.createTopic(subjectId, request.name(), request.description(), CurrentUser.id(currentUser))));
     }

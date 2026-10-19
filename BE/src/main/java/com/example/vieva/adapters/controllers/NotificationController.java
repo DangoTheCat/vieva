@@ -1,5 +1,6 @@
 package com.example.vieva.adapters.controllers;
 
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.notification.NotificationService;
 import com.example.vieva.application.ports.output.PagedResult;
 import com.example.vieva.domain.entities.Notification;
@@ -25,12 +26,12 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    public Map<String,Long> unread(@AuthenticationPrincipal User user) {
+    public Map<String,Long> unread(@AuthenticationPrincipal ActorView user) {
         return Map.of("count", notifications.unreadCount(CurrentUser.id(user)));
     }
 
     @PatchMapping("/{id}/read")
-    public void read(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+    public void read(@PathVariable UUID id, @AuthenticationPrincipal ActorView user) {
         notifications.markRead(id, CurrentUser.id(user));
     }
 }

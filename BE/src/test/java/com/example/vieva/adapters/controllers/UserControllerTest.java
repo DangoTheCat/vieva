@@ -33,6 +33,8 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import com.example.vieva.application.ports.input.common.ActorView;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 
@@ -65,6 +67,7 @@ class UserControllerTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private User authenticatedUser;
+    private ActorView authenticatedActor;
 
     @BeforeEach
     void setUp() {
@@ -74,12 +77,18 @@ class UserControllerTest {
                 .email("student@vieva.edu.vn")
                 .fullName("Nguyen Van A")
                 .build();
+        authenticatedActor = new ActorView(
+                authenticatedUser.getUserId(),
+                authenticatedUser.getEmail(),
+                Set.of("ROLE_STUDENT"),
+                false);
 
         HandlerMethodArgumentResolver authPrincipalResolver = new HandlerMethodArgumentResolver() {
             @Override
             public boolean supportsParameter(MethodParameter parameter) {
                 return parameter.hasParameterAnnotation(AuthenticationPrincipal.class)
-                        && parameter.getParameterType().equals(User.class);
+                        && (parameter.getParameterType().equals(ActorView.class)
+                            || parameter.getParameterType().equals(User.class));
             }
 
             @Override
@@ -89,6 +98,9 @@ class UserControllerTest {
                                           WebDataBinderFactory binderFactory) {
                 if (webRequest.getHeader("X-Simulate-Anonymous") != null) {
                     return null;
+                }
+                if (parameter.getParameterType().equals(ActorView.class)) {
+                    return authenticatedActor;
                 }
                 return authenticatedUser;
             }
