@@ -40,6 +40,7 @@ export function AdminSubjectPage({ showToast }) {
   const [activeSubjectForAssign, setActiveSubjectForAssign] = useState(null);
   const [selectedLecturerIdToAdd, setSelectedLecturerIdToAdd] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isAssigningHead, setIsAssigningHead] = useState(false);
 
   // Deactivate confirmation
   const [deactivateTarget, setDeactivateTarget] = useState(null);
@@ -229,13 +230,37 @@ export function AdminSubjectPage({ showToast }) {
   };
 
   // Revoke assignment
-  const handleRevokeAssignment = async (assignmentId) => {
+  const handleRevokeAssignment = async (assignmentId, lecturerId) => {
     try {
       await adminSubjectApi.revokeAssignment(assignmentId);
       setAssignments(prev => prev.filter(a => a.lecturerSubjectId !== assignmentId));
+      if (activeSubjectForAssign && activeSubjectForAssign.headLecturerId === lecturerId) {
+        setActiveSubjectForAssign(prev => ({ ...prev, headLecturerId: null }));
+        setSubjects(prev => prev.map(s => s.subjectId === activeSubjectForAssign.subjectId ? { ...s, headLecturerId: null } : s));
+      }
       showToast({ type: 'success', message: 'Đã thu hồi quyền giảng viên phụ trách môn học.' });
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
+    }
+  };
+
+  // Assign Subject Head (Trưởng bộ môn)
+  const handleAssignSubjectHead = async (lecturerId) => {
+    if (!activeSubjectForAssign || !lecturerId) return;
+    setIsAssigningHead(true);
+    try {
+      const res = await adminSubjectApi.assignSubjectHead(activeSubjectForAssign.subjectId, lecturerId);
+      const updatedHeadId = res?.headLecturerId || lecturerId;
+      setActiveSubjectForAssign(prev => (prev ? { ...prev, headLecturerId: updatedHeadId } : null));
+      setSubjects(prev => prev.map(s => s.subjectId === activeSubjectForAssign.subjectId ? { ...s, headLecturerId: updatedHeadId } : s));
+
+      const headLec = lecturers.find(l => l.userId === lecturerId);
+      const lecName = headLec?.fullName || 'giảng viên';
+      showToast({ type: 'success', message: `Đã chỉ định ${lecName} làm Trưởng bộ môn!` });
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsAssigningHead(false);
     }
   };
 
@@ -476,6 +501,7 @@ export function AdminSubjectPage({ showToast }) {
                           const assignedLecturers = subAssignments
                             .map(asg => lecturers.find(l => l.userId === asg.lecturerId))
                             .filter(Boolean);
+                          const headLecturer = lecturers.find(l => l.userId === sub.headLecturerId);
 
                           if (assignedLecturers.length === 0) {
                             return (
@@ -491,35 +517,47 @@ export function AdminSubjectPage({ showToast }) {
                           }
 
                           return (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div className="flex -space-x-2 overflow-hidden py-0.5">
-                                {assignedLecturers.slice(0, 4).map((lec) => (
-                                  <div
-                                    key={lec.userId}
-                                    className="w-7 h-7 rounded-full border-2 border-green-600 bg-pink-100 flex items-center justify-center font-bold text-[10px] text-pink-900 shadow-xs overflow-hidden shrink-0"
-                                    title={`${lec.fullName} (${lec.email})`}
-                                  >
-                                    {(lec.avatarUrl || lec.avatar) ? (
-                                      <img
-                                        src={(lec.avatarUrl || lec.avatar).trim()}
-                                        alt={lec.fullName}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
-                                    ) : (
-                                      lec.fullName ? lec.fullName.charAt(0).toUpperCase() : 'G'
-                                    )}
-                                  </div>
-                                ))}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex -space-x-2 overflow-hidden py-0.5">
+                                  {assignedLecturers.slice(0, 4).map((lec) => (
+                                    <div
+                                      key={lec.userId}
+                                      className="w-7 h-7 rounded-full border-2 border-green-600 bg-pink-100 flex items-center justify-center font-bold text-[10px] text-pink-900 shadow-xs overflow-hidden shrink-0"
+                                      title={`${lec.fullName} (${lec.email})`}
+                                    >
+                                      {(lec.avatarUrl || lec.avatar) ? (
+                                        <img
+                                          src={(lec.avatarUrl || lec.avatar).trim()}
+                                          alt={lec.fullName}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                        />
+                                      ) : (
+                                        lec.fullName ? lec.fullName.charAt(0).toUpperCase() : 'G'
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openAssignModal(sub)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-100 hover:bg-green-200 border-2 border-green-500 font-bold text-xs text-green-900 shadow-[1px_1px_0_#DEB9B5] transition cursor-pointer"
+                                  title="Xem và chỉnh sửa danh sách phân công"
+                                >
+                                  <span>{subAssignments.length} GV</span>
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => openAssignModal(sub)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-100 hover:bg-green-200 border-2 border-green-500 font-bold text-xs text-green-900 shadow-[1px_1px_0_#DEB9B5] transition cursor-pointer"
-                                title="Xem và chỉnh sửa danh sách phân công"
-                              >
-                                <span>{subAssignments.length} GV</span>
-                              </button>
+                              {headLecturer ? (
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-green-600 bg-green-50 text-[11px] text-green-900">
+                                  <span className="font-bold text-green-800">Trưởng BM:</span>
+                                  <span className="font-medium truncate max-w-[140px]">{headLecturer.fullName}</span>
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-stone-500 italic">
+                                  Chưa chỉ định Trưởng môn
+                                </div>
+                              )}
                             </div>
                           );
                         })()}
@@ -712,9 +750,14 @@ export function AdminSubjectPage({ showToast }) {
                 <h2 className="font-heading font-black text-xl text-ink pt-1">
                   {activeSubjectForAssign.subjectCode} — {activeSubjectForAssign.subjectName}
                 </h2>
-                <p className="text-xs text-green-900 leading-relaxed font-normal">
-                  Quyền Course-scoped RLS cho phép giảng viên biên soạn, phê duyệt và giám sát ngân hàng đề thi môn học.
-                </p>
+                <div className="text-xs text-green-900 flex items-center gap-2 flex-wrap">
+                  <span>Quyền Course-scoped RLS cho phép giảng viên biên soạn, phê duyệt và giám sát ngân hàng đề thi môn học.</span>
+                  {activeSubjectForAssign.headLecturerId && (
+                    <span className="px-2 py-0.5 rounded border border-green-600 bg-green-100 font-bold text-[11px] text-green-950">
+                      Trưởng BM: {lecturers.find(l => l.userId === activeSubjectForAssign.headLecturerId)?.fullName || 'Đã phân công'}
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 type="button"
@@ -771,10 +814,13 @@ export function AdminSubjectPage({ showToast }) {
                 <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                   {activeSubjectAssignments.map(asg => {
                     const lecturer = lecturers.find(l => l.userId === asg.lecturerId);
+                    const isHead = activeSubjectForAssign.headLecturerId === asg.lecturerId;
                     return (
                       <div
                         key={asg.lecturerSubjectId}
-                        className="p-3.5 rounded-xl border-2 border-green-500 bg-paper flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_#DEB9B5]"
+                        className={`p-3.5 rounded-xl border-2 ${
+                          isHead ? 'border-green-600 bg-green-50/70' : 'border-green-500 bg-paper'
+                        } flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_#DEB9B5]`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg border-2 border-green-500 bg-green-50 flex items-center justify-center text-green-900 font-bold text-sm shadow-[1px_1px_0_#DEB9B5] overflow-hidden shrink-0">
@@ -789,9 +835,15 @@ export function AdminSubjectPage({ showToast }) {
                               <span className="font-bold text-xs sm:text-sm text-ink">
                                 {lecturer?.fullName || 'Giảng viên'}
                               </span>
-                              <span className="font-bold text-[10px] text-green-800 bg-green-100 px-2 py-0.5 rounded border border-green-400">
-                                Giảng viên
-                              </span>
+                              {isHead ? (
+                                <span className="font-mono font-bold text-[10px] tracking-wider uppercase px-2 py-0.5 rounded border border-green-700 bg-green-200/90 text-green-950 shadow-xs">
+                                  Trưởng bộ môn
+                                </span>
+                              ) : (
+                                <span className="font-bold text-[10px] text-green-800 bg-green-100 px-2 py-0.5 rounded border border-green-400">
+                                  Giảng viên
+                                </span>
+                              )}
                             </div>
                             <span className="font-mono text-green-800 text-xs">
                               {lecturer?.email || asg.lecturerId}
@@ -800,9 +852,25 @@ export function AdminSubjectPage({ showToast }) {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          {isHead ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg border-2 border-green-700 bg-green-200/80 font-bold text-xs text-green-950 shadow-[1px_1px_0_#819266]">
+                              Đang là Trưởng môn
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleAssignSubjectHead(asg.lecturerId)}
+                              disabled={isAssigningHead}
+                              className="px-2.5 py-1 rounded-lg border-2 border-green-600 bg-paper text-green-900 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer disabled:opacity-50"
+                              title="Chỉ định giảng viên này làm Trưởng bộ môn"
+                            >
+                              Chỉ định Trưởng môn
+                            </button>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => handleRevokeAssignment(asg.lecturerSubjectId)}
+                            onClick={() => handleRevokeAssignment(asg.lecturerSubjectId, asg.lecturerId)}
                             className="p-1.5 rounded-lg border-2 border-green-500 bg-paper text-pink-700 hover:bg-pink-100 shadow-[2px_2px_0_#DEB9B5] transition-all cursor-pointer"
                             title="Gỡ quyền phụ trách môn"
                           >
