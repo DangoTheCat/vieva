@@ -1,5 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
+import com.example.vieva.adapters.controllers.LecturerStudioController;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.*;
 import com.example.vieva.application.ports.output.ImportReport;
 import com.example.vieva.application.ports.output.PagedResult;
@@ -740,6 +741,139 @@ class JsonContractSnapshotTest {
                 """;
 
         String actualJson = objectMapper.writeValueAsString(report);
+        JSONAssert.assertEquals(expectedJson, actualJson, JSONCompareMode.STRICT);
+    }
+
+    @Test
+    @DisplayName("Snapshot: LecturerStudioController.Preview JSON contract")
+    void snapshotStudioPreview() throws Exception {
+        QuestionVersionDto version = sampleQuestionVersionDto();
+        LecturerStudioController.Preview preview = new LecturerStudioController.Preview(
+                version,
+                BloomLevel.UNDERSTAND,
+                version.rubric()
+        );
+
+        String versionJson = sampleQuestionVersionJson();
+        String rubricJson = """
+                {
+                  "rubricId": "00000000-0000-0000-0000-000000000004",
+                  "name": "Standard Rubric",
+                  "description": "Rubric description",
+                  "totalScore": 10.0,
+                  "criteria": [
+                    {
+                      "criterionId": "00000000-0000-0000-0000-000000000005",
+                      "name": "Criterion 1",
+                      "description": "Criterion description",
+                      "maxScore": 5.0,
+                      "levels": [
+                        {
+                          "label": "Good",
+                          "description": "Good quality",
+                          "score": 5.0
+                        }
+                      ],
+                      "orderIndex": 1
+                    }
+                  ]
+                }
+                """;
+        String expectedJson = """
+                {
+                  "question": %s,
+                  "difficulty": "UNDERSTAND",
+                  "rubricJson": %s
+                }
+                """.formatted(versionJson, rubricJson);
+
+        String actualJson = objectMapper.writeValueAsString(preview);
+        JSONAssert.assertEquals(expectedJson, actualJson, JSONCompareMode.STRICT);
+    }
+
+    @Test
+    @DisplayName("Snapshot: PageResponse<QuestionBankItemDto> JSON contract")
+    void snapshotPageResponseQuestionBankItemDto() throws Exception {
+        QuestionBankItemDto item = QuestionBankItemDto.builder()
+                .questionId(U1)
+                .questionCode("CS101-Q01")
+                .subjectId(U2)
+                .topicId(U3)
+                .topicName("Topic 1")
+                .status(QuestionLifecycleStatus.ACTIVE)
+                .hasPendingDraft(false)
+                .currentVersion(sampleQuestionVersionDto())
+                .createdAt(T1)
+                .updatedAt(T2)
+                .build();
+
+        PageResponse<QuestionBankItemDto> page = PageResponse.<QuestionBankItemDto>builder()
+                .content(List.of(item))
+                .page(0)
+                .size(20)
+                .totalElements(1L)
+                .totalPages(1)
+                .isFirst(true)
+                .isLast(true)
+                .build();
+
+        String itemJson = """
+                {
+                  "questionId": "00000000-0000-0000-0000-000000000001",
+                  "questionCode": "CS101-Q01",
+                  "subjectId": "00000000-0000-0000-0000-000000000002",
+                  "topicId": "00000000-0000-0000-0000-000000000003",
+                  "topicName": "Topic 1",
+                  "status": "ACTIVE",
+                  "hasPendingDraft": false,
+                  "currentVersion": %s,
+                  "createdAt": "2026-10-20T10:15:30Z",
+                  "updatedAt": "2026-10-20T11:20:00Z"
+                }
+                """.formatted(sampleQuestionVersionJson());
+
+        String expectedJson = """
+                {
+                  "content": [%s],
+                  "page": 0,
+                  "size": 20,
+                  "totalElements": 1,
+                  "totalPages": 1,
+                  "first": true,
+                  "last": true
+                }
+                """.formatted(itemJson);
+
+        String actualJson = objectMapper.writeValueAsString(page);
+        JSONAssert.assertEquals(expectedJson, actualJson, JSONCompareMode.STRICT);
+    }
+
+    @Test
+    @DisplayName("Snapshot: PageResponse<QuestionVersionDto> JSON contract")
+    void snapshotPageResponseQuestionVersionDto() throws Exception {
+        PageResponse<QuestionVersionDto> page = PageResponse.<QuestionVersionDto>builder()
+                .content(List.of(sampleQuestionVersionDto()))
+                .page(0)
+                .size(20)
+                .totalElements(1L)
+                .totalPages(1)
+                .isFirst(true)
+                .isLast(true)
+                .build();
+
+        String expectedJson = """
+                {
+                  "content": [%s],
+                  "page": 0,
+                  "size": 20,
+                  "totalElements": 1,
+                  "totalPages": 1,
+                  "first": true,
+                  "last": true
+                }
+                """.formatted(sampleQuestionVersionJson());
+
+        String actualJson = objectMapper.writeValueAsString(page);
         JSONAssert.assertEquals(expectedJson, actualJson, JSONCompareMode.STRICT);
     }
 }
