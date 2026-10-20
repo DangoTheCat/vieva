@@ -46,6 +46,10 @@ Bảng phụ thuộc cho phép (hàng = lớp gọi, cột = lớp bị gọi):
 4. Gateway chỉ map dữ liệu, không gọi luật nghiệp vụ của domain.
 5. Domain không có setter public; đổi trạng thái chỉ qua method nghiệp vụ.
 
+### Quy tắc ranh giới Aggregate (ports/output) và View (ports/input)
+- **Aggregate (`ports/output/`)**: ví dụ `QuestionVersionAggregate` gom các domain entity (`Question`, `QuestionVersion`, `Topic`, `Rubric`, `RubricCriterion`, `QuestionSource`), chỉ dùng trong nội bộ tầng `application` và `infrastructure/database` (như gateway, repository query, view assembler). Tuyệt đối cấm `adapters` chạm tới `Aggregate`.
+- **View / Result (`ports/input/`)**: các response model thuần Java / record, độc lập hoàn toàn với `domain` (ví dụ `QuestionVersionView` chứa `QuestionResult`, `TopicResult`, `QuestionVersionResult`, `RubricResult`, `RubricCriterionResult`, `QuestionSourceResult`). Use cases dùng mapper (ví dụ `QuestionViewMapper`) để chuyển đổi từ Aggregate/Entity sang View/Result trước khi trả ra cho `adapters` (controller, presenter).
+
 ## 2. Hiện trạng: danh sách vi phạm
 
 | Mã | Vi phạm | Bằng chứng |
@@ -133,13 +137,17 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - **Commit 4:** User & Auth use cases trả application models (`UserResult`, `AuthResult` trong `ports/input/user` và `ports/input/auth`). Request models (`CreateUserByAdminRequest`, `UpdateUserByAdminRequest`, `UserSearchCriteria`, `ChangePasswordRequest`, `UpdateProfileRequest`, `LoginRequest`, `RegisterRequest`) chuyển vào `ports/input/*` với `String` status dùng helper `EnumValues`. `UserPresenter` loại bỏ phụ thuộc entity; `AdminUserController` và `UserController` map kết quả trang qua `PageResponse.from(...)`.
 - **Commit 5:** Catalog & Notification use cases trả application models (`TopicResult` trong `ports/input/catalog`, `NotificationView` trong `ports/input/notification`). `NotificationController` và `LecturerCatalogController` không còn phụ thuộc domain entities; `QuestionBankPresenter.toTopic` nhận `TopicResult`. Giảm mạnh số vi phạm trong `archunit_store`.
 
-#### Giai đoạn 4B — Question Bank, Document, Import, Rubric & PageResult [CHƯA THỰC HIỆN]
-- Request model: thay field enum domain trong question bank và document bằng `String`.
-- Response model mới: `CourseDocumentResult`.
-- Chuyển `QuestionDetailView`, `QuestionVersionView`, `QuestionBankItemView`, `ImportReport`, `GenerationResult`, `DocumentPreview` sang `ports/input`; bỏ kiểu domain bên trong.
-- Chuẩn hóa phân trang: `PagedResult` thành `ports/input/common/PageResult`.
-- Gỡ freeze và bật hoàn toàn luật R3 cho `adapters`.
-- Xong khi: adapters không import `domain`; test controller và presenter xanh với JSON cũ.
+#### Giai đoạn 4B — Question Bank, Document, Import, Rubric & PageResult [ĐÃ HOÀN THÀNH - 20/10/2026]
+- **Commit 1:** `test(be): snapshot remaining question and studio contracts` — Chụp snapshot hợp đồng JSON còn thiếu (`LecturerStudioController.Preview`, `PageResponse<QuestionBankItemDto>`, `PageResponse<QuestionVersionDto>`), kiểm tra enum validation query param và body.
+- **Commit 2:** `refactor(be): move entity-to-result mapping out of input ports` — Bỏ các hàm static `from(Entity)` khỏi `SubjectResult`, `UserResult`, `TopicResult`, `LecturerSubjectResult`, `NotificationView`, chuyển sang mappers trong `usecases/*`, thu gọn `ErrorTranslator`.
+- **Commit 3:** `refactor(be): move PagedResult to input ports as PageResult` — Đổi tên và chuyển `PagedResult` sang `ports/input/common/PageResult`, giữ nguyên cấu trúc class Lombok (`isFirst`, `isLast`).
+- **Commit 4:** `refactor(be): document use cases return application models` — Tạo `CourseDocumentResult`, chuyển `DocumentPreview` sang `ports/input/document`, dùng `String` status, `DocumentPresenter` độc lập với domain.
+- **Commit 5:** `refactor(be): question request models without domain types` — Chuyển `CreateManualQuestionCommand`, `CriterionInput`, `GenerateQuestionsCommand`, `QuestionBankSearchCriteria`, `QuestionVersionSearchCriteria`, `UpdateDraftCommand` vào `ports/input/*` với các field enum chuyển thành `String` và validate bằng `EnumValues`. `Preview` và `GenerateRequest` bỏ kiểu domain.
+- **Commit 6:** `refactor(be): question use cases return domain-free views` — Tách `QuestionVersionAggregate` (trong `ports/output`) và `QuestionVersionView` (trong `ports/input/question` với `QuestionResult`, `TopicResult`, `QuestionVersionResult`, `RubricResult`, `RubricCriterionResult`, `QuestionSourceResult`), `QuestionDetailView`, `QuestionBankItemView`, `GenerationResult`, `QuestionViewMapper`. `QuestionBankDtos` và `QuestionBankPresenter` sạch hoàn toàn domain.
+- **Commit 7:** `refactor(be): import report as application model` — Chuyển `ImportReport` sang `ports/input/importing/ImportReport`, `LecturerQuestionImportController.importQuestions` trả `ResponseEntity<ImportReport>` kiểu chặt chẽ.
+- **Commit 8:** `test(be): enforce adapter and input port boundaries without freeze` — Gỡ freeze luật R3 (`adaptersUseInputPortsOnly`), xóa store file của R3, thêm luật R9 (`inputPortsDoNotDependOnDomain`) chạy không freeze.
+- **Commit 9:** `docs(be): update clean architecture plan after phase 4B` — Cập nhật tài liệu kế hoạch, quy tắc Aggregate vs View, và luật R9.
+- Xong khi: `adapters` và `ports/input` không import `domain`; test controller và presenter xanh tuyệt đối với JSON contract snapshot cũ.
 
 ### Giai đoạn 5 — Infrastructure chỉ vào qua input port (V5, V6 còn lại)
 - Input port `CourseAccessQuery` (`canAccessSubject`, `canAccessDocument`, `canAccessQuestion`, `canAccessVersion`, `canAccessGenerationRequest`), implement trong `usecases/access`, dùng lại `SubjectAccessGuard`. `CourseSecurityEvaluator` chỉ lấy id và role từ `Authentication` rồi gọi port.
@@ -226,6 +234,12 @@ class ArchitectureTest {
                                     && (javaClass.getSimpleName().endsWith("Repository") || javaClass.getSimpleName().endsWith("Port"));
                         }
                     });
+
+    // R9: input ports không phụ thuộc vào domain
+    @ArchTest
+    static final ArchRule inputPortsDoNotDependOnDomain = noClasses()
+            .that().resideInAPackage("com.example.vieva.application.ports.input..")
+            .should().dependOnClassesThat().resideInAPackage("com.example.vieva.domain..");
 }
 ```
 
