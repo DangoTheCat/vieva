@@ -1,5 +1,6 @@
 package com.example.vieva.infrastructure.configuration;
 
+import com.example.vieva.application.usecases.access.CourseAccessQueryImpl;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.application.usecases.access.SubjectHeadServiceImpl;
@@ -31,6 +32,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
         ErrorTranslatorImpl.class,
+        CourseAccessQueryImpl.class,
         QuestionBankAuditor.class,
         SubjectAccessGuard.class,
         SubjectHeadServiceImpl.class,
