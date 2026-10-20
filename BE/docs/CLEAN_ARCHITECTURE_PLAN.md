@@ -149,13 +149,16 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - **Commit 9:** `docs(be): update clean architecture plan after phase 4B` — Cập nhật tài liệu kế hoạch, quy tắc Aggregate vs View, và luật R9.
 - Xong khi: `adapters` và `ports/input` không import `domain`; test controller và presenter xanh tuyệt đối với JSON contract snapshot cũ.
 
-### Giai đoạn 5 — Infrastructure chỉ vào qua input port (V5, V6 còn lại)
-- Input port `CourseAccessQuery` (`canAccessSubject`, `canAccessDocument`, `canAccessQuestion`, `canAccessVersion`, `canAccessGenerationRequest`), implement trong `usecases/access`, dùng lại `SubjectAccessGuard`. `CourseSecurityEvaluator` chỉ lấy id và role từ `Authentication` rồi gọi port.
-- Input port `DocumentIndexingUseCase`, `DocumentCleanupUseCase` cho worker và scheduler (DocumentService đang tạm chứa method cho worker và scheduler, cần tách ra).
-- Chuyển `DocumentUploadedEvent`, `AccountCreatedEvent` sang `ports/output/event`.
-- Xóa `DataInitializer`: role đã được seed bởi `V10__seed_initial_data.sql` và chỉnh ở `V14`. Trước khi xóa, kiểm tra profile test cũng chạy Flyway.
-- `QuestionGenerationPrompt` mang bloom level dạng `String` + mô tả; `QuestionPromptBuilder` bỏ import domain. Mock gateway thay `QuestionSimilarity` bằng hàm tách từ nội bộ.
-- Xong khi: trong infrastructure chỉ `database/` và `configuration/` import domain.
+### Giai đoạn 5 — Infrastructure chỉ vào qua input port (V5, V6 còn lại) [ĐÃ HOÀN THÀNH - 20/10/2026]
+- **Commit 1:** `fix(be): validate enum input before loading state and test real use cases` — Validate enum đầu vào trước khi load state; chuẩn hóa nguyên tắc kiểm thử: mock không được tự chạy logic nghiệp vụ (`thenAnswer`), phải test use case thật với output ports được mock.
+- **Commit 2:** `refactor(be): move application events to output ports` — Chuyển `DocumentUploadedEvent`, `AccountCreatedEvent` sang `application/ports/output/event/`.
+- **Commit 3:** `refactor(be): dedicated input ports for document indexing and cleanup` — Tạo các input port chuyên biệt `DocumentIndexingUseCase`, `DocumentCleanupUseCase` cho worker và scheduler; `DocumentService` không còn chứa method riêng của background task.
+- **Commit 4:** `refactor(be): route course access checks through an input port` — Tạo input port `CourseAccessQuery` và `CourseAccessQueryImpl`; `CourseSecurityEvaluator` uỷ quyền toàn bộ kiểm tra quyền qua port, loại bỏ hoàn toàn phụ thuộc domain và output repository.
+- **Commit 5:** `test(be): snapshot LLM prompt and mock gateway outputs` — Snapshot cố định kết quả đầu ra của `QuestionPromptBuilder`, `MockQuestionGenerationGateway`, `MockEmbeddingGateway` (`AiPromptAndGatewaySnapshotTest`) để bảo vệ an toàn hành vi trước khi refactor.
+- **Commit 6:** `refactor(be): keep AI gateways free of domain types` — `QuestionGenerationPrompt` chuyển `bloomDistribution` sang `Map<String, Integer>`, `QuestionPromptBuilder` và các mock AI gateways loại bỏ hoàn toàn các phụ thuộc domain (`BloomLevel`, `QuestionSimilarity`), thay thế bằng helper tách từ nội bộ.
+- **Commit 7:** `refactor(be): seed roles through an input port and enforce infrastructure rules` — Dự án KHÔNG dùng Flyway. File migration trong `db/migration` chỉ được `db/init.sh` chạy khi Postgres khởi tạo volume mới (docker-compose và Testcontainers). Kế hoạch ban đầu ghi "Flyway" là sai. Do đó `DataInitializer` được giữ lại và uỷ quyền khởi tạo role qua input port `EnsureDefaultRolesUseCase` (`EnsureDefaultRolesUseCaseImpl`), loại bỏ trực tiếp `RoleRepository` và domain `Role`. Gỡ bỏ hoàn toàn `FreezingArchRule` cho R4 (`infraDoesNotCallInteractors`) và R5 (`onlyDbGatewaysTouchDomain`), xóa các file violation store tương ứng. Cả hai luật R4 và R5 hiện được thực thi nghiêm ngặt 100% không freeze.
+- **Commit 8:** `docs(be): update clean architecture plan after phase 5` — Cập nhật tài liệu tiến độ, làm rõ thiết kế khởi tạo role, nguyên tắc kiểm thử không dùng logic trong mock, và trạng thái unfrozen của R4/R5.
+- Xong khi: trong infrastructure chỉ `database/` và `configuration/` import domain; R4 và R5 chạy không freeze và xanh 100%.
 
 ### Giai đoạn 6 — Đóng gói entity (V8)
 - Bỏ `@Setter`, `@Data` ở 15 entity; giữ `@Getter`, `@Builder`.
@@ -264,3 +267,8 @@ class ArchitectureTest {
   - Không đổi sang hậu tố `*UseCase`.
   - Class đang bị controller dùng trực tiếp được tách theo cùng kiểu: tên cũ thành interface, class implement thêm hậu tố `Impl`. Cụ thể `DocumentService` + `DocumentServiceImpl`, `QuestionGenCoordinator` + `QuestionGenCoordinatorImpl`. Controller giữ nguyên kiểu đang inject.
   - Input port mới cho infrastructure giữ tên mô tả việc làm: `CourseAccessQuery`, `ResolveActorUseCase`, `DocumentIndexingUseCase`, `DocumentCleanupUseCase`, `ErrorTranslator`.
+
+## 8. Quy tắc kiểm thử
+
+- **Mock không được tự chạy lại logic nghiệp vụ**: Trong test (đặc biệt là contract test và slice test), tuyệt đối không dùng `lenient().when(...).thenAnswer(...)` để tự parse enum, validate tham số hay tái hiện logic nghiệp vụ trong mock. Muốn kiểm tra logic thì phải dùng use case/service thật với các output port được mock (như cách làm ở `EnumValidationContractTest` với `SubjectServiceImpl`, `QuestionBankServiceImpl`, `QuestionReviewServiceImpl`, `QuestionGenCoordinatorImpl`).
+
