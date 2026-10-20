@@ -14,8 +14,7 @@ import java.util.UUID;
  * (Copy-on-Write) so the approved content stays untouched for reference.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuestionVersion {

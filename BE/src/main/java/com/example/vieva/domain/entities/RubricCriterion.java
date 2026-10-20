@@ -14,8 +14,7 @@ import java.util.UUID;
  * Tiêu chí chấm điểm: tên, mô tả mức đạt, điểm tối đa và (tuỳ chọn) các mức đạt chi tiết.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class RubricCriterion {

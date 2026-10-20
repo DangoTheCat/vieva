@@ -12,8 +12,7 @@ import java.util.UUID;
  * Lifecycle: UPLOADED → INDEXING → READY | FAILED; FAILED → UPLOADED via a bounded retry.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class CourseDocument {

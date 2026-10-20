@@ -85,7 +85,7 @@ class BloomAndRubricTest {
         assertThat(rubric.getTotalPoints()).isEqualByComparingTo("10");
         assertThat(rubric.totalMatches(criteria)).isTrue();
 
-        rubric.setTotalPoints(new BigDecimal("12"));
+        rubric = rubric.toBuilder().totalPoints(new BigDecimal("12")).build();
         assertThat(rubric.totalMatches(criteria)).isFalse();
         assertThat(rubric.totalMatches(List.of())).isFalse();
     }

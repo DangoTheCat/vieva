@@ -9,7 +9,6 @@ import java.util.UUID;
  * Các đoạn chunk văn bản phục vụ truy hồi ngữ cảnh semantic search.
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor

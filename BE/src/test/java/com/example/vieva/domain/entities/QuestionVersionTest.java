@@ -135,8 +135,7 @@ class QuestionVersionTest {
 
         @Test
         void staleLockTokenIsRejected() {
-            QuestionVersion version = draft(QuestionGenerationMode.MANUAL);
-            version.setVersion(3L);
+            QuestionVersion version = draft(QuestionGenerationMode.MANUAL).toBuilder().version(3L).build();
             version.ensureVersionMatches(null);
             version.ensureVersionMatches(3L);
             assertCode(() -> version.ensureVersionMatches(2L), DomainErrorCode.CONCURRENT_MODIFICATION);
@@ -150,7 +149,7 @@ class QuestionVersionTest {
         void copiesApprovedVersionIntoNewDraft() {
             QuestionVersion approved = draft(QuestionGenerationMode.AI_RAG);
             approved.confirmBloom(BloomLevel.ANALYZE);
-            approved.setGenerationRequestId(UUID.randomUUID());
+            approved.linkGenerationRequest(UUID.randomUUID());
             approved.submitForReview();
             approved.approve(reviewer);
 

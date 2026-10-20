@@ -9,8 +9,7 @@ import java.util.UUID;
  * Chủ đề kiến thức thuộc một môn học cụ thể.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Topic {

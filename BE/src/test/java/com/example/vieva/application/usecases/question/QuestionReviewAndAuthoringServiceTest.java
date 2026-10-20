@@ -124,9 +124,8 @@ class QuestionReviewAndAuthoringServiceTest {
 
     private QuestionVersion storeDraft(QuestionGenerationMode mode, boolean bloomConfirmed) {
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Giải thích ACID?", "ACID là...",
-                BloomLevel.UNDERSTAND, mode, lecturer);
-        version.setBloomConfirmed(bloomConfirmed);
-        version.setVersion(0L);
+                BloomLevel.UNDERSTAND, mode, lecturer)
+                .toBuilder().bloomConfirmed(bloomConfirmed).version(0L).build();
         versions.put(version.getQuestionVersionId(), version);
         Rubric rubric = Rubric.create(version.getQuestionVersionId(), null, null);
         List<RubricCriterion> criteria = List.of(

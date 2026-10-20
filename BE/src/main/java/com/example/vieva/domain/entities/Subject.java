@@ -12,8 +12,7 @@ import java.util.UUID;
  * Rich Domain Entity encapsulating subject lifecycle and modification invariants.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Subject {

@@ -285,12 +285,13 @@ class QuestionGenerationServiceImplTest {
     @Test
     @DisplayName("BR-07: documents must be READY and of the same subject")
     void documentChecks() {
-        document.setIndexingStatus(DocumentStatus.INDEXING);
+        CourseDocument indexingDoc = document.toBuilder().indexingStatus(DocumentStatus.INDEXING).build();
+        when(documentRepository.findAllByIds(anyCollection())).thenReturn(List.of(indexingDoc));
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
                 .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_READY);
 
-        document.setIndexingStatus(DocumentStatus.READY);
-        document.setSubjectId(UUID.randomUUID());
+        CourseDocument mismatchDoc = document.toBuilder().indexingStatus(DocumentStatus.READY).subjectId(UUID.randomUUID()).build();
+        when(documentRepository.findAllByIds(anyCollection())).thenReturn(List.of(mismatchDoc));
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
                 .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_SUBJECT_MISMATCH);
         verify(llm, never()).generate(any());
@@ -335,9 +336,8 @@ class QuestionGenerationServiceImplTest {
         Question question = Question.newDraftOwner(subjectId, null, lecturer);
         when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
         QuestionVersion draft = QuestionVersion.newDraft(question.getQuestionId(), 1, "Câu cũ?", "cũ", BloomLevel.APPLY,
-                QuestionGenerationMode.AI_RAG, lecturer);
-        draft.setGenerationRequestId(request.getGenerationRequestId());
-        draft.setVersion(4L);
+                QuestionGenerationMode.AI_RAG, lecturer)
+                .toBuilder().generationRequestId(request.getGenerationRequestId()).version(4L).build();
         versions.put(draft.getQuestionVersionId(), draft);
         when(chunkRepository.findAllByIds(anyCollection())).thenReturn(List.of(DocumentChunk.builder()
                 .chunkId(chunk.chunkId()).documentId(document.getDocumentId()).chunkIndex(1).content(chunk.content()).build()));
@@ -368,8 +368,8 @@ class QuestionGenerationServiceImplTest {
         Question question = Question.newDraftOwner(subjectId, null, lecturer);
         when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
         QuestionVersion draft = QuestionVersion.newDraft(question.getQuestionId(), 1, "Câu cũ?", "cũ", BloomLevel.APPLY,
-                QuestionGenerationMode.AI_RAG, lecturer);
-        draft.setGenerationRequestId(request.getGenerationRequestId());
+                QuestionGenerationMode.AI_RAG, lecturer)
+                .toBuilder().generationRequestId(request.getGenerationRequestId()).build();
         versions.put(draft.getQuestionVersionId(), draft);
         when(chunkRepository.findAllByIds(anyCollection())).thenReturn(List.of(DocumentChunk.builder()
                 .chunkId(chunk.chunkId()).documentId(document.getDocumentId()).chunkIndex(1).content(chunk.content()).build()));

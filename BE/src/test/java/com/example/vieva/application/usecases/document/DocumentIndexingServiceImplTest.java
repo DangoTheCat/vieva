@@ -247,8 +247,8 @@ class DocumentIndexingServiceImplTest {
 
     @Test
     void indexingSkipsDocumentsNotUploaded() {
-        CourseDocument document = uploadedDocument();
-        document.setIndexingStatus(DocumentStatus.READY);
+        CourseDocument document = uploadedDocument().toBuilder().indexingStatus(DocumentStatus.READY).build();
+        stored.set(document);
         service.indexDocument(document.getDocumentId());
         verify(storage, never()).load(any());
     }

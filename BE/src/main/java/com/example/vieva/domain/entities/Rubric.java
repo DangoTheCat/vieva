@@ -13,8 +13,7 @@ import java.util.UUID;
  * BR-02: total_points = Σ max_points of the criteria, no extra weighting.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Rubric {

@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -14,12 +13,11 @@ import java.util.UUID;
  * Domain object representing the assignment of a Role to a User.
  *
  * NOTE: equals/hashCode are explicitly based on (userId, roleId) — NOT on assignedAt.
- * Using @Data would generate equals/hashCode from all fields including assignedAt,
+ * Using Lombok data generation would generate equals/hashCode from all fields including assignedAt,
  * which would allow the same role to be added twice (violating the composite PK).
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserRole {

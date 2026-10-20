@@ -84,7 +84,7 @@ class ResolveActorUseCaseTest {
     @Test
     @DisplayName("resolve: returns empty when user is not ACTIVE")
     void resolve_userNotActive_returnsEmpty() {
-        activeUser.setStatus(UserStatus.INACTIVE);
+        activeUser = activeUser.toBuilder().status(UserStatus.INACTIVE).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
 
         Optional<ActorView> result = useCase.resolve(userId, Instant.now());
@@ -96,7 +96,7 @@ class ResolveActorUseCaseTest {
     void resolve_tokenIssuedBeforePasswordChange_returnsEmpty() {
         Instant passwordChangedAt = Instant.now();
         Instant tokenIssuedAt = passwordChangedAt.minus(1, ChronoUnit.HOURS);
-        activeUser.setPasswordChangedAt(passwordChangedAt);
+        activeUser = activeUser.toBuilder().passwordChangedAt(passwordChangedAt).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
 
         Optional<ActorView> result = useCase.resolve(userId, tokenIssuedAt);
@@ -106,7 +106,7 @@ class ResolveActorUseCaseTest {
     @Test
     @DisplayName("resolve: returns empty when password changed but tokenIssuedAt is null")
     void resolve_passwordChangedAndNullTokenIssuedAt_returnsEmpty() {
-        activeUser.setPasswordChangedAt(Instant.now());
+        activeUser = activeUser.toBuilder().passwordChangedAt(Instant.now()).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
 
         Optional<ActorView> result = useCase.resolve(userId, null);
@@ -118,7 +118,7 @@ class ResolveActorUseCaseTest {
     void resolve_tokenIssuedAfterPasswordChange_returnsActorView() {
         Instant passwordChangedAt = Instant.now().minus(1, ChronoUnit.HOURS);
         Instant tokenIssuedAt = Instant.now();
-        activeUser.setPasswordChangedAt(passwordChangedAt);
+        activeUser = activeUser.toBuilder().passwordChangedAt(passwordChangedAt).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
 
         Optional<ActorView> result = useCase.resolve(userId, tokenIssuedAt);

@@ -16,8 +16,7 @@ import java.util.UUID;
  * single draft can later be regenerated from the same context, and bounds the retries.
  */
 @Getter
-@Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuestionGenerationRequest {

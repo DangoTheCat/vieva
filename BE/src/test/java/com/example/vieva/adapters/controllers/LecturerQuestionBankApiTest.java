@@ -126,8 +126,8 @@ class LecturerQuestionBankApiTest {
     private QuestionVersionView draftView() {
         Question question = Question.newDraftOwner(subjectId, null, lecturer.getUserId());
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Trình bày ACID?", "Atomicity...",
-                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId());
-        version.setVersion(0L);
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId())
+                .toBuilder().version(0L).build();
         return QuestionViewMapper.toView(QuestionVersionAggregate.builder().question(question).version(version).criteria(List.of()).sources(List.of()).build());
     }
 
@@ -214,8 +214,8 @@ class LecturerQuestionBankApiTest {
     void approveErrorMapping() throws Exception {
         Question question = Question.newDraftOwner(subjectId, null, lecturer.getUserId());
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Trình bày ACID?", "Atomicity...",
-                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId());
-        version.setVersion(0L);
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId())
+                .toBuilder().version(0L).build();
         UUID versionId = version.getQuestionVersionId();
         when(questionVersionRepository.findById(versionId)).thenReturn(Optional.of(version));
         when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
