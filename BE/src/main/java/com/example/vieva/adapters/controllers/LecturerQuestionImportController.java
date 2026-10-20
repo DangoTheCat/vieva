@@ -1,6 +1,7 @@
 package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.importing.ImportReport;
 import com.example.vieva.application.ports.input.importing.QuestionImportService;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
@@ -52,7 +53,7 @@ public class LecturerQuestionImportController {
 
     @PostMapping(value = "/subjects/{subjectId}/questions/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
-    public ResponseEntity<?> importQuestions(@PathVariable UUID subjectId,
+    public ResponseEntity<ImportReport> importQuestions(@PathVariable UUID subjectId,
                                                         @RequestParam("file") MultipartFile file,
                                                         @RequestParam(defaultValue = "true") boolean dryRun,
                                                         @AuthenticationPrincipal ActorView currentUser) {

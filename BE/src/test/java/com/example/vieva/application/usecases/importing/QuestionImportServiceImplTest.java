@@ -1,8 +1,8 @@
 package com.example.vieva.application.usecases.importing;
 
 import com.example.vieva.application.ports.output.AuditEventRepository;
-import com.example.vieva.application.ports.output.ImportReport;
-import com.example.vieva.application.ports.output.ImportReport.RowError;
+import com.example.vieva.application.ports.input.importing.ImportReport;
+import com.example.vieva.application.ports.input.importing.ImportReport.RowError;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;

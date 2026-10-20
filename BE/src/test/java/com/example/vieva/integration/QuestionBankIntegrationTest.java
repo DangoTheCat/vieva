@@ -10,7 +10,7 @@ import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
 import com.example.vieva.application.ports.output.EmbeddingModelPort;
 import com.example.vieva.application.ports.input.generation.GenerationResult;
-import com.example.vieva.application.ports.output.ImportReport;
+import com.example.vieva.application.ports.input.importing.ImportReport;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.input.question.QuestionVersionView;
 import com.example.vieva.application.ports.input.document.CourseDocumentResult;

@@ -2,7 +2,7 @@ package com.example.vieva.adapters.presenters;
 
 import com.example.vieva.adapters.controllers.LecturerStudioController;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.*;
-import com.example.vieva.application.ports.output.ImportReport;
+import com.example.vieva.application.ports.input.importing.ImportReport;
 import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.domain.entities.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
