@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     public Optional<UserResult> getById(UUID userId) {
         return userRepository.findById(userId)
                 .filter(u -> !u.isDeleted())
-                .map(UserResult::from);
+                .map(UserResults::from);
     }
 
     private User findActiveUser(UUID userId) {
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
 
         user.setUpdatedAt(Instant.now());
         User saved = userRepository.save(user);
-        return UserResult.from(saved);
+        return UserResults.from(saved);
     }
 
     @Override

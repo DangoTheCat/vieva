@@ -128,7 +128,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
             throw new ApplicationException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
         }
 
-        return assignedList.stream().map(LecturerSubjectResult::from).toList();
+        return assignedList.stream().map(LecturerSubjectResults::from).toList();
     }
 
     @Override
@@ -154,7 +154,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     @UseCaseTransaction(readOnly = true)
     public List<LecturerSubjectResult> getLecturersBySubject(UUID subjectId) {
         return lecturerSubjectRepository.findActiveBySubjectId(subjectId).stream()
-                .map(LecturerSubjectResult::from)
+                .map(LecturerSubjectResults::from)
                 .toList();
     }
 
@@ -162,7 +162,7 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     @UseCaseTransaction(readOnly = true)
     public List<LecturerSubjectResult> getSubjectsByLecturer(UUID lecturerId) {
         return lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
-                .map(LecturerSubjectResult::from)
+                .map(LecturerSubjectResults::from)
                 .toList();
     }
 

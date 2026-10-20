@@ -43,7 +43,7 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
                 .toList();
         return subjectRepository.findAllByIds(subjectIds).stream()
                 .sorted(Comparator.comparing(Subject::getSubjectCode, Comparator.nullsLast(String::compareTo)))
-                .map(SubjectResult::from)
+                .map(com.example.vieva.application.usecases.subject.SubjectResults::from)
                 .toList();
     }
 
@@ -54,7 +54,7 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
             throw new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND);
         }
         return topicRepository.findBySubjectId(subjectId).stream()
-                .map(TopicResult::from)
+                .map(TopicResults::from)
                 .toList();
     }
 
@@ -95,6 +95,6 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
         }
         auditor.record(actorId, "TOPIC_CREATED", QuestionBankAuditor.SUBJECT, subjectId,
                 Map.of("topicId", topic.getTopicId(), "topicName", trimmed));
-        return TopicResult.from(topic);
+        return TopicResults.from(topic);
     }
 }

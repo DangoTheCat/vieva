@@ -13,8 +13,7 @@ import java.util.List;
 
 public class ErrorTranslatorImpl implements ErrorTranslator {
 
-    @Override
-    public ErrorView translate(ApplicationException exception) {
+    private ErrorView translate(ApplicationException exception) {
         if (exception instanceof DuplicateKeyException dke) {
             return translateDuplicateKey(dke);
         }
@@ -29,8 +28,7 @@ public class ErrorTranslatorImpl implements ErrorTranslator {
         return new ErrorView(code.getCode(), code.name(), message, category, errors);
     }
 
-    @Override
-    public ErrorView translate(DomainException exception) {
+    private ErrorView translate(DomainException exception) {
         DomainErrorCode dCode = exception.getErrorCode();
         ErrorCode code = ErrorCode.UNCATEGORIZED_EXCEPTION;
         if (dCode != null) {

@@ -26,7 +26,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
         PagedResult<Notification> paged = notificationRepository.findByRecipient(recipientId, page, size);
         List<NotificationView> views = paged.getContent().stream()
-                .map(NotificationView::from)
+                .map(NotificationViews::from)
                 .toList();
         return PagedResult.<NotificationView>builder()
                 .content(views)

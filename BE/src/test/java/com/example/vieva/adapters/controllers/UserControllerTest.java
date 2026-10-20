@@ -299,7 +299,8 @@ class UserControllerTest {
         org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
                 "file", "avatar.png", "image/png", new byte[]{1, 2, 3});
 
-        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(UserResult.from(authenticatedUser)));
+        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(
+                UserResult.builder().userId(authenticatedUser.getUserId()).email(authenticatedUser.getEmail()).build()));
         when(userPresenter.toDto(any())).thenReturn(UserDto.builder()
                 .userId(authenticatedUser.getUserId())
                 .avatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png")
@@ -315,7 +316,8 @@ class UserControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/users/me/avatar: deletes avatar and returns updated UserDto")
     void deleteAvatar_Success() throws Exception {
-        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(UserResult.from(authenticatedUser)));
+        when(userService.getById(authenticatedUser.getUserId())).thenReturn(java.util.Optional.of(
+                UserResult.builder().userId(authenticatedUser.getUserId()).email(authenticatedUser.getEmail()).build()));
         when(userPresenter.toDto(any())).thenReturn(UserDto.builder()
                 .userId(authenticatedUser.getUserId())
                 .avatarUrl(null)

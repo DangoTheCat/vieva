@@ -74,7 +74,7 @@ public class SubjectServiceImpl implements SubjectService {
 
         auditor.record(currentAdminId, "SUBJECT_CREATED", "SUBJECT", saved.getSubjectId(), auditValues);
 
-        return SubjectResult.from(saved);
+        return SubjectResults.from(saved);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class SubjectServiceImpl implements SubjectService {
 
         auditor.record(currentAdminId, "SUBJECT_UPDATED", "SUBJECT", updated.getSubjectId(), auditValues);
 
-        return SubjectResult.from(updated);
+        return SubjectResults.from(updated);
     }
 
     @Override
@@ -115,7 +115,7 @@ public class SubjectServiceImpl implements SubjectService {
     public SubjectResult getSubjectById(UUID subjectId) {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
-        return SubjectResult.from(subject);
+        return SubjectResults.from(subject);
     }
 
     @Override
@@ -126,7 +126,7 @@ public class SubjectServiceImpl implements SubjectService {
         }
         PagedResult<Subject> paged = subjectRepository.findAll(criteria);
         List<SubjectResult> content = paged.getContent().stream()
-                .map(SubjectResult::from)
+                .map(SubjectResults::from)
                 .toList();
         return PagedResult.<SubjectResult>builder()
                 .content(content)

@@ -47,7 +47,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
         PagedResult<User> paged = userRepository.findAll(criteria);
         List<UserResult> content = paged.getContent().stream()
-                .map(UserResult::from)
+                .map(UserResults::from)
                 .toList();
         return PagedResult.<UserResult>builder()
                 .content(content)
@@ -70,7 +70,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
-        return UserResult.from(user);
+        return UserResults.from(user);
     }
 
     @Override
@@ -140,7 +140,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         domainEventPublisher.publishAccountCreated(savedUser.getEmail(), savedUser.getFullName(),
                 roleToAssign.getRoleCode(), temporaryPassword);
 
-        return UserResult.from(savedUser);
+        return UserResults.from(savedUser);
     }
 
     @Override
@@ -213,7 +213,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         auditor.record(currentAdminId, "USER_UPDATED", "USER", updatedUser.getUserId(),
                 Map.of("status", updatedUser.getStatus().name()));
 
-        return UserResult.from(updatedUser);
+        return UserResults.from(updatedUser);
     }
 
     @Override
