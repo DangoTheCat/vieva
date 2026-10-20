@@ -147,8 +147,6 @@ class SubjectServiceImplTest {
                 .status("INVALID_STATUS")
                 .build();
 
-        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
-
         assertThatThrownBy(() -> subjectService.updateSubject(subjectId, request, adminId))
                 .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST)

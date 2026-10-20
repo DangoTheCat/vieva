@@ -75,6 +75,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public UserResult createUser(CreateUserByAdminRequest request, UUID currentAdminId) {
+        UserStatus parsedStatus = EnumValues.parse(UserStatus.class, request.getStatus(), "Malformed request body");
         String email = new Email(request.getEmail()).getValue();
         if (userRepository.existsByEmail(email)) {
             throw new ApplicationException(ErrorCode.USER_EXISTED);
@@ -90,7 +91,6 @@ public class AdminUserServiceImpl implements AdminUserService {
             userCode = "USR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         }
 
-        UserStatus parsedStatus = EnumValues.parse(UserStatus.class, request.getStatus(), "Malformed request body");
         UserStatus status = parsedStatus != null ? parsedStatus : UserStatus.ACTIVE;
         if (status == UserStatus.DELETED) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST);
@@ -145,14 +145,13 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public UserResult updateUser(UUID targetUserId, UpdateUserByAdminRequest request, UUID currentAdminId) {
+        UserStatus targetStatus = EnumValues.parse(UserStatus.class, request.getStatus(), "Malformed request body");
         User user = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
             throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
-
-        UserStatus targetStatus = EnumValues.parse(UserStatus.class, request.getStatus(), "Malformed request body");
 
         // Rule: PUT cannot set status = DELETED
         if (targetStatus == UserStatus.DELETED) {

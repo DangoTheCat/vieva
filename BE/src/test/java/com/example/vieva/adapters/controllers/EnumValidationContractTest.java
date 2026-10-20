@@ -33,22 +33,34 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
-import com.example.vieva.application.usecases.common.EnumValues;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionGenerationMode;
-import com.example.vieva.domain.entities.QuestionLifecycleStatus;
-import com.example.vieva.domain.entities.QuestionStatus;
+import com.example.vieva.application.ports.output.CourseDocumentRepository;
+import com.example.vieva.application.ports.output.DocumentChunkRepository;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
+import com.example.vieva.application.ports.output.QuestionGenerationPort;
+import com.example.vieva.application.ports.output.QuestionGenerationRequestRepository;
+import com.example.vieva.application.ports.output.QuestionRepository;
+import com.example.vieva.application.ports.output.QuestionSourceRepository;
+import com.example.vieva.application.ports.output.QuestionVersionRepository;
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
+import com.example.vieva.application.ports.output.RubricCriterionRepository;
+import com.example.vieva.application.ports.output.RubricRepository;
+import com.example.vieva.application.ports.output.TopicRepository;
+import com.example.vieva.application.ports.output.TransactionRunnerPort;
+import com.example.vieva.application.ports.input.access.SubjectHeadService;
+import com.example.vieva.application.settings.RagSettings;
+import com.example.vieva.application.usecases.access.SubjectAccessGuard;
+import com.example.vieva.application.usecases.generation.QuestionGenCoordinatorImpl;
+import com.example.vieva.application.usecases.question.QuestionAccessLoader;
+import com.example.vieva.application.usecases.question.QuestionAuthoringServiceImpl;
+import com.example.vieva.application.usecases.question.QuestionBankServiceImpl;
+import com.example.vieva.application.usecases.question.QuestionReviewServiceImpl;
+import com.example.vieva.application.usecases.question.ReviewNotifications;
 
 @ExtendWith(MockitoExtension.class)
 class EnumValidationContractTest {
@@ -71,31 +83,43 @@ class EnumValidationContractTest {
         adminSubjectController = new AdminSubjectController(subjectService, subjectPresenter);
 
         DocumentService docService = mock(DocumentService.class);
-        QuestionGenCoordinator ragCoord = mock(QuestionGenCoordinator.class);
-        QuestionReviewService reviews = mock(QuestionReviewService.class);
         QuestionBankPresenter presenter = mock(QuestionBankPresenter.class);
         CourseDocumentPresenter documentPresenter = mock(CourseDocumentPresenter.class);
-        QuestionAuthoringService authoringService = mock(QuestionAuthoringService.class);
-        QuestionBankService bankService = mock(QuestionBankService.class);
 
-        lenient().when(ragCoord.coordinateRAGPipeline(any(), any(), any(), any())).thenAnswer(inv -> {
-            String diff = inv.getArgument(1);
-            EnumValues.parse(BloomLevel.class, diff, "Malformed request body");
-            return null;
-        });
-        lenient().when(bankService.search(any())).thenAnswer(inv -> {
-            QuestionBankSearchCriteria criteria = inv.getArgument(0);
-            EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
-            EnumValues.parse(QuestionLifecycleStatus.class, criteria.status(), "Invalid value for parameter 'status'");
-            return null;
-        });
-        lenient().when(reviews.searchVersions(any())).thenAnswer(inv -> {
-            QuestionVersionSearchCriteria criteria = inv.getArgument(0);
-            EnumValues.parse(QuestionStatus.class, criteria.status(), "Invalid value for parameter 'status'");
-            EnumValues.parse(QuestionGenerationMode.class, criteria.origin(), "Invalid value for parameter 'origin'");
-            EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
-            return null;
-        });
+        QuestionRepository questionRepository = mock(QuestionRepository.class);
+        QuestionVersionRepository questionVersionRepository = mock(QuestionVersionRepository.class);
+        RubricRepository rubricRepository = mock(RubricRepository.class);
+        RubricCriterionRepository rubricCriterionRepository = mock(RubricCriterionRepository.class);
+        QuestionSourceRepository questionSourceRepository = mock(QuestionSourceRepository.class);
+        DocumentChunkRepository documentChunkRepository = mock(DocumentChunkRepository.class);
+        CourseDocumentRepository courseDocumentRepository = mock(CourseDocumentRepository.class);
+        TopicRepository topicRepository = mock(TopicRepository.class);
+        QuestionGenerationRequestRepository genRequestRepository = mock(QuestionGenerationRequestRepository.class);
+        QuestionGenerationPort questionGenerator = mock(QuestionGenerationPort.class);
+        TransactionRunnerPort transactionRunner = mock(TransactionRunnerPort.class);
+        SubjectAccessGuard subjectAccessGuard = mock(SubjectAccessGuard.class);
+        QuestionAccessLoader accessLoader = mock(QuestionAccessLoader.class);
+        QuestionDraftWriter draftWriter = mock(QuestionDraftWriter.class);
+        QuestionVersionViewAssemblerPort viewAssembler = mock(QuestionVersionViewAssemblerPort.class);
+        SubjectHeadService heads = mock(SubjectHeadService.class);
+        ReviewNotifications notifications = mock(ReviewNotifications.class);
+        RagSettings ragSettings = mock(RagSettings.class);
+
+        QuestionBankService bankService = new QuestionBankServiceImpl(
+                questionRepository, questionVersionRepository, accessLoader, viewAssembler, auditor);
+        QuestionReviewService reviews = new QuestionReviewServiceImpl(
+                questionRepository, questionVersionRepository, rubricRepository, rubricCriterionRepository,
+                questionSourceRepository, documentChunkRepository, courseDocumentRepository, accessLoader,
+                viewAssembler, auditor, heads, notifications, draftWriter);
+        QuestionAuthoringService authoringService = new QuestionAuthoringServiceImpl(
+                questionRepository, questionVersionRepository, rubricRepository, rubricCriterionRepository,
+                questionSourceRepository, topicRepository, subjectAccessGuard, accessLoader, draftWriter,
+                viewAssembler, auditor);
+        QuestionGenCoordinator ragCoord = new QuestionGenCoordinatorImpl(
+                genRequestRepository, questionVersionRepository, rubricRepository, rubricCriterionRepository,
+                questionSourceRepository, courseDocumentRepository, documentChunkRepository, subjectRepository,
+                topicRepository, questionGenerator, transactionRunner, subjectAccessGuard, accessLoader,
+                draftWriter, viewAssembler, auditor, ragSettings);
 
         studioController = new LecturerStudioController(docService, ragCoord, reviews, presenter, documentPresenter);
         questionController = new LecturerQuestionController(authoringService, bankService, presenter);
@@ -246,5 +270,25 @@ class EnumValidationContractTest {
                 .andExpect(jsonPath("$.code").value("1006"))
                 .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Invalid value for parameter 'bloomLevel'"));
+    }
+
+    @Test
+    @DisplayName("Invalid bloomLevel and stale expectedVersion in confirmBloom returns HTTP 400 with 'Malformed request body'")
+    void invalidBloomLevelAndStaleExpectedVersionInConfirmBloomReturnsMalformedRequestBody() throws Exception {
+        UUID versionId = UUID.randomUUID();
+        String invalidBody = """
+                {
+                  "bloomLevel": "INVALID_BLOOM",
+                  "expectedVersion": 999
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/lecturer/question-versions/{versionId}/confirm-bloom", versionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("1006"))
+                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Malformed request body"));
     }
 }

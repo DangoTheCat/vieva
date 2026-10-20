@@ -56,16 +56,16 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     @Override
     @UseCaseTransaction
     public QuestionVersionView createManualQuestion(UUID subjectId, CreateManualQuestionCommand command, UUID actorId) {
+        BloomLevel bloomLevel = null;
+        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
+            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
+        }
         subjectAccessGuard.requireManage(actorId, subjectId);
         validateTopic(subjectId, command.topicId());
 
         List<FieldViolation> violations = new ArrayList<>();
         requireText(command.content(), "content", violations);
         requireText(command.expectedAnswer(), "expectedAnswer", violations);
-        BloomLevel bloomLevel = null;
-        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
-            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
-        }
         if (bloomLevel == null) {
             violations.add(FieldViolation.of("bloomLevel", ErrorCode.INVALID_REQUEST, "Bloom level is required"));
         }
@@ -89,6 +89,10 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     @Override
     @UseCaseTransaction
     public QuestionVersionView updateDraft(UUID versionId, UpdateDraftCommand command, UUID actorId) {
+        BloomLevel bloomLevel = null;
+        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
+            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
+        }
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
         Question question = ctx.question();
@@ -116,10 +120,6 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
             question.setUpdatedAt(java.time.Instant.now());
             questionRepository.save(question);
         }
-        BloomLevel bloomLevel = null;
-        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
-            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
-        }
         version.editContent(command.content(), command.expectedAnswer(), bloomLevel, command.bloomConfirmed());
         if (newRubric != null) {
             RubricDraftFactory.replace(versionId, newRubric, rubricRepository, rubricCriterionRepository);
@@ -134,11 +134,11 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     @Override
     @UseCaseTransaction
     public QuestionVersionView confirmBloom(UUID versionId, String bloomLevel, Long expectedVersion, UUID actorId) {
+        BloomLevel parsed = EnumValues.parse(BloomLevel.class, bloomLevel, "Malformed request body");
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
         version.ensureVersionMatches(expectedVersion);
         ctx.question().ensureActive();
-        BloomLevel parsed = EnumValues.parse(BloomLevel.class, bloomLevel, "Malformed request body");
         BloomLevel previous = version.getBloomLevel();
         version.confirmBloom(parsed);
         questionVersionRepository.save(version);

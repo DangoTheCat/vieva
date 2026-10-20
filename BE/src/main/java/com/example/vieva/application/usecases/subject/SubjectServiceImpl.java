@@ -33,6 +33,7 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public SubjectResult createSubject(CreateSubjectRequest request, UUID currentAdminId) {
+        SubjectStatus parsedStatus = EnumValues.parse(SubjectStatus.class, request.getStatus(), "Malformed request body");
         if (request.getSubjectCode() == null || request.getSubjectCode().isBlank()
                 || request.getSubjectName() == null || request.getSubjectName().isBlank()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST);
@@ -43,7 +44,6 @@ public class SubjectServiceImpl implements SubjectService {
             throw new ApplicationException(ErrorCode.SUBJECT_CODE_EXISTED);
         }
 
-        SubjectStatus parsedStatus = EnumValues.parse(SubjectStatus.class, request.getStatus(), "Malformed request body");
         SubjectStatus status = parsedStatus != null ? parsedStatus : SubjectStatus.ACTIVE;
         Integer credits = request.getCredits() != null && request.getCredits() > 0 ? request.getCredits() : 3;
 
@@ -79,10 +79,10 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public SubjectResult updateSubject(UUID subjectId, UpdateSubjectRequest request, UUID currentAdminId) {
+        SubjectStatus parsedStatus = EnumValues.parse(SubjectStatus.class, request.getStatus(), "Malformed request body");
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
 
-        SubjectStatus parsedStatus = EnumValues.parse(SubjectStatus.class, request.getStatus(), "Malformed request body");
         subject.update(request.getSubjectName(), request.getDescription(), request.getCredits(), parsedStatus);
         Subject updated = subjectRepository.save(subject);
 

@@ -449,4 +449,16 @@ class QuestionReviewAndAuthoringServiceTest {
         assertThat(approved).isNotNull();
         assertThat(draft2.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
     }
+
+    @Test
+    void confirmBloomWithInvalidBloomAndStaleExpectedVersionThrowsMalformedRequestBody() {
+        QuestionVersion draft = storeDraft(QuestionGenerationMode.MANUAL, false);
+        assertThatThrownBy(() -> authoringService.confirmBloom(draft.getQuestionVersionId(), "INVALID_BLOOM", 999L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> {
+                    ApplicationException ae = (ApplicationException) e;
+                    assertThat(ae.getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST);
+                    assertThat(ae.getMessage()).isEqualTo("Malformed request body");
+                });
+    }
 }
