@@ -1,5 +1,3 @@
 #
 #Mon Oct 19 20:03:50 ICT 2026
-no\ classes\ that\ reside\ in\ a\ package\ 'com.example.vieva.infrastructure..'\ and\ reside\ outside\ of\ package\ 'com.example.vieva.infrastructure.configuration..'\ should\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['com.example.vieva.application.usecases..',\ 'com.example.vieva.adapters..']=dc99451c-f686-462f-a50b-8d4567ff489b
-no\ classes\ that\ reside\ in\ a\ package\ 'com.example.vieva.infrastructure..'\ and\ reside\ outside\ of\ packages\ ['com.example.vieva.infrastructure.configuration..',\ 'com.example.vieva.infrastructure.database..']\ should\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['com.example.vieva.domain..']=6da6854c-4eb1-4093-bef5-dc01520bb38e
 no\ methods\ that\ are\ public\ and\ have\ name\ matching\ 'set[A-Z].*'\ should\ be\ declared\ in\ classes\ that\ reside\ in\ a\ package\ 'com.example.vieva.domain.entities..'=6b872351-c974-422c-81a0-4499efabcf22

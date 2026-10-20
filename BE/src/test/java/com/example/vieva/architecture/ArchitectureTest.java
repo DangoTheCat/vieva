@@ -39,15 +39,15 @@ class ArchitectureTest {
 
     // R4: infrastructure không gọi interactor cụ thể, không gọi adapters
     @ArchTest
-    static final ArchRule infraDoesNotCallInteractors = FreezingArchRule.freeze(noClasses().that().resideInAPackage(INFRA)
+    static final ArchRule infraDoesNotCallInteractors = noClasses().that().resideInAPackage(INFRA)
             .and().resideOutsideOfPackage(MAIN)
-            .should().dependOnClassesThat().resideInAnyPackage(USE_CASES, ADAPTERS));
+            .should().dependOnClassesThat().resideInAnyPackage(USE_CASES, ADAPTERS);
 
     // R5: ngoài gateway database và Main, infrastructure không chạm domain
     @ArchTest
-    static final ArchRule onlyDbGatewaysTouchDomain = FreezingArchRule.freeze(noClasses().that().resideInAPackage(INFRA)
+    static final ArchRule onlyDbGatewaysTouchDomain = noClasses().that().resideInAPackage(INFRA)
             .and().resideOutsideOfPackages(MAIN, GATEWAYS_DB)
-            .should().dependOnClassesThat().resideInAnyPackage(DOMAIN));
+            .should().dependOnClassesThat().resideInAnyPackage(DOMAIN);
 
     // R6: entity không có setter public
     @ArchTest
