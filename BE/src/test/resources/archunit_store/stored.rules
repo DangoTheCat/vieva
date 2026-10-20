@@ -1,3 +1,0 @@
-#
-#Mon Oct 19 20:03:50 ICT 2026
-no\ methods\ that\ are\ public\ and\ have\ name\ matching\ 'set[A-Z].*'\ should\ be\ declared\ in\ classes\ that\ reside\ in\ a\ package\ 'com.example.vieva.domain.entities..'=6b872351-c974-422c-81a0-4499efabcf22

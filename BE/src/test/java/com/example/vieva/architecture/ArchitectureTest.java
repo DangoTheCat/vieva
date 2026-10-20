@@ -4,7 +4,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
-import com.tngtech.archunit.library.freeze.FreezingArchRule;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
@@ -49,11 +48,11 @@ class ArchitectureTest {
             .and().resideOutsideOfPackages(MAIN, GATEWAYS_DB)
             .should().dependOnClassesThat().resideInAnyPackage(DOMAIN);
 
-    // R6: entity không có setter public
+    // R6: domain không có setter public
     @ArchTest
-    static final ArchRule entitiesHaveNoSetters = FreezingArchRule.freeze(noMethods()
+    static final ArchRule entitiesHaveNoSetters = noMethods()
             .that().arePublic().and().haveNameMatching("set[A-Z].*")
-            .should().beDeclaredInClassesThat().resideInAPackage("com.example.vieva.domain.entities.."));
+            .should().beDeclaredInClassesThat().resideInAPackage(DOMAIN);
 
     // R7: adapters không phụ thuộc vào usecases cụ thể
     @ArchTest
