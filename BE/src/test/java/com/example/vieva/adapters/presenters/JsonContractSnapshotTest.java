@@ -3,7 +3,7 @@ package com.example.vieva.adapters.presenters;
 import com.example.vieva.adapters.controllers.LecturerStudioController;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.*;
 import com.example.vieva.application.ports.output.ImportReport;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.domain.entities.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -652,7 +652,7 @@ class JsonContractSnapshotTest {
     }
 
     @Test
-    @DisplayName("Snapshot: PagedResult<Notification> direct response JSON contract")
+    @DisplayName("Snapshot: PageResult<Notification> direct response JSON contract")
     void snapshotPagedResultNotification() throws Exception {
         Notification notification = new Notification(
                 U1,
@@ -665,7 +665,7 @@ class JsonContractSnapshotTest {
                 T2
         );
 
-        PagedResult<Notification> paged = PagedResult.<Notification>builder()
+        PageResult<Notification> paged = PageResult.<Notification>builder()
                 .content(List.of(notification))
                 .page(0)
                 .size(20)

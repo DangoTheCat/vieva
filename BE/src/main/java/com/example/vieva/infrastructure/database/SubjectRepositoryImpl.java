@@ -2,7 +2,7 @@ package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.domain.entities.Subject;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -85,7 +85,7 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
-    public PagedResult<Subject> findAll(SubjectSearchCriteria criteria) {
+    public PageResult<Subject> findAll(SubjectSearchCriteria criteria) {
         int page = criteria.getSanitizedPage();
         int size = criteria.getSanitizedSize();
         String sortBy = criteria.getSanitizedSortBy();
@@ -123,7 +123,7 @@ public class SubjectRepositoryImpl implements SubjectRepository {
                 .map(subjectMapper::toDomain)
                 .collect(Collectors.toList());
 
-        return PagedResult.<Subject>builder()
+        return PageResult.<Subject>builder()
                 .content(content)
                 .page(entityPage.getNumber())
                 .size(entityPage.getSize())

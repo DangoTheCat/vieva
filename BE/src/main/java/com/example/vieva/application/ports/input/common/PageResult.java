@@ -1,4 +1,4 @@
-package com.example.vieva.application.ports.output;
+package com.example.vieva.application.ports.input.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PagedResult<T> {
+public class PageResult<T> {
 
     @Builder.Default
     private List<T> content = Collections.emptyList();
@@ -27,9 +27,9 @@ public class PagedResult<T> {
     private boolean isFirst;
     private boolean isLast;
 
-    public static <T> PagedResult<T> of(List<T> content, int page, int size, long totalElements) {
+    public static <T> PageResult<T> of(List<T> content, int page, int size, long totalElements) {
         int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
-        return PagedResult.<T>builder()
+        return PageResult.<T>builder()
                 .content(content != null ? content : Collections.emptyList())
                 .page(page)
                 .size(size)

@@ -12,7 +12,7 @@ import com.example.vieva.application.ports.input.subject.SubjectResult;
 import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.subject.SubjectService;
 import com.example.vieva.application.ports.input.subject.UpdateSubjectRequest;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -50,7 +50,7 @@ public class AdminSubjectController {
                 .sortDirection(sortDirection)
                 .build();
 
-        PagedResult<SubjectResult> pagedSubjects = subjectService.getSubjects(criteria);
+        PageResult<SubjectResult> pagedSubjects = subjectService.getSubjects(criteria);
         return ResponseEntity.ok(PageResponse.from(pagedSubjects, subjectPresenter::toDto));
     }
 

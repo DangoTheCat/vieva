@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.domain.entities.Question;
 import jakarta.persistence.criteria.Predicate;
@@ -67,7 +67,7 @@ public class QuestionRepositoryImpl implements QuestionRepository {
     }
 
     @Override
-    public PagedResult<Question> searchBank(QuestionBankSearchCriteria criteria) {
+    public PageResult<Question> searchBank(QuestionBankSearchCriteria criteria) {
         int page = Math.max(0, criteria.page());
         int size = criteria.size() > 0 ? Math.min(criteria.size(), MAX_PAGE_SIZE) : 20;
         String sortField = criteria.sortBy() != null && SORTABLE.contains(criteria.sortBy()) ? criteria.sortBy() : "updatedAt";
@@ -114,7 +114,7 @@ public class QuestionRepositoryImpl implements QuestionRepository {
         List<Question> content = result.getContent().stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
-        return PagedResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
+        return PageResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
     }
 
     @Override

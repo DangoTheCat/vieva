@@ -3,7 +3,7 @@ package com.example.vieva.infrastructure.database;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.domain.entities.QuestionStatus;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -116,7 +116,7 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
     }
 
     @Override
-    public PagedResult<QuestionVersion> search(QuestionVersionSearchCriteria criteria) {
+    public PageResult<QuestionVersion> search(QuestionVersionSearchCriteria criteria) {
         int page = Math.max(0, criteria.page());
         int size = criteria.size() > 0 ? Math.min(criteria.size(), MAX_PAGE_SIZE) : 20;
         PageRequest pageRequest = PageRequest.of(page, size,
@@ -151,7 +151,7 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
         List<QuestionVersion> content = result.getContent().stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
-        return PagedResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
+        return PageResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
     }
 
     @Override

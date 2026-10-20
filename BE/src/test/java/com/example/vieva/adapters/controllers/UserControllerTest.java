@@ -13,7 +13,7 @@ import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
 import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
 import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.input.user.UserService;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
 import com.example.vieva.domain.entities.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -276,7 +276,7 @@ class UserControllerTest {
                 .fullName("User Two")
                 .build();
 
-        PagedResult<UserResult> pagedResult = PagedResult.of(List.of(user1, user2), 0, 20, 2);
+        PageResult<UserResult> pagedResult = PageResult.of(List.of(user1, user2), 0, 20, 2);
         when(adminUserService.getUsers(any())).thenReturn(pagedResult);
         when(userPresenter.toDto(any())).thenAnswer(inv -> {
             UserResult ur = inv.getArgument(0);

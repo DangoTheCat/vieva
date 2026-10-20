@@ -1,6 +1,6 @@
 package com.example.vieva.application.ports.input.subject;
 
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 
 import java.util.UUID;
 
@@ -9,5 +9,5 @@ public interface SubjectService {
     SubjectResult updateSubject(UUID subjectId, UpdateSubjectRequest request, UUID currentAdminId);
     void deactivateSubject(UUID subjectId, UUID currentAdminId);
     SubjectResult getSubjectById(UUID subjectId);
-    PagedResult<SubjectResult> getSubjects(SubjectSearchCriteria criteria);
+    PageResult<SubjectResult> getSubjects(SubjectSearchCriteria criteria);
 }

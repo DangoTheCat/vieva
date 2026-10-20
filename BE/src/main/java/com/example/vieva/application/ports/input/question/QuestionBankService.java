@@ -1,7 +1,7 @@
 package com.example.vieva.application.ports.input.question;
 
 import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
 import com.example.vieva.application.ports.output.QuestionDetailView;
 import com.example.vieva.application.ports.output.QuestionVersionView;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * UC1.4: search the official bank (approved questions only), details, version history, archive.
  */
 public interface QuestionBankService {
-    PagedResult<QuestionBankItemView> search(QuestionBankSearchCriteria criteria);
+    PageResult<QuestionBankItemView> search(QuestionBankSearchCriteria criteria);
 
     QuestionDetailView getDetail(UUID questionId);
 

@@ -1,7 +1,7 @@
 package com.example.vieva.application.ports.input.question;
 
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionVersionView;
 
 import java.util.UUID;
@@ -16,7 +16,7 @@ public interface QuestionReviewService {
     QuestionVersionView reviewQuestion(UUID versionId, UUID actorId);
     QuestionVersionView reviewQuestion(UUID questionId, UUID versionId, UUID actorId);
 
-    PagedResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria);
+    PageResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria);
 
     QuestionVersionView getVersion(UUID versionId);
 

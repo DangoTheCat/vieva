@@ -4,7 +4,7 @@ import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPo
 import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
@@ -128,9 +128,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public PagedResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria) {
-        PagedResult<QuestionVersion> page = questionVersionRepository.search(criteria);
-        return PagedResult.of(viewAssembler.assemble(page.getContent()), page.getPage(), page.getSize(),
+    public PageResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria) {
+        PageResult<QuestionVersion> page = questionVersionRepository.search(criteria);
+        return PageResult.of(viewAssembler.assemble(page.getContent()), page.getPage(), page.getSize(),
                 page.getTotalElements());
     }
 

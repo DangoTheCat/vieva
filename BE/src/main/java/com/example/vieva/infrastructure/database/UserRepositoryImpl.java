@@ -3,7 +3,7 @@ package com.example.vieva.infrastructure.database;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.user.UserSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
@@ -65,7 +65,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public PagedResult<User> findAll(UserSearchCriteria criteria) {
+    public PageResult<User> findAll(UserSearchCriteria criteria) {
         int page = criteria.getSanitizedPage();
         int size = criteria.getSanitizedSize();
         String sortBy = criteria.getSanitizedSortBy();
@@ -130,7 +130,7 @@ public class UserRepositoryImpl implements UserRepository {
                 .map(userMapper::toDomain)
                 .collect(Collectors.toList());
 
-        return PagedResult.of(
+        return PageResult.of(
                 userList,
                 userPage.getNumber(),
                 userPage.getSize(),

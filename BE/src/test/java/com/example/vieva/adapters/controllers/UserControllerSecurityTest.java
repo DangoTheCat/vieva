@@ -1,6 +1,6 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.application.ports.input.user.UserResult;
@@ -118,7 +118,7 @@ class UserControllerSecurityTest {
                 .email("admin@vieva.edu.vn")
                 .fullName("System Admin")
                 .build();
-        PagedResult<UserResult> pagedResult = PagedResult.of(List.of(user), 0, 20, 1);
+        PageResult<UserResult> pagedResult = PageResult.of(List.of(user), 0, 20, 1);
         when(adminUserService.getUsers(any())).thenReturn(pagedResult);
 
         mockMvc.perform(get("/api/v1/users")

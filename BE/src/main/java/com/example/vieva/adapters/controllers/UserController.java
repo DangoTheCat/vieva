@@ -15,7 +15,7 @@ import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
 import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.input.user.UserSearchCriteria;
 import com.example.vieva.application.ports.input.user.UserService;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -148,7 +148,7 @@ public class UserController {
                 .sortDirection(sortDirection)
                 .build();
 
-        PagedResult<UserResult> pagedUsers = adminUserService.getUsers(criteria);
+        PageResult<UserResult> pagedUsers = adminUserService.getUsers(criteria);
         return ResponseEntity.ok(PageResponse.from(pagedUsers, userPresenter::toDto));
     }
 

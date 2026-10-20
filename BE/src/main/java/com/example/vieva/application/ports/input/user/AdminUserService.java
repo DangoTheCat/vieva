@@ -1,12 +1,12 @@
 package com.example.vieva.application.ports.input.user;
 
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 
 import java.util.UUID;
 
 public interface AdminUserService {
 
-    PagedResult<UserResult> getUsers(UserSearchCriteria criteria);
+    PageResult<UserResult> getUsers(UserSearchCriteria criteria);
 
     UserResult getUserById(UUID userId);
 

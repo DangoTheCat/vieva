@@ -8,7 +8,7 @@ import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.subject.SubjectService;
 import com.example.vieva.application.ports.input.subject.UpdateSubjectRequest;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
@@ -120,15 +120,15 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public PagedResult<SubjectResult> getSubjects(SubjectSearchCriteria criteria) {
+    public PageResult<SubjectResult> getSubjects(SubjectSearchCriteria criteria) {
         if (criteria != null && criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
             EnumValues.parse(SubjectStatus.class, criteria.getStatus(), "Invalid value for parameter 'status'");
         }
-        PagedResult<Subject> paged = subjectRepository.findAll(criteria);
+        PageResult<Subject> paged = subjectRepository.findAll(criteria);
         List<SubjectResult> content = paged.getContent().stream()
                 .map(SubjectResults::from)
                 .toList();
-        return PagedResult.<SubjectResult>builder()
+        return PageResult.<SubjectResult>builder()
                 .content(content)
                 .page(paged.getPage())
                 .size(paged.getSize())

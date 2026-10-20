@@ -10,7 +10,7 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.RubricDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.TopicDto;
 import com.example.vieva.application.ports.input.catalog.TopicResult;
 import com.example.vieva.application.ports.output.GenerationResult;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
 import com.example.vieva.application.ports.output.QuestionDetailView;
 import com.example.vieva.application.ports.output.QuestionVersionView;
@@ -75,11 +75,11 @@ public class QuestionBankPresenter {
         return views == null ? List.of() : views.stream().map(this::toDto).toList();
     }
 
-    public PageResponse<QuestionVersionDto> toVersionPage(PagedResult<QuestionVersionView> page) {
+    public PageResponse<QuestionVersionDto> toVersionPage(PageResult<QuestionVersionView> page) {
         return PageResponse.from(page, this::toDto);
     }
 
-    public PageResponse<QuestionBankItemDto> toBankPage(PagedResult<QuestionBankItemView> page) {
+    public PageResponse<QuestionBankItemDto> toBankPage(PageResult<QuestionBankItemView> page) {
         return PageResponse.from(page, this::toBankItem);
     }
 

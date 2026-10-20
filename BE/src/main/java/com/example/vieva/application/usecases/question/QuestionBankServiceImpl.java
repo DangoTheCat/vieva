@@ -3,7 +3,7 @@ package com.example.vieva.application.usecases.question;
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.question.QuestionBankService;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
 import com.example.vieva.application.ports.output.QuestionDetailView;
 import com.example.vieva.application.ports.output.QuestionRepository;
@@ -37,8 +37,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public PagedResult<QuestionBankItemView> search(QuestionBankSearchCriteria criteria) {
-        PagedResult<Question> page = questionRepository.searchBank(criteria);
+    public PageResult<QuestionBankItemView> search(QuestionBankSearchCriteria criteria) {
+        PageResult<Question> page = questionRepository.searchBank(criteria);
         List<Question> questions = page.getContent();
         Map<UUID, Question> questionsById = questions.stream()
                 .collect(Collectors.toMap(Question::getQuestionId, Function.identity()));
@@ -62,7 +62,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .filter(q -> viewsByQuestion.containsKey(q.getQuestionId()))
                 .map(q -> new QuestionBankItemView(viewsByQuestion.get(q.getQuestionId()), withDraft.contains(q.getQuestionId())))
                 .toList();
-        return PagedResult.of(items, page.getPage(), page.getSize(), page.getTotalElements());
+        return PageResult.of(items, page.getPage(), page.getSize(), page.getTotalElements());
     }
 
     @Override

@@ -9,7 +9,7 @@ import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.input.user.UserSearchCriteria;
 import com.example.vieva.application.ports.output.DomainEventPublisherPort;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
@@ -41,15 +41,15 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public PagedResult<UserResult> getUsers(UserSearchCriteria criteria) {
+    public PageResult<UserResult> getUsers(UserSearchCriteria criteria) {
         if (criteria != null && criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
             EnumValues.parse(UserStatus.class, criteria.getStatus(), "Invalid value for parameter 'status'");
         }
-        PagedResult<User> paged = userRepository.findAll(criteria);
+        PageResult<User> paged = userRepository.findAll(criteria);
         List<UserResult> content = paged.getContent().stream()
                 .map(UserResults::from)
                 .toList();
-        return PagedResult.<UserResult>builder()
+        return PageResult.<UserResult>builder()
                 .content(content)
                 .page(paged.getPage())
                 .size(paged.getSize())

@@ -1,5 +1,6 @@
 package com.example.vieva.application.ports.output;
 
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
 import com.example.vieva.domain.entities.Subject;
 
@@ -20,5 +21,5 @@ public interface SubjectRepository {
     List<Subject> findAllByIds(Collection<UUID> subjectIds);
     Optional<Subject> findBySubjectCode(String subjectCode);
     boolean existsBySubjectCode(String subjectCode);
-    PagedResult<Subject> findAll(SubjectSearchCriteria criteria);
+    PageResult<Subject> findAll(SubjectSearchCriteria criteria);
 }

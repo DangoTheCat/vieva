@@ -5,7 +5,7 @@ import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.notification.NotificationService;
 import com.example.vieva.application.ports.input.notification.NotificationView;
 import com.example.vieva.application.ports.output.NotificationRepository;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.Notification;
 import lombok.RequiredArgsConstructor;
@@ -20,15 +20,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public PagedResult<NotificationView> list(UUID recipientId, int page, int size) {
+    public PageResult<NotificationView> list(UUID recipientId, int page, int size) {
         if (page < 0 || size < 1 || size > 100) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
-        PagedResult<Notification> paged = notificationRepository.findByRecipient(recipientId, page, size);
+        PageResult<Notification> paged = notificationRepository.findByRecipient(recipientId, page, size);
         List<NotificationView> views = paged.getContent().stream()
                 .map(NotificationViews::from)
                 .toList();
-        return PagedResult.<NotificationView>builder()
+        return PageResult.<NotificationView>builder()
                 .content(views)
                 .page(paged.getPage())
                 .size(paged.getSize())
