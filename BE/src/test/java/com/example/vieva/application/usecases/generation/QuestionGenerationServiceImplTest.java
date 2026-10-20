@@ -235,7 +235,7 @@ class QuestionGenerationServiceImplTest {
 
         ArgumentCaptor<QuestionGenerationPrompt> prompts = ArgumentCaptor.forClass(QuestionGenerationPrompt.class);
         verify(llm, times(2)).generate(prompts.capture());
-        assertThat(prompts.getAllValues().get(1).bloomDistribution()).containsOnly(Map.entry(BloomLevel.ANALYZE, 1));
+        assertThat(prompts.getAllValues().get(1).bloomDistribution()).containsOnly(Map.entry("ANALYZE", 1));
 
         ArgumentCaptor<List<QuestionSource>> sources = ArgumentCaptor.forClass(List.class);
         verify(sourceRepository).saveAll(sources.capture());

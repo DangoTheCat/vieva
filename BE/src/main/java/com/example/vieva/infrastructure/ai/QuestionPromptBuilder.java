@@ -2,7 +2,6 @@ package com.example.vieva.infrastructure.ai;
 
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate.Citation;
-import com.example.vieva.domain.entities.BloomLevel;
 
 import java.util.Map;
 import java.util.LinkedHashMap;
@@ -98,9 +97,9 @@ public final class QuestionPromptBuilder {
         return evidence;
     }
 
-    private static String describe(Map<BloomLevel, Integer> distribution) {
+    private static String describe(Map<String, Integer> distribution) {
         return distribution.entrySet().stream()
-                .map(entry -> entry.getKey().name() + "=" + entry.getValue())
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
                 .collect(Collectors.joining(", "));
     }
 

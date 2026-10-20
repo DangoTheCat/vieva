@@ -3,18 +3,21 @@ package com.example.vieva.infrastructure.ai;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
 import com.example.vieva.application.ports.output.QuestionGenerationPort;
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.services.QuestionSimilarity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Deterministic offline generator for dev/test ({@code vieva.ai.provider=mock}, the default).
@@ -26,13 +29,13 @@ import java.util.Set;
 @ConditionalOnProperty(name = "vieva.ai.provider", havingValue = "mock", matchIfMissing = true)
 public class MockQuestionGenerationGateway implements QuestionGenerationPort {
 
-    private static final Map<BloomLevel, String> TEMPLATES = new EnumMap<>(Map.of(
-            BloomLevel.REMEMBER, "Hãy nêu lại nội dung chính của ý sau trong tài liệu: \"%s\"?",
-            BloomLevel.UNDERSTAND, "Hãy giải thích bằng lời của bạn ý nghĩa của nhận định: \"%s\"?",
-            BloomLevel.APPLY, "Hãy áp dụng kiến thức sau vào một tình huống thực tế cụ thể: \"%s\"?",
-            BloomLevel.ANALYZE, "Hãy phân tích các thành phần và mối liên hệ trong nội dung: \"%s\"?",
-            BloomLevel.EVALUATE, "Hãy đánh giá ưu điểm và hạn chế của quan điểm: \"%s\"?",
-            BloomLevel.CREATE, "Hãy đề xuất một giải pháp hoặc thiết kế mới dựa trên ý: \"%s\"?"));
+    private static final Map<String, String> TEMPLATES = Map.of(
+            "REMEMBER", "Hãy nêu lại nội dung chính của ý sau trong tài liệu: \"%s\"?",
+            "UNDERSTAND", "Hãy giải thích bằng lời của bạn ý nghĩa của nhận định: \"%s\"?",
+            "APPLY", "Hãy áp dụng kiến thức sau vào một tình huống thực tế cụ thể: \"%s\"?",
+            "ANALYZE", "Hãy phân tích các thành phần và mối liên hệ trong nội dung: \"%s\"?",
+            "EVALUATE", "Hãy đánh giá ưu điểm và hạn chế của quan điểm: \"%s\"?",
+            "CREATE", "Hãy đề xuất một giải pháp hoặc thiết kế mới dựa trên ý: \"%s\"?");
 
     private final double duplicateThreshold;
 
@@ -50,24 +53,25 @@ public class MockQuestionGenerationGateway implements QuestionGenerationPort {
         }
         List<Set<String>> used = new ArrayList<>();
         if (prompt.avoidQuestions() != null) {
-            prompt.avoidQuestions().forEach(q -> used.add(QuestionSimilarity.tokens(q)));
+            prompt.avoidQuestions().forEach(q -> used.add(tokens(q)));
         }
         if (prompt.previousContent() != null) {
-            used.add(QuestionSimilarity.tokens(prompt.previousContent()));
+            used.add(tokens(prompt.previousContent()));
         }
 
         List<GeneratedQuestionCandidate> result = new ArrayList<>();
         int cursor = 0;
-        for (Map.Entry<BloomLevel, Integer> entry : prompt.bloomDistribution().entrySet()) {
+        for (Map.Entry<String, Integer> entry : prompt.bloomDistribution().entrySet()) {
             for (int n = 0; n < entry.getValue(); n++) {
                 GeneratedQuestionCandidate candidate = null;
                 for (int tries = 0; tries < sentences.size() && candidate == null; tries++) {
                     Sentence sentence = sentences.get(cursor++ % sentences.size());
-                    String content = TEMPLATES.get(entry.getKey()).formatted(sentence.text());
-                    if (QuestionSimilarity.isNearDuplicate(content, used, duplicateThreshold)) {
+                    String template = TEMPLATES.getOrDefault(entry.getKey(), "Hãy giải thích nội dung: \"%s\"?");
+                    String content = template.formatted(sentence.text());
+                    if (isNearDuplicate(content, used, duplicateThreshold)) {
                         continue;
                     }
-                    used.add(QuestionSimilarity.tokens(content));
+                    used.add(tokens(content));
                     candidate = build(entry.getKey(), content, sentence);
                 }
                 if (candidate != null) {
@@ -78,11 +82,11 @@ public class MockQuestionGenerationGateway implements QuestionGenerationPort {
         return result;
     }
 
-    private GeneratedQuestionCandidate build(BloomLevel level, String content, Sentence sentence) {
+    private GeneratedQuestionCandidate build(String level, String content, Sentence sentence) {
         return new GeneratedQuestionCandidate(
                 content,
                 "Theo tài liệu (" + sentence.ref() + "): " + sentence.text(),
-                level.name(),
+                level,
                 new BigDecimal("10"),
                 List.of(
                         new GeneratedQuestionCandidate.Criterion("Độ chính xác nội dung",
@@ -109,5 +113,39 @@ public class MockQuestionGenerationGateway implements QuestionGenerationPort {
             }
         }
         return sentences;
+    }
+
+    private static Set<String> tokens(String text) {
+        if (text == null || text.isBlank()) {
+            return Set.of();
+        }
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase(Locale.ROOT);
+        return Arrays.stream(normalized.split("[^\\p{L}\\p{N}]+"))
+                .filter(token -> token.length() > 1)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private static double jaccard(Set<String> a, Set<String> b) {
+        if (a.isEmpty() || b.isEmpty()) {
+            return 0.0;
+        }
+        Set<String> intersection = new HashSet<>(a);
+        intersection.retainAll(b);
+        int union = a.size() + b.size() - intersection.size();
+        return (double) intersection.size() / union;
+    }
+
+    private static boolean isNearDuplicate(String candidate, Collection<Set<String>> existingTokenSets, double threshold) {
+        Set<String> candidateTokens = tokens(candidate);
+        for (Set<String> existing : existingTokenSets) {
+            if (jaccard(candidateTokens, existing) >= threshold) {
+                return true;
+            }
+        }
+        return false;
     }
 }

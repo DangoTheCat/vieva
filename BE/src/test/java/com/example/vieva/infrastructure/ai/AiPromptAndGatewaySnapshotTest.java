@@ -2,7 +2,6 @@ package com.example.vieva.infrastructure.ai;
 
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
-import com.example.vieva.domain.entities.BloomLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -16,9 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AiPromptAndGatewaySnapshotTest {
 
     private static QuestionGenerationPrompt createSamplePrompt() {
-        Map<BloomLevel, Integer> distribution = new LinkedHashMap<>();
-        distribution.put(BloomLevel.REMEMBER, 1);
-        distribution.put(BloomLevel.APPLY, 1);
+        Map<String, Integer> distribution = new LinkedHashMap<>();
+        distribution.put("REMEMBER", 1);
+        distribution.put("APPLY", 1);
 
         return new QuestionGenerationPrompt(
                 "Co so du lieu",

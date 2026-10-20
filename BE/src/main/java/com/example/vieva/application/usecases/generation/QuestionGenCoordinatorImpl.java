@@ -406,10 +406,12 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
             contextChunks.add(new QuestionGenerationPrompt.ContextChunk("C" + (i + 1), chunk.documentName(),
                     chunk.page(), chunk.content()));
         }
+        Map<String, Integer> bloomMap = new LinkedHashMap<>();
+        wanted.asMap().forEach((k, v) -> bloomMap.put(k.name(), v));
         return new QuestionGenerationPrompt(
                 context.subject().getSubjectName(),
                 context.topic() == null ? null : context.topic().getTopicName(),
-                wanted.asMap(),
+                bloomMap,
                 note,
                 contextChunks,
                 avoid,
@@ -615,10 +617,10 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
 
     private static QuestionGenerationPrompt withDistribution(QuestionGenerationPrompt base, Map<BloomLevel, Integer> missing,
                                                              List<String> avoid, List<String> issues) {
-        Map<BloomLevel, Integer> wanted = new EnumMap<>(BloomLevel.class);
+        Map<String, Integer> wanted = new LinkedHashMap<>();
         missing.forEach((level, count) -> {
             if (count > 0) {
-                wanted.put(level, count);
+                wanted.put(level.name(), count);
             }
         });
         return new QuestionGenerationPrompt(base.subjectName(), base.topicName(), wanted, base.lecturerNote(),

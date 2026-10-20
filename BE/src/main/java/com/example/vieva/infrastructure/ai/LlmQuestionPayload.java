@@ -70,7 +70,7 @@ public record LlmQuestionPayload(List<Question> questions) {
                 .addProperty("criteria",JsonArraySchema.builder().items(criterion).build())
                 .required("totalScore","criteria").additionalProperties(false).build();
         var question=JsonObjectSchema.builder().addStringProperty("content").addStringProperty("expectedAnswer")
-                .addEnumProperty("bloomLevel",prompt.bloomDistribution().keySet().stream().map(Enum::name).toList())
+                .addEnumProperty("bloomLevel",prompt.bloomDistribution().keySet().stream().toList())
                 .addProperty("rubric",rubric).addProperty("evidenceIds",JsonArraySchema.builder()
                         .items(JsonEnumSchema.builder().enumValues(evidenceIds).build()).build())
                 .required("content","expectedAnswer","bloomLevel","rubric","evidenceIds").additionalProperties(false).build();
