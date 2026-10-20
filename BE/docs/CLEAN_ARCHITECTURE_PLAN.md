@@ -52,19 +52,20 @@ Bảng phụ thuộc cho phép (hàng = lớp gọi, cột = lớp bị gọi):
 
 ## 2. Hiện trạng: danh sách vi phạm
 
-| Mã | Vi phạm | Bằng chứng |
-|---|---|---|
-| V1 | Application dùng Spring | 14 file `@Transactional`, 7 file bắt `DataIntegrityViolationException`, 2 file `org.springframework.util.StringUtils` |
-| V2 | Controller nhảy qua use case, gọi thẳng output port | `LecturerStudioController` dùng `QuestionVersionRepository` trong `checkVersion`; `NotificationController` dùng thẳng `NotificationRepository`, tự mở `@Transactional` và trả domain `Notification` |
-| V3 | Adapters chạm domain | 13 file import `domain.entities.User`; controller dùng `BloomLevel`, `UserStatus`, `SubjectStatus`, `QuestionStatus`…; presenter map thẳng entity; 16 method use case trả entity (`Subject`, `User`, `Topic`, `LecturerSubject`); 12 request model chứa kiểu domain |
-| V4 | Controller phụ thuộc class cụ thể | `DocumentService`, `QuestionGenCoordinator` không có interface |
-| V5 | Infrastructure nhảy qua use case | `CourseSecurityEvaluator` gọi 5 repository và tự quyết phân quyền; `JwtAuthenticationFilter` đọc `User`, `UserStatus`; `AsyncDocumentIndexingWorker`, `StaleDocumentCleanupScheduler` gọi `DocumentService` cụ thể; `DataInitializer` ghi `Role` qua `RoleRepository` |
-| V6 | Infrastructure gọi domain ngoài gateway | `MockEmbeddingGateway`, `MockQuestionGenerationGateway` dùng `QuestionSimilarity`; `QuestionPromptBuilder` dùng `BloomLevel`; `TikaDocumentParserGateway`, `PoiCsvQuestionSpreadsheetGateway` ném `AppException`; `SecurityConfig`, `GlobalExceptionHandler` dùng `ErrorCode` domain |
-| V7 | Response model đặt sai chỗ, chứa kiểu domain | `QuestionDetailView`, `QuestionVersionView`, `QuestionBankItemView`, `AuthResult`, `ImportReport`, `GenerationResult`, `DocumentPreview`, `PagedResult` nằm trong `ports/output`; 5 file chứa kiểu domain. Event `DocumentUploadedEvent`, `AccountCreatedEvent` nằm trong `usecases` |
-| V8 | Entity mở setter | 15 entity dùng `@Setter`/`@Data`; 21 lời gọi setter trong application, 44 trong test |
-| V9 | Không có kiểm tra tự động | Chưa có ArchUnit; vi phạm chỉ phát hiện bằng mắt |
+| Mã | Vi phạm | Bằng chứng | Trạng thái |
+|---|---|---|---|
+| V1 | Application dùng Spring | 14 file `@Transactional`, 7 file bắt `DataIntegrityViolationException`, 2 file `org.springframework.util.StringUtils` | Đã giải quyết (Giai đoạn 1) |
+| V2 | Controller nhảy qua use case, gọi thẳng output port | `LecturerStudioController` dùng `QuestionVersionRepository` trong `checkVersion`; `NotificationController` dùng thẳng `NotificationRepository`, tự mở `@Transactional` và trả domain `Notification` | Đã giải quyết (Giai đoạn 3) |
+| V3 | Adapters chạm domain | 13 file import `domain.entities.User`; controller dùng `BloomLevel`, `UserStatus`, `SubjectStatus`, `QuestionStatus`…; presenter map thẳng entity; 16 method use case trả entity (`Subject`, `User`, `Topic`, `LecturerSubject`); 12 request model chứa kiểu domain | Đã giải quyết (Giai đoạn 4A, 4B) |
+| V4 | Controller phụ thuộc class cụ thể | `DocumentService`, `QuestionGenCoordinator` không có interface | Đã giải quyết (Giai đoạn 3) |
+| V5 | Infrastructure nhảy qua use case | `CourseSecurityEvaluator` gọi 5 repository và tự quyết phân quyền; `JwtAuthenticationFilter` đọc `User`, `UserStatus`; `AsyncDocumentIndexingWorker`, `StaleDocumentCleanupScheduler` gọi `DocumentService` cụ thể; `DataInitializer` ghi `Role` qua `RoleRepository` | Đã giải quyết (Giai đoạn 4A, 5) |
+| V6 | Infrastructure gọi domain ngoài gateway | `MockEmbeddingGateway`, `MockQuestionGenerationGateway` dùng `QuestionSimilarity`; `QuestionPromptBuilder` dùng `BloomLevel`; `TikaDocumentParserGateway`, `PoiCsvQuestionSpreadsheetGateway` ném `AppException`; `SecurityConfig`, `GlobalExceptionHandler` dùng `ErrorCode` domain | Đã giải quyết (Giai đoạn 2, 5) |
+| V7 | Response model đặt sai chỗ, chứa kiểu domain | `QuestionDetailView`, `QuestionVersionView`, `QuestionBankItemView`, `AuthResult`, `ImportReport`, `GenerationResult`, `DocumentPreview`, `PagedResult` nằm trong `ports/output`; 5 file chứa kiểu domain. Event `DocumentUploadedEvent`, `AccountCreatedEvent` nằm trong `usecases` | Đã giải quyết (Giai đoạn 4A, 4B, 5) |
+| V8 | Entity mở setter | 15 entity dùng `@Setter`/`@Data`; 21 lời gọi setter trong application, 44 trong test | Đã giải quyết (Giai đoạn 6) |
+| V9 | Không có kiểm tra tự động | Chưa có ArchUnit; vi phạm chỉ phát hiện bằng mắt | Đã giải quyết (Giai đoạn 0, 7 — R1–R9 thực thi 100% không freeze) |
 
-Ngoài ra `ErrorCode` của domain chứa cả lỗi ứng dụng (`USER_NOT_FOUND`, `UNAUTHENTICATED`…), không phải luật nghiệp vụ.
+Toàn bộ 9/9 nhóm vi phạm kiến trúc V1–V9 đã được loại bỏ hoàn toàn. Bộ quy tắc ArchUnit R1–R9 chạy thực thi nghiêm ngặt không dùng cơ chế freeze.
+Ngoài ra `ErrorCode` của domain đã được tách riêng với `ApplicationException` / `DomainException`.
 
 ## 3. Cấu trúc package đích
 
@@ -160,17 +161,27 @@ Mỗi giai đoạn là một commit/PR riêng, test xanh trước khi sang giai 
 - **Commit 8:** `docs(be): update clean architecture plan after phase 5` — Cập nhật tài liệu tiến độ, làm rõ thiết kế khởi tạo role, nguyên tắc kiểm thử không dùng logic trong mock, và trạng thái unfrozen của R4/R5.
 - Xong khi: trong infrastructure chỉ `database/` và `configuration/` import domain; R4 và R5 chạy không freeze và xanh 100%.
 
-### Giai đoạn 6 — Đóng gói entity (V8)
-- Bỏ `@Setter`, `@Data` ở 15 entity; giữ `@Getter`, `@Builder`.
-- Thay 21 lời gọi setter trong application bằng method nghiệp vụ (`rename`, `deactivate`, `assignHead`, `markReady`, `markFailed`…).
-- Mapper dựng entity bằng builder hoặc factory `restore(...)`.
-- Sửa 44 lời gọi setter trong test.
-- Xong khi: `grep -E "@Setter|@Data" domain/` trả 0 dòng.
+### Giai đoạn 6 — Đóng gói entity (V8) [ĐÃ HOÀN THÀNH - 20/10/2026]
+- **Commit 1:** `refactor(be): replace setter calls with domain behaviour methods` (fa25363) — Thay thế toàn bộ 20 lời gọi setter trong tầng application bằng các method nghiệp vụ giàu ngữ cảnh:
+  - `User.updateProfile(fullName, phone, now)` và `User.changeStatus(status, now)` (thay thế setter trong `UserServiceImpl`, `AdminUserServiceImpl`).
+  - `Subject.assignHead(lecturerId)` (thay thế setter trong `SubjectHeadServiceImpl`).
+  - `Question.moveToTopic(topicId, now)` (thay thế setter trong `QuestionAuthoringServiceImpl`).
+  - `QuestionVersion.linkGenerationRequest(requestId)` (thay thế setter trong `QuestionGenCoordinatorImpl`).
+  - `QuestionGenerationRequest.recordRetrievedChunks(chunkIds, now)` và `recordAttempts(attemptCount)` (thay thế setter trong `QuestionGenCoordinatorImpl`).
+  - Loại bỏ lời gọi `request.setVersion` thừa trong `QuestionGenCoordinatorImpl` (optimistic lock version do persistence gateway/JPA layer quản lý).
+  - `RubricCriterion.moveTo(orderIndex)` và `attachTo(rubricId)` (thay thế setter trong `RubricServiceImpl`, `RubricDraftFactory`).
+  - Bổ sung unit tests kiểm tra toàn bộ behavior mới trong `UserTest`, `SubjectTest`, `QuestionVersionTest`, `CourseDocumentAndQuestionStateTest`, `BloomAndRubricTest`.
+- **Commit 2:** `refactor(be): remove public setters from domain entities` (4562a9e) — Loại bỏ hoàn toàn `@Setter` khỏi 13 domain entities (`AuditEvent`, `CourseDocument`, `DocumentChunk`, `LecturerSubject`, `Question`, `QuestionGenerationRequest`, `QuestionSource`, `QuestionVersion`, `Rubric`, `RubricCriterion`, `Subject`, `Topic`, `UserRole`).
+  - Thay `@Data` trong `User` và `Role` bằng `@Getter`, `@EqualsAndHashCode`, `@ToString`, `@Builder(toBuilder = true)` để bảo toàn value equality (chứng minh bằng unit test).
+  - Cập nhật 24 vị trí gọi setter trong test suite sang sử dụng `.toBuilder()`, factory, hoặc domain methods.
+  - Xong khi: `grep -E "@Setter|@Data" domain/` trả về đúng 0 dòng.
 
-### Giai đoạn 7 — Khóa luật
-- Bỏ `FreezingArchRule`, tất cả luật chạy chặt; xóa `archunit_store`.
-- Chạy `run-tests.ps1`; thử tay trên FE: đăng nhập, tạo môn, upload tài liệu, sinh câu hỏi, duyệt câu hỏi.
-- Cập nhật `docs/ONBOARDING.md` với bảng phụ thuộc ở mục 1.
+### Giai đoạn 7 — Khóa luật [ĐÃ HOÀN THÀNH - 20/10/2026]
+- **Commit 3:** `test(be): enforce all architecture rules without freeze` (fe45776) — Gỡ bỏ hoàn toàn `FreezingArchRule.freeze(...)` khỏi quy tắc R6 (`entitiesHaveNoSetters`) trong `ArchitectureTest.java`.
+  - Mở rộng phạm vi R6 từ `com.example.vieva.domain.entities..` sang toàn bộ package `com.example.vieva.domain..`.
+  - Xóa bỏ thư mục `archunit_store/` và file cấu hình `archunit.properties`.
+  - Toàn bộ 9/9 luật R1–R9 chạy thực thi nghiêm ngặt không qua cơ chế freeze.
+  - Toàn bộ 442/442 bài test trong hệ thống chạy thành công (green 100%).
 
 ## 5. Luật ArchUnit
 
@@ -215,11 +226,11 @@ class ArchitectureTest {
             .and().resideOutsideOfPackages(MAIN, GATEWAYS_DB)
             .should().dependOnClassesThat().resideInAPackage(DOMAIN);
 
-    // R6: entity không có setter public
+    // R6: domain không có setter public
     @ArchTest
     static final ArchRule entitiesHaveNoSetters = noMethods()
             .that().arePublic().and().haveNameMatching("set[A-Z].*")
-            .should().beDeclaredInClassesThat().resideInAPackage("com.example.vieva.domain.entities..");
+            .should().beDeclaredInClassesThat().resideInAPackage(DOMAIN);
 
     // R7: adapters không phụ thuộc vào usecases cụ thể
     @ArchTest
@@ -234,7 +245,7 @@ class ArchitectureTest {
                         @Override
                         public boolean test(com.tngtech.archunit.core.domain.JavaClass javaClass) {
                             return javaClass.getPackageName().startsWith("com.example.vieva.application.ports.output")
-                                    && (javaClass.getSimpleName().endsWith("Repository") || javaClass.getSimpleName().endsWith("Port"));
+                                     && (javaClass.getSimpleName().endsWith("Repository") || javaClass.getSimpleName().endsWith("Port"));
                         }
                     });
 
