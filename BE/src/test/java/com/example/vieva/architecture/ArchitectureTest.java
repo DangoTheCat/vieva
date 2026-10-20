@@ -34,8 +34,8 @@ class ArchitectureTest {
 
     // R3: adapters chỉ đi qua input port, không nhảy bậc
     @ArchTest
-    static final ArchRule adaptersUseInputPortsOnly = FreezingArchRule.freeze(noClasses().that().resideInAPackage(ADAPTERS)
-            .should().dependOnClassesThat().resideInAnyPackage(DOMAIN, INFRA, OUTPUT_PORTS, USE_CASES));
+    static final ArchRule adaptersUseInputPortsOnly = noClasses().that().resideInAPackage(ADAPTERS)
+            .should().dependOnClassesThat().resideInAnyPackage(DOMAIN, INFRA, OUTPUT_PORTS, USE_CASES);
 
     // R4: infrastructure không gọi interactor cụ thể, không gọi adapters
     @ArchTest
@@ -71,4 +71,10 @@ class ArchitectureTest {
                                     && (javaClass.getSimpleName().endsWith("Repository") || javaClass.getSimpleName().endsWith("Port"));
                         }
                     });
+
+    // R9: input ports không phụ thuộc vào domain
+    @ArchTest
+    static final ArchRule inputPortsDoNotDependOnDomain = noClasses()
+            .that().resideInAPackage("com.example.vieva.application.ports.input..")
+            .should().dependOnClassesThat().resideInAPackage("com.example.vieva.domain..");
 }
