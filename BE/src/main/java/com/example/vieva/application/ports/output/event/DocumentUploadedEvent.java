@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.document;
+package com.example.vieva.application.ports.output.event;
 
 import java.util.UUID;
 

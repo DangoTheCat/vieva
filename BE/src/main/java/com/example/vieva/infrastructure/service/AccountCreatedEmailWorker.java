@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.service;
 
 import com.example.vieva.application.ports.output.EmailSenderPort;
-import com.example.vieva.application.usecases.user.AccountCreatedEvent;
+import com.example.vieva.application.ports.output.event.AccountCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

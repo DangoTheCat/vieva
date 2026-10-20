@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.service;
 
 import com.example.vieva.application.ports.output.EmailSenderPort;
-import com.example.vieva.application.usecases.user.AccountCreatedEvent;
+import com.example.vieva.application.ports.output.event.AccountCreatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

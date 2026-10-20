@@ -1,4 +1,4 @@
-package com.example.vieva.application.usecases.user;
+package com.example.vieva.application.ports.output.event;
 
 /**
  * Published inside the admin create-user transaction; the welcome email is sent after commit,
