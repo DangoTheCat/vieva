@@ -1,7 +1,6 @@
 package com.example.vieva.application.ports.input.generation;
 
-import com.example.vieva.application.ports.output.GenerationResult;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
 
 import java.util.List;
 import java.util.UUID;

@@ -1,6 +1,7 @@
 package com.example.vieva.adapters.presenters;
 
 import com.example.vieva.adapters.presenters.QuestionBankDtos.GenerationRequestDto;
+import com.example.vieva.adapters.presenters.QuestionBankDtos.PerformanceLevelDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionBankItemDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionDetailDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionSourceDto;
@@ -9,18 +10,18 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.RubricCriterionDto
 import com.example.vieva.adapters.presenters.QuestionBankDtos.RubricDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.TopicDto;
 import com.example.vieva.application.ports.input.catalog.TopicResult;
-import com.example.vieva.application.ports.output.GenerationResult;
 import com.example.vieva.application.ports.input.common.PageResult;
-import com.example.vieva.application.ports.output.QuestionBankItemView;
-import com.example.vieva.application.ports.output.QuestionDetailView;
-import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.domain.entities.Question;
-import com.example.vieva.domain.entities.QuestionGenerationRequest;
-import com.example.vieva.domain.entities.QuestionSource;
-import com.example.vieva.domain.entities.QuestionVersion;
-import com.example.vieva.domain.entities.Rubric;
-import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.entities.Topic;
+import com.example.vieva.application.ports.input.generation.GenerationRequestResult;
+import com.example.vieva.application.ports.input.generation.GenerationResult;
+import com.example.vieva.application.ports.input.question.PerformanceLevelResult;
+import com.example.vieva.application.ports.input.question.QuestionBankItemView;
+import com.example.vieva.application.ports.input.question.QuestionDetailView;
+import com.example.vieva.application.ports.input.question.QuestionResult;
+import com.example.vieva.application.ports.input.question.QuestionSourceResult;
+import com.example.vieva.application.ports.input.question.QuestionVersionResult;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.RubricCriterionResult;
+import com.example.vieva.application.ports.input.question.RubricResult;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -32,42 +33,42 @@ public class QuestionBankPresenter {
         if (view == null) {
             return null;
         }
-        return summary(view.version(), view.question(), view.topic()).toBuilder()
-                .rubric(toRubric(view.rubric(), view.criteria()))
+        return summary(view.version(), view.question(), view.topicName()).toBuilder()
+                .rubric(toRubric(view.rubric()))
                 .sources(view.sources() == null ? List.of() : view.sources().stream().map(this::toSource).toList())
                 .build();
     }
 
     /** Version fields only (history lists, pending draft reference). */
-    public QuestionVersionDto summary(QuestionVersion version, Question question, Topic topic) {
+    public QuestionVersionDto summary(QuestionVersionResult version, QuestionResult question, String topicName) {
         if (version == null) {
             return null;
         }
         return QuestionVersionDto.builder()
-                .versionId(version.getQuestionVersionId())
-                .questionId(version.getQuestionId())
-                .questionCode(question == null ? null : question.getQuestionCode())
-                .subjectId(question == null ? null : question.getSubjectId())
-                .topicId(question == null ? null : question.getTopicId())
-                .topicName(topic == null ? null : topic.getTopicName())
-                .versionNumber(version.getVersionNumber())
-                .content(version.getQuestionContent())
-                .expectedAnswer(version.getReferenceAnswer())
-                .bloomLevel(version.getBloomLevel())
-                .bloomLevelLabel(version.getBloomLevel() == null ? null : version.getBloomLevel().getViLabel())
-                .bloomConfirmed(version.isBloomConfirmed())
-                .origin(version.getGenerationMode())
-                .status(version.getApprovalStatus())
-                .parentVersionId(version.getParentVersionId())
-                .generationRequestId(version.getGenerationRequestId())
-                .regenerationCount(version.getRegenerationCount())
-                .rejectReason(version.getRejectionReason())
-                .createdBy(version.getCreatedBy())
-                .reviewedBy(version.getReviewedBy())
-                .reviewedAt(version.getReviewedAt())
-                .createdAt(version.getCreatedAt())
-                .updatedAt(version.getUpdatedAt())
-                .lockVersion(version.getVersion())
+                .versionId(version.versionId())
+                .questionId(version.questionId())
+                .questionCode(question == null ? null : question.questionCode())
+                .subjectId(question == null ? null : question.subjectId())
+                .topicId(question == null ? null : question.topicId())
+                .topicName(topicName)
+                .versionNumber(version.versionNumber())
+                .content(version.questionContent())
+                .expectedAnswer(version.referenceAnswer())
+                .bloomLevel(version.bloomLevel())
+                .bloomLevelLabel(version.bloomLevelLabel())
+                .bloomConfirmed(version.bloomConfirmed())
+                .origin(version.origin())
+                .status(version.status())
+                .parentVersionId(version.parentVersionId())
+                .generationRequestId(version.generationRequestId())
+                .regenerationCount(version.regenerationCount())
+                .rejectReason(version.rejectReason())
+                .createdBy(version.createdBy())
+                .reviewedBy(version.reviewedBy())
+                .reviewedAt(version.reviewedAt())
+                .createdAt(version.createdAt())
+                .updatedAt(version.updatedAt())
+                .lockVersion(version.lockVersion())
                 .build();
     }
 
@@ -85,58 +86,58 @@ public class QuestionBankPresenter {
 
     public QuestionBankItemDto toBankItem(QuestionBankItemView item) {
         QuestionVersionView current = item.current();
-        Question question = current.question();
+        QuestionResult question = current.question();
         return QuestionBankItemDto.builder()
-                .questionId(question.getQuestionId())
-                .questionCode(question.getQuestionCode())
-                .subjectId(question.getSubjectId())
-                .topicId(question.getTopicId())
-                .topicName(current.topic() == null ? null : current.topic().getTopicName())
-                .status(question.getStatus())
+                .questionId(question.questionId())
+                .questionCode(question.questionCode())
+                .subjectId(question.subjectId())
+                .topicId(question.topicId())
+                .topicName(current.topicName())
+                .status(question.status())
                 .hasPendingDraft(item.hasPendingDraft())
                 .currentVersion(toDto(current))
-                .createdAt(question.getCreatedAt())
-                .updatedAt(question.getUpdatedAt())
+                .createdAt(question.createdAt())
+                .updatedAt(question.updatedAt())
                 .build();
     }
 
     public QuestionDetailDto toDetail(QuestionDetailView detail) {
-        Question question = detail.question();
-        Topic topic = detail.currentVersion() == null ? null : detail.currentVersion().topic();
+        QuestionResult question = detail.question();
+        String topicName = detail.currentVersion() == null ? null : detail.currentVersion().topicName();
         return QuestionDetailDto.builder()
-                .questionId(question.getQuestionId())
-                .questionCode(question.getQuestionCode())
-                .subjectId(question.getSubjectId())
-                .topicId(question.getTopicId())
-                .status(question.getStatus())
-                .currentApprovedVersionId(question.getCurrentApprovedVersionId())
+                .questionId(question.questionId())
+                .questionCode(question.questionCode())
+                .subjectId(question.subjectId())
+                .topicId(question.topicId())
+                .status(question.status())
+                .currentApprovedVersionId(question.currentApprovedVersionId())
                 .currentVersion(toDto(detail.currentVersion()))
-                .pendingDraft(summary(detail.pendingDraft(), question, topic))
+                .pendingDraft(summary(detail.pendingDraft(), question, topicName))
                 .history(detail.history() == null ? List.of()
-                        : detail.history().stream().map(v -> summary(v, question, topic)).toList())
-                .createdAt(question.getCreatedAt())
-                .updatedAt(question.getUpdatedAt())
+                        : detail.history().stream().map(v -> summary(v, question, topicName)).toList())
+                .createdAt(question.createdAt())
+                .updatedAt(question.updatedAt())
                 .build();
     }
 
     public GenerationRequestDto toGeneration(GenerationResult result) {
-        QuestionGenerationRequest request = result.request();
+        GenerationRequestResult request = result.request();
         return GenerationRequestDto.builder()
-                .generationRequestId(request.getGenerationRequestId())
-                .subjectId(request.getSubjectId())
-                .topicId(request.getTopicId())
-                .documentIds(request.getDocumentIds())
-                .bloomDistribution(request.getBloomDistribution())
-                .totalQuestions(request.getTotalQuestions())
-                .lecturerNote(request.getLecturerNote())
-                .status(request.getStatus())
-                .generatedCount(request.getGeneratedCount())
-                .rejectedCount(request.getRejectedCount())
-                .attemptCount(request.getAttemptCount())
-                .issues(request.getIssues())
-                .errorMessage(request.getErrorMessage())
-                .createdAt(request.getCreatedAt())
-                .updatedAt(request.getUpdatedAt())
+                .generationRequestId(request.generationRequestId())
+                .subjectId(request.subjectId())
+                .topicId(request.topicId())
+                .documentIds(request.documentIds())
+                .bloomDistribution(request.bloomDistribution())
+                .totalQuestions(request.totalQuestions())
+                .lecturerNote(request.lecturerNote())
+                .status(request.status())
+                .generatedCount(request.generatedCount())
+                .rejectedCount(request.rejectedCount())
+                .attemptCount(request.attemptCount())
+                .issues(request.issues())
+                .errorMessage(request.errorMessage())
+                .createdAt(request.createdAt())
+                .updatedAt(request.updatedAt())
                 .drafts(toDtoList(result.drafts()))
                 .build();
     }
@@ -154,37 +155,49 @@ public class QuestionBankPresenter {
                 .build();
     }
 
-    private RubricDto toRubric(Rubric rubric, List<RubricCriterion> criteria) {
+    private RubricDto toRubric(RubricResult rubric) {
         if (rubric == null) {
             return null;
         }
         return RubricDto.builder()
-                .rubricId(rubric.getRubricId())
-                .name(rubric.getRubricName())
-                .description(rubric.getDescription())
-                .totalScore(rubric.getTotalPoints())
-                .criteria(criteria == null ? List.of() : criteria.stream()
-                        .map(c -> RubricCriterionDto.builder()
-                                .criterionId(c.getCriterionId())
-                                .name(c.getCriterionName())
-                                .description(c.getAchievementDescriptors())
-                                .maxScore(c.getMaxPoints())
-                                .levels(c.getPerformanceLevels() == null ? List.of() : c.getPerformanceLevels())
-                                .orderIndex(c.getOrderIndex())
-                                .build())
+                .rubricId(rubric.rubricId())
+                .name(rubric.name())
+                .description(rubric.description())
+                .totalScore(rubric.totalScore())
+                .criteria(rubric.criteria() == null ? List.of() : rubric.criteria().stream()
+                        .map(this::toCriterion)
                         .toList())
                 .build();
     }
 
-    private QuestionSourceDto toSource(QuestionSource source) {
+    private RubricCriterionDto toCriterion(RubricCriterionResult c) {
+        return RubricCriterionDto.builder()
+                .criterionId(c.criterionId())
+                .name(c.name())
+                .description(c.description())
+                .maxScore(c.maxScore())
+                .levels(c.levels() == null ? List.of() : c.levels().stream().map(this::toLevel).toList())
+                .orderIndex(c.orderIndex())
+                .build();
+    }
+
+    private PerformanceLevelDto toLevel(PerformanceLevelResult l) {
+        return PerformanceLevelDto.builder()
+                .label(l.label())
+                .description(l.description())
+                .score(l.score())
+                .build();
+    }
+
+    private QuestionSourceDto toSource(QuestionSourceResult source) {
         return QuestionSourceDto.builder()
-                .sourceId(source.getQuestionSourceId())
-                .chunkId(source.getChunkId())
-                .documentId(source.getDocumentId())
-                .documentName(source.getDocumentName())
-                .citationQuote(source.getCitationQuote())
-                .similarityScore(source.getSimilarityScore())
-                .order(source.getSourceOrder())
+                .sourceId(source.sourceId())
+                .chunkId(source.chunkId())
+                .documentId(source.documentId())
+                .documentName(source.documentName())
+                .citationQuote(source.citationQuote())
+                .similarityScore(source.similarityScore())
+                .order(source.order())
                 .build();
     }
 }

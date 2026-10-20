@@ -3,7 +3,9 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
+import com.example.vieva.application.usecases.question.QuestionViewMapper;
 import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.importing.QuestionImportService;
@@ -124,7 +126,7 @@ class LecturerQuestionBankApiTest {
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Trình bày ACID?", "Atomicity...",
                 BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId());
         version.setVersion(0L);
-        return QuestionVersionView.builder().question(question).version(version).criteria(List.of()).sources(List.of()).build();
+        return QuestionViewMapper.toView(QuestionVersionAggregate.builder().question(question).version(version).criteria(List.of()).sources(List.of()).build());
     }
 
     @Test
@@ -208,10 +210,13 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("approve: 409 VERSION_NOT_DRAFT, 422 BLOOM_NOT_CONFIRMED, 409 CONCURRENT_MODIFICATION")
     void approveErrorMapping() throws Exception {
-        QuestionVersionView view = draftView();
-        UUID versionId = view.version().getQuestionVersionId();
-        when(questionVersionRepository.findById(versionId)).thenReturn(Optional.of(view.version()));
-        when(questionRepository.findById(view.question().getQuestionId())).thenReturn(Optional.of(view.question()));
+        Question question = Question.newDraftOwner(subjectId, null, lecturer.getUserId());
+        QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Trình bày ACID?", "Atomicity...",
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId());
+        version.setVersion(0L);
+        UUID versionId = version.getQuestionVersionId();
+        when(questionVersionRepository.findById(versionId)).thenReturn(Optional.of(version));
+        when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
 
         when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new ApplicationException(ErrorCode.VERSION_NOT_DRAFT));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER")))

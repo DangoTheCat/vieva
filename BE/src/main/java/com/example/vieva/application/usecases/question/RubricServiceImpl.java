@@ -5,7 +5,7 @@ import com.example.vieva.application.ports.input.question.CriterionInput;
 import com.example.vieva.application.ports.input.question.RubricInput;
 import com.example.vieva.application.ports.input.question.RubricService;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
@@ -41,7 +41,7 @@ public class RubricServiceImpl implements RubricService {
     public QuestionVersionView getRubric(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        return viewAssembler.assemble(version);
+        return QuestionViewMapper.toView(viewAssembler.assemble(version));
     }
 
     @Override
@@ -158,6 +158,6 @@ public class RubricServiceImpl implements RubricService {
         questionVersionRepository.save(version);
         auditor.record(actorId, "RUBRIC_UPDATED", QuestionBankAuditor.QUESTION_VERSION, version.getQuestionVersionId(),
                 Map.of("totalScore", before), Map.of("totalScore", rubric.getTotalPoints()));
-        return viewAssembler.assemble(questionVersionRepository.findById(version.getQuestionVersionId()).orElseThrow());
+        return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(version.getQuestionVersionId()).orElseThrow()));
     }
 }

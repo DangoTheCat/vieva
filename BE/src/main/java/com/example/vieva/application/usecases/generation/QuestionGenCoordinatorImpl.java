@@ -8,13 +8,15 @@ import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
-import com.example.vieva.application.ports.output.GenerationResult;
+import com.example.vieva.application.ports.input.generation.GenerationResult;
 import com.example.vieva.application.ports.output.QuestionGenerationPort;
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
 import com.example.vieva.application.ports.output.QuestionGenerationRequestRepository;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
+import com.example.vieva.application.usecases.question.QuestionViewMapper;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
@@ -90,7 +92,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
                 .topicId(topicId).documentIds(selected).totalQuestions(1)
                 .bloomDistribution(Map.of(bloom.name(),1)).build(),actorId);
         if (result.drafts().isEmpty()) throw new ApplicationException(ErrorCode.AI_SERVICE_UNAVAILABLE,
-                "Generation failed; inspect request " + result.request().getGenerationRequestId());
+                "Generation failed; inspect request " + result.request().generationRequestId());
         return result.drafts().get(0);
     }
 
@@ -169,7 +171,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
                 request.recordOutcome(0, 0, List.of(), null);
                 return generationRequestRepository.save(request);
             });
-            return new GenerationResult(completed, List.of());
+            return new GenerationResult(QuestionViewMapper.toResult(completed), List.of());
         }
 
         Context context = request.getRetrievedChunkIds().isEmpty()
@@ -183,8 +185,8 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
     public GenerationResult getRequest(UUID generationRequestId) {
         QuestionGenerationRequest request = generationRequestRepository.findById(generationRequestId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
-        return new GenerationResult(request,
-                viewAssembler.assemble(questionVersionRepository.findByGenerationRequestId(generationRequestId)));
+        return new GenerationResult(QuestionViewMapper.toResult(request),
+                QuestionViewMapper.toViews(viewAssembler.assemble(questionVersionRepository.findByGenerationRequestId(generationRequestId))));
     }
 
     // ─── UC1.2: regenerate one draft ─────────────────────────────────────────
@@ -243,7 +245,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
             questionVersionRepository.save(version);
             auditor.record(actorId, "QUESTION_REGENERATED", QuestionBankAuditor.QUESTION_VERSION, versionId, before,
                     Map.of("content", replacement.content(), "regenerationCount", version.getRegenerationCount()));
-            return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+            return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow()));
         });
     }
 
@@ -532,7 +534,8 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
 
                 List<QuestionVersion> versions = questionVersionRepository.findAllByIds(
                         drafts.stream().map(d -> d.version().getQuestionVersionId()).toList());
-                return new GenerationResult(saved, viewAssembler.assemble(versions));
+                return new GenerationResult(QuestionViewMapper.toResult(saved),
+                        QuestionViewMapper.toViews(viewAssembler.assemble(versions)));
             });
         } catch (ApplicationException e) {
             if (e.getErrorCode() == ErrorCode.FORBIDDEN_SUBJECT) {

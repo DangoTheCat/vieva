@@ -1,25 +1,26 @@
 package com.example.vieva.application.usecases.question;
 
-import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.input.question.QuestionBankService;
-import com.example.vieva.application.ports.input.common.PageResult;
-import com.example.vieva.application.usecases.common.EnumValues;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionLifecycleStatus;
-import com.example.vieva.application.ports.output.QuestionBankItemView;
-import com.example.vieva.application.ports.output.QuestionDetailView;
-import com.example.vieva.application.ports.output.QuestionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.application.usecases.access.QuestionBankAuditor;
-import com.example.vieva.domain.entities.Question;
-import com.example.vieva.domain.entities.QuestionStatus;
-import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
-import lombok.RequiredArgsConstructor;
+import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.input.question.QuestionBankItemView;
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionBankService;
+import com.example.vieva.application.ports.input.question.QuestionDetailView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionRepository;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
+import com.example.vieva.application.ports.output.QuestionVersionRepository;
+import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.transaction.UseCaseTransaction;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
+import com.example.vieva.application.usecases.common.EnumValues;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.Question;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
+import com.example.vieva.domain.entities.QuestionVersion;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
@@ -58,14 +59,16 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .filter(v -> v.getApprovalStatus() == QuestionStatus.DRAFT || v.getApprovalStatus() == QuestionStatus.UNDER_REVIEW)
                 .map(QuestionVersion::getQuestionId)
                 .collect(Collectors.toSet());
-        Map<UUID, QuestionVersionView> viewsByQuestion = viewAssembler.assemble(
+        Map<UUID, QuestionVersionAggregate> aggregatesByQuestion = viewAssembler.assemble(
                         versions.stream().filter(v -> currentIds.contains(v.getQuestionVersionId())).toList(),
                         questionsById).stream()
-                .collect(Collectors.toMap(view -> view.question().getQuestionId(), Function.identity()));
+                .collect(Collectors.toMap(agg -> agg.question().getQuestionId(), Function.identity()));
 
         List<QuestionBankItemView> items = questions.stream()
-                .filter(q -> viewsByQuestion.containsKey(q.getQuestionId()))
-                .map(q -> new QuestionBankItemView(viewsByQuestion.get(q.getQuestionId()), withDraft.contains(q.getQuestionId())))
+                .filter(q -> aggregatesByQuestion.containsKey(q.getQuestionId()))
+                .map(q -> new QuestionBankItemView(
+                        QuestionViewMapper.toView(aggregatesByQuestion.get(q.getQuestionId())),
+                        withDraft.contains(q.getQuestionId())))
                 .toList();
         return PageResult.of(items, page.getPage(), page.getSize(), page.getTotalElements());
     }
@@ -84,13 +87,13 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .filter(QuestionVersion::isDraft)
                 .findFirst()
                 .orElse(null);
-        QuestionVersionView currentView = current == null ? null
+        QuestionVersionAggregate currentAggregate = current == null ? null
                 : viewAssembler.assemble(List.of(current), Map.of(questionId, question)).get(0);
         return QuestionDetailView.builder()
-                .question(question)
-                .currentVersion(currentView)
-                .pendingDraft(draft)
-                .history(history)
+                .question(QuestionViewMapper.toResult(question))
+                .currentVersion(QuestionViewMapper.toView(currentAggregate))
+                .pendingDraft(QuestionViewMapper.toResult(draft))
+                .history(history == null ? List.of() : history.stream().map(QuestionViewMapper::toResult).toList())
                 .build();
     }
 
@@ -99,7 +102,9 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     public List<QuestionVersionView> getHistory(UUID questionId) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_NOT_FOUND));
-        return viewAssembler.assemble(questionVersionRepository.findByQuestionId(questionId), Map.of(questionId, question));
+        List<QuestionVersionAggregate> aggregates = viewAssembler.assemble(
+                questionVersionRepository.findByQuestionId(questionId), Map.of(questionId, question));
+        return QuestionViewMapper.toViews(aggregates);
     }
 
     @Override

@@ -8,7 +8,7 @@ import com.example.vieva.application.usecases.common.EnumValues;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.TopicRepository;
@@ -231,7 +231,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     private QuestionVersionView reloadView(UUID versionId) {
         QuestionVersion fresh = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        return viewAssembler.assemble(fresh);
+        return QuestionViewMapper.toView(viewAssembler.assemble(fresh));
     }
 
     static Map<String, Object> snapshot(QuestionVersion version) {

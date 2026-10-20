@@ -13,7 +13,8 @@ import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
@@ -104,7 +105,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         notifications.notifyPendingReview(head, ctx.question().getQuestionId(), versionId);
         auditor.record(actorId, "QUESTION_SUBMITTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId()));
-        return db.fetchQuestionWithRubric(submitted);
+        return QuestionViewMapper.toView(db.fetchQuestionWithRubric(submitted));
     }
 
     @Override
@@ -120,7 +121,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         heads.requireHead(actorId, ctx.question().getSubjectId());
         ctx.version().ensureUnderReview();
-        return db.fetchQuestionWithRubric(ctx.version());
+        return QuestionViewMapper.toView(db.fetchQuestionWithRubric(ctx.version()));
     }
 
     @Override
@@ -137,7 +138,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         EnumValues.parse(QuestionGenerationMode.class, criteria.origin(), "Invalid value for parameter 'origin'");
         EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
         PageResult<QuestionVersion> page = questionVersionRepository.search(criteria);
-        return PageResult.of(viewAssembler.assemble(page.getContent()), page.getPage(), page.getSize(),
+        return PageResult.of(QuestionViewMapper.toViews(viewAssembler.assemble(page.getContent())), page.getPage(), page.getSize(),
                 page.getTotalElements());
     }
 
@@ -146,7 +147,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     public QuestionVersionView getVersion(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        return viewAssembler.assemble(version);
+        return QuestionViewMapper.toView(viewAssembler.assemble(version));
     }
 
     /**
@@ -184,7 +185,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         newValues.put("supersededVersionId", previousApprovedId);
         newValues.put("totalScore", rubric.getTotalPoints());
         auditor.record(actorId, "QUESTION_APPROVED", QuestionBankAuditor.QUESTION_VERSION, versionId, newValues);
-        return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+        return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow()));
     }
 
     @Override
@@ -224,7 +225,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         db.updateStatus(version);
         auditor.record(actorId, "QUESTION_REJECTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId(), "reason", version.getRejectionReason()));
-        return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+        return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow()));
     }
 
     @Override

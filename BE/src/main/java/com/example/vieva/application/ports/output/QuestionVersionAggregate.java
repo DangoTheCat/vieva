@@ -11,10 +11,10 @@ import lombok.Builder;
 import java.util.List;
 
 /**
- * One version with everything a reviewer needs: owning question, topic, rubric, criteria, sources.
+ * One version aggregate with domain entities: owning question, topic, rubric, criteria, sources.
  */
 @Builder
-public record QuestionVersionView(
+public record QuestionVersionAggregate(
         Question question,
         Topic topic,
         QuestionVersion version,

@@ -79,7 +79,7 @@ class JsonContractSnapshotTest {
                 .name("Criterion 1")
                 .description("Criterion description")
                 .maxScore(new BigDecimal("5.0"))
-                .levels(List.of(new PerformanceLevel("Good", "Good quality", new BigDecimal("5.0"))))
+                .levels(List.of(new PerformanceLevelDto("Good", "Good quality", new BigDecimal("5.0"))))
                 .orderIndex(1)
                 .build();
 
@@ -111,11 +111,11 @@ class JsonContractSnapshotTest {
                 .versionNumber(1)
                 .content("What is OOP?")
                 .expectedAnswer("Object-Oriented Programming")
-                .bloomLevel(BloomLevel.UNDERSTAND)
+                .bloomLevel(BloomLevel.UNDERSTAND.name())
                 .bloomLevelLabel("Thông hiểu")
                 .bloomConfirmed(true)
-                .origin(QuestionGenerationMode.AI_RAG)
-                .status(QuestionStatus.APPROVED)
+                .origin(QuestionGenerationMode.AI_RAG.name())
+                .status(QuestionStatus.APPROVED.name())
                 .parentVersionId(U5)
                 .generationRequestId(U6)
                 .regenerationCount(2)
@@ -449,7 +449,7 @@ class JsonContractSnapshotTest {
                 .subjectId(U2)
                 .topicId(U3)
                 .topicName("Topic 1")
-                .status(QuestionLifecycleStatus.ACTIVE)
+                .status(QuestionLifecycleStatus.ACTIVE.name())
                 .hasPendingDraft(false)
                 .currentVersion(sampleQuestionVersionDto())
                 .createdAt(T1)
@@ -484,7 +484,7 @@ class JsonContractSnapshotTest {
                 .questionCode("CS101-Q01")
                 .subjectId(U2)
                 .topicId(U3)
-                .status(QuestionLifecycleStatus.ACTIVE)
+                .status(QuestionLifecycleStatus.ACTIVE.name())
                 .currentApprovedVersionId(U4)
                 .currentVersion(version)
                 .pendingDraft(version)
@@ -517,9 +517,9 @@ class JsonContractSnapshotTest {
     @Test
     @DisplayName("Snapshot: GenerationRequestDto JSON contract")
     void snapshotGenerationRequestDto() throws Exception {
-        Map<BloomLevel, Integer> dist = new LinkedHashMap<>();
-        dist.put(BloomLevel.REMEMBER, 2);
-        dist.put(BloomLevel.UNDERSTAND, 3);
+        Map<String, Integer> dist = new LinkedHashMap<>();
+        dist.put(BloomLevel.REMEMBER.name(), 2);
+        dist.put(BloomLevel.UNDERSTAND.name(), 3);
 
         GenerationRequestDto dto = GenerationRequestDto.builder()
                 .generationRequestId(U1)
@@ -529,7 +529,7 @@ class JsonContractSnapshotTest {
                 .bloomDistribution(dist)
                 .totalQuestions(5)
                 .lecturerNote("Note")
-                .status(QuestionGenerationStatus.COMPLETED)
+                .status(QuestionGenerationStatus.COMPLETED.name())
                 .generatedCount(5)
                 .rejectedCount(0)
                 .attemptCount(1)
@@ -800,7 +800,7 @@ class JsonContractSnapshotTest {
                 .subjectId(U2)
                 .topicId(U3)
                 .topicName("Topic 1")
-                .status(QuestionLifecycleStatus.ACTIVE)
+                .status(QuestionLifecycleStatus.ACTIVE.name())
                 .hasPendingDraft(false)
                 .currentVersion(sampleQuestionVersionDto())
                 .createdAt(T1)
