@@ -64,7 +64,7 @@ class JsonContractSnapshotTest {
                 .fileUrl("https://storage.example.com/lecture1.pdf")
                 .fileSizeBytes(102400L)
                 .mimeType("application/pdf")
-                .indexingStatus(DocumentStatus.READY)
+                .indexingStatus("READY")
                 .errorMessage("None")
                 .totalChunks(10)
                 .indexAttempts(1)

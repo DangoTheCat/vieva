@@ -11,8 +11,7 @@ import com.example.vieva.application.ports.input.question.QuestionAuthoringServi
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.CourseDocument;
-import com.example.vieva.domain.entities.DocumentStatus;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
@@ -250,8 +249,8 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("upload answers 202 Accepted with the UPLOADED document")
     void uploadAccepted() throws Exception {
-        CourseDocument document = CourseDocument.builder().documentId(UUID.randomUUID()).subjectId(subjectId)
-                .fileName("csdl.pdf").indexingStatus(DocumentStatus.UPLOADED).indexAttempts(0).build();
+        CourseDocumentResult document = CourseDocumentResult.builder().documentId(UUID.randomUUID()).subjectId(subjectId)
+                .fileName("csdl.pdf").indexingStatus("UPLOADED").indexAttempts(0).build();
         when(documentIndexingService.uploadDocument(eq(subjectId), eq("csdl.pdf"), any(), eq(lecturer.getUserId())))
                 .thenReturn(document);
         mockMvc.perform(multipart("/api/v1/lecturer/subjects/{id}/documents", subjectId)

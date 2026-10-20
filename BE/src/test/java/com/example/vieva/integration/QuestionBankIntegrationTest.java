@@ -13,6 +13,7 @@ import com.example.vieva.application.ports.output.GenerationResult;
 import com.example.vieva.application.ports.output.ImportReport;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
 import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.importing.QuestionImportService;
@@ -20,7 +21,6 @@ import com.example.vieva.application.ports.input.question.QuestionAuthoringServi
 import com.example.vieva.application.ports.input.question.QuestionBankService;
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
@@ -161,12 +161,12 @@ class QuestionBankIntegrationTest {
         return new Fixture(subject, lecturer);
     }
 
-    private CourseDocument uploadAndAwait(Fixture fixture, String name, String text, DocumentStatus expected) {
-        CourseDocument uploaded = documentService.uploadDocument(fixture.subjectId(), name,
+    private CourseDocumentResult uploadAndAwait(Fixture fixture, String name, String text, DocumentStatus expected) {
+        CourseDocumentResult uploaded = documentService.uploadDocument(fixture.subjectId(), name,
                 text.getBytes(StandardCharsets.UTF_8), fixture.lecturerId());
-        assertThat(uploaded.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
+        assertThat(uploaded.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED.name());
         await().atMost(Duration.ofSeconds(30)).until(
-                () -> documentService.getDocumentById(uploaded.getDocumentId()).getIndexingStatus() == expected);
+                () -> expected.name().equals(documentService.getDocumentById(uploaded.getDocumentId()).getIndexingStatus()));
         return documentService.getDocumentById(uploaded.getDocumentId());
     }
 
@@ -191,8 +191,8 @@ class QuestionBankIntegrationTest {
     void uploadIndexAndRetrieveWithinSubject() {
         Fixture a = newSubjectWithLecturer();
         Fixture b = newSubjectWithLecturer();
-        CourseDocument docA = uploadAndAwait(a, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
-        CourseDocument docB = uploadAndAwait(b, "giao-dich-b.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
+        CourseDocumentResult docA = uploadAndAwait(a, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
+        CourseDocumentResult docB = uploadAndAwait(b, "giao-dich-b.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
 
         assertThat(docA.getTotalChunks()).isGreaterThan(1);
         assertThat(docA.getIndexAttempts()).isEqualTo(1);
@@ -215,13 +215,13 @@ class QuestionBankIntegrationTest {
     @DisplayName("UC1.1: empty text → FAILED with a reason; retry is bounded")
     void failedIndexingAndBoundedRetry() {
         Fixture fixture = newSubjectWithLecturer();
-        CourseDocument failed = uploadAndAwait(fixture, "rong.txt", "quá ngắn", DocumentStatus.FAILED);
+        CourseDocumentResult failed = uploadAndAwait(fixture, "rong.txt", "quá ngắn", DocumentStatus.FAILED);
         assertThat(failed.getErrorMessage()).isEqualTo(ErrorCode.EMPTY_DOCUMENT_TEXT.getMessage());
 
         documentService.retryIndexing(failed.getDocumentId(), fixture.lecturerId());
         await().atMost(Duration.ofSeconds(30)).until(() ->
                 documentService.getDocumentById(failed.getDocumentId()).getIndexAttempts() == 2
-                        && documentService.getDocumentById(failed.getDocumentId()).getIndexingStatus() == DocumentStatus.FAILED);
+                        && DocumentStatus.FAILED.name().equals(documentService.getDocumentById(failed.getDocumentId()).getIndexingStatus()));
         assertThatThrownBy(() -> documentService.retryIndexing(failed.getDocumentId(), fixture.lecturerId()))
                 .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.RETRY_LIMIT_EXCEEDED);
     }
@@ -230,7 +230,7 @@ class QuestionBankIntegrationTest {
     @DisplayName("WF01: RAG drafts → confirm Bloom → approve (one transaction) → bank → Copy-on-Write → supersede")
     void generateReviewApproveAndCopyOnWrite() {
         Fixture fixture = newSubjectWithLecturer();
-        CourseDocument document = uploadAndAwait(fixture, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
+        CourseDocumentResult document = uploadAndAwait(fixture, "giao-dich.txt", TRANSACTIONS_TEXT, DocumentStatus.READY);
 
         GenerationResult generation = generationService.generate(GenerateQuestionsCommand.builder()
                 .subjectId(fixture.subjectId())

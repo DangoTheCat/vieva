@@ -4,10 +4,10 @@ import com.example.vieva.adapters.presenters.CourseDocumentDto;
 import com.example.vieva.adapters.presenters.CourseDocumentPresenter;
 import com.example.vieva.adapters.presenters.DocumentPreviewDto;
 import com.example.vieva.adapters.presenters.MessageResponse;
-import com.example.vieva.application.ports.output.DocumentPreview;
 import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
+import com.example.vieva.application.ports.input.document.DocumentPreview;
 import com.example.vieva.application.ports.input.document.DocumentService;
-import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class LecturerDocumentController {
             throw new ApplicationException(ErrorCode.FILE_TOO_LARGE, "File exceeds the maximum size of 20 MB");
         }
         try {
-            CourseDocument document = documentIndexingService.uploadDocument(
+            CourseDocumentResult document = documentIndexingService.uploadDocument(
                     subjectId, file.getOriginalFilename(), file.getBytes(), userId);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(presenter.toDto(document));
         } catch (IOException e) {
@@ -81,7 +81,7 @@ public class LecturerDocumentController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
     public ResponseEntity<CourseDocumentDto> retryIndexing(@PathVariable UUID documentId,
                                                            @AuthenticationPrincipal ActorView currentUser) {
-        CourseDocument document = documentIndexingService.retryIndexing(documentId, CurrentUser.id(currentUser));
+        CourseDocumentResult document = documentIndexingService.retryIndexing(documentId, CurrentUser.id(currentUser));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(presenter.toDto(document));
     }
 

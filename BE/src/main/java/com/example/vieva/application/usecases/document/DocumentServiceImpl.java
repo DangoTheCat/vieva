@@ -29,7 +29,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 
-import com.example.vieva.application.ports.output.DocumentPreview;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
+import com.example.vieva.application.ports.input.document.DocumentPreview;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @UseCaseTransaction
-    public CourseDocument processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId) {
+    public CourseDocumentResult processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId) {
         return uploadDocument(subjectId,filename,content,actorId);
     }
 
@@ -83,7 +84,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @UseCaseTransaction
-    public CourseDocument uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId) {
+    public CourseDocumentResult uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         subjectRepository.findById(subjectId)
                 .filter(subject -> subject.getStatus() == SubjectStatus.ACTIVE)
@@ -125,7 +126,7 @@ public class DocumentServiceImpl implements DocumentService {
         auditor.record(actorId, "DOCUMENT_UPLOADED", QuestionBankAuditor.DOCUMENT, document.getDocumentId(),
                 Map.of("subjectId", subjectId, "fileName", safeName, "sizeBytes", content.length, "mimeType", mimeType));
         domainEventPublisher.publishDocumentIndexingRequested(document.getDocumentId());
-        return document;
+        return CourseDocumentResults.from(document);
     }
 
     @Override
@@ -203,7 +204,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @UseCaseTransaction
-    public CourseDocument retryIndexing(UUID documentId, UUID actorId) {
+    public CourseDocumentResult retryIndexing(UUID documentId, UUID actorId) {
         CourseDocument document = courseDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId, document.getSubjectId());
@@ -213,20 +214,22 @@ public class DocumentServiceImpl implements DocumentService {
         auditor.record(actorId, "DOCUMENT_REINDEX_REQUESTED", QuestionBankAuditor.DOCUMENT, documentId,
                 Map.of("attemptsSoFar", saved.getIndexAttempts()));
         domainEventPublisher.publishDocumentIndexingRequested(documentId);
-        return saved;
+        return CourseDocumentResults.from(saved);
     }
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public List<CourseDocument> getDocumentsBySubject(UUID subjectId) {
-        return courseDocumentRepository.findActiveBySubjectId(subjectId);
+    public List<CourseDocumentResult> getDocumentsBySubject(UUID subjectId) {
+        return courseDocumentRepository.findActiveBySubjectId(subjectId).stream()
+                .map(CourseDocumentResults::from)
+                .toList();
     }
 
     @Override
     @UseCaseTransaction(readOnly = true)
-    public CourseDocument getDocumentById(UUID documentId) {
-        return courseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
+    public CourseDocumentResult getDocumentById(UUID documentId) {
+        return CourseDocumentResults.from(courseDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND)));
     }
 
     @Override
@@ -260,7 +263,7 @@ public class DocumentServiceImpl implements DocumentService {
                 })
                 .toList();
 
-        return new DocumentPreview(document, previewChunks);
+        return new DocumentPreview(CourseDocumentResults.from(document), previewChunks);
     }
 
     @Override

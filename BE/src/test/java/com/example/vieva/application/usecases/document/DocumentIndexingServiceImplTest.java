@@ -1,5 +1,6 @@
 package com.example.vieva.application.usecases.document;
 
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
 import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AuditEventRepository;
@@ -140,9 +141,9 @@ class DocumentIndexingServiceImplTest {
         when(storage.store(eq("Giáo trình.pdf"), eq(content), eq("application/pdf")))
                 .thenReturn(new StoredFile("2026/10/k.pdf", "local:2026/10/k.pdf"));
 
-        CourseDocument document = service.uploadDocument(subjectId, "C:\\tmp\\Giáo trình.pdf", content, lecturer);
+        CourseDocumentResult document = service.uploadDocument(subjectId, "C:\\tmp\\Giáo trình.pdf", content, lecturer);
 
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED.name());
         assertThat(document.getStorageKey()).isEqualTo("2026/10/k.pdf");
         assertThat(document.getFileSizeBytes()).isEqualTo(content.length);
         verify(events).publishDocumentIndexingRequested(document.getDocumentId());
