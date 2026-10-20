@@ -1,5 +1,7 @@
 package com.example.vieva.application.usecases.document;
 
+import com.example.vieva.application.ports.input.document.DocumentCleanupUseCase;
+import com.example.vieva.application.ports.input.document.DocumentIndexingUseCase;
 import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
@@ -47,7 +49,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class DocumentServiceImpl implements DocumentService {
+public class DocumentServiceImpl implements DocumentService, DocumentIndexingUseCase, DocumentCleanupUseCase {
     @Override
     @UseCaseTransaction
     public void archiveDocument(UUID documentId, UUID actorId) {

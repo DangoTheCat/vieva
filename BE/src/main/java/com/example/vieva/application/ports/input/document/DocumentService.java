@@ -1,6 +1,5 @@
 package com.example.vieva.application.ports.input.document;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,8 +10,6 @@ public interface DocumentService {
 
     CourseDocumentResult uploadDocument(UUID subjectId, String filename, byte[] content, UUID actorId);
 
-    void indexDocument(UUID documentId);
-
     CourseDocumentResult retryIndexing(UUID documentId, UUID actorId);
 
     List<CourseDocumentResult> getDocumentsBySubject(UUID subjectId);
@@ -22,6 +19,4 @@ public interface DocumentService {
     DocumentPreview previewDocument(UUID documentId, UUID actorId);
 
     void softDeleteDocument(UUID documentId, UUID actorId);
-
-    int failStaleDocuments(Instant indexingThreshold, Instant uploadedThreshold);
 }

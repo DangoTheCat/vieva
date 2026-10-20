@@ -82,7 +82,7 @@ class DocumentIndexingServiceImplTest {
     @Mock private AuditEventRepository auditEventRepository;
 
     @Mock private com.example.vieva.application.ports.output.QuestionDraftWriter db;
-    private DocumentService service;
+    private DocumentServiceImpl service;
     private final RagSettings ragSettings = new RagSettings();
     private final DocumentSettings documentSettings = new DocumentSettings();
     private final UUID lecturer = UUID.randomUUID();

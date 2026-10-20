@@ -1,6 +1,6 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.ports.input.document.DocumentService;
+import com.example.vieva.application.ports.input.document.DocumentIndexingUseCase;
 import com.example.vieva.application.ports.output.event.DocumentUploadedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class AsyncDocumentIndexingWorker {
 
-    private final DocumentService documentIndexingService;
+    private final DocumentIndexingUseCase documentIndexingService;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

@@ -95,6 +95,8 @@ class LecturerQuestionBankApiTest {
     @MockitoBean private QuestionGenCoordinator generationService;
     @MockitoBean private QuestionImportService importService;
     @MockitoBean private DocumentService documentIndexingService;
+    @MockitoBean private com.example.vieva.application.ports.input.document.DocumentIndexingUseCase documentIndexingUseCase;
+    @MockitoBean private com.example.vieva.application.ports.input.document.DocumentCleanupUseCase documentCleanupUseCase;
 
     private final UUID subjectId = UUID.randomUUID();
     private User lecturer;
