@@ -1,7 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -16,8 +14,8 @@ import java.util.UUID;
 public record QuestionBankSearchCriteria(
         UUID subjectId,
         UUID topicId,
-        BloomLevel bloomLevel,
-        QuestionLifecycleStatus status,
+        String bloomLevel,
+        String status,
         String keyword,
         int page,
         int size,

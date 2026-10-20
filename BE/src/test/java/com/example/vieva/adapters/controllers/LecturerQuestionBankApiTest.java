@@ -185,6 +185,8 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("400 for a Bloom level outside the 6 levels")
     void unknownBloomLevel() throws Exception {
+        when(authoringService.createManualQuestion(eq(subjectId), any(), eq(lecturer.getUserId())))
+                .thenThrow(new ApplicationException(ErrorCode.INVALID_REQUEST, "Malformed request body"));
         mockMvc.perform(post("/api/v1/lecturer/subjects/{id}/questions", subjectId).with(as(lecturer, "LECTURER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_QUESTION.replace("UNDERSTAND", "VAN_DUNG_CAO")))

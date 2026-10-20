@@ -1,7 +1,5 @@
 package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
 import com.example.vieva.application.ports.output.QuestionVersionView;
 
 import java.util.UUID;

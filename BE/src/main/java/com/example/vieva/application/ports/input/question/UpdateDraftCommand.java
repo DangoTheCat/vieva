@@ -1,6 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.domain.entities.BloomLevel;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -16,7 +15,7 @@ public record UpdateDraftCommand(
         UUID topicId,
         String content,
         String expectedAnswer,
-        BloomLevel bloomLevel,
+        String bloomLevel,
         Boolean bloomConfirmed,
         RubricInput rubric,
         Long expectedVersion

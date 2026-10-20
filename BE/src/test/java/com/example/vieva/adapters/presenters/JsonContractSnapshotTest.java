@@ -750,7 +750,7 @@ class JsonContractSnapshotTest {
         QuestionVersionDto version = sampleQuestionVersionDto();
         LecturerStudioController.Preview preview = new LecturerStudioController.Preview(
                 version,
-                BloomLevel.UNDERSTAND,
+                BloomLevel.UNDERSTAND.name(),
                 version.rubric()
         );
 

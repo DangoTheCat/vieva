@@ -1,10 +1,12 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionStatus;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.example.vieva.domain.entities.QuestionVersion;
@@ -128,14 +130,14 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
             if (criteria.topicId() != null) {
                 predicates.add(cb.equal(root.get("question").get("topic").get("topicId"), criteria.topicId()));
             }
-            if (criteria.status() != null) {
-                predicates.add(cb.equal(root.get("approvalStatus"), criteria.status()));
+            if (criteria.status() != null && !criteria.status().isBlank()) {
+                predicates.add(cb.equal(root.get("approvalStatus"), QuestionStatus.valueOf(criteria.status())));
             }
-            if (criteria.origin() != null) {
-                predicates.add(cb.equal(root.get("generationMode"), criteria.origin()));
+            if (criteria.origin() != null && !criteria.origin().isBlank()) {
+                predicates.add(cb.equal(root.get("generationMode"), QuestionGenerationMode.valueOf(criteria.origin())));
             }
-            if (criteria.bloomLevel() != null) {
-                predicates.add(cb.equal(root.get("bloomLevel"), criteria.bloomLevel()));
+            if (criteria.bloomLevel() != null && !criteria.bloomLevel().isBlank()) {
+                predicates.add(cb.equal(root.get("bloomLevel"), BloomLevel.valueOf(criteria.bloomLevel())));
             }
             if (criteria.generationRequestId() != null) {
                 predicates.add(cb.equal(root.get("generationRequestId"), criteria.generationRequestId()));

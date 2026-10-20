@@ -1,6 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.domain.entities.PerformanceLevel;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -11,7 +10,7 @@ public record CriterionInput(
         String name,
         String description,
         BigDecimal maxScore,
-        List<PerformanceLevel> levels,
+        List<PerformanceLevelInput> levels,
         Integer orderIndex
 ) {
 }

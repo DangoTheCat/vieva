@@ -1,9 +1,9 @@
 package com.example.vieva.application.usecases.question;
 
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
+import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
@@ -279,7 +279,7 @@ class QuestionReviewAndAuthoringServiceTest {
         CreateManualQuestionCommand command = CreateManualQuestionCommand.builder()
                 .content("Thế nào là 3NF?")
                 .expectedAnswer("Không có phụ thuộc bắc cầu")
-                .bloomLevel(BloomLevel.REMEMBER)
+                .bloomLevel(BloomLevel.REMEMBER.name())
                 .rubric(new RubricInput(null, null, null, List.of(
                         new CriterionInput("Định nghĩa", "0-4", new BigDecimal("4"), List.of(), null),
                         new CriterionInput("Ví dụ", "0-6", new BigDecimal("6"), List.of(), null))))
@@ -302,7 +302,7 @@ class QuestionReviewAndAuthoringServiceTest {
         CreateManualQuestionCommand command = CreateManualQuestionCommand.builder()
                 .content(" ")
                 .expectedAnswer("x")
-                .bloomLevel(BloomLevel.APPLY)
+                .bloomLevel(BloomLevel.APPLY.name())
                 .rubric(new RubricInput(null, null, new BigDecimal("5"), List.of(
                         new CriterionInput("A", "d", new BigDecimal("4"), List.of(), null))))
                 .build();

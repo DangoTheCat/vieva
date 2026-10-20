@@ -7,13 +7,11 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionBankItemDt
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionDetailDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
-import com.example.vieva.application.ports.input.question.QuestionBankService;
 import com.example.vieva.application.ports.input.common.ActorView;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionLifecycleStatus;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionBankService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -66,8 +64,8 @@ public class LecturerQuestionController {
     public ResponseEntity<PageResponse<QuestionBankItemDto>> searchBank(
             @PathVariable UUID subjectId,
             @RequestParam(required = false) UUID topicId,
-            @RequestParam(required = false) BloomLevel bloomLevel,
-            @RequestParam(required = false) QuestionLifecycleStatus status,
+            @RequestParam(required = false) String bloomLevel,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,

@@ -6,7 +6,7 @@ import com.example.vieva.application.ports.input.generation.QuestionGenCoordinat
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.adapters.presenters.*;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
-import com.example.vieva.domain.entities.*;
+import com.example.vieva.adapters.presenters.QuestionBankDtos.RubricDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -27,12 +27,12 @@ public class LecturerStudioController {
     private final QuestionBankPresenter presenter;
     private final CourseDocumentPresenter documentPresenter;
 
-    public record GenerateRequest(@NotNull UUID topicId, @NotNull BloomLevel difficulty,
+    public record GenerateRequest(@NotNull UUID topicId, @NotNull String difficulty,
                                   @Size(max=20) List<@NotNull UUID> documentIds) { }
     public record ReviewRequest(@NotNull UUID versionId, @NotNull Long expectedVersion) { }
     public record RejectRequest(@NotNull UUID versionId, @NotNull Long expectedVersion,
                                 @NotBlank @Size(max=2000) String reason) { }
-    public record Preview(QuestionVersionDto question, BloomLevel difficulty, Object rubricJson) { }
+    public record Preview(QuestionVersionDto question, String difficulty, RubricDto rubricJson) { }
 
     @PostMapping(value="/subjects/{subjectId}/documents",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CourseDocumentDto> uploadDocument(@PathVariable UUID subjectId,

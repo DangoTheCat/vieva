@@ -1,9 +1,10 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
+import com.example.vieva.application.usecases.common.EnumValues;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
@@ -61,13 +62,17 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         List<FieldViolation> violations = new ArrayList<>();
         requireText(command.content(), "content", violations);
         requireText(command.expectedAnswer(), "expectedAnswer", violations);
-        if (command.bloomLevel() == null) {
+        BloomLevel bloomLevel = null;
+        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
+            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
+        }
+        if (bloomLevel == null) {
             violations.add(FieldViolation.of("bloomLevel", ErrorCode.INVALID_REQUEST, "Bloom level is required"));
         }
 
         Question question = Question.newDraftOwner(subjectId, command.topicId(), actorId);
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1,
-                trim(command.content()), trim(command.expectedAnswer()), command.bloomLevel(),
+                trim(command.content()), trim(command.expectedAnswer()), bloomLevel,
                 QuestionGenerationMode.MANUAL, actorId);
         RubricDraft rubric = RubricDraftFactory.build(version.getQuestionVersionId(), command.rubric(), violations);
         if (!violations.isEmpty()) {
@@ -111,7 +116,11 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
             question.setUpdatedAt(java.time.Instant.now());
             questionRepository.save(question);
         }
-        version.editContent(command.content(), command.expectedAnswer(), command.bloomLevel(), command.bloomConfirmed());
+        BloomLevel bloomLevel = null;
+        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
+            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
+        }
+        version.editContent(command.content(), command.expectedAnswer(), bloomLevel, command.bloomConfirmed());
         if (newRubric != null) {
             RubricDraftFactory.replace(versionId, newRubric, rubricRepository, rubricCriterionRepository);
         }
@@ -124,13 +133,14 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
 
     @Override
     @UseCaseTransaction
-    public QuestionVersionView confirmBloom(UUID versionId, BloomLevel bloomLevel, Long expectedVersion, UUID actorId) {
+    public QuestionVersionView confirmBloom(UUID versionId, String bloomLevel, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
         version.ensureVersionMatches(expectedVersion);
         ctx.question().ensureActive();
+        BloomLevel parsed = EnumValues.parse(BloomLevel.class, bloomLevel, "Malformed request body");
         BloomLevel previous = version.getBloomLevel();
-        version.confirmBloom(bloomLevel);
+        version.confirmBloom(parsed);
         questionVersionRepository.save(version);
         auditor.record(actorId, "QUESTION_BLOOM_CONFIRMED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("bloomLevel", previous == null ? "" : previous),

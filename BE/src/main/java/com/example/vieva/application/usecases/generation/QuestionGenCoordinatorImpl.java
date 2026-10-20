@@ -1,7 +1,8 @@
 package com.example.vieva.application.usecases.generation;
 
-import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
+import com.example.vieva.application.usecases.common.EnumValues;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
@@ -76,8 +77,10 @@ import java.util.stream.Collectors;
 public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
 
     @Override
-    public QuestionVersionView coordinateRAGPipeline(UUID topicId, BloomLevel difficulty, List<UUID> documentIds, UUID actorId) {
+    public QuestionVersionView coordinateRAGPipeline(UUID topicId, String difficulty, List<UUID> documentIds, UUID actorId) {
         if(topicId==null || difficulty==null) throw new ApplicationException(ErrorCode.INVALID_REQUEST,"topicId and difficulty are required");
+        BloomLevel bloom = EnumValues.parse(BloomLevel.class, difficulty, "Malformed request body");
+        if (bloom == null) throw new ApplicationException(ErrorCode.INVALID_REQUEST, "topicId and difficulty are required");
         Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new ApplicationException(ErrorCode.TOPIC_NOT_FOUND));
         subjectAccessGuard.requireManage(actorId,topic.getSubjectId());
         List<UUID> selected = documentIds == null || documentIds.isEmpty()
@@ -85,7 +88,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
                     .filter(CourseDocument::isReady).map(CourseDocument::getDocumentId).toList() : documentIds;
         GenerationResult result = generate(GenerateQuestionsCommand.builder().subjectId(topic.getSubjectId())
                 .topicId(topicId).documentIds(selected).totalQuestions(1)
-                .bloomDistribution(Map.of(difficulty,1)).build(),actorId);
+                .bloomDistribution(Map.of(bloom.name(),1)).build(),actorId);
         if (result.drafts().isEmpty()) throw new ApplicationException(ErrorCode.AI_SERVICE_UNAVAILABLE,
                 "Generation failed; inspect request " + result.request().getGenerationRequestId());
         return result.drafts().get(0);
@@ -257,7 +260,14 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
         if (command.documentIds() == null || command.documentIds().isEmpty()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Select at least one READY document");
         }
-        return BloomDistribution.of(command.bloomDistribution(), command.totalQuestions());
+        Map<BloomLevel, Integer> enumMap = new EnumMap<>(BloomLevel.class);
+        if (command.bloomDistribution() != null) {
+            for (Map.Entry<String, Integer> entry : command.bloomDistribution().entrySet()) {
+                BloomLevel level = EnumValues.parse(BloomLevel.class, entry.getKey(), "Malformed request body");
+                enumMap.put(level, entry.getValue());
+            }
+        }
+        return BloomDistribution.of(enumMap, command.totalQuestions());
     }
 
     /** BR-07: every selected document exists, belongs to the subject and is READY. */

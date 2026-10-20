@@ -1,6 +1,5 @@
 package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
 import com.example.vieva.application.ports.output.QuestionDetailView;

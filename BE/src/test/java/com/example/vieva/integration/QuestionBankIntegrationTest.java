@@ -1,11 +1,11 @@
 package com.example.vieva.integration;
 
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
-import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.input.RubricInput;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.RubricInput;
+import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
 import com.example.vieva.application.ports.output.EmbeddingModelPort;
@@ -181,7 +181,7 @@ class QuestionBankIntegrationTest {
         return authoringService.createManualQuestion(fixture.subjectId(), CreateManualQuestionCommand.builder()
                 .content(content)
                 .expectedAnswer("Đáp án mẫu")
-                .bloomLevel(BloomLevel.APPLY)
+                .bloomLevel(BloomLevel.APPLY.name())
                 .rubric(rubric("4", "6"))
                 .build(), fixture.lecturerId());
     }
@@ -236,7 +236,7 @@ class QuestionBankIntegrationTest {
                 .subjectId(fixture.subjectId())
                 .documentIds(List.of(document.getDocumentId()))
                 .totalQuestions(3)
-                .bloomDistribution(Map.of(BloomLevel.REMEMBER, 1, BloomLevel.ANALYZE, 1, BloomLevel.CREATE, 1))
+                .bloomDistribution(Map.of(BloomLevel.REMEMBER.name(), 1, BloomLevel.ANALYZE.name(), 1, BloomLevel.CREATE.name(), 1))
                 .lecturerNote("Tập trung vào ACID")
                 .build(), fixture.lecturerId());
 
@@ -398,6 +398,6 @@ class QuestionBankIntegrationTest {
     }
 
     private static QuestionBankSearchCriteria bankCriteria(Fixture fixture, BloomLevel level) {
-        return QuestionBankSearchCriteria.builder().subjectId(fixture.subjectId()).bloomLevel(level).page(0).size(20).build();
+        return QuestionBankSearchCriteria.builder().subjectId(fixture.subjectId()).bloomLevel(level == null ? null : level.name()).page(0).size(20).build();
     }
 }

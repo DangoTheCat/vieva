@@ -1,9 +1,6 @@
 package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
 import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.domain.entities.BloomLevel;
 
 import java.util.UUID;
 
@@ -16,7 +13,7 @@ public interface QuestionAuthoringService {
 
     QuestionVersionView updateDraft(UUID versionId, UpdateDraftCommand command, UUID actorId);
 
-    QuestionVersionView confirmBloom(UUID versionId, BloomLevel bloomLevel, Long expectedVersion, UUID actorId);
+    QuestionVersionView confirmBloom(UUID versionId, String bloomLevel, Long expectedVersion, UUID actorId);
 
     void deleteDraft(UUID versionId, UUID actorId);
 

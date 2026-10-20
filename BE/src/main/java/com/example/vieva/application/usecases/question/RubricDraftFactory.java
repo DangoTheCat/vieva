@@ -1,7 +1,8 @@
 package com.example.vieva.application.usecases.question;
 
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.PerformanceLevelInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.domain.entities.PerformanceLevel;
@@ -79,9 +80,9 @@ public final class RubricDraftFactory {
             violations.add(FieldViolation.of(field + ".maxScore", ErrorCode.RUBRIC_SCORE_MISMATCH,
                     "Criterion max score must be greater than 0"));
         }
-        List<PerformanceLevel> levels = input.levels() == null ? List.of() : input.levels();
+        List<PerformanceLevelInput> levels = input.levels() == null ? List.of() : input.levels();
         for (int i = 0; i < levels.size(); i++) {
-            PerformanceLevel level = levels.get(i);
+            PerformanceLevelInput level = levels.get(i);
             String levelField = field + ".levels[" + i + "]";
             if (level == null || isBlank(level.label()) || level.score() == null) {
                 violations.add(FieldViolation.of(levelField, ErrorCode.INVALID_REQUEST,
@@ -95,7 +96,10 @@ public final class RubricDraftFactory {
             return null;
         }
         int order = input.orderIndex() != null && input.orderIndex() > 0 ? input.orderIndex() : defaultOrder;
-        return RubricCriterion.create(rubricId, input.name(), input.description(), maxScore, levels, order);
+        List<PerformanceLevel> domainLevels = levels.stream()
+                .map(l -> new PerformanceLevel(l.label(), l.description(), l.score()))
+                .toList();
+        return RubricCriterion.create(rubricId, input.name(), input.description(), maxScore, domainLevels, order);
     }
 
     /** Persists a validated replacement in the caller's transaction, retaining the rubric id. */

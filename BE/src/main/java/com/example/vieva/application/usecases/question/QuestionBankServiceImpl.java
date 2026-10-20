@@ -1,9 +1,12 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.question.QuestionBankService;
 import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.usecases.common.EnumValues;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import com.example.vieva.application.ports.output.QuestionBankItemView;
 import com.example.vieva.application.ports.output.QuestionDetailView;
 import com.example.vieva.application.ports.output.QuestionRepository;
@@ -38,6 +41,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     @Override
     @UseCaseTransaction(readOnly = true)
     public PageResult<QuestionBankItemView> search(QuestionBankSearchCriteria criteria) {
+        EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
+        EnumValues.parse(QuestionLifecycleStatus.class, criteria.status(), "Invalid value for parameter 'status'");
         PageResult<Question> page = questionRepository.searchBank(criteria);
         List<Question> questions = page.getContent();
         Map<UUID, Question> questionsById = questions.stream()

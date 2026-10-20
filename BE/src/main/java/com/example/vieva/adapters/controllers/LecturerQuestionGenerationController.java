@@ -3,7 +3,7 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.GenerateQuestionsRequest;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.GenerationRequestDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
-import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import jakarta.validation.Valid;

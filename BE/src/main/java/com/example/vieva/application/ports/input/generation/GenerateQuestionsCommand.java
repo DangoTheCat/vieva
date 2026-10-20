@@ -1,6 +1,5 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.generation;
 
-import com.example.vieva.domain.entities.BloomLevel;
 import lombok.Builder;
 
 import java.util.List;
@@ -16,7 +15,7 @@ public record GenerateQuestionsCommand(
         UUID topicId,
         List<UUID> documentIds,
         int totalQuestions,
-        Map<BloomLevel, Integer> bloomDistribution,
+        Map<String, Integer> bloomDistribution,
         String lecturerNote
 ) {
 }

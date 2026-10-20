@@ -33,11 +33,22 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.usecases.common.EnumValues;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.QuestionGenerationMode;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
+import com.example.vieva.domain.entities.QuestionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class EnumValidationContractTest {
@@ -66,6 +77,25 @@ class EnumValidationContractTest {
         CourseDocumentPresenter documentPresenter = mock(CourseDocumentPresenter.class);
         QuestionAuthoringService authoringService = mock(QuestionAuthoringService.class);
         QuestionBankService bankService = mock(QuestionBankService.class);
+
+        lenient().when(ragCoord.coordinateRAGPipeline(any(), any(), any(), any())).thenAnswer(inv -> {
+            String diff = inv.getArgument(1);
+            EnumValues.parse(BloomLevel.class, diff, "Malformed request body");
+            return null;
+        });
+        lenient().when(bankService.search(any())).thenAnswer(inv -> {
+            QuestionBankSearchCriteria criteria = inv.getArgument(0);
+            EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
+            EnumValues.parse(QuestionLifecycleStatus.class, criteria.status(), "Invalid value for parameter 'status'");
+            return null;
+        });
+        lenient().when(reviews.searchVersions(any())).thenAnswer(inv -> {
+            QuestionVersionSearchCriteria criteria = inv.getArgument(0);
+            EnumValues.parse(QuestionStatus.class, criteria.status(), "Invalid value for parameter 'status'");
+            EnumValues.parse(QuestionGenerationMode.class, criteria.origin(), "Invalid value for parameter 'origin'");
+            EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
+            return null;
+        });
 
         studioController = new LecturerStudioController(docService, ragCoord, reviews, presenter, documentPresenter);
         questionController = new LecturerQuestionController(authoringService, bankService, presenter);

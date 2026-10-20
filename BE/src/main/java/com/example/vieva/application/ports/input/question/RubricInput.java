@@ -1,4 +1,4 @@
-package com.example.vieva.application.ports.input;
+package com.example.vieva.application.ports.input.question;
 
 import lombok.Builder;
 

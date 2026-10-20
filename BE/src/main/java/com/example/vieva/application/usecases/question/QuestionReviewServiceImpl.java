@@ -1,7 +1,11 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.usecases.common.EnumValues;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.QuestionGenerationMode;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
 import com.example.vieva.application.ports.input.common.PageResult;
@@ -129,6 +133,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     @Override
     @UseCaseTransaction(readOnly = true)
     public PageResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria) {
+        EnumValues.parse(QuestionStatus.class, criteria.status(), "Invalid value for parameter 'status'");
+        EnumValues.parse(QuestionGenerationMode.class, criteria.origin(), "Invalid value for parameter 'origin'");
+        EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
         PageResult<QuestionVersion> page = questionVersionRepository.search(criteria);
         return PageResult.of(viewAssembler.assemble(page.getContent()), page.getPage(), page.getSize(),
                 page.getTotalElements());

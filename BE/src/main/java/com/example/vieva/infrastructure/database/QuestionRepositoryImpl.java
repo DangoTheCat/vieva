@@ -1,9 +1,11 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
+import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.Question;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -83,16 +85,16 @@ public class QuestionRepositoryImpl implements QuestionRepository {
             if (criteria.topicId() != null) {
                 predicates.add(cb.equal(root.get("topic").get("topicId"), criteria.topicId()));
             }
-            if (criteria.status() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.status()));
+            if (criteria.status() != null && !criteria.status().isBlank()) {
+                predicates.add(cb.equal(root.get("status"), QuestionLifecycleStatus.valueOf(criteria.status())));
             }
 
             // Bloom and keyword are matched against the approved version in force.
-            if (criteria.bloomLevel() != null) {
+            if (criteria.bloomLevel() != null && !criteria.bloomLevel().isBlank()) {
                 Subquery<UUID> bloomMatches = query.subquery(UUID.class);
                 Root<QuestionVersionJpaEntity> version = bloomMatches.from(QuestionVersionJpaEntity.class);
                 bloomMatches.select(version.get("questionVersionId"))
-                        .where(cb.equal(version.get("bloomLevel"), criteria.bloomLevel()));
+                        .where(cb.equal(version.get("bloomLevel"), BloomLevel.valueOf(criteria.bloomLevel())));
                 predicates.add(root.get("currentApprovedVersionId").in(bloomMatches));
             }
             if (StringUtils.hasText(criteria.keyword())) {

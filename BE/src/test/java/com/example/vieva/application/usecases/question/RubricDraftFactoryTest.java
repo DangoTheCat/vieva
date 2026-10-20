@@ -1,7 +1,8 @@
 package com.example.vieva.application.usecases.question;
 
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.PerformanceLevelInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
 import com.example.vieva.application.usecases.document.DocumentFileValidator;
 import com.example.vieva.application.settings.DocumentSettings;
 import com.example.vieva.domain.entities.PerformanceLevel;
@@ -52,7 +53,7 @@ class RubricDraftFactoryTest {
     void collectsFieldErrors() {
         List<FieldViolation> violations = new ArrayList<>();
         CriterionInput badLevel = new CriterionInput("C", "d", new BigDecimal("2"),
-                List.of(new PerformanceLevel("Giỏi", null, new BigDecimal("3"))), null);
+                List.of(new PerformanceLevelInput("Giỏi", null, new BigDecimal("3"))), null);
         RubricDraftFactory.build(UUID.randomUUID(), new RubricInput(null, null, null,
                 List.of(criterion(" ", "1"), criterion("B", "0"), badLevel)), violations);
         assertThat(violations).extracting(FieldViolation::field).containsExactly(

@@ -2,8 +2,8 @@ package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.infrastructure.database.QuestionVersionViewAssembler;
 
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;

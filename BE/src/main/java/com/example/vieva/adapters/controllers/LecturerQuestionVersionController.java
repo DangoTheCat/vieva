@@ -9,15 +9,12 @@ import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.adapters.presenters.PageResponse;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
-import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
-import com.example.vieva.application.ports.input.common.ActorView;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionGenerationMode;
-import com.example.vieva.domain.entities.QuestionStatus;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -52,9 +49,9 @@ public class LecturerQuestionVersionController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
     public ResponseEntity<PageResponse<QuestionVersionDto>> searchVersions(
             @RequestParam UUID subjectId,
-            @RequestParam(required = false) QuestionStatus status,
-            @RequestParam(required = false) QuestionGenerationMode origin,
-            @RequestParam(required = false) BloomLevel bloomLevel,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String origin,
+            @RequestParam(required = false) String bloomLevel,
             @RequestParam(required = false) UUID topicId,
             @RequestParam(required = false) UUID generationRequestId,
             @RequestParam(required = false) String keyword,

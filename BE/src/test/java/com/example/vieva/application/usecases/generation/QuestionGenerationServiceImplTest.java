@@ -1,7 +1,7 @@
 package com.example.vieva.application.usecases.generation;
 
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
-import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
@@ -167,11 +167,15 @@ class QuestionGenerationServiceImplTest {
     }
 
     private GenerateQuestionsCommand command(Map<BloomLevel, Integer> distribution, int total) {
+        Map<String, Integer> stringMap = new HashMap<>();
+        if (distribution != null) {
+            distribution.forEach((k, v) -> stringMap.put(k == null ? null : k.name(), v));
+        }
         return GenerateQuestionsCommand.builder()
                 .subjectId(subjectId)
                 .documentIds(List.of(document.getDocumentId()))
                 .totalQuestions(total)
-                .bloomDistribution(distribution)
+                .bloomDistribution(stringMap)
                 .build();
     }
 
@@ -193,7 +197,7 @@ class QuestionGenerationServiceImplTest {
                 document.getDocumentId(),"csdl.pdf",i,1,chunk.content(),0.3)).toList();
         when(chunkRepository.similaritySearch(eq(subjectId),anyCollection(),any(),anyDouble(),anyInt())).thenReturn(many);
         when(llm.generate(any())).thenReturn(List.of(candidate("Áp dụng ACID khi chuyển tiền?","APPLY")));
-        var result=service.coordinateRAGPipeline(topicId,BloomLevel.APPLY,null,lecturer);
+        var result=service.coordinateRAGPipeline(topicId,BloomLevel.APPLY.name(),null,lecturer);
         assertThat(result.version().getBloomLevel()).isEqualTo(BloomLevel.APPLY);
         var prompt=ArgumentCaptor.forClass(QuestionGenerationPrompt.class);
         verify(llm).generate(prompt.capture());
