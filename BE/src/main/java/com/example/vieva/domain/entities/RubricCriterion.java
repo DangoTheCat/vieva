@@ -79,4 +79,12 @@ public class RubricCriterion {
                 .createdAt(Instant.now())
                 .build();
     }
+
+    public void moveTo(int orderIndex) {
+        this.orderIndex = orderIndex;
+    }
+
+    public void attachTo(UUID rubricId) {
+        this.rubricId = rubricId;
+    }
 }

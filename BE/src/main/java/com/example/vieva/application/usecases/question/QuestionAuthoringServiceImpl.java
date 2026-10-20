@@ -116,8 +116,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         Map<String, Object> before = snapshot(version);
         if (command.topicId() != null && !command.topicId().equals(question.getTopicId())) {
             validateTopic(question.getSubjectId(), command.topicId());
-            question.setTopicId(command.topicId());
-            question.setUpdatedAt(java.time.Instant.now());
+            question.moveToTopic(command.topicId(), java.time.Instant.now());
             questionRepository.save(question);
         }
         version.editContent(command.content(), command.expectedAnswer(), bloomLevel, command.bloomConfirmed());

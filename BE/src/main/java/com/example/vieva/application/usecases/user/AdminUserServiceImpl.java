@@ -192,21 +192,25 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Apply field updates
+        Instant now = Instant.now();
+        String newFullName = user.getFullName();
         if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
-            user.setFullName(request.getFullName().trim());
+            newFullName = request.getFullName().trim();
         }
+        String newPhone = user.getPhoneNumber();
         if (request.getPhoneNumber() != null) {
-            user.setPhoneNumber(request.getPhoneNumber().trim());
+            newPhone = request.getPhoneNumber().trim();
         }
+        user.updateProfile(newFullName, newPhone, now);
+
         if (targetStatus != null) {
-            user.setStatus(targetStatus);
+            user.changeStatus(targetStatus, now);
         }
         if (request.getRoleCode() != null) {
             // Replaces the current role: an account has exactly one
             user.assignRole(resolveRole(request.getRoleCode()), currentAdminId);
         }
 
-        user.setUpdatedAt(Instant.now());
         User updatedUser = userRepository.save(user);
 
         auditor.record(currentAdminId, "USER_UPDATED", "USER", updatedUser.getUserId(),

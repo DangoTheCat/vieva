@@ -113,7 +113,7 @@ public final class RubricDraftFactory {
             rubric.rename(draft.rubric().getRubricName(), draft.rubric().getDescription());
         }
         UUID rubricId = rubric.getRubricId();
-        draft.criteria().forEach(criterion -> criterion.setRubricId(rubricId));
+        draft.criteria().forEach(criterion -> criterion.attachTo(rubricId));
         rubric.recalculateTotal(draft.criteria());
         rubrics.save(rubric);
         criteriaRepository.saveAll(draft.criteria());

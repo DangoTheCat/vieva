@@ -204,4 +204,8 @@ public class QuestionVersion {
     public void touch() {
         this.updatedAt = Instant.now();
     }
+
+    public void linkGenerationRequest(UUID generationRequestId) {
+        this.generationRequestId = generationRequestId;
+    }
 }

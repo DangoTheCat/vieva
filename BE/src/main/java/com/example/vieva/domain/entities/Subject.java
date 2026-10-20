@@ -50,4 +50,9 @@ public class Subject {
         }
         this.updatedAt = Instant.now();
     }
+
+    public void assignHead(UUID lecturerId) {
+        this.headLecturerId = lecturerId;
+        this.updatedAt = Instant.now();
+    }
 }

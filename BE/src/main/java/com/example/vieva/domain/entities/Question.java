@@ -69,4 +69,10 @@ public class Question {
         this.status = QuestionLifecycleStatus.ARCHIVED;
         this.updatedAt = Instant.now();
     }
+
+    public void moveToTopic(UUID newTopicId, Instant now) {
+        ensureActive();
+        this.topicId = newTopicId;
+        this.updatedAt = now != null ? now : Instant.now();
+    }
 }

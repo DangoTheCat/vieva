@@ -55,6 +55,7 @@ import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -339,11 +340,9 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
         transactionRunner.inNewTransaction(() -> {
             QuestionGenerationRequest fresh = generationRequestRepository.findById(request.getGenerationRequestId())
                     .orElseThrow();
-            fresh.recordRetrievedContext(retrievedChunks.stream().map(ChunkSearchResult::chunkId).toList());
+            fresh.recordRetrievedChunks(retrievedChunks.stream().map(ChunkSearchResult::chunkId).toList(), Instant.now());
             QuestionGenerationRequest saved = generationRequestRepository.save(fresh);
-            request.setRetrievedChunkIds(saved.getRetrievedChunkIds());
-            request.setVersion(saved.getVersion());
-            request.setUpdatedAt(saved.getUpdatedAt());
+            request.recordRetrievedChunks(saved.getRetrievedChunkIds(), saved.getUpdatedAt());
         });
         return context(subject, topic, retrievedChunks);
     }
@@ -511,7 +510,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
                 subjectAccessGuard.requireManage(actorId, request.getSubjectId());
                 QuestionGenerationRequest fresh = generationRequestRepository.findById(request.getGenerationRequestId())
                         .orElseThrow(() -> new ApplicationException(ErrorCode.GENERATION_REQUEST_NOT_FOUND));
-                fresh.setAttemptCount(request.getAttemptCount());
+                fresh.recordAttempts(request.getAttemptCount());
 
                 List<NewDraft> drafts = outcome.accepted().stream()
                         .map(question -> toDraft(fresh, question, actorId))
@@ -551,7 +550,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
         Question question = Question.newDraftOwner(request.getSubjectId(), request.getTopicId(), actorId);
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, validated.content(),
                 validated.expectedAnswer(), validated.bloomLevel(), QuestionGenerationMode.AI_RAG, actorId);
-        version.setGenerationRequestId(request.getGenerationRequestId());
+        version.linkGenerationRequest(request.getGenerationRequestId());
         Rubric rubric = Rubric.create(version.getQuestionVersionId(), null, null);
         List<RubricCriterion> criteria = toCriteria(rubric, validated);
         rubric.recalculateTotal(criteria);
@@ -606,7 +605,7 @@ public class QuestionGenCoordinatorImpl implements QuestionGenCoordinator {
         try {
             transactionRunner.inNewTransaction(() -> generationRequestRepository.findById(request.getGenerationRequestId())
                     .ifPresent(fresh -> {
-                        fresh.setAttemptCount(Math.max(fresh.getAttemptCount(), request.getAttemptCount()));
+                        fresh.recordAttempts(request.getAttemptCount());
                         fresh.markFailed(error);
                         generationRequestRepository.save(fresh);
                     }));

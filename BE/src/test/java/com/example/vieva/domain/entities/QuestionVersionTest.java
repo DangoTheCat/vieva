@@ -43,6 +43,14 @@ class QuestionVersionTest {
         void humanAuthoredDraftIsConfirmed(QuestionGenerationMode mode) {
             assertThat(draft(mode).isBloomConfirmed()).isTrue();
         }
+
+        @Test
+        void linksGenerationRequest() {
+            QuestionVersion version = draft(QuestionGenerationMode.AI_RAG);
+            UUID reqId = UUID.randomUUID();
+            version.linkGenerationRequest(reqId);
+            assertThat(version.getGenerationRequestId()).isEqualTo(reqId);
+        }
     }
 
     @Nested

@@ -29,7 +29,7 @@ public class SubjectHeadServiceImpl implements SubjectHeadService {
         Subject subject = subjects.findByIdForUpdate(subjectId).orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
         if (subject.getStatus() != SubjectStatus.ACTIVE) throw new ApplicationException(ErrorCode.SUBJECT_INACTIVE);
         requireActiveLecturer(lecturerId, subjectId);
-        subject.setHeadLecturerId(lecturerId);
+        subject.assignHead(lecturerId);
         return com.example.vieva.application.usecases.subject.SubjectResults.from(subjects.save(subject));
     }
 

@@ -67,8 +67,17 @@ public class QuestionGenerationRequest {
         return BloomDistribution.restore(bloomDistribution);
     }
 
+    public void recordRetrievedChunks(List<UUID> chunkIds, Instant now) {
+        this.retrievedChunkIds = chunkIds == null ? new ArrayList<>() : new ArrayList<>(chunkIds);
+        this.updatedAt = now != null ? now : Instant.now();
+    }
+
     public void recordRetrievedContext(List<UUID> chunkIds) {
-        this.retrievedChunkIds = new ArrayList<>(chunkIds);
+        recordRetrievedChunks(chunkIds, Instant.now());
+    }
+
+    public void recordAttempts(int attemptCount) {
+        this.attemptCount = Math.max(this.attemptCount, attemptCount);
         this.updatedAt = Instant.now();
     }
 

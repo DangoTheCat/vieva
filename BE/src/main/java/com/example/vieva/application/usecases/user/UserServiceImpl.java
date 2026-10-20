@@ -44,18 +44,22 @@ public class UserServiceImpl implements UserService {
     public UserResult updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = findActiveUser(userId);
 
+        String targetFullName = user.getFullName();
         if (request.getFullName() != null) {
             String trimmedFullName = request.getFullName().trim();
             if (trimmedFullName.isEmpty()) {
                 throw new ApplicationException(ErrorCode.INVALID_REQUEST);
             }
-            user.setFullName(trimmedFullName);
+            targetFullName = trimmedFullName;
         }
 
+        String targetPhone = user.getPhoneNumber();
         if (request.getPhoneNumber() != null) {
             String trimmedPhone = request.getPhoneNumber().trim();
-            user.setPhoneNumber(trimmedPhone.isEmpty() ? null : trimmedPhone);
+            targetPhone = trimmedPhone.isEmpty() ? null : trimmedPhone;
         }
+
+        user.updateProfile(targetFullName, targetPhone, Instant.now());
 
         if (request.getAvatarUrl() != null) {
             String trimmedAvatar = request.getAvatarUrl().trim();
@@ -71,7 +75,6 @@ public class UserServiceImpl implements UserService {
             user.updateAvatar(newAvatar);
         }
 
-        user.setUpdatedAt(Instant.now());
         User saved = userRepository.save(user);
         return UserResults.from(saved);
     }

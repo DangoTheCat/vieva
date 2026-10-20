@@ -107,4 +107,15 @@ class BloomAndRubricTest {
         assertThat(copy.getCriterionId()).isNotEqualTo(criterion.getCriterionId());
         assertThat(copy.getPerformanceLevels()).isEqualTo(criterion.getPerformanceLevels());
     }
+
+    @Test
+    void criterionMoveToAndAttachTo() {
+        RubricCriterion criterion = RubricCriterion.create(UUID.randomUUID(), "A", "d", new BigDecimal("4"), List.of(), 1);
+        criterion.moveTo(5);
+        assertThat(criterion.getOrderIndex()).isEqualTo(5);
+
+        UUID newRubricId = UUID.randomUUID();
+        criterion.attachTo(newRubricId);
+        assertThat(criterion.getRubricId()).isEqualTo(newRubricId);
+    }
 }

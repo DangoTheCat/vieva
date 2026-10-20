@@ -113,4 +113,15 @@ public class User {
         this.avatarUrl = avatarUrl;
         this.updatedAt = Instant.now();
     }
+
+    public void updateProfile(String fullName, String phoneNumber, Instant now) {
+        this.fullName = fullName;
+        this.phoneNumber = phoneNumber;
+        this.updatedAt = now != null ? now : Instant.now();
+    }
+
+    public void changeStatus(UserStatus status, Instant now) {
+        this.status = status;
+        this.updatedAt = now != null ? now : Instant.now();
+    }
 }

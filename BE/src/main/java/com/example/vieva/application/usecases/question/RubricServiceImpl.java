@@ -74,7 +74,7 @@ public class RubricServiceImpl implements RubricService {
         if (criterion == null) {
             throw ApplicationException.ofViolations(violations);
         }
-        criterion.setOrderIndex(criteria.size() + 1);
+        criterion.moveTo(criteria.size() + 1);
         criteria.add(criterion);
         rubricCriterionRepository.save(criterion);
         rubric.recalculateTotal(criteria);
@@ -104,7 +104,7 @@ public class RubricServiceImpl implements RubricService {
         }
         target.update(validated.getCriterionName(), validated.getAchievementDescriptors(), validated.getMaxPoints(),
                 validated.getPerformanceLevels());
-        target.setOrderIndex(validated.getOrderIndex());
+        target.moveTo(validated.getOrderIndex());
         rubricCriterionRepository.save(target);
         rubric.recalculateTotal(criteria);
         rubricRepository.save(rubric);
@@ -125,7 +125,7 @@ public class RubricServiceImpl implements RubricService {
         rubricCriterionRepository.deleteById(criterionId);
         // Keep order indexes contiguous after a removal.
         for (int i = 0; i < criteria.size(); i++) {
-            criteria.get(i).setOrderIndex(i + 1);
+            criteria.get(i).moveTo(i + 1);
         }
         rubricCriterionRepository.saveAll(criteria);
         rubric.recalculateTotal(criteria);

@@ -120,4 +120,38 @@ class CourseDocumentAndQuestionStateTest {
         assertCode(() -> request.beginAttempt(2), DomainErrorCode.RETRY_LIMIT_EXCEEDED);
         assertCode(request::ensureRetryable, DomainErrorCode.INVALID_REQUEST);
     }
+
+    @Test
+    @DisplayName("question: moveToTopic updates topicId and updatedAt, blocked when archived")
+    void questionMoveToTopic() {
+        Question question = Question.newDraftOwner(UUID.randomUUID(), null, UUID.randomUUID());
+        UUID newTopicId = UUID.randomUUID();
+        Instant now = Instant.now();
+        question.moveToTopic(newTopicId, now);
+        assertThat(question.getTopicId()).isEqualTo(newTopicId);
+        assertThat(question.getUpdatedAt()).isEqualTo(now);
+
+        question.archive();
+        assertCode(() -> question.moveToTopic(UUID.randomUUID(), Instant.now()), DomainErrorCode.QUESTION_ARCHIVED);
+    }
+
+    @Test
+    @DisplayName("generation request: recordRetrievedChunks and recordAttempts update state")
+    void generationRequestRetrievedChunksAndAttempts() {
+        QuestionGenerationRequest request = QuestionGenerationRequest.start(UUID.randomUUID(), null, UUID.randomUUID(),
+                java.util.List.of(UUID.randomUUID()),
+                BloomDistribution.of(java.util.Map.of(BloomLevel.APPLY, 1), 1), null);
+        UUID chunk1 = UUID.randomUUID();
+        UUID chunk2 = UUID.randomUUID();
+        Instant now = Instant.now();
+        request.recordRetrievedChunks(java.util.List.of(chunk1, chunk2), now);
+        assertThat(request.getRetrievedChunkIds()).containsExactly(chunk1, chunk2);
+        assertThat(request.getUpdatedAt()).isEqualTo(now);
+
+        request.recordAttempts(3);
+        assertThat(request.getAttemptCount()).isEqualTo(3);
+        // Smaller attempt count does not decrease the count
+        request.recordAttempts(2);
+        assertThat(request.getAttemptCount()).isEqualTo(3);
+    }
 }
