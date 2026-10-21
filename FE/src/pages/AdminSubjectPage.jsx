@@ -40,7 +40,6 @@ export function AdminSubjectPage({ showToast }) {
   const [activeSubjectForAssign, setActiveSubjectForAssign] = useState(null);
   const [selectedLecturerIdToAdd, setSelectedLecturerIdToAdd] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
-  const [isAssigningHead, setIsAssigningHead] = useState(false);
 
   // Deactivate confirmation
   const [deactivateTarget, setDeactivateTarget] = useState(null);
@@ -244,25 +243,7 @@ export function AdminSubjectPage({ showToast }) {
     }
   };
 
-  // Assign Subject Head (Trưởng bộ môn)
-  const handleAssignSubjectHead = async (lecturerId) => {
-    if (!activeSubjectForAssign || !lecturerId) return;
-    setIsAssigningHead(true);
-    try {
-      const res = await adminSubjectApi.assignSubjectHead(activeSubjectForAssign.subjectId, lecturerId);
-      const updatedHeadId = res?.headLecturerId || lecturerId;
-      setActiveSubjectForAssign(prev => (prev ? { ...prev, headLecturerId: updatedHeadId } : null));
-      setSubjects(prev => prev.map(s => s.subjectId === activeSubjectForAssign.subjectId ? { ...s, headLecturerId: updatedHeadId } : s));
 
-      const headLec = lecturers.find(l => l.userId === lecturerId);
-      const lecName = headLec?.fullName || 'giảng viên';
-      showToast({ type: 'success', message: `Đã chỉ định ${lecName} làm Trưởng bộ môn!` });
-    } catch (err) {
-      showToast({ type: 'error', message: getErrorMessage(err) });
-    } finally {
-      setIsAssigningHead(false);
-    }
-  };
 
   // Filtered subjects
   const filteredSubjects = useMemo(() => {
@@ -835,15 +816,9 @@ export function AdminSubjectPage({ showToast }) {
                               <span className="font-bold text-xs sm:text-sm text-ink">
                                 {lecturer?.fullName || 'Giảng viên'}
                               </span>
-                              {isHead ? (
-                                <span className="font-mono font-bold text-[10px] tracking-wider uppercase px-2 py-0.5 rounded border border-green-700 bg-green-200/90 text-green-950 shadow-xs">
-                                  Trưởng bộ môn
-                                </span>
-                              ) : (
-                                <span className="font-bold text-[10px] text-green-800 bg-green-100 px-2 py-0.5 rounded border border-green-400">
-                                  Giảng viên
-                                </span>
-                              )}
+                              <span className="font-bold text-[10px] text-green-800 bg-green-100 px-2 py-0.5 rounded border border-green-400">
+                                Giảng viên
+                              </span>
                             </div>
                             <span className="font-mono text-green-800 text-xs">
                               {lecturer?.email || asg.lecturerId}
@@ -852,21 +827,7 @@ export function AdminSubjectPage({ showToast }) {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          {isHead ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg border-2 border-green-700 bg-green-200/80 font-bold text-xs text-green-950 shadow-[1px_1px_0_#819266]">
-                              Đang là Trưởng môn
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleAssignSubjectHead(asg.lecturerId)}
-                              disabled={isAssigningHead}
-                              className="px-2.5 py-1 rounded-lg border-2 border-green-600 bg-paper text-green-900 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer disabled:opacity-50"
-                              title="Chỉ định giảng viên này làm Trưởng bộ môn"
-                            >
-                              Chỉ định Trưởng môn
-                            </button>
-                          )}
+                          
 
                           <button
                             type="button"
