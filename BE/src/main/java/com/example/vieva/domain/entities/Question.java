@@ -12,6 +12,7 @@ import java.util.UUID;
  * Chỉ xuất hiện trong ngân hàng chính thức khi có {@code currentApprovedVersionId}.
  */
 @Getter
+@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
