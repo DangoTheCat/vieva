@@ -47,6 +47,10 @@ export const questionBankApi = {
     return apiClient.post(`/lecturer/question-versions/${versionId}/approve`, payload);
   },
 
+  batchApproveVersions(versionIds) {
+    return apiClient.post('/lecturer/question-versions/batch-approve', { versionIds });
+  },
+
   rejectVersion(versionId, payload) {
     return apiClient.post(`/lecturer/question-versions/${versionId}/reject`, payload);
   },
