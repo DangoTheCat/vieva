@@ -2,7 +2,7 @@ package com.example.vieva.application.usecases.subject;
 
 import com.example.vieva.application.ports.input.subject.CreateSubjectRequest;
 import com.example.vieva.application.ports.input.subject.SubjectResult;
-import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.common.SubjectSearchCriteria;
 import com.example.vieva.application.ports.input.subject.UpdateSubjectRequest;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
