@@ -13,7 +13,7 @@ import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
 import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
 import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.input.user.UserService;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
 import com.example.vieva.domain.entities.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
