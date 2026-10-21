@@ -1,20 +1,19 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.common.QuestionVersionSearchCriteria;
 import com.example.vieva.application.usecases.common.EnumValues;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.input.question.QuestionVersionView;
-import com.example.vieva.application.ports.output.QuestionVersionAggregate;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
@@ -31,9 +30,7 @@ import com.example.vieva.domain.entities.RubricCriterion;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.domain.exception.DomainException;
-import com.example.vieva.domain.exception.FieldViolation;
 import com.example.vieva.domain.services.QuestionApprovalPolicy;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 
@@ -204,7 +201,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         Map<UUID, DocumentChunk> chunks = loadChunks(sources);
         Set<UUID> readyDocuments = loadReadyDocumentIds(chunks.values());
 
-        List<FieldViolation> violations = QuestionApprovalPolicy.validate(version, rubric, criteria, sources,
+        var violations = QuestionApprovalPolicy.validate(version, rubric, criteria, sources,
                 chunks, readyDocuments);
         if (!violations.isEmpty()) {
             throw DomainException.ofViolations(violations);
