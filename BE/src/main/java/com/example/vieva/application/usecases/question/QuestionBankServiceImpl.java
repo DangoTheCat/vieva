@@ -2,9 +2,9 @@ package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.input.question.QuestionBankItemView;
-import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.common.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.question.QuestionBankService;
 import com.example.vieva.application.ports.input.question.QuestionDetailView;
 import com.example.vieva.application.ports.input.question.QuestionVersionView;
