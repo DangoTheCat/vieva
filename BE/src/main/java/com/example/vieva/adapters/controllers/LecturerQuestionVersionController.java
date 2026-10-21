@@ -13,7 +13,7 @@ import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
-import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.common.QuestionVersionSearchCriteria;
 import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
