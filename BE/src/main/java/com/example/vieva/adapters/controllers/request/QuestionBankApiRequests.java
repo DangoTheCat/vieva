@@ -104,6 +104,10 @@ public final class QuestionBankApiRequests {
     public record ApproveRequest(Long expectedVersion) {
     }
 
+    public record BatchApproveRequest(
+            @NotEmpty(message = "versionIds must not be empty") List<@NotNull UUID> versionIds) {
+    }
+
     public record RejectRequest(
             @NotBlank(message = "Rejection reason is required") @Size(max = 2000) String reason,
             Long expectedVersion) {
