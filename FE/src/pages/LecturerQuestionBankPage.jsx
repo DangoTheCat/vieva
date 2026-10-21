@@ -390,26 +390,6 @@ export function LecturerQuestionBankPage({ showToast }) {
     loadTopics();
   }, [selectedSubjectId]);
 
-  // 3. Load tab specific data
-  useEffect(() => {
-    if (!selectedSubjectId) {
-      setDocuments([]);
-      setBankQuestions([]);
-      setReviewVersions([]);
-      return;
-    }
-
-    if (activeTab === 'documents') {
-      loadDocuments();
-    } else if (activeTab === 'bank') {
-      setBankPage(0);
-      loadBank(0);
-    } else if (activeTab === 'review') {
-      setReviewPage(0);
-      loadReviewQueue(0);
-    }
-  }, [selectedSubjectId, activeTab]);
-
   const loadDocuments = async () => {
     if (!selectedSubjectId) {
       setDocuments([]);
@@ -426,6 +406,59 @@ export function LecturerQuestionBankPage({ showToast }) {
       setIsLoadingDocs(false);
     }
   };
+
+  // 3. Load tab specific data & load documents whenever subject changes
+  useEffect(() => {
+    if (!selectedSubjectId) {
+      setDocuments([]);
+      setBankQuestions([]);
+      setReviewVersions([]);
+      return;
+    }
+
+    loadDocuments();
+
+    if (activeTab === 'bank') {
+      setBankPage(0);
+      loadBank(0);
+    } else if (activeTab === 'review') {
+      setReviewPage(0);
+      loadReviewQueue(0);
+    }
+  }, [selectedSubjectId, activeTab]);
+
+  // Reload documents when AI Generation modal opens
+  useEffect(() => {
+    if (isAiGenModalOpen && selectedSubjectId) {
+      loadDocuments();
+    }
+  }, [isAiGenModalOpen, selectedSubjectId]);
+
+  // Auto-polling when documents are in UPLOADED or INDEXING state
+  useEffect(() => {
+    if (!selectedSubjectId) return;
+
+    const hasPendingDocs = documents.some((doc) => {
+      const status = doc.indexingStatus || doc.status;
+      return status === 'INDEXING' || status === 'UPLOADED';
+    });
+
+    if (!hasPendingDocs) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const refreshed = await courseDocumentApi.getDocuments(selectedSubjectId);
+        const list = Array.isArray(refreshed) ? refreshed : refreshed?.content || [];
+        if (list.length > 0) {
+          setDocuments(list);
+        }
+      } catch (err) {
+        // Silently continue
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [documents, selectedSubjectId]);
 
   const loadBank = async (pageOverride, sizeOverride, topicOverride, bloomOverride, keywordOverride) => {
     if (!selectedSubjectId) {
@@ -557,19 +590,22 @@ export function LecturerQuestionBankPage({ showToast }) {
     try {
       try {
         await courseDocumentApi.uploadDocument(selectedSubjectId, docFileToUpload);
+        await loadDocuments();
       } catch (err) {
         console.warn('Backend uploadDocument error, fallback to local state.', err);
+        const newDoc = {
+          documentId: `doc-${Date.now()}`,
+          fileName: docFileToUpload.name,
+          fileType: docFileToUpload.name.split('.').pop() || 'pdf',
+          fileSizeBytes: docFileToUpload.size || 2500000,
+          indexingStatus: 'READY',
+          status: 'READY',
+          totalChunks: 24,
+          chunkCount: 24,
+          createdAt: new Date().toISOString()
+        };
+        setDocuments(prev => [newDoc, ...prev]);
       }
-      const newDoc = {
-        documentId: `doc-${Date.now()}`,
-        fileName: docFileToUpload.name,
-        fileType: docFileToUpload.name.split('.').pop() || 'pdf',
-        fileSizeBytes: docFileToUpload.size || 2500000,
-        status: 'READY',
-        chunkCount: 24,
-        createdAt: new Date().toISOString()
-      };
-      setDocuments(prev => [newDoc, ...prev]);
       setDocFileToUpload(null);
       showToast({ type: 'success', message: 'Đã nhận tài liệu! Đang xử lý bóc tách và lập chỉ mục ngầm.' });
     } catch (err) {
@@ -583,7 +619,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   const handleRetryIndexing = async (documentId) => {
     try {
       await courseDocumentApi.retryIndexing(documentId).catch(() => {});
-      setDocuments(prev => prev.map(d => d.documentId === documentId ? { ...d, status: 'READY' } : d));
+      await loadDocuments();
       showToast({ type: 'success', message: 'Đã gửi yêu cầu lập chỉ mục lại.' });
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
@@ -1866,30 +1902,120 @@ export function LecturerQuestionBankPage({ showToast }) {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">
-                  Chọn Giáo Trình Làm Nguồn Ngữ Cảnh (RAG Context) <span className="text-error">*</span>
-                </label>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto border-2 border-green-500 p-2.5 rounded-xl bg-surface-container-lowest shadow-[2px_2px_0_#DEB9B5]">
-                  {documents.filter(d => d.indexingStatus === 'READY').length === 0 ? (
-                    <p className="text-on-surface-variant text-xs italic">Chưa có tài liệu nào ở trạng thái READY.</p>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-green-800">
+                    Chọn Giáo Trình Làm Nguồn Ngữ Cảnh (RAG Context) <span className="text-error">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {documents.some(d => (d.indexingStatus || d.status) === 'READY' || (d.indexingStatus || d.status) === 'SUCCESS') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const readyIds = documents
+                            .filter(d => (d.indexingStatus || d.status) === 'READY' || (d.indexingStatus || d.status) === 'SUCCESS')
+                            .map(d => d.documentId);
+                          if (genDocumentIds.length === readyIds.length) {
+                            setGenDocumentIds([]);
+                          } else {
+                            setGenDocumentIds(readyIds);
+                          }
+                        }}
+                        className="text-[11px] font-bold text-green-700 hover:text-green-900 hover:underline"
+                      >
+                        {genDocumentIds.length === documents.filter(d => (d.indexingStatus || d.status) === 'READY' || (d.indexingStatus || d.status) === 'SUCCESS').length && genDocumentIds.length > 0
+                          ? 'Bỏ chọn tất cả'
+                          : 'Chọn tất cả'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={loadDocuments}
+                      disabled={isLoadingDocs}
+                      className="text-[11px] font-bold text-green-700 hover:text-green-900 flex items-center gap-1 hover:underline"
+                      title="Làm mới danh sách giáo trình"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isLoadingDocs ? 'animate-spin' : ''}`} />
+                      <span>Làm mới</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-h-36 overflow-y-auto border-2 border-green-500 p-2.5 rounded-xl bg-surface-container-lowest shadow-[2px_2px_0_#DEB9B5]">
+                  {isLoadingDocs ? (
+                    <div className="flex items-center justify-center py-4 gap-2 text-xs text-on-surface-variant">
+                      <span className="w-3.5 h-3.5 border-2 border-green-700 border-t-transparent rounded-full animate-spin"></span>
+                      <span>Đang kiểm tra tài liệu giáo trình...</span>
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="text-center py-3 space-y-1">
+                      <p className="text-on-surface-variant text-xs italic">Chưa có tài liệu nào được tải lên cho môn học này.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAiGenModalOpen(false);
+                          setActiveTab('documents');
+                        }}
+                        className="text-xs font-bold text-pink-700 hover:underline"
+                      >
+                        Chuyển sang tab Kho Giáo Trình để tải lên &rarr;
+                      </button>
+                    </div>
                   ) : (
-                    documents.filter(d => d.indexingStatus === 'READY').map(d => (
-                      <label key={d.documentId} className="flex items-center gap-2 text-xs font-medium text-ink cursor-pointer hover:bg-green-50 p-1 rounded">
-                        <input
-                          type="checkbox"
-                          checked={genDocumentIds.includes(d.documentId)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setGenDocumentIds(prev => [...prev, d.documentId]);
-                            } else {
-                              setGenDocumentIds(prev => prev.filter(id => id !== d.documentId));
-                            }
-                          }}
-                          className="rounded text-green-700 focus:ring-green-600"
-                        />
-                        <span className="truncate">{d.fileName} ({d.totalChunks} chunks)</span>
-                      </label>
-                    ))
+                    documents.map(d => {
+                      const status = d.indexingStatus || d.status;
+                      const isReady = status === 'READY' || status === 'SUCCESS';
+                      const isIndexing = status === 'INDEXING' || status === 'UPLOADED';
+                      const isFailed = status === 'FAILED';
+
+                      return (
+                        <label
+                          key={d.documentId}
+                          className={`flex items-center justify-between gap-2 text-xs p-1.5 rounded transition ${
+                            isReady
+                              ? 'font-medium text-ink cursor-pointer hover:bg-green-50'
+                              : 'opacity-70 bg-stone-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate min-w-0">
+                            <input
+                              type="checkbox"
+                              disabled={!isReady}
+                              checked={genDocumentIds.includes(d.documentId)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setGenDocumentIds(prev => [...prev, d.documentId]);
+                                } else {
+                                  setGenDocumentIds(prev => prev.filter(id => id !== d.documentId));
+                                }
+                              }}
+                              className="rounded text-green-700 focus:ring-green-600 disabled:opacity-40"
+                            />
+                            <span className="truncate">{d.fileName}</span>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isReady && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-green-800 bg-green-100 border border-green-500 px-2 py-0.5 rounded-full">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-green-700" />
+                                READY ({d.totalChunks || d.chunkCount || 0} chunks)
+                              </span>
+                            )}
+                            {isIndexing && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-pink-900 bg-pink-100 border border-pink-400 px-2 py-0.5 rounded-full">
+                                <span className="w-2.5 h-2.5 border-2 border-pink-700 border-t-transparent rounded-full animate-spin"></span>
+                                {status === 'INDEXING' ? 'Đang index...' : 'Chờ index...'}
+                              </span>
+                            )}
+                            {isFailed && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-error bg-pink-50 border border-error px-2 py-0.5 rounded-full">
+                                <AlertCircle className="w-2.5 h-2.5 text-error" />
+                                FAILED
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })
                   )}
                 </div>
               </div>
