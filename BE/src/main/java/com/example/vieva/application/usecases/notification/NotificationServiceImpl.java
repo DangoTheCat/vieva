@@ -5,7 +5,7 @@ import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.notification.NotificationService;
 import com.example.vieva.application.ports.input.notification.NotificationView;
 import com.example.vieva.application.ports.output.NotificationRepository;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.Notification;
 import lombok.RequiredArgsConstructor;
