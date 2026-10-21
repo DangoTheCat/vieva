@@ -58,7 +58,16 @@ class VievaApplicationTests {
     @MockitoBean
     private com.example.vieva.infrastructure.database.QuestionGenerationRequestJpaRepository questionGenerationRequestJpaRepository;
 
-	@Test
-	void contextLoads() {
-	}
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.ExamAttemptJpaRepository examAttemptJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.ExamTurnJpaRepository examTurnJpaRepository;
+
+    @MockitoBean
+    private com.example.vieva.infrastructure.database.ExamScoreJpaRepository examScoreJpaRepository;
+
+    @Test
+    void contextLoads() {
+    }
 }
