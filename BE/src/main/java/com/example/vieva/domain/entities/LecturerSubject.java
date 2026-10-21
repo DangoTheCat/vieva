@@ -9,6 +9,7 @@ import java.util.UUID;
  * Phân công giảng viên phụ trách môn học. Là cơ sở kiểm tra RBAC phạm vi môn (Course-scoped RBAC).
  */
 @Getter
+@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
