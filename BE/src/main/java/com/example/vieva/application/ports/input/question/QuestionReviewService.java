@@ -1,6 +1,7 @@
 package com.example.vieva.application.ports.input.question;
 
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
+import com.example.vieva.application.ports.common.QuestionVersionSearchCriteria;
 
 import java.util.UUID;
 
