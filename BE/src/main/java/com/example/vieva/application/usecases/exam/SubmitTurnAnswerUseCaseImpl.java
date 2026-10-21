@@ -142,8 +142,8 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     .size(50)
                     .build();
             var pagedQuestions = questionRepository.searchBank(searchCriteria);
-            List<Question> bankQuestions = pagedQuestions != null && pagedQuestions.content() != null
-                    ? pagedQuestions.content()
+            List<Question> bankQuestions = pagedQuestions != null && pagedQuestions.getContent() != null
+                    ? pagedQuestions.getContent()
                     : Collections.emptyList();
 
             int nextIndex = attempt.getCurrentQuestionIndex() + 1;
