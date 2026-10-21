@@ -1,6 +1,6 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.application.ports.input.user.UserResult;
