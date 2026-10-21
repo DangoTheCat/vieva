@@ -1,9 +1,6 @@
 package com.example.vieva.domain.entities;
 
 import lombok.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Objects;
