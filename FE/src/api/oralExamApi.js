@@ -22,6 +22,47 @@ export const oralExamApi = {
   },
 
   /**
+   * Transition exam from READY to IN_PROGRESS after pre-flight check
+   * POST /api/v1/student/attempts/{attemptId}/start
+   * @param {string|number} attemptId
+   * @param {boolean} [deviceReady=true]
+   * @returns {Promise<any>}
+   */
+  startExamSession(attemptId, deviceReady = true) {
+    return apiClient.post(`/student/attempts/${attemptId}/start`, { deviceReady });
+  },
+
+  /**
+   * Mark exam as disconnected and pause timer
+   * POST /api/v1/student/attempts/{attemptId}/disconnect
+   * @param {string|number} attemptId
+   * @returns {Promise<any>}
+   */
+  disconnectExam(attemptId) {
+    return apiClient.post(`/student/attempts/${attemptId}/disconnect`);
+  },
+
+  /**
+   * Reconnect to exam and resume timer
+   * POST /api/v1/student/attempts/{attemptId}/reconnect
+   * @param {string|number} attemptId
+   * @returns {Promise<any>}
+   */
+  reconnectExam(attemptId) {
+    return apiClient.post(`/student/attempts/${attemptId}/reconnect`);
+  },
+
+  /**
+   * Finish exam session and transition to FINALIZING
+   * POST /api/v1/student/attempts/{attemptId}/finish
+   * @param {string|number} attemptId
+   * @returns {Promise<any>}
+   */
+  finishExam(attemptId) {
+    return apiClient.post(`/student/attempts/${attemptId}/finish`);
+  },
+
+  /**
    * Submit an answer for a specific question turn
    * POST /api/v1/student/attempts/{attemptId}/turns/{turnId}/submit
    * @param {string|number} attemptId
