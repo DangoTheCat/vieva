@@ -1,7 +1,7 @@
 package com.example.vieva.application.ports.output;
 
-import com.example.vieva.application.ports.input.common.PageResult;
-import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.common.PageResult;
+import com.example.vieva.application.ports.common.SubjectSearchCriteria;
 import com.example.vieva.domain.entities.Subject;
 
 import java.util.Collection;
