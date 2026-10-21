@@ -1,9 +1,9 @@
 package com.example.vieva.infrastructure.database;
 
 import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.ports.input.user.UserSearchCriteria;
+import com.example.vieva.application.ports.common.UserSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
