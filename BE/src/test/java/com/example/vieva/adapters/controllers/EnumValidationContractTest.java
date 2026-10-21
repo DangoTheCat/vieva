@@ -52,7 +52,6 @@ import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.ports.output.TransactionRunnerPort;
-import com.example.vieva.application.ports.input.access.SubjectHeadService;
 import com.example.vieva.application.settings.RagSettings;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.application.usecases.generation.QuestionGenCoordinatorImpl;
@@ -101,7 +100,6 @@ class EnumValidationContractTest {
         QuestionAccessLoader accessLoader = mock(QuestionAccessLoader.class);
         QuestionDraftWriter draftWriter = mock(QuestionDraftWriter.class);
         QuestionVersionViewAssemblerPort viewAssembler = mock(QuestionVersionViewAssemblerPort.class);
-        SubjectHeadService heads = mock(SubjectHeadService.class);
         ReviewNotifications notifications = mock(ReviewNotifications.class);
         RagSettings ragSettings = mock(RagSettings.class);
 
@@ -110,7 +108,7 @@ class EnumValidationContractTest {
         QuestionReviewService reviews = new QuestionReviewServiceImpl(
                 questionRepository, questionVersionRepository, rubricRepository, rubricCriterionRepository,
                 questionSourceRepository, documentChunkRepository, courseDocumentRepository, accessLoader,
-                viewAssembler, auditor, heads, notifications, draftWriter);
+                viewAssembler, auditor, notifications, draftWriter);
         QuestionAuthoringService authoringService = new QuestionAuthoringServiceImpl(
                 questionRepository, questionVersionRepository, rubricRepository, rubricCriterionRepository,
                 questionSourceRepository, topicRepository, subjectAccessGuard, accessLoader, draftWriter,
