@@ -35,46 +35,57 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
     @Override
     @UseCaseTransaction
     public ExamScore gradeAndCompleteAttempt(ExamAttempt attempt, List<ExamTurn> turns) {
-        Rubric rubric = null;
-        if (!turns.isEmpty()) {
-            UUID questionVersionId = turns.get(0).getQuestionVersionId();
-            if (questionVersionId != null) {
-                rubric = rubricRepository.findByQuestionVersionId(questionVersionId).orElse(null);
-            }
-        }
-
-        AttemptGradingResult gradingResult = null;
         try {
-            if (attemptGradingGateway != null) {
-                gradingResult = attemptGradingGateway.gradeAttempt(attempt, turns, rubric);
+            Rubric rubric = null;
+            if (!turns.isEmpty()) {
+                UUID questionVersionId = turns.get(0).getQuestionVersionId();
+                if (questionVersionId != null) {
+                    rubric = rubricRepository.findByQuestionVersionId(questionVersionId).orElse(null);
+                }
             }
+
+            AttemptGradingResult gradingResult = null;
+            try {
+                if (attemptGradingGateway != null) {
+                    gradingResult = attemptGradingGateway.gradeAttempt(attempt, turns, rubric);
+                }
+            } catch (Exception ex) {
+                log.warn("AttemptGradingGateway failed for attempt {}, falling back to rule-based grading: {}",
+                        attempt.getId(), ex.getMessage());
+            }
+
+            if (gradingResult == null) {
+                if (ruleBasedGraderPort != null) {
+                    gradingResult = ruleBasedGraderPort.grade(attempt, turns, rubric);
+                } else {
+                    gradingResult = fallbackRuleBasedGrading(turns);
+                }
+            }
+
+            ExamScore examScore = ExamScore.create(
+                    attempt.getId(),
+                    gradingResult.totalScore(),
+                    gradingResult.gradeLevel(),
+                    gradingResult.detailedFeedback(),
+                    gradingResult.scoringMode()
+            );
+            ExamScore savedScore = examScoreRepository.save(examScore);
+
+            attempt.syncSuccess();
+            attempt.recordScore(savedScore.getTotalScore(), savedScore.getGrade());
+            examAttemptRepository.save(attempt);
+
+            return savedScore;
         } catch (Exception ex) {
-            log.warn("AttemptGradingGateway failed for attempt {}, falling back to rule-based grading: {}",
-                    attempt.getId(), ex.getMessage());
-        }
-
-        if (gradingResult == null) {
-            if (ruleBasedGraderPort != null) {
-                gradingResult = ruleBasedGraderPort.grade(attempt, turns, rubric);
-            } else {
-                gradingResult = fallbackRuleBasedGrading(turns);
+            log.error("Unrecoverable error during attempt grading for attempt {}: {}", attempt.getId(), ex.getMessage(), ex);
+            try {
+                attempt.syncError();
+                examAttemptRepository.save(attempt);
+            } catch (Exception syncErr) {
+                log.error("Failed to mark attempt as INTERRUPTED: {}", syncErr.getMessage());
             }
+            throw ex;
         }
-
-        ExamScore examScore = ExamScore.create(
-                attempt.getId(),
-                gradingResult.totalScore(),
-                gradingResult.gradeLevel(),
-                gradingResult.detailedFeedback(),
-                gradingResult.scoringMode()
-        );
-        ExamScore savedScore = examScoreRepository.save(examScore);
-
-        attempt.complete();
-        attempt.recordScore(savedScore.getTotalScore(), savedScore.getGrade());
-        examAttemptRepository.save(attempt);
-
-        return savedScore;
     }
 
     private AttemptGradingResult fallbackRuleBasedGrading(List<ExamTurn> turns) {
