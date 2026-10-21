@@ -17,7 +17,6 @@ import com.example.vieva.application.ports.input.question.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
-import com.example.vieva.application.ports.input.access.SubjectHeadService;
 import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
 import com.example.vieva.domain.entities.CourseDocument;
@@ -56,7 +55,6 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private final QuestionAccessLoader accessLoader;
     private final QuestionVersionViewAssemblerPort viewAssembler;
     private final QuestionBankAuditor auditor;
-    private final SubjectHeadService heads;
     private final ReviewNotifications notifications;
     private final QuestionDraftWriter db;
 
@@ -70,7 +68,6 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
                                     QuestionAccessLoader accessLoader,
                                     QuestionVersionViewAssemblerPort viewAssembler,
                                     QuestionBankAuditor auditor,
-                                    SubjectHeadService heads,
                                     ReviewNotifications notifications,
                                     QuestionDraftWriter db) {
         this.questionRepository = questionRepository;
@@ -83,7 +80,6 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         this.accessLoader = accessLoader;
         this.viewAssembler = viewAssembler;
         this.auditor = auditor;
-        this.heads = heads;
         this.notifications = notifications;
         this.db = db;
     }
@@ -95,11 +91,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         ctx.question().ensureActive();
         ctx.version().ensureVersionMatches(expectedVersion);
         ctx.version().ensureDraft();
-        UUID head = heads.headOf(ctx.question().getSubjectId());
         validateForReview(ctx.version());
         ctx.version().submitForReview();
         QuestionVersion submitted = db.updateStatus(ctx.version());
-        notifications.notifyPendingReview(head, ctx.question().getQuestionId(), versionId);
         auditor.record(actorId, "QUESTION_SUBMITTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId()));
         return QuestionViewMapper.toView(db.fetchQuestionWithRubric(submitted));
@@ -116,7 +110,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     @UseCaseTransaction
     public QuestionVersionView reviewQuestion(UUID versionId, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
-        heads.requireHead(actorId, ctx.question().getSubjectId());
+        if (!actorId.equals(ctx.version().getCreatedBy())) {
+            throw new ApplicationException(ErrorCode.NOT_QUESTION_AUTHOR);
+        }
         ctx.version().ensureUnderReview();
         return QuestionViewMapper.toView(db.fetchQuestionWithRubric(ctx.version()));
     }
@@ -158,8 +154,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         QuestionVersion version = ctx.version();
         Question question = ctx.question();
         version.ensureVersionMatches(expectedVersion);
-        heads.requireHead(actorId, question.getSubjectId());
-        version.ensureUnderReview();
+        if (!actorId.equals(version.getCreatedBy())) {
+            throw new ApplicationException(ErrorCode.NOT_QUESTION_AUTHOR);
+        }
         question.ensureActive();
         Rubric rubric = validateForReview(version);
 
@@ -192,6 +189,21 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         return approve(versionId, expectedVersion, actorId);
     }
 
+    @Override
+    @UseCaseTransaction
+    public List<QuestionVersionView> batchApprove(List<UUID> versionIds, UUID actorId) {
+        if (versionIds == null || versionIds.isEmpty()) {
+            return List.of();
+        }
+        List<QuestionVersionView> results = new java.util.ArrayList<>(versionIds.size());
+        for (UUID versionId : versionIds) {
+            results.add(approve(versionId, null, actorId));
+        }
+        return results;
+    }
+
+
+
     private Rubric validateForReview(QuestionVersion version) {
         UUID versionId = version.getQuestionVersionId();
         Rubric rubric = rubricRepository.findByQuestionVersionId(versionId).orElse(null);
@@ -215,7 +227,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     public QuestionVersionView reject(UUID versionId, String reason, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
-        heads.requireHead(actorId, ctx.question().getSubjectId());
+        if (!actorId.equals(version.getCreatedBy())) {
+            throw new ApplicationException(ErrorCode.NOT_QUESTION_AUTHOR);
+        }
         ctx.question().ensureActive();
         version.ensureVersionMatches(expectedVersion);
         version.reject(actorId, reason);
