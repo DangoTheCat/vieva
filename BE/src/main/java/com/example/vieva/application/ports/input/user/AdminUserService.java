@@ -1,6 +1,7 @@
 package com.example.vieva.application.ports.input.user;
 
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
+import com.example.vieva.application.ports.common.UserSearchCriteria;
 
 import java.util.UUID;
 
