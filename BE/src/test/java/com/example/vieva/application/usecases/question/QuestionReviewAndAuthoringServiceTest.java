@@ -84,8 +84,6 @@ class QuestionReviewAndAuthoringServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AuditEventRepository auditEventRepository;
     @Mock private JsonSerializerPort jsonSerializer;
-
-    @Mock private com.example.vieva.application.ports.input.access.SubjectHeadService heads;
     @Mock private ReviewNotifications notifications;
     private QuestionReviewServiceImpl reviewService;
     private QuestionAuthoringServiceImpl authoringService;
@@ -105,7 +103,7 @@ class QuestionReviewAndAuthoringServiceTest {
         PostgreSQLDatabase writer = new PostgreSQLDatabase(questionRepository, versionRepository, rubricRepository,
                 criterionRepository, sourceRepository, documentRepository, assembler);
         reviewService = new QuestionReviewServiceImpl(questionRepository, versionRepository, rubricRepository,
-                criterionRepository, sourceRepository, chunkRepository, documentRepository, loader, assembler, auditor, heads, notifications, writer);
+                criterionRepository, sourceRepository, chunkRepository, documentRepository, loader, assembler, auditor, notifications, writer);
         authoringService = new QuestionAuthoringServiceImpl(questionRepository, versionRepository, rubricRepository,
                 criterionRepository, sourceRepository, topicRepository, guard, loader, writer, assembler, auditor);
 
@@ -155,24 +153,53 @@ class QuestionReviewAndAuthoringServiceTest {
     @Test
     void submitUpdatesStatusBeforeNotificationAndLocksEditing() {
         QuestionVersion draft=storeDraft(QuestionGenerationMode.MANUAL,true);
-        UUID head=UUID.randomUUID();
-        when(heads.headOf(subjectId)).thenReturn(head);
         reviewService.submitForReview(draft.getQuestionVersionId(),0L,lecturer);
         assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.UNDER_REVIEW);
-        var order=org.mockito.Mockito.inOrder(versionRepository,notifications);
+        var order=org.mockito.Mockito.inOrder(versionRepository);
         order.verify(versionRepository).save(draft);
-        order.verify(notifications).notifyPendingReview(head,question.getQuestionId(),draft.getQuestionVersionId());
         assertCode(() -> authoringService.confirmBloom(draft.getQuestionVersionId(),null,0L,lecturer),ErrorCode.VERSION_NOT_DRAFT);
     }
 
     @Test
-    void draftCannotBeApprovedAndOnlyAuthorCanSubmit() {
-        QuestionVersion draft=storeDraft(QuestionGenerationMode.MANUAL,true);
-        assertCode(() -> reviewService.approve(draft.getQuestionVersionId(),0L,lecturer),ErrorCode.VERSION_NOT_UNDER_REVIEW);
-        UUID other=UUID.randomUUID();
-        when(lecturerSubjectRepository.isLecturerAssignedToSubject(other,subjectId)).thenReturn(true);
-        assertCode(() -> reviewService.submitForReview(draft.getQuestionVersionId(),0L,other),ErrorCode.NOT_QUESTION_AUTHOR);
-        verify(notifications,never()).notifyPendingReview(any(),any(),any());
+    void onlyAuthorCanApproveOrSubmit() {
+        QuestionVersion draft = storeDraft(QuestionGenerationMode.MANUAL, true);
+        UUID other = UUID.randomUUID();
+        when(lecturerSubjectRepository.isLecturerAssignedToSubject(other, subjectId)).thenReturn(true);
+        assertCode(() -> reviewService.approve(draft.getQuestionVersionId(), 0L, other), ErrorCode.NOT_QUESTION_AUTHOR);
+        assertCode(() -> reviewService.submitForReview(draft.getQuestionVersionId(), 0L, other), ErrorCode.NOT_QUESTION_AUTHOR);
+        verify(notifications, never()).notifyPendingReview(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("batchApprove approves all selected draft versions when user is the author")
+    void batchApproveAllSelectedVersions() {
+        Question q2 = Question.newDraftOwner(subjectId, null, lecturer);
+        when(questionRepository.findById(q2.getQuestionId())).thenReturn(Optional.of(q2));
+        QuestionVersion v1 = storeDraft(QuestionGenerationMode.MANUAL, true);
+        QuestionVersion v2 = QuestionVersion.newDraft(q2.getQuestionId(), 1, "Cau hoi 2?", "Dap an 2...",
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer)
+                .toBuilder().bloomConfirmed(true).version(0L).build();
+        versions.put(v2.getQuestionVersionId(), v2);
+        Rubric rubric2 = Rubric.create(v2.getQuestionVersionId(), null, null);
+        List<RubricCriterion> criteria2 = List.of(
+                RubricCriterion.create(rubric2.getRubricId(), "Đủ ý", "0-10", BigDecimal.TEN, List.of(), 1));
+        rubric2.recalculateTotal(criteria2);
+        when(rubricRepository.findByQuestionVersionId(v2.getQuestionVersionId())).thenReturn(Optional.of(rubric2));
+        when(criterionRepository.findByRubricId(rubric2.getRubricId())).thenReturn(criteria2);
+
+        var result = reviewService.batchApprove(List.of(v1.getQuestionVersionId(), v2.getQuestionVersionId()), lecturer);
+        assertThat(result).hasSize(2);
+        assertThat(v1.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
+        assertThat(v2.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
+    }
+
+    @Test
+    @DisplayName("batchApprove fails if user is not author of any question")
+    void batchApproveFailsIfNotAuthor() {
+        QuestionVersion v1 = storeDraft(QuestionGenerationMode.MANUAL, true);
+        UUID other = UUID.randomUUID();
+        when(lecturerSubjectRepository.isLecturerAssignedToSubject(other, subjectId)).thenReturn(true);
+        assertCode(() -> reviewService.batchApprove(List.of(v1.getQuestionVersionId()), other), ErrorCode.NOT_QUESTION_AUTHOR);
     }
 
     @Test
@@ -429,7 +456,6 @@ class QuestionReviewAndAuthoringServiceTest {
                 .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
 
         // Valid calls through overloads (all 4 overloads)
-        when(heads.headOf(subjectId)).thenReturn(lecturer);
 
         var submitted = reviewService.submitForReview(realQuestionId, draft.getQuestionVersionId(), 0L, lecturer);
         assertThat(submitted).isNotNull();
