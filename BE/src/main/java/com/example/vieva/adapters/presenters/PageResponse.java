@@ -1,6 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
