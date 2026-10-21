@@ -1,8 +1,8 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.common.SubjectSearchCriteria;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.domain.entities.Subject;
 import org.springframework.dao.DataIntegrityViolationException;
