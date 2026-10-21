@@ -260,4 +260,76 @@ class ExamAttemptStateMachineTest {
         attempt.nextQuestion();
         assertThat(attempt.getCurrentQuestionIndex()).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("init() rejects invalid parameters")
+    void init_withInvalidParameters_throwsException() {
+        assertErrorCode(() -> ExamAttempt.init(null, subjectId, 5), DomainErrorCode.INVALID_REQUEST);
+        assertErrorCode(() -> ExamAttempt.init(studentId, null, 5), DomainErrorCode.INVALID_REQUEST);
+        assertErrorCode(() -> ExamAttempt.init(studentId, subjectId, 0), DomainErrorCode.INVALID_REQUEST);
+        assertErrorCode(() -> ExamAttempt.init(studentId, subjectId, -1), DomainErrorCode.INVALID_REQUEST);
+        assertErrorCode(() -> ExamAttempt.init(studentId, subjectId, 5, 0), DomainErrorCode.INVALID_REQUEST);
+        assertErrorCode(() -> ExamAttempt.init(studentId, subjectId, 5, -10), DomainErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    @DisplayName("disconnect() without arguments pauses timer and defaults remainingSeconds")
+    void disconnect_withoutArguments_pausesTimer() {
+        ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 3);
+        attempt.start(true);
+
+        Instant before = Instant.now();
+        attempt.disconnect();
+
+        assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.RECONNECTING);
+        assertThat(attempt.getRemainingSeconds()).isEqualTo(900);
+        assertThat(attempt.getPausedAt()).isNotNull();
+        assertThat(attempt.getPausedAt()).isAfterOrEqualTo(before);
+        assertThat(attempt.getGraceDeadline()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("reconnect() throws if remainingSeconds is null or negative")
+    void reconnect_whenRemainingSecondsNullOrNegative_throwsException() {
+        ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 3);
+        attempt.start(true);
+        attempt.disconnect();
+
+        attempt.setRemainingSeconds(null);
+        assertErrorCode(attempt::reconnect, DomainErrorCode.INVALID_REQUEST);
+
+        attempt.setRemainingSeconds(-5);
+        assertErrorCode(attempt::reconnect, DomainErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    @DisplayName("updateRemainingSeconds() operates when IN_PROGRESS and rejects when in other statuses")
+    void updateRemainingSeconds_validatesStatus() {
+        ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 3);
+        assertErrorCode(() -> attempt.updateRemainingSeconds(500), DomainErrorCode.INVALID_REQUEST);
+
+        attempt.start(true);
+        attempt.updateRemainingSeconds(500);
+        assertThat(attempt.getRemainingSeconds()).isEqualTo(500);
+
+        attempt.updateRemainingSeconds(-10);
+        assertThat(attempt.getRemainingSeconds()).isZero();
+
+        attempt.finish();
+        assertErrorCode(() -> attempt.updateRemainingSeconds(300), DomainErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    @DisplayName("nextQuestion() and hasMoreQuestions() handle null fields gracefully")
+    void nextQuestion_handlesNullFieldsGracefully() {
+        ExamAttempt attempt = ExamAttempt.builder()
+                .status(AttemptStatus.IN_PROGRESS)
+                .currentQuestionIndex(null)
+                .totalQuestions(null)
+                .build();
+
+        assertThat(attempt.hasMoreQuestions()).isFalse();
+        attempt.nextQuestion();
+        assertThat(attempt.getCurrentQuestionIndex()).isZero();
+    }
 }

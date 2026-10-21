@@ -7,24 +7,28 @@
 --   4. new columns: paused_at, remaining_seconds (default 900), grace_deadline
 -- ============================================================================
 
--- 1. Migrate any existing legacy status records
+-- 1. Drop old check constraint first so legacy statuses can be migrated safely
+ALTER TABLE exam_attempts DROP CONSTRAINT IF EXISTS exam_attempts_status_check;
+
+-- 2. Migrate any existing legacy status records
 UPDATE exam_attempts
 SET status = 'INTERRUPTED'
 WHERE status IN ('TIMED_OUT', 'CANCELLED');
 
--- 2. Drop old check constraint and recreate with new statuses
-ALTER TABLE exam_attempts DROP CONSTRAINT IF EXISTS exam_attempts_status_check;
+-- 3. Recreate check constraint with the 6 valid state machine statuses
 ALTER TABLE exam_attempts ADD CONSTRAINT exam_attempts_status_check
     CHECK (status IN ('READY', 'IN_PROGRESS', 'RECONNECTING', 'FINALIZING', 'COMPLETED', 'INTERRUPTED'));
 
--- 3. Update default status and started_at nullability
+-- 4. Update default status and started_at nullability/default
 ALTER TABLE exam_attempts ALTER COLUMN status SET DEFAULT 'READY';
 ALTER TABLE exam_attempts ALTER COLUMN started_at DROP NOT NULL;
+ALTER TABLE exam_attempts ALTER COLUMN started_at DROP DEFAULT;
 
--- 4. Add timer and pause/reconnect tracking columns
+-- 5. Add timer and pause/reconnect tracking columns
 ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS paused_at TIMESTAMPTZ;
 ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS remaining_seconds INT DEFAULT 900;
 ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS grace_deadline TIMESTAMPTZ;
 
 -- Backfill default remaining_seconds for any existing rows if null
 UPDATE exam_attempts SET remaining_seconds = 900 WHERE remaining_seconds IS NULL;
+

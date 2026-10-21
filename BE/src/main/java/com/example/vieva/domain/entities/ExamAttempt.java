@@ -35,6 +35,18 @@ public class ExamAttempt {
     }
 
     public static ExamAttempt init(UUID studentId, UUID subjectId, int totalQuestions, int remainingSeconds) {
+        if (studentId == null || subjectId == null) {
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST,
+                    "Student ID and Subject ID are required to initialize an exam attempt");
+        }
+        if (totalQuestions <= 0) {
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST,
+                    "Total questions must be greater than zero");
+        }
+        if (remainingSeconds <= 0) {
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST,
+                    "Remaining seconds must be greater than zero");
+        }
         Instant now = Instant.now();
         return ExamAttempt.builder()
                 .id(UUID.randomUUID())
@@ -86,14 +98,20 @@ public class ExamAttempt {
 
     public void nextQuestion() {
         ensureInProgress();
-        if (currentQuestionIndex + 1 < totalQuestions) {
+        if (this.currentQuestionIndex == null) {
+            this.currentQuestionIndex = 0;
+        }
+        if (this.totalQuestions != null && this.currentQuestionIndex + 1 < this.totalQuestions) {
             this.currentQuestionIndex++;
             this.updatedAt = Instant.now();
         }
     }
 
     public boolean hasMoreQuestions() {
-        return currentQuestionIndex + 1 < totalQuestions;
+        if (this.currentQuestionIndex == null || this.totalQuestions == null) {
+            return false;
+        }
+        return this.currentQuestionIndex + 1 < this.totalQuestions;
     }
 
     public void disconnect() {
@@ -125,7 +143,7 @@ public class ExamAttempt {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Cannot reconnect: grace period has expired");
         }
-        if (this.remainingSeconds != null && this.remainingSeconds <= 0) {
+        if (this.remainingSeconds == null || this.remainingSeconds <= 0) {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Cannot reconnect: remaining exam time has expired");
         }
@@ -196,6 +214,7 @@ public class ExamAttempt {
     }
 
     public void updateRemainingSeconds(int remainingSeconds) {
+        ensureInProgress();
         this.remainingSeconds = Math.max(0, remainingSeconds);
         this.updatedAt = Instant.now();
     }
