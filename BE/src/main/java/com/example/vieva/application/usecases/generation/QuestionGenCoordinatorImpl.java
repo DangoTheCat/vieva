@@ -15,7 +15,6 @@ import com.example.vieva.application.ports.output.QuestionGenerationRequestRepos
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.application.ports.input.question.QuestionVersionView;
-import com.example.vieva.application.ports.output.QuestionVersionAggregate;
 import com.example.vieva.application.usecases.question.QuestionViewMapper;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
