@@ -482,8 +482,7 @@ export function AdminSubjectPage({ showToast }) {
                           const assignedLecturers = subAssignments
                             .map(asg => lecturers.find(l => l.userId === asg.lecturerId))
                             .filter(Boolean);
-                          const headLecturer = lecturers.find(l => l.userId === sub.headLecturerId);
-
+  
                           if (assignedLecturers.length === 0) {
                             return (
                               <button
@@ -529,16 +528,7 @@ export function AdminSubjectPage({ showToast }) {
                                   <span>{subAssignments.length} GV</span>
                                 </button>
                               </div>
-                              {headLecturer ? (
-                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-green-600 bg-green-50 text-[11px] text-green-900">
-                                  <span className="font-bold text-green-800">Trưởng BM:</span>
-                                  <span className="font-medium truncate max-w-[140px]">{headLecturer.fullName}</span>
-                                </div>
-                              ) : (
-                                <div className="text-[11px] text-stone-500 italic">
-                                  Chưa chỉ định Trưởng môn
-                                </div>
-                              )}
+                              
                             </div>
                           );
                         })()}
@@ -733,11 +723,7 @@ export function AdminSubjectPage({ showToast }) {
                 </h2>
                 <div className="text-xs text-green-900 flex items-center gap-2 flex-wrap">
                   <span>Quyền Course-scoped RLS cho phép giảng viên biên soạn, phê duyệt và giám sát ngân hàng đề thi môn học.</span>
-                  {activeSubjectForAssign.headLecturerId && (
-                    <span className="px-2 py-0.5 rounded border border-green-600 bg-green-100 font-bold text-[11px] text-green-950">
-                      Trưởng BM: {lecturers.find(l => l.userId === activeSubjectForAssign.headLecturerId)?.fullName || 'Đã phân công'}
-                    </span>
-                  )}
+                  
                 </div>
               </div>
               <button
