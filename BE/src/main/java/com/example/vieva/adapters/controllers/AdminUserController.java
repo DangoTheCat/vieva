@@ -1,5 +1,6 @@
 package com.example.vieva.adapters.controllers;
 
+import com.example.vieva.adapters.controllers.request.AdminResetPasswordApiRequest;
 import com.example.vieva.adapters.controllers.request.CreateUserByAdminApiRequest;
 import com.example.vieva.adapters.controllers.request.UpdateUserByAdminApiRequest;
 import com.example.vieva.adapters.presenters.MessageResponse;
@@ -13,8 +14,8 @@ import com.example.vieva.application.ports.input.user.AdminUserService;
 import com.example.vieva.application.ports.input.user.CreateUserByAdminRequest;
 import com.example.vieva.application.ports.input.user.UpdateUserByAdminRequest;
 import com.example.vieva.application.ports.input.user.UserResult;
-import com.example.vieva.application.ports.input.user.UserSearchCriteria;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.UserSearchCriteria;
+import com.example.vieva.application.ports.common.PageResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -121,7 +122,7 @@ public class AdminUserController {
     public ResponseEntity<MessageResponse> resetPassword(
             @PathVariable UUID id,
             @AuthenticationPrincipal ActorView currentAdmin,
-            @Valid @RequestBody com.example.vieva.adapters.controllers.request.AdminResetPasswordApiRequest request) {
+            @Valid @RequestBody AdminResetPasswordApiRequest request) {
 
         UUID currentAdminId = resolveCurrentAdminId(currentAdmin);
         adminUserService.resetPassword(id, request.getNewPassword(), currentAdminId);
