@@ -3,7 +3,7 @@ package com.example.vieva.integration;
 import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
 import com.example.vieva.application.ports.input.question.CriterionInput;
 import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
-import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.common.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.question.RubricInput;
 import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
