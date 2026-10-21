@@ -350,7 +350,7 @@ export function RubricStudioPage({ showToast }) {
             <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0" />
             <span>
               {isBudgetValid 
-                ? <>Tổng điểm các tiêu chí con đã bằng chính xác <strong>10.0 điểm</strong>. Đủ điều kiện gửi duyệt Trưởng Bộ Môn.</>
+                ? <>Tổng điểm các tiêu chí con đã bằng chính xác <strong>10.0 điểm</strong>. Đủ điều kiện để phê duyệt câu hỏi.</>
                 : <>Tổng điểm hiện tại là <strong>{currentTotalScore.toFixed(1)} điểm</strong>. Vui lòng điều chỉnh lại điểm các tiêu chí để đạt chính xác <strong>10.0 điểm</strong>.</>
               }
             </span>
