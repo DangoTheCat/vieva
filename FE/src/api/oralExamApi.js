@@ -8,7 +8,10 @@ export const oralExamApi = {
    * @returns {Promise<any>}
    */
   startExam(subjectId) {
-    return apiClient.post('/student/attempts', { subjectId });
+    const normalizedSubjectId = (!subjectId || subjectId === 1 || subjectId === '1')
+      ? 'd0000000-0000-0000-0000-000000000001'
+      : subjectId;
+    return apiClient.post('/student/attempts', { subjectId: normalizedSubjectId });
   },
 
   /**
