@@ -15,7 +15,7 @@ WHERE status IN ('TIMED_OUT', 'CANCELLED');
 -- 2. Drop old check constraint and recreate with new statuses
 ALTER TABLE exam_attempts DROP CONSTRAINT IF EXISTS exam_attempts_status_check;
 ALTER TABLE exam_attempts ADD CONSTRAINT exam_attempts_status_check
-    CHECK (status IN ('READY', 'IN_PROGRESS', 'RECONNECTING', 'FINALIZING', 'COMPLETED', 'INTERRUPTED'));
+    CHECK (status IN ('READY', 'IN_PROGRESS', 'RECONNECTING', 'FINALIZING', 'COMPLETED', 'INTERRUPTED', 'TIMED_OUT', 'CANCELLED'));
 
 -- 3. Update default status and started_at nullability
 ALTER TABLE exam_attempts ALTER COLUMN status SET DEFAULT 'READY';
