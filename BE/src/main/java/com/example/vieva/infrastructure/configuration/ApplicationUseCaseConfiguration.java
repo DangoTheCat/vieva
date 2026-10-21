@@ -8,6 +8,10 @@ import com.example.vieva.application.usecases.auth.AuthServiceImpl;
 import com.example.vieva.application.usecases.catalog.LecturerCatalogServiceImpl;
 import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
 import com.example.vieva.application.usecases.document.DocumentServiceImpl;
+import com.example.vieva.application.usecases.exam.AttemptGradingServiceImpl;
+import com.example.vieva.application.usecases.exam.GetExamAttemptUseCaseImpl;
+import com.example.vieva.application.usecases.exam.StartExamUseCaseImpl;
+import com.example.vieva.application.usecases.exam.SubmitTurnAnswerUseCaseImpl;
 import com.example.vieva.application.usecases.generation.QuestionGenCoordinatorImpl;
 import com.example.vieva.application.usecases.importing.QuestionImportServiceImpl;
 import com.example.vieva.application.usecases.lecturer.LecturerSubjectServiceImpl;
@@ -49,6 +53,10 @@ import org.springframework.context.annotation.Import;
         QuestionReviewServiceImpl.class,
         ReviewNotifications.class,
         RubricServiceImpl.class,
+        StartExamUseCaseImpl.class,
+        GetExamAttemptUseCaseImpl.class,
+        SubmitTurnAnswerUseCaseImpl.class,
+        AttemptGradingServiceImpl.class,
         SubjectServiceImpl.class,
         AdminUserServiceImpl.class,
         UserServiceImpl.class,
