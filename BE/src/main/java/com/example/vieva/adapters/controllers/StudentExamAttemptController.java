@@ -6,6 +6,8 @@ import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.exam.ExamAttemptDetailView;
 import com.example.vieva.application.ports.input.exam.ExamAttemptView;
 import com.example.vieva.application.ports.input.exam.GetExamAttemptUseCase;
+import com.example.vieva.application.ports.input.exam.ManageExamConnectionUseCase;
+import com.example.vieva.application.ports.input.exam.StartExamSessionUseCase;
 import com.example.vieva.application.ports.input.exam.StartExamUseCase;
 import com.example.vieva.application.ports.input.exam.SubmitTurnAnswerUseCase;
 import com.example.vieva.application.ports.input.exam.TurnEvaluationView;
@@ -31,9 +33,15 @@ import java.util.UUID;
 public class StudentExamAttemptController {
 
     private final StartExamUseCase startExamUseCase;
+    private final StartExamSessionUseCase startExamSessionUseCase;
+    private final ManageExamConnectionUseCase manageExamConnectionUseCase;
     private final GetExamAttemptUseCase getExamAttemptUseCase;
     private final SubmitTurnAnswerUseCase submitTurnAnswerUseCase;
     private final ExamAttemptPresenter presenter;
+
+    public record StartSessionApiRequest(
+            Boolean deviceReady
+    ) {}
 
     @PostMapping
     public ResponseEntity<ExamAttemptPresenter.ExamAttemptResponse> startExam(
@@ -43,6 +51,48 @@ public class StudentExamAttemptController {
         UUID studentId = CurrentUser.id(currentUser);
         ExamAttemptView attemptView = startExamUseCase.startExam(studentId, request.subjectId());
         return ResponseEntity.status(HttpStatus.CREATED).body(presenter.toAttemptResponse(attemptView));
+    }
+
+    @PostMapping("/{id}/start")
+    public ResponseEntity<ExamAttemptPresenter.ExamAttemptResponse> startSession(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id,
+            @RequestBody(required = false) StartSessionApiRequest request
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        boolean deviceReady = request == null || request.deviceReady() == null || Boolean.TRUE.equals(request.deviceReady());
+        ExamAttemptView attemptView = startExamSessionUseCase.startSession(id, studentId, deviceReady);
+        return ResponseEntity.ok(presenter.toAttemptResponse(attemptView));
+    }
+
+    @PostMapping("/{id}/disconnect")
+    public ResponseEntity<ExamAttemptPresenter.ExamAttemptResponse> disconnect(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        ExamAttemptView attemptView = manageExamConnectionUseCase.disconnect(id, studentId);
+        return ResponseEntity.ok(presenter.toAttemptResponse(attemptView));
+    }
+
+    @PostMapping("/{id}/reconnect")
+    public ResponseEntity<ExamAttemptPresenter.ExamAttemptResponse> reconnect(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        ExamAttemptView attemptView = manageExamConnectionUseCase.reconnect(id, studentId);
+        return ResponseEntity.ok(presenter.toAttemptResponse(attemptView));
+    }
+
+    @PostMapping("/{id}/finish")
+    public ResponseEntity<ExamAttemptPresenter.ExamAttemptResponse> finish(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        ExamAttemptView attemptView = manageExamConnectionUseCase.finish(id, studentId);
+        return ResponseEntity.ok(presenter.toAttemptResponse(attemptView));
     }
 
     @GetMapping("/{id}")
