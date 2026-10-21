@@ -10,7 +10,7 @@ import com.example.vieva.adapters.presenters.QuestionBankPresenter;
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
 import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
-import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.common.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.question.QuestionBankService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
