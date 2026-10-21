@@ -6,7 +6,5 @@ public enum AttemptStatus {
     RECONNECTING,
     FINALIZING,
     COMPLETED,
-    INTERRUPTED,
-    TIMED_OUT,
-    CANCELLED
+    INTERRUPTED
 }
