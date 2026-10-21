@@ -1,7 +1,7 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.Question;
