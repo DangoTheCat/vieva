@@ -144,7 +144,9 @@ public class QuestionVersion {
     }
 
     public void approve(UUID reviewer) {
-        ensureUnderReview();
+        if (approvalStatus != QuestionStatus.UNDER_REVIEW && approvalStatus != QuestionStatus.DRAFT) {
+            throw new DomainException(DomainErrorCode.VERSION_NOT_UNDER_REVIEW);
+        }
         this.approvalStatus = QuestionStatus.APPROVED;
         this.reviewedBy = reviewer;
         this.reviewedAt = Instant.now();
@@ -153,7 +155,9 @@ public class QuestionVersion {
     }
 
     public void reject(UUID reviewer, String reason) {
-        ensureUnderReview();
+        if (approvalStatus != QuestionStatus.UNDER_REVIEW && approvalStatus != QuestionStatus.DRAFT) {
+            throw new DomainException(DomainErrorCode.VERSION_NOT_UNDER_REVIEW);
+        }
         if (reason == null || reason.isBlank()) {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST, "Rejection reason is required");
         }
