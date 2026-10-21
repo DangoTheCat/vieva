@@ -70,6 +70,47 @@ services:
     depends_on:
       - backend
 
+  # AI Speech-to-Text Service (faster-whisper GPU)
+  stt-service:
+    build:
+      context: ./ai-services/stt
+      dockerfile: Dockerfile
+    container_name: vieva-stt
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - STT_MODEL_ID=suzii/vi-whisper-large-v3-turbo
+      - STT_DEVICE=cuda
+      - STT_COMPUTE_TYPE=float16
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # AI Text-to-Speech Service (ZeroTTS GPU)
+  tts-service:
+    build:
+      context: ./ai-services/tts
+      dockerfile: Dockerfile
+    container_name: vieva-tts
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - TTS_MODEL_ID=zeroweight-ai/ZeroTTS
+      - TTS_DEFAULT_SPEAKER=maichi
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
   # Run Backend Test Suite via Docker: docker compose run --rm test
   test:
     image: maven:3.9.9-eclipse-temurin-17
