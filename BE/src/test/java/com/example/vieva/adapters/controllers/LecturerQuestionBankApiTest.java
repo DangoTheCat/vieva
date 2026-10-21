@@ -85,6 +85,9 @@ class LecturerQuestionBankApiTest {
     @MockitoBean private com.example.vieva.infrastructure.database.TopicJpaRepository topicJpaRepository;
     @MockitoBean private com.example.vieva.infrastructure.database.AiRuleJpaRepository aiRuleJpaRepository;
     @MockitoBean private com.example.vieva.infrastructure.database.QuestionGenerationRequestJpaRepository generationJpaRepository;
+    @MockitoBean private com.example.vieva.infrastructure.database.ExamAttemptJpaRepository examAttemptJpaRepository;
+    @MockitoBean private com.example.vieva.infrastructure.database.ExamTurnJpaRepository examTurnJpaRepository;
+    @MockitoBean private com.example.vieva.infrastructure.database.ExamScoreJpaRepository examScoreJpaRepository;
 
     @MockitoBean private UserService userService;
     @MockitoBean private LecturerSubjectRepository lecturerSubjectRepository;

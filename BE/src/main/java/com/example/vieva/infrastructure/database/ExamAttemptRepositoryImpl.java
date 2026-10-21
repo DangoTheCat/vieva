@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ExamAttemptRepositoryImpl implements ExamAttemptRepository {
 
-    private final JpaExamAttemptRepository jpaRepository;
+    private final ExamAttemptJpaRepository jpaRepository;
     private final ExamAttemptPersistenceMapper mapper;
 
     @Override

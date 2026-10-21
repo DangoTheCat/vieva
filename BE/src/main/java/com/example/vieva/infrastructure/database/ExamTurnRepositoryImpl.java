@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ExamTurnRepositoryImpl implements ExamTurnRepository {
 
-    private final JpaExamTurnRepository jpaRepository;
+    private final ExamTurnJpaRepository jpaRepository;
     private final ExamTurnPersistenceMapper mapper;
 
     @Override

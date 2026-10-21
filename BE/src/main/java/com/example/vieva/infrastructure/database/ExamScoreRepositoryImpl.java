@@ -12,7 +12,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ExamScoreRepositoryImpl implements ExamScoreRepository {
 
-    private final JpaExamScoreRepository jpaRepository;
+    private final ExamScoreJpaRepository jpaRepository;
     private final ExamScorePersistenceMapper mapper;
 
     @Override
