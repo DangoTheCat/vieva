@@ -241,6 +241,8 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [reviewPageSize, setReviewPageSize] = useState(10);
   const [reviewTotalPages, setReviewTotalPages] = useState(1);
   const [reviewTotalElements, setReviewTotalElements] = useState(0);
+  const [selectedVersionIds, setSelectedVersionIds] = useState([]);
+  const [isBatchApproving, setIsBatchApproving] = useState(false);
 
   // Modals state
   const [isCreateTopicModalOpen, setIsCreateTopicModalOpen] = useState(false);
@@ -507,6 +509,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   const loadReviewQueue = async (pageOverride, sizeOverride, statusOverride) => {
+    setSelectedVersionIds([]);
     if (!selectedSubjectId) {
       setReviewVersions([]);
       setReviewTotalPages(1);
@@ -823,6 +826,26 @@ export function LecturerQuestionBankPage({ showToast }) {
       loadBank();
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
+    }
+  };
+
+  // Batch Approve Drafts
+  const handleBatchApprove = async () => {
+    if (selectedVersionIds.length === 0) return;
+    setIsBatchApproving(true);
+    try {
+      await questionBankApi.batchApproveVersions(selectedVersionIds);
+      showToast({
+        type: 'success',
+        message: `Phê duyệt thành công ${selectedVersionIds.length} câu hỏi vào Ngân Hàng Đề Thi!`
+      });
+      setSelectedVersionIds([]);
+      loadReviewQueue();
+      loadBank();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsBatchApproving(false);
     }
   };
 
@@ -1602,14 +1625,40 @@ export function LecturerQuestionBankPage({ showToast }) {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={loadReviewQueue}
-              className="p-1.5 text-green-700 hover:text-green-900 rounded-lg hover:bg-green-100 transition self-end sm:self-auto"
-              title="Làm mới hàng đợi"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              {reviewVersions.filter(v => v.status === 'DRAFT').length > 0 && (
+                <label className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-green-50 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] cursor-pointer select-none text-xs font-bold text-ink">
+                  <input
+                    type="checkbox"
+                    checked={
+                      reviewVersions.filter(v => v.status === 'DRAFT').length > 0 &&
+                      reviewVersions.filter(v => v.status === 'DRAFT').every(v => selectedVersionIds.includes(v.versionId))
+                    }
+                    onChange={(e) => {
+                      const approvable = reviewVersions.filter(v => v.status === 'DRAFT');
+                      if (e.target.checked) {
+                        const newIds = Array.from(new Set([...selectedVersionIds, ...approvable.map(v => v.versionId)]));
+                        setSelectedVersionIds(newIds);
+                      } else {
+                        const approvableIds = new Set(approvable.map(v => v.versionId));
+                        setSelectedVersionIds(prev => prev.filter(id => !approvableIds.has(id)));
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-2 border-green-600 text-pink-600 focus:ring-green-400 accent-pink-600 cursor-pointer"
+                  />
+                  <span>Chọn tất cả ({reviewVersions.filter(v => v.status === 'DRAFT').length})</span>
+                </label>
+              )}
+
+              <button
+                type="button"
+                onClick={loadReviewQueue}
+                className="p-1.5 text-green-700 hover:text-green-900 rounded-lg hover:bg-green-100 transition"
+                title="Làm mới hàng đợi"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* REVIEW QUEUE LIST */}
@@ -1637,6 +1686,21 @@ export function LecturerQuestionBankPage({ showToast }) {
                     {/* Header Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-cream pb-3">
                       <div className="flex flex-wrap items-center gap-2">
+                        {v.status === 'DRAFT' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedVersionIds.includes(v.versionId)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedVersionIds(prev => [...prev, v.versionId]);
+                              } else {
+                                setSelectedVersionIds(prev => prev.filter(id => id !== v.versionId));
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-2 border-green-600 text-pink-600 focus:ring-green-400 accent-pink-600 cursor-pointer"
+                            title="Chọn câu hỏi này để duyệt hàng loạt"
+                          />
+                        )}
                         <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
                           {v.questionCode || 'DRAFT-VER'}
                         </span>
@@ -1809,6 +1873,40 @@ export function LecturerQuestionBankPage({ showToast }) {
               onSizeChange={handleReviewPageSizeChange}
               itemLabel="bản nháp trong hàng đợi"
             />
+          )}
+
+          {/* FLOATING BATCH ACTION BAR */}
+          {selectedVersionIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-paper border-2 border-green-600 rounded-2xl shadow-[6px_6px_0_#819266] px-6 py-3.5 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-pulse" />
+                <span className="text-xs sm:text-sm font-bold text-ink">
+                  Đã chọn <span className="font-heading text-pink-900 bg-pink-100 px-2 py-0.5 rounded-lg border border-pink-400 font-extrabold">{selectedVersionIds.length}</span> câu hỏi
+                </span>
+              </div>
+
+              <div className="h-6 w-0.5 bg-cream" />
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isBatchApproving}
+                  onClick={handleBatchApprove}
+                  className="px-4 py-2 rounded-xl bg-green-400 hover:bg-green-500 text-ink font-heading font-bold text-xs border-2 border-green-700 shadow-[3px_3px_0_#43542B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-green-900" />
+                  <span>{isBatchApproving ? 'Đang duyệt...' : `Duyệt ${selectedVersionIds.length} câu đã chọn`}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedVersionIds([])}
+                  className="px-3 py-2 rounded-xl bg-cream hover:bg-pink-100 text-ink font-bold text-xs border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
+                >
+                  Bỏ chọn
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
