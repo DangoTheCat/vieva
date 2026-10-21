@@ -1,6 +1,6 @@
 package com.example.vieva.domain.entities;
 
-import lombok.AllArgsConstructor;
+import lombok.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,6 +17,7 @@ import java.util.UUID;
  * which would allow the same role to be added twice (violating the composite PK).
  */
 @Getter
+@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
