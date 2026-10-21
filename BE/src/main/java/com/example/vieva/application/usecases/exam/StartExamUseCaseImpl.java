@@ -50,14 +50,6 @@ public class StartExamUseCaseImpl implements StartExamUseCase {
             throw new ApplicationException(ErrorCode.SUBJECT_INACTIVE, "Subject is not active");
         }
 
-        // Fetch question versions directly for this subject to select approved questions
-        List<QuestionVersion> approvedVersions = questionVersionRepository.findByQuestionIds(
-                questionRepository.findAllByIds(Collections.emptyList()).stream().map(Question::getQuestionId).toList()
-        );
-
-        // If searching by subject, we retrieve questions via subject search or version search
-        // We can search approved question versions directly
-        List<QuestionVersion> candidates;
         var searchCriteria = com.example.vieva.application.ports.common.QuestionBankSearchCriteria.builder()
                 .subjectId(subjectId)
                 .page(0)
@@ -108,6 +100,9 @@ public class StartExamUseCaseImpl implements StartExamUseCase {
                 savedAttempt.getGradeLevel() != null ? savedAttempt.getGradeLevel().name() : null,
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
+                savedAttempt.getPausedAt(),
+                savedAttempt.getRemainingSeconds(),
+                savedAttempt.getGraceDeadline(),
                 savedTurn.getId(),
                 savedTurn.getQuestionText(),
                 savedTurn.getTtsAudioUrl()

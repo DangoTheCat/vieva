@@ -70,6 +70,9 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
                 attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
+                attempt.getPausedAt(),
+                attempt.getRemainingSeconds(),
+                attempt.getGraceDeadline(),
                 score != null ? score.getDetailedFeedback() : null,
                 score != null && score.getScoringMode() != null ? score.getScoringMode().name() : null,
                 turnViews

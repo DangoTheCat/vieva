@@ -94,6 +94,7 @@ class StudentExamAttemptControllerTest {
     }
 
     private ExamAttemptView buildView(String status) {
+        Instant now = Instant.now();
         return new ExamAttemptView(
                 attemptId,
                 studentId,
@@ -103,8 +104,11 @@ class StudentExamAttemptControllerTest {
                 5,
                 BigDecimal.ZERO,
                 null,
-                Instant.now(),
+                now,
                 null,
+                now,
+                850,
+                now.plusSeconds(120),
                 UUID.randomUUID(),
                 "Sample question?",
                 "http://audio.url"
@@ -148,14 +152,36 @@ class StudentExamAttemptControllerTest {
     }
 
     @Test
-    @DisplayName("POST /attempts/{id}/disconnect handles disconnect")
+    @DisplayName("POST /attempts/{id}/start returns 400 when device check fails")
+    void startSessionEndpointDeviceNotReady() throws Exception {
+        when(startExamSessionUseCase.startSession(eq(attemptId), eq(studentId), eq(false)))
+                .thenThrow(new com.example.vieva.domain.exception.DomainException(
+                        com.example.vieva.domain.exception.DomainErrorCode.INVALID_REQUEST,
+                        "Cannot start exam attempt: device check not passed"
+                ));
+
+        mockMvc.perform(post("/api/v1/student/attempts/{id}/start", attemptId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "deviceReady": false
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cannot start exam attempt: device check not passed"));
+    }
+
+    @Test
+    @DisplayName("POST /attempts/{id}/disconnect handles disconnect and returns timing fields")
     void disconnectEndpoint() throws Exception {
         when(manageExamConnectionUseCase.disconnect(eq(attemptId), eq(studentId)))
                 .thenReturn(buildView("RECONNECTING"));
 
         mockMvc.perform(post("/api/v1/student/attempts/{id}/disconnect", attemptId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("RECONNECTING"));
+                .andExpect(jsonPath("$.status").value("RECONNECTING"))
+                .andExpect(jsonPath("$.remainingSeconds").value(850))
+                .andExpect(jsonPath("$.graceDeadline").exists());
 
         verify(manageExamConnectionUseCase).disconnect(eq(attemptId), eq(studentId));
     }
@@ -171,6 +197,20 @@ class StudentExamAttemptControllerTest {
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
         verify(manageExamConnectionUseCase).reconnect(eq(attemptId), eq(studentId));
+    }
+
+    @Test
+    @DisplayName("POST /attempts/{id}/reconnect returns 400 when grace period has expired")
+    void reconnectEndpointGraceExpired() throws Exception {
+        when(manageExamConnectionUseCase.reconnect(eq(attemptId), eq(studentId)))
+                .thenThrow(new com.example.vieva.domain.exception.DomainException(
+                        com.example.vieva.domain.exception.DomainErrorCode.INVALID_REQUEST,
+                        "Cannot reconnect: grace period has expired"
+                ));
+
+        mockMvc.perform(post("/api/v1/student/attempts/{id}/reconnect", attemptId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cannot reconnect: grace period has expired"));
     }
 
     @Test

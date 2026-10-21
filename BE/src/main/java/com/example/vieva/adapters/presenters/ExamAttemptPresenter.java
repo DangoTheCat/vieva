@@ -26,10 +26,32 @@ public class ExamAttemptPresenter {
             String gradeLevel,
             Instant startedAt,
             Instant completedAt,
+            Instant pausedAt,
+            Integer remainingSeconds,
+            Instant graceDeadline,
             UUID currentTurnId,
             String currentQuestionText,
             String currentTtsAudioUrl
-    ) {}
+    ) {
+        public ExamAttemptResponse(
+                UUID attemptId,
+                UUID studentId,
+                UUID subjectId,
+                String status,
+                int currentQuestionIndex,
+                int totalQuestions,
+                BigDecimal totalScore,
+                String gradeLevel,
+                Instant startedAt,
+                Instant completedAt,
+                UUID currentTurnId,
+                String currentQuestionText,
+                String currentTtsAudioUrl
+        ) {
+            this(attemptId, studentId, subjectId, status, currentQuestionIndex, totalQuestions, totalScore, gradeLevel,
+                    startedAt, completedAt, null, null, null, currentTurnId, currentQuestionText, currentTtsAudioUrl);
+        }
+    }
 
     public record ExamTurnDetailResponse(
             UUID turnId,
@@ -62,10 +84,32 @@ public class ExamAttemptPresenter {
             String gradeLevel,
             Instant startedAt,
             Instant completedAt,
+            Instant pausedAt,
+            Integer remainingSeconds,
+            Instant graceDeadline,
             String detailedFeedback,
             String scoringMode,
             List<ExamTurnDetailResponse> turns
-    ) {}
+    ) {
+        public ExamAttemptDetailResponse(
+                UUID attemptId,
+                UUID studentId,
+                UUID subjectId,
+                String status,
+                int currentQuestionIndex,
+                int totalQuestions,
+                BigDecimal totalScore,
+                String gradeLevel,
+                Instant startedAt,
+                Instant completedAt,
+                String detailedFeedback,
+                String scoringMode,
+                List<ExamTurnDetailResponse> turns
+        ) {
+            this(attemptId, studentId, subjectId, status, currentQuestionIndex, totalQuestions, totalScore, gradeLevel,
+                    startedAt, completedAt, null, null, null, detailedFeedback, scoringMode, turns);
+        }
+    }
 
     public record TurnEvaluationResponse(
             UUID turnId,
@@ -98,6 +142,9 @@ public class ExamAttemptPresenter {
                 view.gradeLevel(),
                 view.startedAt(),
                 view.completedAt(),
+                view.pausedAt(),
+                view.remainingSeconds(),
+                view.graceDeadline(),
                 view.currentTurnId(),
                 view.currentQuestionText(),
                 view.currentTtsAudioUrl()
@@ -144,6 +191,9 @@ public class ExamAttemptPresenter {
                 view.gradeLevel(),
                 view.startedAt(),
                 view.completedAt(),
+                view.pausedAt(),
+                view.remainingSeconds(),
+                view.graceDeadline(),
                 view.detailedFeedback(),
                 view.scoringMode(),
                 turnResponses

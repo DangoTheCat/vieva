@@ -7,8 +7,10 @@ import com.example.vieva.application.ports.input.exam.ManageExamConnectionUseCas
 import com.example.vieva.application.ports.output.ExamAttemptRepository;
 import com.example.vieva.application.ports.output.ExamTurnRepository;
 import com.example.vieva.application.transaction.UseCaseTransaction;
+import com.example.vieva.domain.entities.AttemptStatus;
 import com.example.vieva.domain.entities.ExamAttempt;
 import com.example.vieva.domain.entities.ExamTurn;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,10 +36,16 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
     }
 
     @Override
-    @UseCaseTransaction
     public ExamAttemptView reconnect(UUID attemptId, UUID studentId) {
         ExamAttempt attempt = getOwnedAttempt(attemptId, studentId);
-        attempt.reconnect();
+        try {
+            attempt.reconnect();
+        } catch (DomainException ex) {
+            if (attempt.getStatus() == AttemptStatus.INTERRUPTED) {
+                examAttemptRepository.save(attempt);
+            }
+            throw ex;
+        }
         ExamAttempt savedAttempt = examAttemptRepository.save(attempt);
         return toView(savedAttempt, findCurrentTurn(attemptId));
     }
@@ -54,10 +62,11 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
         if (attemptGradingService != null) {
             CompletableFuture.runAsync(() -> {
                 try {
+                    ExamAttempt latestAttempt = examAttemptRepository.findById(attemptId).orElse(savedAttempt);
                     List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
-                    attemptGradingService.gradeAndCompleteAttempt(savedAttempt, turns);
+                    attemptGradingService.gradeAndCompleteAttempt(latestAttempt, turns);
                 } catch (Exception ex) {
-                    log.error("Async grading failed for attempt {}: {}", attemptId, ex.getMessage());
+                    log.error("Async grading failed for attempt {}: {}", attemptId, ex.getMessage(), ex);
                 }
             });
         }
@@ -92,6 +101,9 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
                 attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
+                attempt.getPausedAt(),
+                attempt.getRemainingSeconds(),
+                attempt.getGraceDeadline(),
                 turn != null ? turn.getId() : null,
                 turn != null ? turn.getQuestionText() : null,
                 turn != null ? turn.getTtsAudioUrl() : null

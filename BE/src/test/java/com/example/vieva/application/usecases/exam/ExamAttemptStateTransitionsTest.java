@@ -215,7 +215,7 @@ class ExamAttemptStateTransitionsTest {
         }
 
         @Test
-        @DisplayName("reconnect fails if grace period expired")
+        @DisplayName("reconnect fails if grace period expired and saves attempt as INTERRUPTED")
         void reconnectFailsIfGraceExpired() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
             attempt.setId(attemptId);
@@ -229,6 +229,7 @@ class ExamAttemptStateTransitionsTest {
                     .isInstanceOf(DomainException.class)
                     .hasMessageContaining("grace period has expired");
             assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.INTERRUPTED);
+            verify(examAttemptRepository).save(attempt);
         }
 
         @Test
@@ -300,7 +301,7 @@ class ExamAttemptStateTransitionsTest {
         }
 
         @Test
-        @DisplayName("gradeAndCompleteAttempt transitions to INTERRUPTED and rethrows when unrecoverable error occurs")
+        @DisplayName("gradeAndCompleteAttempt transitions to INTERRUPTED and returns null when unrecoverable error occurs")
         void gradingFailureTransitionsToInterrupted() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
             attempt.setId(attemptId);
@@ -312,9 +313,9 @@ class ExamAttemptStateTransitionsTest {
 
             ExamTurn turn = ExamTurn.createMainQuestion(attemptId, UUID.randomUUID(), UUID.randomUUID(), 1, "Q1", null);
 
-            assertThatThrownBy(() -> gradingService.gradeAndCompleteAttempt(attempt, List.of(turn)))
-                    .isInstanceOf(RuntimeException.class);
+            ExamScore score = gradingService.gradeAndCompleteAttempt(attempt, List.of(turn));
 
+            assertThat(score).isNull();
             assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.INTERRUPTED);
             verify(examAttemptRepository).save(attempt);
         }

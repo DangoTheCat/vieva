@@ -7,6 +7,7 @@ import com.example.vieva.application.ports.output.ExamScoreRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.RuleBasedGraderPort;
 import com.example.vieva.application.transaction.UseCaseTransaction;
+import com.example.vieva.domain.entities.AttemptStatus;
 import com.example.vieva.domain.entities.ExamAttempt;
 import com.example.vieva.domain.entities.ExamScore;
 import com.example.vieva.domain.entities.ExamTurn;
@@ -79,12 +80,14 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
         } catch (Exception ex) {
             log.error("Unrecoverable error during attempt grading for attempt {}: {}", attempt.getId(), ex.getMessage(), ex);
             try {
-                attempt.syncError();
-                examAttemptRepository.save(attempt);
+                if (attempt.getStatus() == AttemptStatus.FINALIZING) {
+                    attempt.syncError();
+                    examAttemptRepository.save(attempt);
+                }
             } catch (Exception syncErr) {
-                log.error("Failed to mark attempt as INTERRUPTED: {}", syncErr.getMessage());
+                log.error("Failed to mark attempt as INTERRUPTED: {}", syncErr.getMessage(), syncErr);
             }
-            throw ex;
+            return null;
         }
     }
 

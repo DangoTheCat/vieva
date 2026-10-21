@@ -34,7 +34,7 @@ public class StartExamSessionUseCaseImpl implements StartExamSessionUseCase {
         ExamAttempt savedAttempt = examAttemptRepository.save(attempt);
 
         List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
-        ExamTurn currentTurn = turns.isEmpty() ? null : turns.get(0);
+        ExamTurn currentTurn = turns.isEmpty() ? null : turns.get(turns.size() - 1);
 
         return new ExamAttemptView(
                 savedAttempt.getId(),
@@ -47,6 +47,9 @@ public class StartExamSessionUseCaseImpl implements StartExamSessionUseCase {
                 savedAttempt.getGradeLevel() != null ? savedAttempt.getGradeLevel().name() : null,
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
+                savedAttempt.getPausedAt(),
+                savedAttempt.getRemainingSeconds(),
+                savedAttempt.getGraceDeadline(),
                 currentTurn != null ? currentTurn.getId() : null,
                 currentTurn != null ? currentTurn.getQuestionText() : null,
                 currentTurn != null ? currentTurn.getTtsAudioUrl() : null
