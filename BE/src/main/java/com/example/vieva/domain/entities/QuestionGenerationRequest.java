@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,38 @@ public class QuestionGenerationRequest {
     private Instant updatedAt;
     private Long version;
 
+    public List<UUID> getDocumentIds() {
+        return documentIds != null ? Collections.unmodifiableList(documentIds) : Collections.emptyList();
+    }
+
+    public void setDocumentIds(List<UUID> documentIds) {
+        this.documentIds = documentIds != null ? new ArrayList<>(documentIds) : new ArrayList<>();
+    }
+
+    public Map<BloomLevel, Integer> getBloomDistribution() {
+        return bloomDistribution != null ? Collections.unmodifiableMap(bloomDistribution) : Collections.emptyMap();
+    }
+
+    public void setBloomDistribution(Map<BloomLevel, Integer> bloomDistribution) {
+        this.bloomDistribution = bloomDistribution != null ? new EnumMap<>(bloomDistribution) : new EnumMap<>(BloomLevel.class);
+    }
+
+    public List<UUID> getRetrievedChunkIds() {
+        return retrievedChunkIds != null ? Collections.unmodifiableList(retrievedChunkIds) : Collections.emptyList();
+    }
+
+    public void setRetrievedChunkIds(List<UUID> retrievedChunkIds) {
+        this.retrievedChunkIds = retrievedChunkIds != null ? new ArrayList<>(retrievedChunkIds) : new ArrayList<>();
+    }
+
+    public List<String> getIssues() {
+        return issues != null ? Collections.unmodifiableList(issues) : Collections.emptyList();
+    }
+
+    public void setIssues(List<String> issues) {
+        this.issues = issues != null ? new ArrayList<>(issues) : new ArrayList<>();
+    }
+
     public static QuestionGenerationRequest start(UUID subjectId, UUID topicId, UUID requestedBy,
                                                   List<UUID> documentIds, BloomDistribution distribution,
                                                   String lecturerNote) {
@@ -53,9 +86,9 @@ public class QuestionGenerationRequest {
                 .subjectId(subjectId)
                 .topicId(topicId)
                 .requestedBy(requestedBy)
-                .documentIds(new ArrayList<>(documentIds))
-                .bloomDistribution(new EnumMap<>(distribution.asMap()))
-                .totalQuestions(distribution.total())
+                .documentIds(documentIds == null ? new ArrayList<>() : new ArrayList<>(documentIds))
+                .bloomDistribution(distribution == null ? new EnumMap<>(BloomLevel.class) : new EnumMap<>(distribution.asMap()))
+                .totalQuestions(distribution == null ? 0 : distribution.total())
                 .lecturerNote(lecturerNote)
                 .status(QuestionGenerationStatus.PENDING)
                 .createdAt(now)
@@ -100,10 +133,14 @@ public class QuestionGenerationRequest {
 
     /** Records the outcome after the attempts of one run: accepted vs rejected candidates. */
     public void recordOutcome(int accepted, int rejected, List<String> newIssues, String error) {
-        this.generatedCount += accepted;
-        this.rejectedCount += rejected;
-        if (newIssues != null) {
-            this.issues.addAll(newIssues);
+        this.generatedCount += Math.max(0, accepted);
+        this.rejectedCount += Math.max(0, rejected);
+        if (newIssues != null && !newIssues.isEmpty()) {
+            List<String> mutableIssues = (this.issues == null)
+                    ? new ArrayList<>()
+                    : new ArrayList<>(this.issues);
+            mutableIssues.addAll(newIssues);
+            this.issues = mutableIssues;
         }
         this.errorMessage = error;
         if (generatedCount >= totalQuestions) {
