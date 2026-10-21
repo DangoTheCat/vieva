@@ -1,6 +1,7 @@
 package com.example.vieva.application.ports.input.subject;
 
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
+import com.example.vieva.application.ports.common.SubjectSearchCriteria;
 
 import java.util.UUID;
 
