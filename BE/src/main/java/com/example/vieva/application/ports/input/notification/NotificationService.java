@@ -1,6 +1,6 @@
 package com.example.vieva.application.ports.input.notification;
 
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 
 import java.util.UUID;
 
