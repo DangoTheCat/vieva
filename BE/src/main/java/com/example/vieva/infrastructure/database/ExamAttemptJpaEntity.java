@@ -56,11 +56,20 @@ public class ExamAttemptJpaEntity implements Persistable<UUID> {
     @Column(name = "grade_level", length = 50)
     private GradeLevel gradeLevel;
 
-    @Column(name = "started_at", nullable = false)
+    @Column(name = "started_at")
     private Instant startedAt;
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    @Column(name = "paused_at")
+    private Instant pausedAt;
+
+    @Column(name = "remaining_seconds")
+    private Integer remainingSeconds;
+
+    @Column(name = "grace_deadline")
+    private Instant graceDeadline;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
