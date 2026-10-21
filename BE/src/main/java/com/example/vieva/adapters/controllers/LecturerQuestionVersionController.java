@@ -1,6 +1,7 @@
 package com.example.vieva.adapters.controllers;
 
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.ApproveRequest;
+import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.BatchApproveRequest;
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.ConfirmBloomRequest;
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.RegenerateRequest;
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.RejectRequest;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -101,6 +103,15 @@ public class LecturerQuestionVersionController {
                                                            @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toDto(authoringService.confirmBloom(versionId, request.bloomLevel(),
                 request.expectedVersion(), CurrentUser.id(currentUser))));
+    }
+
+    @PostMapping("/batch-approve")
+    @PreAuthorize("hasRole('LECTURER')")
+    public ResponseEntity<List<QuestionVersionDto>> batchApprove(
+            @Valid @RequestBody BatchApproveRequest request,
+            @AuthenticationPrincipal ActorView currentUser) {
+        return ResponseEntity.ok(reviewService.batchApprove(request.versionIds(), CurrentUser.id(currentUser))
+                .stream().map(presenter::toDto).toList());
     }
 
     @PostMapping("/{versionId}/approve")
