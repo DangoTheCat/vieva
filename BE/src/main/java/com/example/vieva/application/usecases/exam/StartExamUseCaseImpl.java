@@ -84,7 +84,7 @@ public class StartExamUseCaseImpl implements StartExamUseCase {
 
         int totalQuestions = bankQuestions.size();
 
-        ExamAttempt attempt = ExamAttempt.start(studentId, subjectId, totalQuestions);
+        ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, totalQuestions);
         ExamAttempt savedAttempt = examAttemptRepository.save(attempt);
 
         ExamTurn firstTurn = ExamTurn.createMainQuestion(
