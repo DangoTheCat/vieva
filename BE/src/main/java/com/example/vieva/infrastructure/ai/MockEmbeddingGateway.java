@@ -1,15 +1,19 @@
 package com.example.vieva.infrastructure.ai;
 
 import com.example.vieva.application.ports.output.EmbeddingModelPort;
-import com.example.vieva.domain.services.QuestionSimilarity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 /**
@@ -32,7 +36,7 @@ public class MockEmbeddingGateway implements EmbeddingModelPort {
     @Override
     public float[] generateEmbedding(String text) {
         float[] vector = new float[dimensions];
-        Set<String> tokens = QuestionSimilarity.tokens(text);
+        Set<String> tokens = tokens(text);
         for (String token : tokens) {
             CRC32 crc = new CRC32();
             crc.update(token.getBytes(StandardCharsets.UTF_8));
@@ -59,5 +63,19 @@ public class MockEmbeddingGateway implements EmbeddingModelPort {
     @Override
     public List<float[]> generateEmbeddings(List<String> texts) {
         return texts == null ? List.of() : texts.stream().map(this::generateEmbedding).toList();
+    }
+
+    private static Set<String> tokens(String text) {
+        if (text == null || text.isBlank()) {
+            return Set.of();
+        }
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase(Locale.ROOT);
+        return Arrays.stream(normalized.split("[^\\p{L}\\p{N}]+"))
+                .filter(token -> token.length() > 1)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 }

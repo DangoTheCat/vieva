@@ -1,10 +1,11 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
+import com.example.vieva.application.ports.input.question.RubricService;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
@@ -13,11 +14,11 @@ import com.example.vieva.application.usecases.question.RubricDraftFactory.Rubric
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -36,21 +37,21 @@ public class RubricServiceImpl implements RubricService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public QuestionVersionView getRubric(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        return viewAssembler.assemble(version);
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+        return QuestionViewMapper.toView(viewAssembler.assemble(version));
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView replaceRubric(UUID versionId, RubricInput input, Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
         List<FieldViolation> violations = new ArrayList<>();
         RubricDraft draft = RubricDraftFactory.build(versionId, input, violations);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
         BigDecimal before = currentTotal(versionId);
 
@@ -59,7 +60,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView addCriterion(UUID versionId, CriterionInput input, Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
         BigDecimal before = currentTotal(versionId);
@@ -71,9 +72,9 @@ public class RubricServiceImpl implements RubricService {
         RubricCriterion criterion = RubricDraftFactory.buildCriterion(rubric.getRubricId(), input,
                 criteria.size() + 1, "criterion", violations);
         if (criterion == null) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
-        criterion.setOrderIndex(criteria.size() + 1);
+        criterion.moveTo(criteria.size() + 1);
         criteria.add(criterion);
         rubricCriterionRepository.save(criterion);
         rubric.recalculateTotal(criteria);
@@ -82,7 +83,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView updateCriterion(UUID versionId, UUID criterionId, CriterionInput input,
                                                Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
@@ -92,18 +93,18 @@ public class RubricServiceImpl implements RubricService {
         RubricCriterion target = criteria.stream()
                 .filter(c -> c.getCriterionId().equals(criterionId))
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.CRITERION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.CRITERION_NOT_FOUND));
 
         List<FieldViolation> violations = new ArrayList<>();
         int currentOrder = target.getOrderIndex() == null ? 1 : target.getOrderIndex();
         RubricCriterion validated = RubricDraftFactory.buildCriterion(rubric.getRubricId(), input,
                 currentOrder, "criterion", violations);
         if (validated == null) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
         target.update(validated.getCriterionName(), validated.getAchievementDescriptors(), validated.getMaxPoints(),
                 validated.getPerformanceLevels());
-        target.setOrderIndex(validated.getOrderIndex());
+        target.moveTo(validated.getOrderIndex());
         rubricCriterionRepository.save(target);
         rubric.recalculateTotal(criteria);
         rubricRepository.save(rubric);
@@ -111,7 +112,7 @@ public class RubricServiceImpl implements RubricService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView deleteCriterion(UUID versionId, UUID criterionId, Long expectedVersion, UUID actorId) {
         QuestionVersion version = draftForWrite(versionId, expectedVersion, actorId);
         BigDecimal before = currentTotal(versionId);
@@ -119,12 +120,12 @@ public class RubricServiceImpl implements RubricService {
         List<RubricCriterion> criteria = new ArrayList<>(rubricCriterionRepository.findByRubricId(rubric.getRubricId()));
         boolean removed = criteria.removeIf(c -> c.getCriterionId().equals(criterionId));
         if (!removed) {
-            throw new AppException(ErrorCode.CRITERION_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.CRITERION_NOT_FOUND);
         }
         rubricCriterionRepository.deleteById(criterionId);
         // Keep order indexes contiguous after a removal.
         for (int i = 0; i < criteria.size(); i++) {
-            criteria.get(i).setOrderIndex(i + 1);
+            criteria.get(i).moveTo(i + 1);
         }
         rubricCriterionRepository.saveAll(criteria);
         rubric.recalculateTotal(criteria);
@@ -144,7 +145,7 @@ public class RubricServiceImpl implements RubricService {
 
     private Rubric rubricOf(UUID versionId) {
         return rubricRepository.findByQuestionVersionId(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.CRITERION_NOT_FOUND, "Version has no rubric yet"));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.CRITERION_NOT_FOUND, "Version has no rubric yet"));
     }
 
     private BigDecimal currentTotal(UUID versionId) {
@@ -157,6 +158,6 @@ public class RubricServiceImpl implements RubricService {
         questionVersionRepository.save(version);
         auditor.record(actorId, "RUBRIC_UPDATED", QuestionBankAuditor.QUESTION_VERSION, version.getQuestionVersionId(),
                 Map.of("totalScore", before), Map.of("totalScore", rubric.getTotalPoints()));
-        return viewAssembler.assemble(questionVersionRepository.findById(version.getQuestionVersionId()).orElseThrow());
+        return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(version.getQuestionVersionId()).orElseThrow()));
     }
 }

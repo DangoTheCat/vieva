@@ -1,38 +1,37 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.ports.output.*;
-import com.example.vieva.domain.entities.*;
-import com.example.vieva.domain.exception.*;
+import com.example.vieva.adapters.presenters.PageResponse;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.notification.NotificationService;
+import com.example.vieva.application.ports.input.notification.NotificationView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
-    private final NotificationRepository notifications;
+    private final NotificationService notifications;
 
     @GetMapping
-    @Transactional(readOnly = true)
-    public PagedResult<Notification> list(@AuthenticationPrincipal User user,
-                                          @RequestParam(defaultValue="0") int page,
-                                          @RequestParam(defaultValue="20") int size) {
-        if (page < 0 || size < 1 || size > 100) throw new AppException(ErrorCode.INVALID_REQUEST);
-        return notifications.findByRecipient(CurrentUser.id(user),page,size);
+    public PageResponse<NotificationView> list(@AuthenticationPrincipal ActorView user,
+                                              @RequestParam(defaultValue="0") int page,
+                                              @RequestParam(defaultValue="20") int size) {
+        return PageResponse.from(notifications.list(CurrentUser.id(user), page, size), Function.identity());
     }
 
     @GetMapping("/unread-count")
-    public Map<String,Long> unread(@AuthenticationPrincipal User user) {
-        return Map.of("count",notifications.unreadCount(CurrentUser.id(user)));
+    public Map<String,Long> unread(@AuthenticationPrincipal ActorView user) {
+        return Map.of("count", notifications.unreadCount(CurrentUser.id(user)));
     }
 
     @PatchMapping("/{id}/read")
-    @Transactional
-    public void read(@PathVariable UUID id,@AuthenticationPrincipal User user) {
-        if (!notifications.markRead(id,CurrentUser.id(user))) throw new AppException(ErrorCode.NOTIFICATION_NOT_FOUND);
+    public void read(@PathVariable UUID id, @AuthenticationPrincipal ActorView user) {
+        notifications.markRead(id, CurrentUser.id(user));
     }
 }

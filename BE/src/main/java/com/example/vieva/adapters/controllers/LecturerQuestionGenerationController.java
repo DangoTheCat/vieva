@@ -3,9 +3,9 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.adapters.controllers.request.QuestionBankApiRequests.GenerateQuestionsRequest;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.GenerationRequestDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
-import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
-import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,7 +36,7 @@ public class LecturerQuestionGenerationController {
     @PostMapping
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#request.subjectId(), authentication)")
     public ResponseEntity<GenerationRequestDto> generate(@Valid @RequestBody GenerateQuestionsRequest request,
-                                                         @AuthenticationPrincipal User currentUser) {
+                                                         @AuthenticationPrincipal ActorView currentUser) {
         GenerateQuestionsCommand command = GenerateQuestionsCommand.builder()
                 .subjectId(request.subjectId())
                 .topicId(request.topicId())
@@ -58,7 +58,7 @@ public class LecturerQuestionGenerationController {
     @PostMapping("/{requestId}/retry")
     @PreAuthorize("@courseSecurityEvaluator.canAccessGenerationRequest(#requestId, authentication)")
     public ResponseEntity<GenerationRequestDto> retry(@PathVariable UUID requestId,
-                                                      @AuthenticationPrincipal User currentUser) {
+                                                      @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.ok(presenter.toGeneration(generationService.retry(requestId, CurrentUser.id(currentUser))));
     }
 }

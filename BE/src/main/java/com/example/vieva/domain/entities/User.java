@@ -1,17 +1,17 @@
 package com.example.vieva.domain.entities;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@Data
-@Builder
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -112,5 +112,16 @@ public class User {
     public void updateAvatar(String avatarUrl) {
         this.avatarUrl = avatarUrl;
         this.updatedAt = Instant.now();
+    }
+
+    public void updateProfile(String fullName, String phoneNumber, Instant now) {
+        this.fullName = fullName;
+        this.phoneNumber = phoneNumber;
+        this.updatedAt = now != null ? now : Instant.now();
+    }
+
+    public void changeStatus(UserStatus status, Instant now) {
+        this.status = status;
+        this.updatedAt = now != null ? now : Instant.now();
     }
 }

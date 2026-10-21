@@ -1,14 +1,16 @@
 package com.example.vieva.application.usecases.lecturer;
 
-import com.example.vieva.application.ports.input.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
 import com.example.vieva.application.ports.output.AuditEventRepository;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.*;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,7 +92,7 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of());
         when(lecturerSubjectRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        List<LecturerSubject> result = lecturerSubjectService.assignLecturersToSubject(request, adminId);
+        List<LecturerSubjectResult> result = lecturerSubjectService.assignLecturersToSubject(request, adminId);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getLecturerId()).isEqualTo(lecturerId);
@@ -118,7 +120,7 @@ class LecturerSubjectServiceImplTest {
         when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(regularUser));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_A_LECTURER);
 
         verify(lecturerSubjectRepository, never()).saveAll(any());
@@ -144,7 +146,25 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of(existing));
 
         assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_ASSIGN_DUPLICATE);
+    }
+
+    @Test
+    @DisplayName("assignLecturersToSubject should map DuplicateKeyException from repository to CANNOT_ASSIGN_DUPLICATE")
+    void assignLecturers_concurrentDuplicateKeyException_throwsCannotAssignDuplicate() {
+        AssignLecturerRequest request = AssignLecturerRequest.builder()
+                .subjectId(subjectId)
+                .lecturerIds(List.of(lecturerId))
+                .build();
+
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(sampleSubject));
+        when(userRepository.findAllByIds(List.of(lecturerId))).thenReturn(List.of(sampleLecturer));
+        when(lecturerSubjectRepository.findActiveAssignments(subjectId, List.of(lecturerId))).thenReturn(List.of());
+        when(lecturerSubjectRepository.saveAll(any())).thenThrow(new DuplicateKeyException("concurrent duplicate"));
+
+        assertThatThrownBy(() -> lecturerSubjectService.assignLecturersToSubject(request, adminId))
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_ASSIGN_DUPLICATE);
     }
 
@@ -185,7 +205,7 @@ class LecturerSubjectServiceImplTest {
         when(lecturerSubjectRepository.findById(assignmentId)).thenReturn(Optional.of(alreadyRevoked));
 
         assertThatThrownBy(() -> lecturerSubjectService.revokeAssignment(assignmentId, adminId))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSIGNMENT_NOT_FOUND);
 
         verify(lecturerSubjectRepository, never()).save(any());

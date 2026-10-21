@@ -1,11 +1,8 @@
 package com.example.vieva.infrastructure.security;
 
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.user.ResolveActorUseCase;
 import com.example.vieva.application.ports.output.TokenProviderPort;
-import com.example.vieva.application.usecases.user.UserService;
-import com.example.vieva.domain.entities.Role;
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.entities.UserRole;
-import com.example.vieva.domain.entities.UserStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,7 +21,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -39,7 +35,7 @@ class JwtAuthenticationFilterTest {
     private TokenProviderPort tokenProvider;
 
     @Mock
-    private UserService userService;
+    private ResolveActorUseCase resolveActorUseCase;
 
     @Mock
     private HttpServletRequest request;
@@ -57,21 +53,13 @@ class JwtAuthenticationFilterTest {
     private JwtAuthenticationFilter filter;
 
     private UUID userId;
-    private User activeUser;
+    private ActorView activeActor;
 
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
         userId = UUID.randomUUID();
-        Role userRole = Role.builder().roleId(1).roleCode("ROLE_STUDENT").build();
-        UserRole ur = UserRole.builder().userId(userId).roleId(1).role(userRole).build();
-
-        activeUser = User.builder()
-                .userId(userId)
-                .email("test@example.com")
-                .status(UserStatus.ACTIVE)
-                .userRoles(Set.of(ur))
-                .build();
+        activeActor = new ActorView(userId, "test@example.com", Set.of("ROLE_STUDENT"), false);
     }
 
     @AfterEach
@@ -80,35 +68,35 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("doFilterInternal: sets authentication when token is valid and no password change")
+    @DisplayName("doFilterInternal: sets authentication when token is valid and resolveActor succeeds")
     void validToken_SetsAuthentication() throws Exception {
         String token = "valid-token";
+        Instant tokenIssuedAt = Instant.now();
+
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(tokenProvider.validateToken(token)).thenReturn(true);
         when(tokenProvider.getUserIdFromToken(token)).thenReturn(userId);
-        when(userService.getById(userId)).thenReturn(Optional.of(activeUser));
+        when(tokenProvider.getIssuedAtFromToken(token)).thenReturn(tokenIssuedAt);
+        when(resolveActorUseCase.resolve(userId, tokenIssuedAt)).thenReturn(Optional.of(activeActor));
 
         filter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
-        assertThat(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).isEqualTo(activeUser);
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).isEqualTo(activeActor);
         verify(filterChain).doFilter(request, response);
     }
 
     @Test
-    @DisplayName("doFilterInternal: rejects token if issued before password was changed")
-    void revokedToken_AfterPasswordChange_RejectsAuthentication() throws Exception {
+    @DisplayName("doFilterInternal: rejects token if resolveActor returns empty (e.g. revoked or inactive)")
+    void revokedOrInactiveToken_RejectsAuthentication() throws Exception {
         String token = "old-token";
-        Instant passwordChangedAt = Instant.now();
-        Instant tokenIssuedAt = passwordChangedAt.minus(1, ChronoUnit.HOURS);
-
-        activeUser.setPasswordChangedAt(passwordChangedAt);
+        Instant tokenIssuedAt = Instant.now();
 
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(tokenProvider.validateToken(token)).thenReturn(true);
         when(tokenProvider.getUserIdFromToken(token)).thenReturn(userId);
-        when(userService.getById(userId)).thenReturn(Optional.of(activeUser));
         when(tokenProvider.getIssuedAtFromToken(token)).thenReturn(tokenIssuedAt);
+        when(resolveActorUseCase.resolve(userId, tokenIssuedAt)).thenReturn(Optional.empty());
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -117,33 +105,12 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("doFilterInternal: accepts token if issued after password was changed")
-    void validToken_AfterPasswordChange_SetsAuthentication() throws Exception {
-        String token = "new-token";
-        Instant passwordChangedAt = Instant.now().minus(1, ChronoUnit.HOURS);
-        Instant tokenIssuedAt = Instant.now();
-
-        activeUser.setPasswordChangedAt(passwordChangedAt);
-
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(tokenProvider.validateToken(token)).thenReturn(true);
-        when(tokenProvider.getUserIdFromToken(token)).thenReturn(userId);
-        when(userService.getById(userId)).thenReturn(Optional.of(activeUser));
-        when(tokenProvider.getIssuedAtFromToken(token)).thenReturn(tokenIssuedAt);
-
-        filter.doFilterInternal(request, response, filterChain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
     @DisplayName("doFilterInternal: user who must change password is blocked from other endpoints with 403")
     void mustChangePassword_OtherEndpoint_Returns403() throws Exception {
-        activeUser.setMustChangePassword(true);
+        ActorView mustChangeActor = new ActorView(userId, "test@example.com", Set.of("ROLE_STUDENT"), true);
         MockHttpServletRequest httpRequest = bearerRequest("GET", "/api/v1/lecturer/subjects");
         MockHttpServletResponse httpResponse = new MockHttpServletResponse();
-        stubValidToken();
+        stubValidToken(mustChangeActor);
 
         filter.doFilterInternal(httpRequest, httpResponse, filterChain);
 
@@ -156,10 +123,24 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("doFilterInternal: user who must change password can still change it")
     void mustChangePassword_ChangePasswordEndpoint_PassesThrough() throws Exception {
-        activeUser.setMustChangePassword(true);
+        ActorView mustChangeActor = new ActorView(userId, "test@example.com", Set.of("ROLE_STUDENT"), true);
         MockHttpServletRequest httpRequest = bearerRequest("PUT", "/api/v1/users/me/password");
         MockHttpServletResponse httpResponse = new MockHttpServletResponse();
-        stubValidToken();
+        stubValidToken(mustChangeActor);
+
+        filter.doFilterInternal(httpRequest, httpResponse, filterChain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
+        verify(filterChain).doFilter(httpRequest, httpResponse);
+    }
+
+    @Test
+    @DisplayName("doFilterInternal: user who must change password can still read own profile")
+    void mustChangePassword_GetMeEndpoint_PassesThrough() throws Exception {
+        ActorView mustChangeActor = new ActorView(userId, "test@example.com", Set.of("ROLE_STUDENT"), true);
+        MockHttpServletRequest httpRequest = bearerRequest("GET", "/api/v1/users/me");
+        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
+        stubValidToken(mustChangeActor);
 
         filter.doFilterInternal(httpRequest, httpResponse, filterChain);
 
@@ -173,9 +154,10 @@ class JwtAuthenticationFilterTest {
         return httpRequest;
     }
 
-    private void stubValidToken() {
+    private void stubValidToken(ActorView actor) {
         when(tokenProvider.validateToken("valid-token")).thenReturn(true);
         when(tokenProvider.getUserIdFromToken("valid-token")).thenReturn(userId);
-        when(userService.getById(userId)).thenReturn(Optional.of(activeUser));
+        when(tokenProvider.getIssuedAtFromToken("valid-token")).thenReturn(Instant.now());
+        when(resolveActorUseCase.resolve(eq(userId), any())).thenReturn(Optional.of(actor));
     }
 }

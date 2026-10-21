@@ -34,7 +34,7 @@ Ghi chú quan trọng:
 
 Không cần cài Maven: repo có sẵn Maven Wrapper (`mvnw` / `mvnw.cmd`).
 
-Nếu máy đã cài sẵn PostgreSQL chạy dưới dạng service, hãy tắt service đó hoặc đổi port, vì nó sẽ chiếm cổng `5432` (xem mục 10).
+Nếu máy đã cài sẵn PostgreSQL chạy dưới dạng service, hãy tắt service đó hoặc đổi port, vì nó sẽ chiếm cổng `5432` (xem mục 11).
 
 ---
 
@@ -228,6 +228,8 @@ Trên PowerShell dùng `.\mvnw.cmd test`. Chạy một class:
 ./mvnw test -Dtest=UserControllerTest
 ```
 
+Lưu ý: script chạy test qua Docker (`run-tests.ps1`, `run-tests.bat` hoặc service `test` trong `docker-compose.yml`) bỏ qua test tích hợp; muốn chạy đủ thì dùng `BE/mvnw test` trên máy có Docker Desktop.
+
 **Frontend**: hiện chưa có test tự động. Kiểm tra bằng build:
 
 ```bash
@@ -237,15 +239,75 @@ npm run build
 
 ---
 
-## 9. Quy tắc làm việc
+## 9. Kiến trúc backend (Clean Architecture)
 
-### 9.1. Database migration
+Backend được tổ chức theo chuẩn Clean Architecture gồm 4 tầng độc lập, tuân thủ nghiêm ngặt Dependency Rule: phụ thuộc mã nguồn chỉ trỏ từ ngoài vào trong.
+
+### 9.1. Bảng phụ thuộc 4 tầng
+
+| Từ \ Đến | domain | application | adapters | infrastructure |
+|---|---|---|---|---|
+| domain | được | **cấm** | **cấm** | **cấm** |
+| application | được | được | **cấm** | **cấm** |
+| adapters | **cấm** | chỉ `ports/input`, `exception` | được | **cấm** |
+| infrastructure | chỉ gateway `database` map dữ liệu | chỉ `ports/*`, `exception`, `settings` | **cấm** | được |
+| configuration (Main) | được | được | được | được |
+
+### 9.2. Luồng request chuẩn (không nhảy bậc)
+
+```
+HTTP JSON → Controller → Request Model → Input Port (interface) → Interactor → Entity
+                                                                     │
+                                                                     ├─▶ Output Port (interface) ◀── Gateway → JPA/DB
+                                                                     ▼
+HTTP JSON ← Presenter ← Response Model ◀─────────────────────────────┘
+```
+
+- **Controller**: Nhận HTTP request, bind vào Request Model (record/POJO thuần Java), gọi Input Port. Cấm gọi repository hoặc use case cụ thể.
+- **Input Port**: Interface hợp đồng nghiệp vụ, không rò rỉ kiểu hay entity của domain.
+- **Interactor (Use Case)**: Chứa nghiệp vụ ứng dụng, điều phối domain entity và giao tiếp ngoại vi qua Output Port.
+- **Output Port**: Interface do application làm chủ (Repository, Gateway AI, Storage, Event Publisher).
+- **Gateway (Infrastructure)**: Implement Output Port, map qua lại giữa JPA entity/external API và domain model.
+- **Presenter**: Map Response Model (View/Result) sang HTTP JSON cho client.
+
+### 9.3. Bảng quy tắc kiến trúc (R1–R9)
+
+Hệ thống được kiểm tra tự động bởi 9 luật ArchUnit (`BE/src/test/java/com/example/vieva/architecture/ArchitectureTest.java`), thực thi 100% không freeze:
+
+| Luật | Tên luật ArchUnit | Ý nghĩa tóm tắt |
+|---|---|---|
+| **R1** | `domainIsPure` | Domain hoàn toàn thuần khiết, cấm phụ thuộc vào tầng ngoài hay framework (Spring, JPA). |
+| **R2** | `applicationIsFrameworkFree` | Application chỉ chứa use case và port thuần Java, cấm phụ thuộc Spring, JPA, adapters hay infrastructure. |
+| **R3** | `adaptersUseInputPortsOnly` | Adapters (controller, presenter) chỉ giao tiếp qua Input Port, cấm nhảy bậc sang domain, infra hoặc output port. |
+| **R4** | `infraDoesNotCallInteractors` | Infrastructure (filter, worker, scheduler) cấm gọi trực tiếp implementation use case cụ thể hoặc adapters. |
+| **R5** | `onlyDbGatewaysTouchDomain` | Ngoài gateway database (map dữ liệu) và configuration (Main), cấm mọi class trong infrastructure chạm domain. |
+| **R6** | `entitiesHaveNoSetters` | Toàn bộ domain không có setter public; thay đổi trạng thái bắt buộc qua business behavior methods. |
+| **R7** | `adaptersDoNotDependOnUseCases` | Adapters cấm phụ thuộc vào implementation cụ thể của use case (`application.usecases..`). |
+| **R8** | `adaptersDoNotDependOnOutputRepositoriesOrPorts` | Adapters cấm phụ thuộc vào output repository hoặc output port (`application.ports.output..`). |
+| **R9** | `inputPortsDoNotDependOnDomain` | Input ports (request/response/command/query/view) hoàn toàn độc lập, không mang kiểu hay entity của domain. |
+
+### 9.4. Ranh giới Aggregate (ports/output) và View (ports/input)
+
+- **Aggregate (`ports/output/`)**: Gom nhóm các domain entities (ví dụ `QuestionVersionAggregate` gom `Question`, `QuestionVersion`, `Topic`, `Rubric`, `RubricCriterion`, `QuestionSource`), chỉ lưu hành nội bộ giữa `application` và `infrastructure/database` (repository, gateway, database assembler). Tuyệt đối cấm `adapters` chạm tới Aggregate.
+- **View / Result (`ports/input/`)**: Response model thuần Java / record (ví dụ `QuestionVersionView`, `UserResult`, `SubjectResult`), độc lập hoàn toàn với `domain`. Use case sử dụng mapper nội bộ (`*ViewMapper`) để chuyển đổi từ Aggregate / Entity sang View / Result trước khi trả ra cho `adapters` (controller, presenter).
+
+### 9.5. Nguyên tắc kiểm thử (Testing Principles)
+
+1. **JSON Snapshot Tests**: Mọi thay đổi về cấu trúc DTO / contract phải có snapshot tests bảo vệ (`JsonContractSnapshotTest`, `AiPromptAndGatewaySnapshotTest`), đảm bảo JSON payload và HTTP status code không bao giờ bị phá vỡ ngoài ý muốn.
+2. **Không nhét logic nghiệp vụ vào mock (`No business logic in mocks`)**: Tuyệt đối không dùng `lenient().when(...).thenAnswer(...)` trong mock để tự parse enum, validate tham số hay tái hiện logic nghiệp vụ. Muốn kiểm tra logic thì phải dùng use case / service thật với các output port được mock.
+3. **Luôn chạy `mvnw clean test`**: Trước khi commit và tạo PR, bắt buộc chạy `mvnw clean test` để kiểm tra toàn bộ 442+ bài test (unit tests, contract snapshots, integration tests và toàn bộ 9 luật ArchUnit).
+
+---
+
+## 10. Quy tắc làm việc
+
+### 10.1. Database migration
 
 - Muốn đổi schema: tạo file mới `BE/src/main/resources/db/migration/V15__mo_ta_ngan.sql` (số version tiếp theo).
 - SQL đã áp dụng trên database hiện có không tự chạy lại. Thay đổi schema phải áp dụng thủ công bằng script mới, sau khi sao lưu.
 - Khi sửa entity JPA, cập nhật SQL khởi tạo và áp dụng SQL tương ứng lên database hiện có; Hibernate dùng `ddl-auto=none` nên không tự thêm cột.
 
-### 9.2. Studio và quy trình duyệt
+### 10.2. Studio và quy trình duyệt
 
 - Backend studio: `/api/v1/lecturer/studio`. FE hiện tại chưa tích hợp nút gửi duyệt hay chuông.
 - Upload: `POST /subjects/{subjectId}/documents` (multipart `file`) trả `202 UPLOADED`; worker chuyển `INDEXING → READY`, hoặc `FAILED` nếu lỗi. Poll endpoint document hiện có. `POST /documents/{documentId}/archive` ngừng dùng tài liệu trong retrieval và giữ nguyên nguồn lịch sử.
@@ -256,7 +318,7 @@ npm run build
 - Thông báo trong DB: `GET /api/v1/notifications?page=0&size=20`, `GET /api/v1/notifications/unread-count`, `PATCH /api/v1/notifications/{id}/read`. Chỉ người nhận được đọc/đánh dấu; thay đổi trạng thái và thông báo commit cùng nhau.
 - Áp dụng `V16__studio_review_and_notifications.sql` thủ công cho database cũ sau khi sao lưu. Không bật Flyway và không reset volume. SQL bảo toàn version/rubric/source, thêm trạng thái và notification. Schema JSON gửi model dùng evidence IDs; quote lưu trong DB luôn lấy nguyên văn từ evidence được chọn.
 
-### 9.3. Git
+### 10.3. Git
 
 - Không push thẳng vào `main`. Tạo nhánh từ `main` mới nhất:
 
@@ -272,14 +334,14 @@ npm run build
 
 ---
 
-## 10. Lỗi thường gặp
+## 11. Lỗi thường gặp
 
 | Triệu chứng | Nguyên nhân | Cách xử lý |
 | --- | --- | --- |
 | `docker compose up` báo `DB_PASSWORD env var is required` hoặc `JWT_SECRET env var is required` | Chưa có `.env` ở thư mục gốc, hoặc biến còn trống | Làm lại mục 3 |
 | `port 5432 ... already allocated` | Máy đang chạy PostgreSQL cài sẵn | Tắt service PostgreSQL local (Windows: `services.msc`), hoặc đổi mapping trong `docker-compose.yml` thành `127.0.0.1:5433:5432` và đặt `DB_PORT=5433` khi chạy BE |
 | BE báo `password authentication failed for user "postgres"` | Mật khẩu BE dùng khác mật khẩu lúc tạo volume DB, hoặc chưa nạp `.env` vào shell | Nạp `.env` như mục 5.2. Nếu đã đổi `DB_PASSWORD` sau lần chạy đầu, xem dòng reset DB bên dưới |
-| BE báo `Schema-validation: missing table/column` | Entity khác với schema | Viết migration mới (mục 9.1) |
+| BE báo `Schema-validation: missing table/column` | Entity khác với schema | Viết migration mới (mục 10.1) |
 | Cần reset DB về trạng thái sạch | — | Xem cảnh báo bên dưới bảng |
 | FE hiện dữ liệu giả / gọi API lỗi `502`, `ECONNREFUSED` | BE chưa chạy hoặc chạy sai cổng | Chạy BE ở cổng 8080, kiểm tra bằng lệnh `curl` ở mục 5.2 |
 | `429 Too Many Requests` | Vượt rate limit | Đợi 1 phút |
@@ -295,7 +357,7 @@ docker compose up -d postgres
 
 ---
 
-## 11. Checklist ngày đầu
+## 12. Checklist ngày đầu
 
 - [ ] Cài JDK 17, Node 20, Docker Desktop, Git
 - [ ] Clone repo, tạo `.env` có `DB_PASSWORD` và `JWT_SECRET`

@@ -3,23 +3,24 @@ package com.example.vieva.adapters.controllers;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
-import com.example.vieva.application.usecases.document.DocumentService;
-import com.example.vieva.application.usecases.generation.QuestionGenCoordinator;
-import com.example.vieva.application.usecases.importing.QuestionImportService;
-import com.example.vieva.application.usecases.question.QuestionAuthoringService;
-import com.example.vieva.application.usecases.question.QuestionReviewService;
-import com.example.vieva.application.usecases.user.UserService;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
+import com.example.vieva.application.usecases.question.QuestionViewMapper;
+import com.example.vieva.application.ports.input.document.DocumentService;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
+import com.example.vieva.application.ports.input.importing.QuestionImportService;
+import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
+import com.example.vieva.application.ports.input.question.QuestionReviewService;
+import com.example.vieva.application.ports.input.user.UserService;
 import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.CourseDocument;
-import com.example.vieva.domain.entities.DocumentStatus;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
 import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,9 +35,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import com.example.vieva.application.ports.input.common.ActorView;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -91,6 +95,8 @@ class LecturerQuestionBankApiTest {
     @MockitoBean private QuestionGenCoordinator generationService;
     @MockitoBean private QuestionImportService importService;
     @MockitoBean private DocumentService documentIndexingService;
+    @MockitoBean private com.example.vieva.application.ports.input.document.DocumentIndexingUseCase documentIndexingUseCase;
+    @MockitoBean private com.example.vieva.application.ports.input.document.DocumentCleanupUseCase documentCleanupUseCase;
 
     private final UUID subjectId = UUID.randomUUID();
     private User lecturer;
@@ -110,15 +116,19 @@ class LecturerQuestionBankApiTest {
         List<SimpleGrantedAuthority> authorities = java.util.Arrays.stream(roles)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .toList();
-        return authentication(new UsernamePasswordAuthenticationToken(user, null, authorities));
+        Set<String> roleCodes = java.util.Arrays.stream(roles)
+                .map(role -> "ROLE_" + role)
+                .collect(Collectors.toSet());
+        ActorView actor = new ActorView(user.getUserId(), user.getEmail(), roleCodes, false);
+        return authentication(new UsernamePasswordAuthenticationToken(actor, null, authorities));
     }
 
     private QuestionVersionView draftView() {
         Question question = Question.newDraftOwner(subjectId, null, lecturer.getUserId());
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Trình bày ACID?", "Atomicity...",
-                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId());
-        version.setVersion(0L);
-        return QuestionVersionView.builder().question(question).version(version).criteria(List.of()).sources(List.of()).build();
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId())
+                .toBuilder().version(0L).build();
+        return QuestionViewMapper.toView(QuestionVersionAggregate.builder().question(question).version(version).criteria(List.of()).sources(List.of()).build());
     }
 
     @Test
@@ -179,6 +189,8 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("400 for a Bloom level outside the 6 levels")
     void unknownBloomLevel() throws Exception {
+        when(authoringService.createManualQuestion(eq(subjectId), any(), eq(lecturer.getUserId())))
+                .thenThrow(new ApplicationException(ErrorCode.INVALID_REQUEST, "Malformed request body"));
         mockMvc.perform(post("/api/v1/lecturer/subjects/{id}/questions", subjectId).with(as(lecturer, "LECTURER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_QUESTION.replace("UNDERSTAND", "VAN_DUNG_CAO")))
@@ -188,7 +200,7 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("422 with field errors when the rubric total does not match")
     void businessFieldErrors() throws Exception {
-        when(authoringService.createManualQuestion(any(), any(), any())).thenThrow(AppException.ofViolations(List.of(
+        when(authoringService.createManualQuestion(any(), any(), any())).thenThrow(ApplicationException.ofViolations(List.of(
                 FieldViolation.of("rubric.totalScore", ErrorCode.RUBRIC_SCORE_MISMATCH, "Total 12 must equal 10"))));
         mockMvc.perform(post("/api/v1/lecturer/subjects/{id}/questions", subjectId).with(as(lecturer, "LECTURER"))
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_QUESTION))
@@ -200,17 +212,20 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("approve: 409 VERSION_NOT_DRAFT, 422 BLOOM_NOT_CONFIRMED, 409 CONCURRENT_MODIFICATION")
     void approveErrorMapping() throws Exception {
-        QuestionVersionView view = draftView();
-        UUID versionId = view.version().getQuestionVersionId();
-        when(questionVersionRepository.findById(versionId)).thenReturn(Optional.of(view.version()));
-        when(questionRepository.findById(view.question().getQuestionId())).thenReturn(Optional.of(view.question()));
+        Question question = Question.newDraftOwner(subjectId, null, lecturer.getUserId());
+        QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Trình bày ACID?", "Atomicity...",
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.MANUAL, lecturer.getUserId())
+                .toBuilder().version(0L).build();
+        UUID versionId = version.getQuestionVersionId();
+        when(questionVersionRepository.findById(versionId)).thenReturn(Optional.of(version));
+        when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
 
-        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new AppException(ErrorCode.VERSION_NOT_DRAFT));
+        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new ApplicationException(ErrorCode.VERSION_NOT_DRAFT));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("VERSION_NOT_DRAFT"));
 
-        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(AppException.ofViolations(List.of(
+        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(ApplicationException.ofViolations(List.of(
                 FieldViolation.of("bloomConfirmed", ErrorCode.BLOOM_NOT_CONFIRMED, "confirm"),
                 FieldViolation.of("sources", ErrorCode.SOURCE_REQUIRED, "source"))));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER"))
@@ -219,7 +234,7 @@ class LecturerQuestionBankApiTest {
                 .andExpect(jsonPath("$.error").value("BLOOM_NOT_CONFIRMED"))
                 .andExpect(jsonPath("$.errors[1].error").value("SOURCE_REQUIRED"));
 
-        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new AppException(ErrorCode.CONCURRENT_MODIFICATION));
+        when(reviewService.approve(eq(versionId), any(), any())).thenThrow(new ApplicationException(ErrorCode.CONCURRENT_MODIFICATION));
         mockMvc.perform(post("/api/v1/lecturer/question-versions/{id}/approve", versionId).with(as(lecturer, "LECTURER")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("CONCURRENT_MODIFICATION"));
@@ -243,8 +258,8 @@ class LecturerQuestionBankApiTest {
     @Test
     @DisplayName("upload answers 202 Accepted with the UPLOADED document")
     void uploadAccepted() throws Exception {
-        CourseDocument document = CourseDocument.builder().documentId(UUID.randomUUID()).subjectId(subjectId)
-                .fileName("csdl.pdf").indexingStatus(DocumentStatus.UPLOADED).indexAttempts(0).build();
+        CourseDocumentResult document = CourseDocumentResult.builder().documentId(UUID.randomUUID()).subjectId(subjectId)
+                .fileName("csdl.pdf").indexingStatus("UPLOADED").indexAttempts(0).build();
         when(documentIndexingService.uploadDocument(eq(subjectId), eq("csdl.pdf"), any(), eq(lecturer.getUserId())))
                 .thenReturn(document);
         mockMvc.perform(multipart("/api/v1/lecturer/subjects/{id}/documents", subjectId)
@@ -254,7 +269,7 @@ class LecturerQuestionBankApiTest {
                 .andExpect(jsonPath("$.indexingStatus").value("UPLOADED"));
 
         when(documentIndexingService.uploadDocument(any(), any(), any(), any()))
-                .thenThrow(new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE));
+                .thenThrow(new ApplicationException(ErrorCode.UNSUPPORTED_FILE_TYPE));
         mockMvc.perform(multipart("/api/v1/lecturer/subjects/{id}/documents", subjectId)
                         .file(new MockMultipartFile("file", "virus.exe", "application/pdf", "MZ".getBytes()))
                         .with(as(lecturer, "LECTURER")))
@@ -273,7 +288,7 @@ class LecturerQuestionBankApiTest {
                         .content(body.formatted(UUID.randomUUID(), UUID.randomUUID())))
                 .andExpect(status().isForbidden());
 
-        when(generationService.generate(any(), any())).thenThrow(new AppException(ErrorCode.DOCUMENT_NOT_READY));
+        when(generationService.generate(any(), any())).thenThrow(new ApplicationException(ErrorCode.DOCUMENT_NOT_READY));
         mockMvc.perform(post("/api/v1/lecturer/question-generation-requests").with(as(lecturer, "LECTURER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body.formatted(subjectId, UUID.randomUUID())))

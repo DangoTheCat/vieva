@@ -15,7 +15,7 @@ public interface QuestionDraftWriter {
     CourseDocument saveCourseDocument(CourseDocument document);
     CourseDocument updateDocumentStatus(CourseDocument document, DocumentStatus status, int chunks, String summary);
     QuestionVersion updateStatus(QuestionVersion version);
-    QuestionVersionView fetchQuestionWithRubric(QuestionVersion version);
+    QuestionVersionAggregate fetchQuestionWithRubric(QuestionVersion version);
     void saveQuestionDraft(List<NewDraft> drafts);
 
     record NewDraft(Question question, QuestionVersion version, Rubric rubric,

@@ -7,7 +7,7 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,10 +44,9 @@ class QuestionApprovalPolicyTest {
     }
 
     private QuestionVersion aiDraft(boolean confirmed) {
-        QuestionVersion version = QuestionVersion.newDraft(UUID.randomUUID(), 1, "Câu hỏi?", "Đáp án",
-                BloomLevel.UNDERSTAND, QuestionGenerationMode.AI_RAG, UUID.randomUUID());
-        version.setBloomConfirmed(confirmed);
-        return version;
+        return QuestionVersion.newDraft(UUID.randomUUID(), 1, "Câu hỏi?", "Đáp án",
+                BloomLevel.UNDERSTAND, QuestionGenerationMode.AI_RAG, UUID.randomUUID())
+                .toBuilder().bloomConfirmed(confirmed).build();
     }
 
     private QuestionSource source(String quote) {
@@ -56,7 +55,12 @@ class QuestionApprovalPolicyTest {
 
     private List<FieldViolation> validate(QuestionVersion version, List<RubricCriterion> criteria,
                                           List<QuestionSource> sources, Set<UUID> readyDocs) {
-        return QuestionApprovalPolicy.validate(version, rubric, criteria, sources,
+        return validate(version, rubric, criteria, sources, readyDocs);
+    }
+
+    private List<FieldViolation> validate(QuestionVersion version, Rubric r, List<RubricCriterion> criteria,
+                                          List<QuestionSource> sources, Set<UUID> readyDocs) {
+        return QuestionApprovalPolicy.validate(version, r, criteria, sources,
                 Map.of(chunk.getChunkId(), chunk), readyDocs);
     }
 
@@ -70,34 +74,34 @@ class QuestionApprovalPolicyTest {
     @DisplayName("BR-01: AI Bloom level must be confirmed")
     void bloomMustBeConfirmed() {
         List<FieldViolation> violations = validate(aiDraft(false), criteria, List.of(source("nguyên tử")), Set.of(documentId));
-        assertThat(violations).extracting(FieldViolation::code).containsExactly(ErrorCode.BLOOM_NOT_CONFIRMED);
+        assertThat(violations).extracting(FieldViolation::code).containsExactly(DomainErrorCode.BLOOM_NOT_CONFIRMED);
         assertThat(violations.get(0).field()).isEqualTo("bloomConfirmed");
     }
 
     @Test
     @DisplayName("BR-02: total mismatch, missing criteria")
     void rubricRules() {
-        rubric.setTotalPoints(new BigDecimal("12"));
-        assertThat(validate(aiDraft(true), criteria, List.of(source("nguyên tử")), Set.of(documentId)))
+        Rubric mismatched = rubric.toBuilder().totalPoints(new BigDecimal("12")).build();
+        assertThat(validate(aiDraft(true), mismatched, criteria, List.of(source("nguyên tử")), Set.of(documentId)))
                 .extracting(FieldViolation::field, FieldViolation::code)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("rubric.totalScore", ErrorCode.RUBRIC_SCORE_MISMATCH));
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("rubric.totalScore", DomainErrorCode.RUBRIC_SCORE_MISMATCH));
 
         assertThat(validate(aiDraft(true), List.of(), List.of(source("nguyên tử")), Set.of(documentId)))
-                .extracting(FieldViolation::code).containsExactly(ErrorCode.RUBRIC_REQUIRED);
+                .extracting(FieldViolation::code).containsExactly(DomainErrorCode.RUBRIC_REQUIRED);
     }
 
     @Test
     @DisplayName("BR-03: AI draft needs a grounded source in a READY document")
     void sourceRules() {
         assertThat(validate(aiDraft(true), criteria, List.of(), Set.of(documentId)))
-                .extracting(FieldViolation::code).containsExactly(ErrorCode.SOURCE_REQUIRED);
+                .extracting(FieldViolation::code).containsExactly(DomainErrorCode.SOURCE_REQUIRED);
         assertThat(validate(aiDraft(true), criteria, List.of(source("không có trong tài liệu")), Set.of(documentId)))
-                .extracting(FieldViolation::code).containsExactly(ErrorCode.INVALID_CITATION_QUOTE);
+                .extracting(FieldViolation::code).containsExactly(DomainErrorCode.INVALID_CITATION_QUOTE);
         assertThat(validate(aiDraft(true), criteria, List.of(source("nguyên tử")), Set.of()))
-                .extracting(FieldViolation::code).containsExactly(ErrorCode.SOURCE_REQUIRED);
+                .extracting(FieldViolation::code).containsExactly(DomainErrorCode.SOURCE_REQUIRED);
         QuestionSource missingChunk = QuestionSource.builder().chunkId(UUID.randomUUID()).citationQuote("x").build();
         assertThat(validate(aiDraft(true), criteria, List.of(missingChunk), Set.of(documentId)))
-                .extracting(FieldViolation::code).containsExactly(ErrorCode.SOURCE_REQUIRED);
+                .extracting(FieldViolation::code).containsExactly(DomainErrorCode.SOURCE_REQUIRED);
     }
 
     @Test
@@ -105,8 +109,8 @@ class QuestionApprovalPolicyTest {
     void manualDraftAndAllViolations() {
         QuestionVersion manual = QuestionVersion.newDraft(UUID.randomUUID(), 1, " ", null, BloomLevel.APPLY,
                 QuestionGenerationMode.MANUAL, UUID.randomUUID());
-        rubric.setTotalPoints(BigDecimal.ONE);
-        assertThat(validate(manual, criteria, List.of(), Set.of()))
+        Rubric mismatched = rubric.toBuilder().totalPoints(BigDecimal.ONE).build();
+        assertThat(validate(manual, mismatched, criteria, List.of(), Set.of()))
                 .extracting(FieldViolation::field)
                 .containsExactly("content", "expectedAnswer", "rubric.totalScore");
     }

@@ -1,11 +1,5 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.PerformanceLevel;
-import com.example.vieva.domain.entities.QuestionStatus;
-import com.example.vieva.domain.entities.QuestionGenerationMode;
-import com.example.vieva.domain.entities.QuestionGenerationStatus;
-import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 
@@ -38,11 +32,11 @@ public final class QuestionBankDtos {
             Integer versionNumber,
             String content,
             String expectedAnswer,
-            BloomLevel bloomLevel,
+            String bloomLevel,
             String bloomLevelLabel,
             boolean bloomConfirmed,
-            QuestionGenerationMode origin,
-            QuestionStatus status,
+            String origin,
+            String status,
             UUID parentVersionId,
             UUID generationRequestId,
             int regenerationCount,
@@ -65,7 +59,11 @@ public final class QuestionBankDtos {
 
     @Builder
     public record RubricCriterionDto(UUID criterionId, String name, String description, BigDecimal maxScore,
-                                     List<PerformanceLevel> levels, Integer orderIndex) {
+                                     List<PerformanceLevelDto> levels, Integer orderIndex) {
+    }
+
+    @Builder
+    public record PerformanceLevelDto(String label, String description, BigDecimal score) {
     }
 
     @Builder
@@ -75,14 +73,14 @@ public final class QuestionBankDtos {
 
     @Builder
     public record QuestionBankItemDto(UUID questionId, String questionCode, UUID subjectId, UUID topicId,
-                                      String topicName, QuestionLifecycleStatus status, boolean hasPendingDraft,
+                                      String topicName, String status, boolean hasPendingDraft,
                                       QuestionVersionDto currentVersion, Instant createdAt, Instant updatedAt) {
     }
 
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record QuestionDetailDto(UUID questionId, String questionCode, UUID subjectId, UUID topicId,
-                                    QuestionLifecycleStatus status, UUID currentApprovedVersionId,
+                                    String status, UUID currentApprovedVersionId,
                                     QuestionVersionDto currentVersion, QuestionVersionDto pendingDraft,
                                     List<QuestionVersionDto> history, Instant createdAt, Instant updatedAt) {
     }
@@ -90,8 +88,8 @@ public final class QuestionBankDtos {
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record GenerationRequestDto(UUID generationRequestId, UUID subjectId, UUID topicId,
-                                       List<UUID> documentIds, Map<BloomLevel, Integer> bloomDistribution,
-                                       int totalQuestions, String lecturerNote, QuestionGenerationStatus status,
+                                       List<UUID> documentIds, Map<String, Integer> bloomDistribution,
+                                       int totalQuestions, String lecturerNote, String status,
                                        int generatedCount, int rejectedCount, int attemptCount,
                                        List<String> issues, String errorMessage, Instant createdAt,
                                        Instant updatedAt, List<QuestionVersionDto> drafts) {

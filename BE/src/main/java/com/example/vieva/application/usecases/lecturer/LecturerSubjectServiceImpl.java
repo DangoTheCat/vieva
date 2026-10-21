@@ -1,6 +1,8 @@
 package com.example.vieva.application.usecases.lecturer;
 
-import com.example.vieva.application.ports.input.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
@@ -13,11 +15,11 @@ import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-@Transactional
+@UseCaseTransaction
 public class LecturerSubjectServiceImpl implements LecturerSubjectService {
 
     private final LecturerSubjectRepository lecturerSubjectRepository;
@@ -40,20 +42,20 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    public List<LecturerSubject> assignLecturersToSubject(AssignLecturerRequest request, UUID currentAdminId) {
+    public List<LecturerSubjectResult> assignLecturersToSubject(AssignLecturerRequest request, UUID currentAdminId) {
         if (request.getSubjectId() == null || request.getLecturerIds() == null || request.getLecturerIds().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND));
 
         if (subject.getStatus() != SubjectStatus.ACTIVE) {
-            throw new AppException(ErrorCode.CANNOT_ASSIGN_INACTIVE_SUBJECT);
+            throw new ApplicationException(ErrorCode.CANNOT_ASSIGN_INACTIVE_SUBJECT);
         }
 
         if (request.getLecturerIds().stream().anyMatch(Objects::isNull)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         // Preserve request order while dropping duplicates so each lecturer is validated once.
@@ -76,19 +78,19 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
         for (UUID lecturerId : lecturerIds) {
             User user = usersById.get(lecturerId);
             if (user == null) {
-                throw new AppException(ErrorCode.USER_NOT_FOUND);
+                throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
             }
 
             if (user.isDeleted() || user.getStatus() != UserStatus.ACTIVE) {
-                throw new AppException(ErrorCode.CANNOT_ASSIGN_INACTIVE_USER);
+                throw new ApplicationException(ErrorCode.CANNOT_ASSIGN_INACTIVE_USER);
             }
 
             if (!user.isLecturer() && !user.isAdmin()) {
-                throw new AppException(ErrorCode.NOT_A_LECTURER);
+                throw new ApplicationException(ErrorCode.NOT_A_LECTURER);
             }
 
             if (alreadyAssigned.contains(lecturerId)) {
-                throw new AppException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
+                throw new ApplicationException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
             }
 
             LecturerSubject assignment = LecturerSubject.builder()
@@ -121,21 +123,21 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
         try {
             assignedList = lecturerSubjectRepository.saveAll(assignmentsToSave);
             auditEventRepository.saveAll(auditEventsToSave);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent assign won the race (partial unique index uq_lecturer_subject)
-            throw new AppException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
+            throw new ApplicationException(ErrorCode.CANNOT_ASSIGN_DUPLICATE);
         }
 
-        return assignedList;
+        return assignedList.stream().map(LecturerSubjectResults::from).toList();
     }
 
     @Override
     public void revokeAssignment(UUID assignmentId, UUID currentAdminId) {
         LecturerSubject assignment = lecturerSubjectRepository.findById(assignmentId)
-                .orElseThrow(() -> new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ASSIGNMENT_NOT_FOUND));
 
         if (assignment.isRevoked()) {
-            throw new AppException(ErrorCode.ASSIGNMENT_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.ASSIGNMENT_NOT_FOUND);
         }
 
         assignment.revoke();
@@ -149,19 +151,23 @@ public class LecturerSubjectServiceImpl implements LecturerSubjectService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<LecturerSubject> getLecturersBySubject(UUID subjectId) {
-        return lecturerSubjectRepository.findActiveBySubjectId(subjectId);
+    @UseCaseTransaction(readOnly = true)
+    public List<LecturerSubjectResult> getLecturersBySubject(UUID subjectId) {
+        return lecturerSubjectRepository.findActiveBySubjectId(subjectId).stream()
+                .map(LecturerSubjectResults::from)
+                .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<LecturerSubject> getSubjectsByLecturer(UUID lecturerId) {
-        return lecturerSubjectRepository.findActiveByLecturerId(lecturerId);
+    @UseCaseTransaction(readOnly = true)
+    public List<LecturerSubjectResult> getSubjectsByLecturer(UUID lecturerId) {
+        return lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
+                .map(LecturerSubjectResults::from)
+                .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public boolean isLecturerAssignedToSubject(UUID lecturerId, UUID subjectId) {
         return lecturerSubjectRepository.isLecturerAssignedToSubject(lecturerId, subjectId);
     }

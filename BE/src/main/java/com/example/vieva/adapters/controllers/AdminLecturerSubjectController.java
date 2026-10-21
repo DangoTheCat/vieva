@@ -4,12 +4,11 @@ import com.example.vieva.adapters.controllers.request.AssignLecturerApiRequest;
 import com.example.vieva.adapters.presenters.LecturerSubjectDto;
 import com.example.vieva.adapters.presenters.LecturerSubjectPresenter;
 import com.example.vieva.adapters.presenters.MessageResponse;
-import com.example.vieva.application.ports.input.AssignLecturerRequest;
-import com.example.vieva.application.usecases.lecturer.LecturerSubjectService;
-import com.example.vieva.domain.entities.LecturerSubject;
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.ports.input.access.SubjectHeadService;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -30,21 +29,21 @@ public class AdminLecturerSubjectController {
 
     private final LecturerSubjectService lecturerSubjectService;
     private final LecturerSubjectPresenter presenter;
-    private final com.example.vieva.application.usecases.access.SubjectHeadService heads;
+    private final SubjectHeadService heads;
 
     public record AssignHeadRequest(@NotNull UUID lecturerId) { }
 
     @PutMapping("/by-subject/{subjectId}/head")
     public java.util.Map<String,UUID> assignHead(@PathVariable UUID subjectId,
                                                 @Valid @RequestBody AssignHeadRequest request,
-                                                @AuthenticationPrincipal User admin) {
+                                                @AuthenticationPrincipal ActorView admin) {
         heads.assign(subjectId,request.lecturerId(),CurrentUser.id(admin));
         return java.util.Map.of("subjectId",subjectId,"headLecturerId",request.lecturerId());
     }
 
     @PostMapping
     public ResponseEntity<List<LecturerSubjectDto>> assignLecturers(
-            @AuthenticationPrincipal User currentAdmin,
+            @AuthenticationPrincipal ActorView currentAdmin,
             @Valid @RequestBody AssignLecturerApiRequest apiRequest) {
 
         UUID adminId = resolveAdminId(currentAdmin);
@@ -54,14 +53,14 @@ public class AdminLecturerSubjectController {
                 .lecturerIds(apiRequest.getLecturerIds())
                 .build();
 
-        List<LecturerSubject> assignments = lecturerSubjectService.assignLecturersToSubject(request, adminId);
+        List<LecturerSubjectResult> assignments = lecturerSubjectService.assignLecturersToSubject(request, adminId);
         return ResponseEntity.status(HttpStatus.CREATED).body(presenter.toDtoList(assignments));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> revokeAssignment(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User currentAdmin) {
+            @AuthenticationPrincipal ActorView currentAdmin) {
 
         UUID adminId = resolveAdminId(currentAdmin);
         lecturerSubjectService.revokeAssignment(id, adminId);
@@ -70,20 +69,17 @@ public class AdminLecturerSubjectController {
 
     @GetMapping("/by-subject/{subjectId}")
     public ResponseEntity<List<LecturerSubjectDto>> getLecturersBySubject(@PathVariable UUID subjectId) {
-        List<LecturerSubject> assignments = lecturerSubjectService.getLecturersBySubject(subjectId);
+        List<LecturerSubjectResult> assignments = lecturerSubjectService.getLecturersBySubject(subjectId);
         return ResponseEntity.ok(presenter.toDtoList(assignments));
     }
 
     @GetMapping("/by-lecturer/{lecturerId}")
     public ResponseEntity<List<LecturerSubjectDto>> getSubjectsByLecturer(@PathVariable UUID lecturerId) {
-        List<LecturerSubject> assignments = lecturerSubjectService.getSubjectsByLecturer(lecturerId);
+        List<LecturerSubjectResult> assignments = lecturerSubjectService.getSubjectsByLecturer(lecturerId);
         return ResponseEntity.ok(presenter.toDtoList(assignments));
     }
 
-    private UUID resolveAdminId(User currentAdmin) {
-        if (currentAdmin == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-        return currentAdmin.getUserId();
+    private UUID resolveAdminId(ActorView currentAdmin) {
+        return CurrentUser.id(currentAdmin);
     }
 }

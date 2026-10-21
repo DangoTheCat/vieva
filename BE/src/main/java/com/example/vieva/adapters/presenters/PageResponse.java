@@ -1,6 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,7 +22,7 @@ public class PageResponse<T> {
     private boolean isFirst;
     private boolean isLast;
 
-    public static <T, R> PageResponse<R> from(PagedResult<T> page, Function<T, R> mapper) {
+    public static <T, R> PageResponse<R> from(PageResult<T> page, Function<T, R> mapper) {
         if (page == null) return null;
         return PageResponse.<R>builder()
                 .content(page.getContent() == null ? List.of() : page.getContent().stream().map(mapper).toList())

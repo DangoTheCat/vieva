@@ -1,13 +1,17 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.UserSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.user.UserSearchCriteria;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.domain.entities.User;
+import com.example.vieva.domain.entities.UserStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -61,7 +65,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public PagedResult<User> findAll(UserSearchCriteria criteria) {
+    public PageResult<User> findAll(UserSearchCriteria criteria) {
         int page = criteria.getSanitizedPage();
         int size = criteria.getSanitizedSize();
         String sortBy = criteria.getSanitizedSortBy();
@@ -78,8 +82,13 @@ public class UserRepositoryImpl implements UserRepository {
             predicates.add(cb.isNull(root.get("deletedAt")));
 
             // 1. Filter by status if specified
-            if (criteria.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
+            if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+                try {
+                    UserStatus status = UserStatus.valueOf(criteria.getStatus().trim());
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (IllegalArgumentException ignored) {
+                    // Handled upstream or empty match
+                }
             }
 
             // 2. Filter by role if specified
@@ -121,7 +130,7 @@ public class UserRepositoryImpl implements UserRepository {
                 .map(userMapper::toDomain)
                 .collect(Collectors.toList());
 
-        return PagedResult.of(
+        return PageResult.of(
                 userList,
                 userPage.getNumber(),
                 userPage.getSize(),
@@ -158,6 +167,15 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     @Transactional
     public User saveAndFlush(User user) {
-        return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
+        try {
+            return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
+        } catch (DataIntegrityViolationException e) {
+            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+            ErrorCode suggested = (msg != null && (msg.contains("uq_users_active_email") || msg.contains("uq_users_active_user_code")
+                    || (msg.contains("email") && msg.contains("unique"))))
+                    ? ErrorCode.USER_EXISTED
+                    : ErrorCode.INVALID_REQUEST;
+            throw new DuplicateKeyException("User duplicate key violation: " + e.getMessage(), e, suggested);
+        }
     }
 }

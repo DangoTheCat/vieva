@@ -1,8 +1,8 @@
 package com.example.vieva.application.usecases.importing;
 
 import com.example.vieva.application.ports.output.AuditEventRepository;
-import com.example.vieva.application.ports.output.ImportReport;
-import com.example.vieva.application.ports.output.ImportReport.RowError;
+import com.example.vieva.application.ports.input.importing.ImportReport;
+import com.example.vieva.application.ports.input.importing.ImportReport.RowError;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionRepository;
@@ -24,8 +24,8 @@ import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.Topic;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.infrastructure.service.PoiCsvQuestionSpreadsheetGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -154,14 +154,14 @@ class QuestionImportServiceImplTest {
     @Test
     void rejectsBadFiles() {
         assertThatThrownBy(() -> service.importQuestions(subjectId, "q.txt", csv(MIXED), true, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
         assertThatThrownBy(() -> service.importQuestions(subjectId, "q.csv", "a,b\n1,2\n".getBytes(), true, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.IMPORT_FILE_INVALID);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.IMPORT_FILE_INVALID);
         assertThatThrownBy(() -> service.importQuestions(subjectId, "q.csv", HEADER.getBytes(), true, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.IMPORT_FILE_INVALID);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.IMPORT_FILE_INVALID);
         settings.setMaxRows(2);
         assertThatThrownBy(() -> service.importQuestions(subjectId, "q.csv", csv(MIXED), true, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.IMPORT_LIMIT_EXCEEDED);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.IMPORT_LIMIT_EXCEEDED);
     }
 
     @Test
@@ -174,6 +174,6 @@ class QuestionImportServiceImplTest {
             assertThat(report.validQuestions()).as(format).isEqualTo(2);
         }
         assertThatThrownBy(() -> service.template("pdf"))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
     }
 }

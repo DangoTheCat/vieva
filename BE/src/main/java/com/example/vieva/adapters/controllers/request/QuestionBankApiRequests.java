@@ -1,9 +1,8 @@
 package com.example.vieva.adapters.controllers.request;
 
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.PerformanceLevel;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.PerformanceLevelInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -33,8 +32,8 @@ public final class QuestionBankApiRequests {
             @Size(max = 1000) String description,
             @NotNull(message = "Level score is required") @DecimalMin("0") BigDecimal score) {
 
-        PerformanceLevel toDomain() {
-            return new PerformanceLevel(label.trim(), description == null ? null : description.trim(), score);
+        public PerformanceLevelInput toInput() {
+            return new PerformanceLevelInput(label.trim(), description == null ? null : description.trim(), score);
         }
     }
 
@@ -53,7 +52,7 @@ public final class QuestionBankApiRequests {
 
         public CriterionInput toInput() {
             return new CriterionInput(name, description, maxScore,
-                    levels == null ? List.of() : levels.stream().map(PerformanceLevelRequest::toDomain).toList(),
+                    levels == null ? List.of() : levels.stream().map(PerformanceLevelRequest::toInput).toList(),
                     orderIndex);
         }
     }
@@ -79,7 +78,7 @@ public final class QuestionBankApiRequests {
             UUID topicId,
             @NotBlank(message = "Question content is required") @Size(max = 4000) String content,
             @NotBlank(message = "Expected answer is required") @Size(max = 8000) String expectedAnswer,
-            @NotNull(message = "Bloom level is required") BloomLevel bloomLevel,
+            @NotNull(message = "Bloom level is required") String bloomLevel,
             @NotNull(message = "Rubric is required") @Valid RubricRequest rubric) {
     }
 
@@ -91,14 +90,14 @@ public final class QuestionBankApiRequests {
             UUID topicId,
             @Size(max = 4000) String content,
             @Size(max = 8000) String expectedAnswer,
-            BloomLevel bloomLevel,
+            String bloomLevel,
             Boolean bloomConfirmed,
             @Valid RubricRequest rubric,
             Long expectedVersion) {
     }
 
     public record ConfirmBloomRequest(
-            @NotNull(message = "Bloom level is required") BloomLevel bloomLevel,
+            @NotNull(message = "Bloom level is required") String bloomLevel,
             Long expectedVersion) {
     }
 
@@ -124,7 +123,7 @@ public final class QuestionBankApiRequests {
             @NotEmpty(message = "Select at least one READY document") @Size(max = 20) List<@NotNull UUID> documentIds,
             @Min(value = 1, message = "totalQuestions must be at least 1")
             @Max(value = 50, message = "totalQuestions must not exceed 50") int totalQuestions,
-            @NotEmpty(message = "Bloom distribution is required") Map<@NotNull BloomLevel, @NotNull @Min(0) Integer> bloomDistribution,
+            @NotEmpty(message = "Bloom distribution is required") Map<@NotNull String, @NotNull @Min(0) Integer> bloomDistribution,
             @Size(max = 2000) String lecturerNote) {
     }
 

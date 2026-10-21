@@ -1,33 +1,36 @@
 package com.example.vieva.application.usecases.user;
 
-import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
-import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
-import com.example.vieva.application.ports.input.UserSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.user.AdminUserService;
+import com.example.vieva.application.ports.input.user.CreateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UpdateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
+import com.example.vieva.application.ports.input.user.UserSearchCriteria;
+import com.example.vieva.application.ports.output.DomainEventPublisherPort;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
-import com.example.vieva.application.ports.output.DomainEventPublisherPort;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
+import com.example.vieva.application.usecases.common.EnumValues;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
 import com.example.vieva.domain.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-@Transactional
+@UseCaseTransaction
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
@@ -37,50 +40,66 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final DomainEventPublisherPort domainEventPublisher;
 
     @Override
-    @Transactional(readOnly = true)
-    public PagedResult<User> getUsers(UserSearchCriteria criteria) {
-        return userRepository.findAll(criteria);
+    @UseCaseTransaction(readOnly = true)
+    public PageResult<UserResult> getUsers(UserSearchCriteria criteria) {
+        if (criteria != null && criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+            EnumValues.parse(UserStatus.class, criteria.getStatus(), "Invalid value for parameter 'status'");
+        }
+        PageResult<User> paged = userRepository.findAll(criteria);
+        List<UserResult> content = paged.getContent().stream()
+                .map(UserResults::from)
+                .toList();
+        return PageResult.<UserResult>builder()
+                .content(content)
+                .page(paged.getPage())
+                .size(paged.getSize())
+                .totalElements(paged.getTotalElements())
+                .totalPages(paged.getTotalPages())
+                .isFirst(paged.isFirst())
+                .isLast(paged.isLast())
+                .build();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public User getUserById(UUID userId) {
+    @UseCaseTransaction(readOnly = true)
+    public UserResult getUserById(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
-        return user;
+        return UserResults.from(user);
     }
 
     @Override
-    public User createUser(CreateUserByAdminRequest request, UUID currentAdminId) {
+    public UserResult createUser(CreateUserByAdminRequest request, UUID currentAdminId) {
+        UserStatus parsedStatus = EnumValues.parse(UserStatus.class, request.getStatus(), "Malformed request body");
         String email = new Email(request.getEmail()).getValue();
         if (userRepository.existsByEmail(email)) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
 
         String userCode;
         if (request.getUserCode() != null && !request.getUserCode().trim().isEmpty()) {
             userCode = request.getUserCode().trim();
             if (userRepository.existsByUserCode(userCode)) {
-                throw new AppException(ErrorCode.USER_CODE_EXISTED);
+                throw new ApplicationException(ErrorCode.USER_CODE_EXISTED);
             }
         } else {
             userCode = "USR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         }
 
-        UserStatus status = request.getStatus() != null ? request.getStatus() : UserStatus.ACTIVE;
+        UserStatus status = parsedStatus != null ? parsedStatus : UserStatus.ACTIVE;
         if (status == UserStatus.DELETED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         Role roleToAssign = resolveRole(request.getRoleCode());
 
         // Admin-created accounts get a temporary password that must be changed on first login
-        String temporaryPassword = StringUtils.hasText(request.getPassword())
+        String temporaryPassword = request.getPassword() != null && !request.getPassword().isBlank()
                 ? request.getPassword()
                 : TemporaryPasswordGenerator.generate();
 
@@ -104,9 +123,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         try {
             // Flush forces the INSERT now so a concurrent duplicate surfaces here (unique indexes)
             savedUser = userRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent creation with the same email/userCode won the race (unique indexes)
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
 
         Map<String, Object> auditValues = new HashMap<>();
@@ -121,36 +140,37 @@ public class AdminUserServiceImpl implements AdminUserService {
         domainEventPublisher.publishAccountCreated(savedUser.getEmail(), savedUser.getFullName(),
                 roleToAssign.getRoleCode(), temporaryPassword);
 
-        return savedUser;
+        return UserResults.from(savedUser);
     }
 
     @Override
-    public User updateUser(UUID targetUserId, UpdateUserByAdminRequest request, UUID currentAdminId) {
+    public UserResult updateUser(UUID targetUserId, UpdateUserByAdminRequest request, UUID currentAdminId) {
+        UserStatus targetStatus = EnumValues.parse(UserStatus.class, request.getStatus(), "Malformed request body");
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
         // Rule: PUT cannot set status = DELETED
-        if (request.getStatus() == UserStatus.DELETED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+        if (targetStatus == UserStatus.DELETED) {
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         boolean isTargetAdmin = user.isAdmin();
 
         // Rule: ADMIN cannot self-lock / deactivate
-        if (targetUserId.equals(currentAdminId) && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
-            throw new AppException(ErrorCode.CANNOT_LOCK_SELF);
+        if (targetUserId.equals(currentAdminId) && targetStatus != null && targetStatus != UserStatus.ACTIVE) {
+            throw new ApplicationException(ErrorCode.CANNOT_LOCK_SELF);
         }
 
         // Rule: ADMIN cannot lock / deactivate the last active ADMIN
         // Use FOR UPDATE lock to serialize concurrent demote attempts
         if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE
-                && request.getStatus() != null && request.getStatus() != UserStatus.ACTIVE) {
+                && targetStatus != null && targetStatus != UserStatus.ACTIVE) {
             if (userRepository.countActiveAdmins() <= 1) {
-                throw new AppException(ErrorCode.CANNOT_LOCK_LAST_ADMIN);
+                throw new ApplicationException(ErrorCode.CANNOT_LOCK_LAST_ADMIN);
             }
         }
 
@@ -158,7 +178,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (targetUserId.equals(currentAdminId) && request.getRoleCode() != null) {
             boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin) {
-                throw new AppException(ErrorCode.CANNOT_DEMOTE_SELF);
+                throw new ApplicationException(ErrorCode.CANNOT_DEMOTE_SELF);
             }
         }
 
@@ -167,54 +187,58 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE && request.getRoleCode() != null) {
             boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin && userRepository.countActiveAdmins() <= 1) {
-                throw new AppException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
+                throw new ApplicationException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
             }
         }
 
         // Apply field updates
+        Instant now = Instant.now();
+        String newFullName = user.getFullName();
         if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
-            user.setFullName(request.getFullName().trim());
+            newFullName = request.getFullName().trim();
         }
+        String newPhone = user.getPhoneNumber();
         if (request.getPhoneNumber() != null) {
-            user.setPhoneNumber(request.getPhoneNumber().trim());
+            newPhone = request.getPhoneNumber().trim();
         }
-        if (request.getStatus() != null) {
-            user.setStatus(request.getStatus());
+        user.updateProfile(newFullName, newPhone, now);
+
+        if (targetStatus != null) {
+            user.changeStatus(targetStatus, now);
         }
         if (request.getRoleCode() != null) {
             // Replaces the current role: an account has exactly one
             user.assignRole(resolveRole(request.getRoleCode()), currentAdminId);
         }
 
-        user.setUpdatedAt(Instant.now());
         User updatedUser = userRepository.save(user);
 
         auditor.record(currentAdminId, "USER_UPDATED", "USER", updatedUser.getUserId(),
                 Map.of("status", updatedUser.getStatus().name()));
 
-        return updatedUser;
+        return UserResults.from(updatedUser);
     }
 
     @Override
     public void deleteUser(UUID targetUserId, UUID currentAdminId) {
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         // Rule: Trying to delete an already DELETED user returns 404
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
         // Rule: ADMIN cannot delete self
         if (targetUserId.equals(currentAdminId)) {
-            throw new AppException(ErrorCode.CANNOT_DELETE_SELF);
+            throw new ApplicationException(ErrorCode.CANNOT_DELETE_SELF);
         }
 
         // Rule: ADMIN cannot delete the last active ADMIN
         // Use FOR UPDATE lock to serialize concurrent delete attempts at the DB level
         if (user.isAdmin() && user.getStatus() == UserStatus.ACTIVE
                 && userRepository.countActiveAdmins() <= 1) {
-            throw new AppException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
+            throw new ApplicationException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
         }
 
         user.delete();
@@ -227,14 +251,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public void resetPassword(UUID targetUserId, String newPassword, UUID currentAdminId) {
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
-        if (!StringUtils.hasText(newPassword) || newPassword.trim().length() < 6) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+        if (newPassword == null || newPassword.isBlank() || newPassword.trim().length() < 6) {
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
         // The admin knows this password, so the user must replace it on next login
@@ -249,16 +273,16 @@ public class AdminUserServiceImpl implements AdminUserService {
      * The {@code ROLE_} prefix is optional ({@code LECTURER} works); a blank code means ROLE_STUDENT.
      */
     private Role resolveRole(String roleCode) {
-        if (!StringUtils.hasText(roleCode)) {
+        if (roleCode == null || roleCode.isBlank()) {
             return findDefaultRole();
         }
         return roleRepository.findByRoleCode(canonicalRoleCode(roleCode))
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     private Role findDefaultRole() {
         return roleRepository.findByRoleCode("ROLE_STUDENT")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     private boolean isAdminRoleCode(String roleCode) {

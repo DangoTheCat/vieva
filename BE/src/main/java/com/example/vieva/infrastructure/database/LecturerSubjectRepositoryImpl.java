@@ -1,8 +1,10 @@
 package com.example.vieva.infrastructure.database;
 
+import com.example.vieva.application.ports.output.DuplicateKeyException;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.domain.entities.LecturerSubject;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,9 +39,13 @@ public class LecturerSubjectRepositoryImpl implements LecturerSubjectRepository 
         List<LecturerSubjectJpaEntity> entities = assignments.stream()
                 .map(mapper::toEntity)
                 .collect(Collectors.toList());
-        return jpaRepository.saveAll(entities).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        try {
+            return jpaRepository.saveAllAndFlush(entities).stream()
+                    .map(mapper::toDomain)
+                    .collect(Collectors.toList());
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("LecturerSubject duplicate key violation: " + e.getMessage(), e);
+        }
     }
 
     @Override

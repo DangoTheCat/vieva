@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -21,17 +21,17 @@ public final class BloomDistribution {
 
     public static BloomDistribution of(Map<BloomLevel, Integer> requested, int expectedTotal) {
         if (requested == null || requested.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_BLOOM_DISTRIBUTION, "Bloom distribution is required");
+            throw new DomainException(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION, "Bloom distribution is required");
         }
         EnumMap<BloomLevel, Integer> counts = new EnumMap<>(BloomLevel.class);
         int total = 0;
         for (Map.Entry<BloomLevel, Integer> entry : requested.entrySet()) {
             if (entry.getKey() == null) {
-                throw new AppException(ErrorCode.INVALID_BLOOM_DISTRIBUTION, "Bloom level must not be null");
+                throw new DomainException(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION, "Bloom level must not be null");
             }
             int count = entry.getValue() == null ? 0 : entry.getValue();
             if (count < 0) {
-                throw new AppException(ErrorCode.INVALID_BLOOM_DISTRIBUTION,
+                throw new DomainException(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION,
                         "Question count for " + entry.getKey() + " must not be negative");
             }
             if (count > 0) {
@@ -40,11 +40,11 @@ public final class BloomDistribution {
             }
         }
         if (total != expectedTotal) {
-            throw new AppException(ErrorCode.INVALID_BLOOM_DISTRIBUTION,
+            throw new DomainException(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION,
                     "Sum of Bloom distribution (" + total + ") must equal total questions (" + expectedTotal + ")");
         }
         if (total <= 0) {
-            throw new AppException(ErrorCode.INVALID_BLOOM_DISTRIBUTION, "At least one question must be requested");
+            throw new DomainException(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION, "At least one question must be requested");
         }
         return new BloomDistribution(counts);
     }

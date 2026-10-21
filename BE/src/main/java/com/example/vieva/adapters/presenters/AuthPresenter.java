@@ -1,6 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.application.ports.output.AuthResult;
+import com.example.vieva.application.ports.input.auth.AuthResult;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,9 +21,7 @@ public class AuthPresenter {
                 .fullName(result.getFullName())
                 .phoneNumber(result.getPhoneNumber())
                 .avatarUrl(result.getAvatarUrl())
-                .status(result.getStatus() != null
-                        ? com.example.vieva.domain.entities.UserStatus.valueOf(result.getStatus())
-                        : null)
+                .status(result.getStatus())
                 .role(result.getRoles() != null ? result.getRoles().stream().findFirst().orElse(null) : null)
                 .roles(result.getRoles())
                 .mustChangePassword(result.isMustChangePassword())

@@ -1,6 +1,7 @@
 package com.example.vieva.application.ports.output;
 
-import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.domain.entities.QuestionVersion;
 
 import java.util.Collection;
@@ -19,7 +20,7 @@ public interface QuestionVersionRepository {
     Optional<QuestionVersion> findLatestVersion(UUID questionId);
     boolean hasDraftVersion(UUID questionId);
     List<QuestionVersion> findByGenerationRequestId(UUID generationRequestId);
-    PagedResult<QuestionVersion> search(QuestionVersionSearchCriteria criteria);
+    PageResult<QuestionVersion> search(QuestionVersionSearchCriteria criteria);
     /**
      * Question texts already in the subject (every non-rejected version), used for the basic
      * near-duplicate check of generated drafts.

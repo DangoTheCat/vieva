@@ -3,7 +3,7 @@ package com.example.vieva.infrastructure.database;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.TopicRepository;
@@ -26,7 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Builds {@link QuestionVersionView}s with a fixed number of batched queries (no N+1).
+ * Builds {@link QuestionVersionAggregate}s with a fixed number of batched queries (no N+1).
  */
 @Component
 @RequiredArgsConstructor
@@ -38,11 +38,11 @@ public class QuestionVersionViewAssembler implements QuestionVersionViewAssemble
     private final RubricCriterionRepository rubricCriterionRepository;
     private final QuestionSourceRepository questionSourceRepository;
 
-    public QuestionVersionView assemble(QuestionVersion version) {
+    public QuestionVersionAggregate assemble(QuestionVersion version) {
         return assemble(List.of(version)).get(0);
     }
 
-    public List<QuestionVersionView> assemble(List<QuestionVersion> versions) {
+    public List<QuestionVersionAggregate> assemble(List<QuestionVersion> versions) {
         if (versions == null || versions.isEmpty()) {
             return List.of();
         }
@@ -52,7 +52,7 @@ public class QuestionVersionViewAssembler implements QuestionVersionViewAssemble
     }
 
     /** Variant for callers that already hold the questions. */
-    public List<QuestionVersionView> assemble(List<QuestionVersion> versions, Map<UUID, Question> questions) {
+    public List<QuestionVersionAggregate> assemble(List<QuestionVersion> versions, Map<UUID, Question> questions) {
         if (versions == null || versions.isEmpty()) {
             return List.of();
         }
@@ -80,7 +80,7 @@ public class QuestionVersionViewAssembler implements QuestionVersionViewAssemble
             List<QuestionSource> sources = sourcesByVersion.getOrDefault(version.getQuestionVersionId(), List.of()).stream()
                     .sorted((a, b) -> Integer.compare(orderOf(a.getSourceOrder()), orderOf(b.getSourceOrder())))
                     .collect(Collectors.toList());
-            return QuestionVersionView.builder()
+            return QuestionVersionAggregate.builder()
                     .question(question)
                     .topic(question == null || question.getTopicId() == null ? null : topics.get(question.getTopicId()))
                     .version(version)

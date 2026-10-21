@@ -6,16 +6,16 @@ import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.adapters.presenters.PageResponse;
 import com.example.vieva.adapters.presenters.UserDto;
 import com.example.vieva.adapters.presenters.UserPresenter;
-import com.example.vieva.application.ports.input.ChangePasswordRequest;
-import com.example.vieva.application.ports.input.UpdateProfileRequest;
-import com.example.vieva.application.ports.input.UserSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.application.usecases.user.AdminUserService;
-import com.example.vieva.application.usecases.user.UserService;
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.user.AdminUserService;
+import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
+import com.example.vieva.application.ports.input.user.UserSearchCriteria;
+import com.example.vieva.application.ports.input.user.UserService;
+import com.example.vieva.application.ports.input.common.PageResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -43,23 +43,19 @@ public class UserController {
      * which would bypass @PreAuthorize on getUserById.
      */
     @GetMapping("/me")
-    public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal User currentUser) {
-        if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+    public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal ActorView currentUser) {
+        UUID userId = CurrentUser.id(currentUser);
         // Fetch fresh from service — avoids self-invocation AOP bypass
-        User user = userService.getById(currentUser.getUserId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserResult user = userService.getById(userId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 
     @PatchMapping("/me")
     public ResponseEntity<MessageResponse> updateCurrentUser(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal ActorView currentUser,
             @Valid @RequestBody UpdateProfileApiRequest apiRequest) {
-        if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+        UUID userId = CurrentUser.id(currentUser);
 
         UpdateProfileRequest request = UpdateProfileRequest.builder()
                 .fullName(apiRequest.getFullName())
@@ -67,68 +63,62 @@ public class UserController {
                 .avatarUrl(apiRequest.getAvatarUrl())
                 .build();
 
-        userService.updateProfile(currentUser.getUserId(), request);
+        userService.updateProfile(userId, request);
         return ResponseEntity.ok(new MessageResponse("Profile updated successfully"));
     }
 
     @PutMapping("/me/password")
     public ResponseEntity<MessageResponse> changePassword(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal ActorView currentUser,
             @Valid @RequestBody ChangePasswordApiRequest apiRequest) {
-        if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+        UUID userId = CurrentUser.id(currentUser);
 
         ChangePasswordRequest request = ChangePasswordRequest.builder()
                 .oldPassword(apiRequest.getOldPassword())
                 .newPassword(apiRequest.getNewPassword())
                 .build();
 
-        userService.changePassword(currentUser.getUserId(), request);
+        userService.changePassword(userId, request);
         return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
     }
 
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserDto> uploadAvatar(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal ActorView currentUser,
             @RequestParam("file") MultipartFile file) {
-        if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+        UUID userId = CurrentUser.id(currentUser);
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "File ảnh đại diện không được để trống");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "File ảnh đại diện không được để trống");
         }
 
         // Kích thước tối đa 5MB (5 * 1024 * 1024 bytes)
         long maxSizeBytes = 5L * 1024 * 1024;
         if (file.getSize() > maxSizeBytes) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Kích thước ảnh đại diện vượt quá giới hạn 5MB");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Kích thước ảnh đại diện vượt quá giới hạn 5MB");
         }
 
         // Kiểm tra định dạng ảnh
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Định dạng file không hợp lệ. Vui lòng chọn file hình ảnh (JPG, PNG, WEBP, GIF)");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Định dạng file không hợp lệ. Vui lòng chọn file hình ảnh (JPG, PNG, WEBP, GIF)");
         }
 
         try {
-            userService.uploadAvatar(currentUser.getUserId(), file.getBytes(), contentType);
-            User user = userService.getById(currentUser.getUserId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            userService.uploadAvatar(userId, file.getBytes(), contentType);
+            UserResult user = userService.getById(userId)
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
             return ResponseEntity.ok(userPresenter.toDto(user));
         } catch (IOException e) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể đọc dữ liệu file ảnh");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Không thể đọc dữ liệu file ảnh");
         }
     }
 
     @DeleteMapping("/me/avatar")
-    public ResponseEntity<UserDto> deleteAvatar(@AuthenticationPrincipal User currentUser) {
-        if (currentUser == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-        userService.deleteAvatar(currentUser.getUserId());
-        User user = userService.getById(currentUser.getUserId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    public ResponseEntity<UserDto> deleteAvatar(@AuthenticationPrincipal ActorView currentUser) {
+        UUID userId = CurrentUser.id(currentUser);
+        userService.deleteAvatar(userId);
+        UserResult user = userService.getById(userId)
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 
@@ -142,7 +132,7 @@ public class UserController {
     public ResponseEntity<PageResponse<UserDto>> getAllUsers(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) UserStatus status,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -158,8 +148,8 @@ public class UserController {
                 .sortDirection(sortDirection)
                 .build();
 
-        PagedResult<User> pagedUsers = adminUserService.getUsers(criteria);
-        return ResponseEntity.ok(userPresenter.toPageResponse(pagedUsers));
+        PageResult<UserResult> pagedUsers = adminUserService.getUsers(criteria);
+        return ResponseEntity.ok(PageResponse.from(pagedUsers, userPresenter::toDto));
     }
 
     /**
@@ -169,12 +159,11 @@ public class UserController {
      * Also returns 404 for soft-deleted users (consistent with admin endpoint).
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.domain.entities.User) and authentication.principal.userId == #id)")
+    @PreAuthorize("hasRole('ADMIN') or (authentication.principal instanceof T(com.example.vieva.application.ports.input.common.ActorView) and authentication.principal.id == #id)")
     public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
-        User user = userService.getById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserResult user = userService.getById(id)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         return ResponseEntity.ok(userPresenter.toDto(user));
     }
 }
-

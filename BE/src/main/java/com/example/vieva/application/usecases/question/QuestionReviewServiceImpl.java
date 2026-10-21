@@ -1,19 +1,25 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.usecases.common.EnumValues;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.QuestionGenerationMode;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
-import com.example.vieva.application.usecases.access.SubjectHeadService;
+import com.example.vieva.application.ports.input.access.SubjectHeadService;
+import com.example.vieva.application.ports.input.question.QuestionReviewService;
 import com.example.vieva.application.usecases.question.QuestionAccessLoader.VersionContext;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
@@ -22,13 +28,14 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import com.example.vieva.domain.exception.FieldViolation;
 import com.example.vieva.domain.services.QuestionApprovalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +47,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RequiredArgsConstructor
 public class QuestionReviewServiceImpl implements QuestionReviewService {
 
     private final QuestionRepository questionRepository;
@@ -57,8 +63,36 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
     private final ReviewNotifications notifications;
     private final QuestionDraftWriter db;
 
+    public QuestionReviewServiceImpl(QuestionRepository questionRepository,
+                                    QuestionVersionRepository questionVersionRepository,
+                                    RubricRepository rubricRepository,
+                                    RubricCriterionRepository rubricCriterionRepository,
+                                    QuestionSourceRepository questionSourceRepository,
+                                    DocumentChunkRepository documentChunkRepository,
+                                    CourseDocumentRepository courseDocumentRepository,
+                                    QuestionAccessLoader accessLoader,
+                                    QuestionVersionViewAssemblerPort viewAssembler,
+                                    QuestionBankAuditor auditor,
+                                    SubjectHeadService heads,
+                                    ReviewNotifications notifications,
+                                    QuestionDraftWriter db) {
+        this.questionRepository = questionRepository;
+        this.questionVersionRepository = questionVersionRepository;
+        this.rubricRepository = rubricRepository;
+        this.rubricCriterionRepository = rubricCriterionRepository;
+        this.questionSourceRepository = questionSourceRepository;
+        this.documentChunkRepository = documentChunkRepository;
+        this.courseDocumentRepository = courseDocumentRepository;
+        this.accessLoader = accessLoader;
+        this.viewAssembler = viewAssembler;
+        this.auditor = auditor;
+        this.heads = heads;
+        this.notifications = notifications;
+        this.db = db;
+    }
+
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView submitForReview(UUID versionId, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         ctx.question().ensureActive();
@@ -71,32 +105,49 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         notifications.notifyPendingReview(head, ctx.question().getQuestionId(), versionId);
         auditor.record(actorId, "QUESTION_SUBMITTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId()));
-        return db.fetchQuestionWithRubric(submitted);
+        return QuestionViewMapper.toView(db.fetchQuestionWithRubric(submitted));
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
+    public QuestionVersionView submitForReview(UUID questionId, UUID versionId, Long expectedVersion, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return submitForReview(versionId, expectedVersion, actorId);
+    }
+
+    @Override
+    @UseCaseTransaction
     public QuestionVersionView reviewQuestion(UUID versionId, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         heads.requireHead(actorId, ctx.question().getSubjectId());
         ctx.version().ensureUnderReview();
-        return db.fetchQuestionWithRubric(ctx.version());
+        return QuestionViewMapper.toView(db.fetchQuestionWithRubric(ctx.version()));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public PagedResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria) {
-        PagedResult<QuestionVersion> page = questionVersionRepository.search(criteria);
-        return PagedResult.of(viewAssembler.assemble(page.getContent()), page.getPage(), page.getSize(),
+    @UseCaseTransaction
+    public QuestionVersionView reviewQuestion(UUID questionId, UUID versionId, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return reviewQuestion(versionId, actorId);
+    }
+
+    @Override
+    @UseCaseTransaction(readOnly = true)
+    public PageResult<QuestionVersionView> searchVersions(QuestionVersionSearchCriteria criteria) {
+        EnumValues.parse(QuestionStatus.class, criteria.status(), "Invalid value for parameter 'status'");
+        EnumValues.parse(QuestionGenerationMode.class, criteria.origin(), "Invalid value for parameter 'origin'");
+        EnumValues.parse(BloomLevel.class, criteria.bloomLevel(), "Invalid value for parameter 'bloomLevel'");
+        PageResult<QuestionVersion> page = questionVersionRepository.search(criteria);
+        return PageResult.of(QuestionViewMapper.toViews(viewAssembler.assemble(page.getContent())), page.getPage(), page.getSize(),
                 page.getTotalElements());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @UseCaseTransaction(readOnly = true)
     public QuestionVersionView getVersion(UUID versionId) {
         QuestionVersion version = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        return viewAssembler.assemble(version);
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+        return QuestionViewMapper.toView(viewAssembler.assemble(version));
     }
 
     /**
@@ -104,7 +155,7 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
      * confirmation, rubric totals and RAG sources; then publish the version and supersede the old one.
      */
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView approve(UUID versionId, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -134,7 +185,14 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         newValues.put("supersededVersionId", previousApprovedId);
         newValues.put("totalScore", rubric.getTotalPoints());
         auditor.record(actorId, "QUESTION_APPROVED", QuestionBankAuditor.QUESTION_VERSION, versionId, newValues);
-        return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+        return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow()));
+    }
+
+    @Override
+    @UseCaseTransaction
+    public QuestionVersionView approve(UUID questionId, UUID versionId, Long expectedVersion, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return approve(versionId, expectedVersion, actorId);
     }
 
     private Rubric validateForReview(QuestionVersion version) {
@@ -149,14 +207,14 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         List<FieldViolation> violations = QuestionApprovalPolicy.validate(version, rubric, criteria, sources,
                 chunks, readyDocuments);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw DomainException.ofViolations(violations);
         }
 
         return rubric;
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView reject(UUID versionId, String reason, Long expectedVersion, UUID actorId) {
         VersionContext ctx = accessLoader.versionForReview(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -167,7 +225,22 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         db.updateStatus(version);
         auditor.record(actorId, "QUESTION_REJECTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId(), "reason", version.getRejectionReason()));
-        return viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow());
+        return QuestionViewMapper.toView(viewAssembler.assemble(questionVersionRepository.findById(versionId).orElseThrow()));
+    }
+
+    @Override
+    @UseCaseTransaction
+    public QuestionVersionView reject(UUID questionId, UUID versionId, String reason, Long expectedVersion, UUID actorId) {
+        verifyVersionBelongsToQuestion(questionId, versionId);
+        return reject(versionId, reason, expectedVersion, actorId);
+    }
+
+    private void verifyVersionBelongsToQuestion(UUID questionId, UUID versionId) {
+        QuestionVersion version = questionVersionRepository.findById(versionId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+        if (!questionId.equals(version.getQuestionId())) {
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Version belongs to another question");
+        }
     }
 
     private Map<UUID, DocumentChunk> loadChunks(List<QuestionSource> sources) {

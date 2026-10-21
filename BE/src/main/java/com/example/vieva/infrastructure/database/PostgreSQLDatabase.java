@@ -3,7 +3,7 @@ package com.example.vieva.infrastructure.database;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.output.QuestionVersionAggregate;
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentStatus;
@@ -51,7 +51,7 @@ public class PostgreSQLDatabase implements QuestionDraftWriter {
 
     public QuestionVersion updateStatus(QuestionVersion version) { return questionVersionRepository.save(version); }
 
-    public QuestionVersionView fetchQuestionWithRubric(QuestionVersion version) { return assembler.assemble(version); }
+    public QuestionVersionAggregate fetchQuestionWithRubric(QuestionVersion version) { return assembler.assemble(version); }
 
     public void saveQuestionDraft(List<QuestionDraftWriter.NewDraft> drafts) {
         if (drafts.isEmpty()) {

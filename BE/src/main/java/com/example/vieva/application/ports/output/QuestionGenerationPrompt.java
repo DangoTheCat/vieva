@@ -1,7 +1,5 @@
 package com.example.vieva.application.ports.output;
 
-import com.example.vieva.domain.entities.BloomLevel;
-
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +14,7 @@ import java.util.Map;
 public record QuestionGenerationPrompt(
         String subjectName,
         String topicName,
-        Map<BloomLevel, Integer> bloomDistribution,
+        Map<String, Integer> bloomDistribution,
         String lecturerNote,
         List<ContextChunk> contextChunks,
         List<String> avoidQuestions,

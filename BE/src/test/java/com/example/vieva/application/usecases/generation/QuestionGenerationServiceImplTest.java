@@ -1,6 +1,7 @@
 package com.example.vieva.application.usecases.generation;
 
-import com.example.vieva.application.ports.input.GenerateQuestionsCommand;
+import com.example.vieva.application.ports.input.generation.QuestionGenCoordinator;
+import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.ChunkSearchResult;
@@ -10,7 +11,7 @@ import com.example.vieva.application.ports.output.EmbeddingModelPort;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate.Citation;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate.Criterion;
-import com.example.vieva.application.ports.output.GenerationResult;
+import com.example.vieva.application.ports.input.generation.GenerationResult;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.LecturerSubjectRepository;
 import com.example.vieva.application.ports.output.QuestionGenerationPort;
@@ -42,10 +43,13 @@ import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionGenerationRequest;
 import com.example.vieva.domain.entities.QuestionGenerationStatus;
 import com.example.vieva.domain.entities.QuestionSource;
+import com.example.vieva.domain.entities.QuestionStatus;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Subject;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -119,7 +123,7 @@ class QuestionGenerationServiceImplTest {
         SubjectAccessGuard guard = new SubjectAccessGuard(lecturerSubjectRepository, userRepository);
         QuestionVersionViewAssembler assembler = new QuestionVersionViewAssembler(questionRepository, topicRepository,
                 rubricRepository, criterionRepository, sourceRepository);
-        service = new QuestionGenCoordinator(requestRepository, versionRepository, rubricRepository,
+        service = new QuestionGenCoordinatorImpl(requestRepository, versionRepository, rubricRepository,
                 criterionRepository, sourceRepository, documentRepository, chunkRepository, subjectRepository,
                 topicRepository, llm, direct, guard,
                 new QuestionAccessLoader(questionRepository, versionRepository, guard),
@@ -164,11 +168,15 @@ class QuestionGenerationServiceImplTest {
     }
 
     private GenerateQuestionsCommand command(Map<BloomLevel, Integer> distribution, int total) {
+        Map<String, Integer> stringMap = new HashMap<>();
+        if (distribution != null) {
+            distribution.forEach((k, v) -> stringMap.put(k == null ? null : k.name(), v));
+        }
         return GenerateQuestionsCommand.builder()
                 .subjectId(subjectId)
                 .documentIds(List.of(document.getDocumentId()))
                 .totalQuestions(total)
-                .bloomDistribution(distribution)
+                .bloomDistribution(stringMap)
                 .build();
     }
 
@@ -190,8 +198,8 @@ class QuestionGenerationServiceImplTest {
                 document.getDocumentId(),"csdl.pdf",i,1,chunk.content(),0.3)).toList();
         when(chunkRepository.similaritySearch(eq(subjectId),anyCollection(),any(),anyDouble(),anyInt())).thenReturn(many);
         when(llm.generate(any())).thenReturn(List.of(candidate("Áp dụng ACID khi chuyển tiền?","APPLY")));
-        var result=service.coordinateRAGPipeline(topicId,BloomLevel.APPLY,null,lecturer);
-        assertThat(result.version().getBloomLevel()).isEqualTo(BloomLevel.APPLY);
+        var result=service.coordinateRAGPipeline(topicId,BloomLevel.APPLY.name(),null,lecturer);
+        assertThat(result.version().bloomLevel()).isEqualTo(BloomLevel.APPLY.name());
         var prompt=ArgumentCaptor.forClass(QuestionGenerationPrompt.class);
         verify(llm).generate(prompt.capture());
         assertThat(prompt.getValue().contextChunks()).hasSize(5);
@@ -214,20 +222,20 @@ class QuestionGenerationServiceImplTest {
 
         GenerationResult result = service.generate(command(Map.of(BloomLevel.REMEMBER, 1, BloomLevel.ANALYZE, 2), 3), lecturer);
 
-        assertThat(result.request().getStatus()).isEqualTo(QuestionGenerationStatus.COMPLETED);
-        assertThat(result.request().getGeneratedCount()).isEqualTo(3);
-        assertThat(result.request().getRejectedCount()).isEqualTo(1);
-        assertThat(result.request().getAttemptCount()).isEqualTo(2);
-        assertThat(result.request().getRetrievedChunkIds()).containsExactly(chunk.chunkId());
+        assertThat(result.request().status()).isEqualTo(QuestionGenerationStatus.COMPLETED.name());
+        assertThat(result.request().generatedCount()).isEqualTo(3);
+        assertThat(result.request().rejectedCount()).isEqualTo(1);
+        assertThat(result.request().attemptCount()).isEqualTo(2);
+        assertThat(result.request().retrievedChunkIds()).containsExactly(chunk.chunkId());
         assertThat(result.drafts()).hasSize(3).allSatisfy(view -> {
-            assertThat(view.version().getGenerationMode()).isEqualTo(QuestionGenerationMode.AI_RAG);
-            assertThat(view.version().isDraft()).isTrue();
-            assertThat(view.version().isBloomConfirmed()).isFalse();
+            assertThat(view.version().origin()).isEqualTo(QuestionGenerationMode.AI_RAG.name());
+            assertThat(view.version().status()).isEqualTo(QuestionStatus.DRAFT.name());
+            assertThat(view.version().bloomConfirmed()).isFalse();
         });
 
         ArgumentCaptor<QuestionGenerationPrompt> prompts = ArgumentCaptor.forClass(QuestionGenerationPrompt.class);
         verify(llm, times(2)).generate(prompts.capture());
-        assertThat(prompts.getAllValues().get(1).bloomDistribution()).containsOnly(Map.entry(BloomLevel.ANALYZE, 1));
+        assertThat(prompts.getAllValues().get(1).bloomDistribution()).containsOnly(Map.entry("ANALYZE", 1));
 
         ArgumentCaptor<List<QuestionSource>> sources = ArgumentCaptor.forClass(List.class);
         verify(sourceRepository).saveAll(sources.capture());
@@ -243,9 +251,9 @@ class QuestionGenerationServiceImplTest {
     void llmFailureMarksRequestFailed() {
         when(llm.generate(any())).thenThrow(new AiServiceException("timeout"));
         GenerationResult result = service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer);
-        assertThat(result.request().getStatus()).isEqualTo(QuestionGenerationStatus.FAILED);
-        assertThat(result.request().getErrorMessage()).contains("timeout");
-        assertThat(result.request().getAttemptCount()).isEqualTo(settings.getAttemptsPerRun());
+        assertThat(result.request().status()).isEqualTo(QuestionGenerationStatus.FAILED.name());
+        assertThat(result.request().errorMessage()).contains("timeout");
+        assertThat(result.request().attemptCount()).isEqualTo(settings.getAttemptsPerRun());
         assertThat(result.drafts()).isEmpty();
         verify(versionRepository, never()).saveAll(anyList());
     }
@@ -256,41 +264,43 @@ class QuestionGenerationServiceImplTest {
         settings.setAttemptsPerRun(1);
         when(llm.generate(any())).thenReturn(List.of(candidate("Nêu bốn tính chất ACID?", "REMEMBER")));
         GenerationResult first = service.generate(command(Map.of(BloomLevel.REMEMBER, 1, BloomLevel.CREATE, 1), 2), lecturer);
-        assertThat(first.request().getStatus()).isEqualTo(QuestionGenerationStatus.PARTIAL);
+        assertThat(first.request().status()).isEqualTo(QuestionGenerationStatus.PARTIAL.name());
 
-        QuestionVersion produced = first.drafts().get(0).version();
-        when(versionRepository.findByGenerationRequestId(first.request().getGenerationRequestId()))
+        UUID producedId = first.drafts().get(0).version().versionId();
+        QuestionVersion produced = versions.get(producedId);
+        when(versionRepository.findByGenerationRequestId(first.request().generationRequestId()))
                 .thenReturn(List.of(produced));
         DocumentChunk stored = DocumentChunk.builder().chunkId(chunk.chunkId()).documentId(document.getDocumentId())
                 .chunkIndex(1).content(chunk.content()).build();
         when(chunkRepository.findAllByIds(anyCollection())).thenReturn(List.of(stored));
         when(llm.generate(any())).thenReturn(List.of(candidate("Thiết kế một quy trình đảm bảo ACID mới?", "CREATE")));
 
-        GenerationResult retried = service.retry(first.request().getGenerationRequestId(), lecturer);
+        GenerationResult retried = service.retry(first.request().generationRequestId(), lecturer);
 
-        assertThat(retried.request().getStatus()).isEqualTo(QuestionGenerationStatus.COMPLETED);
+        assertThat(retried.request().status()).isEqualTo(QuestionGenerationStatus.COMPLETED.name());
         assertThat(retried.drafts()).singleElement()
-                .satisfies(view -> assertThat(view.version().getBloomLevel()).isEqualTo(BloomLevel.CREATE));
+                .satisfies(view -> assertThat(view.version().bloomLevel()).isEqualTo(BloomLevel.CREATE.name()));
     }
 
     @Test
     @DisplayName("BR-07: documents must be READY and of the same subject")
     void documentChecks() {
-        document.setIndexingStatus(DocumentStatus.INDEXING);
+        CourseDocument indexingDoc = document.toBuilder().indexingStatus(DocumentStatus.INDEXING).build();
+        when(documentRepository.findAllByIds(anyCollection())).thenReturn(List.of(indexingDoc));
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_READY);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_READY);
 
-        document.setIndexingStatus(DocumentStatus.READY);
-        document.setSubjectId(UUID.randomUUID());
+        CourseDocument mismatchDoc = document.toBuilder().indexingStatus(DocumentStatus.READY).subjectId(UUID.randomUUID()).build();
+        when(documentRepository.findAllByIds(anyCollection())).thenReturn(List.of(mismatchDoc));
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_SUBJECT_MISMATCH);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_SUBJECT_MISMATCH);
         verify(llm, never()).generate(any());
     }
 
     @Test
     void distributionMustMatchTotal() {
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 2), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_BLOOM_DISTRIBUTION);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.INVALID_BLOOM_DISTRIBUTION);
     }
 
     @Test
@@ -298,7 +308,7 @@ class QuestionGenerationServiceImplTest {
     void noContext() {
         when(chunkRepository.similaritySearch(any(), anyCollection(), any(), anyDouble(), anyInt())).thenReturn(List.of());
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.INSUFFICIENT_CONTEXT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.INSUFFICIENT_CONTEXT);
         assertThat(requests.values()).singleElement()
                 .satisfies(r -> assertThat(r.getStatus()).isEqualTo(QuestionGenerationStatus.FAILED));
     }
@@ -311,7 +321,7 @@ class QuestionGenerationServiceImplTest {
             return List.of(candidate("Nêu bốn tính chất ACID?", "APPLY"));
         });
         assertThatThrownBy(() -> service.generate(command(Map.of(BloomLevel.APPLY, 1), 1), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
         verify(versionRepository, never()).saveAll(anyList());
     }
 
@@ -326,9 +336,8 @@ class QuestionGenerationServiceImplTest {
         Question question = Question.newDraftOwner(subjectId, null, lecturer);
         when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
         QuestionVersion draft = QuestionVersion.newDraft(question.getQuestionId(), 1, "Câu cũ?", "cũ", BloomLevel.APPLY,
-                QuestionGenerationMode.AI_RAG, lecturer);
-        draft.setGenerationRequestId(request.getGenerationRequestId());
-        draft.setVersion(4L);
+                QuestionGenerationMode.AI_RAG, lecturer)
+                .toBuilder().generationRequestId(request.getGenerationRequestId()).version(4L).build();
         versions.put(draft.getQuestionVersionId(), draft);
         when(chunkRepository.findAllByIds(anyCollection())).thenReturn(List.of(DocumentChunk.builder()
                 .chunkId(chunk.chunkId()).documentId(document.getDocumentId()).chunkIndex(1).content(chunk.content()).build()));
@@ -359,21 +368,21 @@ class QuestionGenerationServiceImplTest {
         Question question = Question.newDraftOwner(subjectId, null, lecturer);
         when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
         QuestionVersion draft = QuestionVersion.newDraft(question.getQuestionId(), 1, "Câu cũ?", "cũ", BloomLevel.APPLY,
-                QuestionGenerationMode.AI_RAG, lecturer);
-        draft.setGenerationRequestId(request.getGenerationRequestId());
+                QuestionGenerationMode.AI_RAG, lecturer)
+                .toBuilder().generationRequestId(request.getGenerationRequestId()).build();
         versions.put(draft.getQuestionVersionId(), draft);
         when(chunkRepository.findAllByIds(anyCollection())).thenReturn(List.of(DocumentChunk.builder()
                 .chunkId(chunk.chunkId()).documentId(document.getDocumentId()).chunkIndex(1).content(chunk.content()).build()));
         when(llm.generate(any())).thenReturn(new ArrayList<>(List.of(candidate("Sai Bloom", "CREATE"))));
 
         assertThatThrownBy(() -> service.regenerate(draft.getQuestionVersionId(), null, null, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.AI_SERVICE_UNAVAILABLE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.AI_SERVICE_UNAVAILABLE);
         assertThat(draft.getQuestionContent()).isEqualTo("Câu cũ?");
 
         QuestionVersion manual = QuestionVersion.newDraft(question.getQuestionId(), 2, "x", "y", BloomLevel.APPLY,
                 QuestionGenerationMode.MANUAL, lecturer);
         versions.put(manual.getQuestionVersionId(), manual);
         assertThatThrownBy(() -> service.regenerate(manual.getQuestionVersionId(), null, null, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.REGENERATION_NOT_SUPPORTED);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.REGENERATION_NOT_SUPPORTED);
     }
 }

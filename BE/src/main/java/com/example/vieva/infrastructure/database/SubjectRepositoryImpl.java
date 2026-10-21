@@ -1,9 +1,11 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.SubjectSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.ports.input.subject.SubjectSearchCriteria;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.domain.entities.Subject;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.example.vieva.domain.entities.SubjectStatus;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -41,9 +43,13 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     @Override
     @Transactional
     public Subject saveAndFlush(Subject subject) {
-        SubjectJpaEntity entity = subjectMapper.toEntity(subject);
-        SubjectJpaEntity saved = subjectJpaRepository.saveAndFlush(entity);
-        return subjectMapper.toDomain(saved);
+        try {
+            SubjectJpaEntity entity = subjectMapper.toEntity(subject);
+            SubjectJpaEntity saved = subjectJpaRepository.saveAndFlush(entity);
+            return subjectMapper.toDomain(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateKeyException("Subject duplicate key violation: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -79,7 +85,7 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
-    public PagedResult<Subject> findAll(SubjectSearchCriteria criteria) {
+    public PageResult<Subject> findAll(SubjectSearchCriteria criteria) {
         int page = criteria.getSanitizedPage();
         int size = criteria.getSanitizedSize();
         String sortBy = criteria.getSanitizedSortBy();
@@ -92,8 +98,13 @@ public class SubjectRepositoryImpl implements SubjectRepository {
         Specification<SubjectJpaEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (criteria.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.getStatus()));
+            if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+                try {
+                    SubjectStatus status = SubjectStatus.valueOf(criteria.getStatus().trim());
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (IllegalArgumentException ignored) {
+                    // Handled upstream or empty match
+                }
             }
 
             String escapedKeyword = criteria.getEscapedKeyword();
@@ -112,7 +123,7 @@ public class SubjectRepositoryImpl implements SubjectRepository {
                 .map(subjectMapper::toDomain)
                 .collect(Collectors.toList());
 
-        return PagedResult.<Subject>builder()
+        return PageResult.<Subject>builder()
                 .content(content)
                 .page(entityPage.getNumber())
                 .size(entityPage.getSize())

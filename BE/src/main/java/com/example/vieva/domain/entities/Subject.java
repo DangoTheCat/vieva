@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.time.Instant;
@@ -13,7 +13,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Subject {
@@ -29,7 +29,7 @@ public class Subject {
 
     public void deactivate() {
         if (this.status == SubjectStatus.ARCHIVED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST);
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST);
         }
         this.status = SubjectStatus.INACTIVE;
         this.updatedAt = Instant.now();
@@ -48,6 +48,11 @@ public class Subject {
         if (newStatus != null) {
             this.status = newStatus;
         }
+        this.updatedAt = Instant.now();
+    }
+
+    public void assignHead(UUID lecturerId) {
+        this.headLecturerId = lecturerId;
         this.updatedAt = Instant.now();
     }
 }

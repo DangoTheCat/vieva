@@ -1,8 +1,8 @@
 package com.example.vieva.application.ports.output;
 
+import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.input.user.UserSearchCriteria;
 import com.example.vieva.domain.entities.User;
-
-import com.example.vieva.application.ports.input.UserSearchCriteria;
 
 import java.util.Collection;
 import java.util.List;
@@ -14,7 +14,7 @@ public interface UserRepository {
     List<User> findAllByIds(Collection<UUID> userIds);
     Optional<User> findByEmail(String email);
     Optional<User> findByUserCode(String userCode);
-    PagedResult<User> findAll(UserSearchCriteria criteria);
+    PageResult<User> findAll(UserSearchCriteria criteria);
     long countActiveAdmins();
     boolean existsByEmail(String email);
     boolean existsByUserCode(String userCode);

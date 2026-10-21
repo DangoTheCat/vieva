@@ -1,7 +1,7 @@
 package com.example.vieva.domain.entities;
 
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.time.Instant;
@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuestionGenerationRequest {
@@ -67,15 +67,24 @@ public class QuestionGenerationRequest {
         return BloomDistribution.restore(bloomDistribution);
     }
 
+    public void recordRetrievedChunks(List<UUID> chunkIds, Instant now) {
+        this.retrievedChunkIds = chunkIds == null ? new ArrayList<>() : new ArrayList<>(chunkIds);
+        this.updatedAt = now != null ? now : Instant.now();
+    }
+
     public void recordRetrievedContext(List<UUID> chunkIds) {
-        this.retrievedChunkIds = new ArrayList<>(chunkIds);
+        recordRetrievedChunks(chunkIds, Instant.now());
+    }
+
+    public void recordAttempts(int attemptCount) {
+        this.attemptCount = Math.max(this.attemptCount, attemptCount);
         this.updatedAt = Instant.now();
     }
 
     /** Opens a new LLM attempt; fails once the configured budget is spent. */
     public void beginAttempt(int maxAttempts) {
         if (attemptCount >= maxAttempts) {
-            throw new AppException(ErrorCode.RETRY_LIMIT_EXCEEDED,
+            throw new DomainException(DomainErrorCode.RETRY_LIMIT_EXCEEDED,
                     "Generation attempt limit reached (" + maxAttempts + ")");
         }
         this.attemptCount++;
@@ -84,7 +93,7 @@ public class QuestionGenerationRequest {
 
     public void ensureRetryable() {
         if (status != QuestionGenerationStatus.FAILED && status != QuestionGenerationStatus.PARTIAL) {
-            throw new AppException(ErrorCode.INVALID_REQUEST,
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Only FAILED or PARTIAL generation requests can be retried (current: " + status + ")");
         }
     }

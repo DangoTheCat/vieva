@@ -3,7 +3,6 @@ package com.example.vieva.infrastructure.ai;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.GeneratedQuestionCandidate;
 import com.example.vieva.application.ports.output.QuestionGenerationPrompt;
-import com.example.vieva.domain.entities.BloomLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -24,7 +23,7 @@ import static org.mockito.Mockito.when;
 class AiAdaptersTest {
 
     private static final QuestionGenerationPrompt PROMPT = new QuestionGenerationPrompt("CSDL", "Giao dịch",
-            Map.of(BloomLevel.APPLY, 1, BloomLevel.CREATE, 1), "Tập trung ACID",
+            Map.of("APPLY", 1, "CREATE", 1), "Tập trung ACID",
             List.of(new QuestionGenerationPrompt.ContextChunk("C1", "csdl.pdf", 3,
                     "Giao dịch có bốn tính chất ACID. Tính nguyên tử bảo đảm tất cả hoặc không gì cả.")),
             List.of("Câu cũ đã có"), null, null);

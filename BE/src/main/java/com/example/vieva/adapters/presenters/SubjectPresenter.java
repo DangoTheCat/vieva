@@ -1,7 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.domain.entities.Subject;
+import com.example.vieva.application.ports.input.subject.SubjectResult;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -11,7 +10,7 @@ import java.util.stream.Collectors;
 @Component
 public class SubjectPresenter {
 
-    public SubjectDto toDto(Subject subject) {
+    public SubjectDto toDto(SubjectResult subject) {
         if (subject == null) {
             return null;
         }
@@ -28,16 +27,12 @@ public class SubjectPresenter {
                 .build();
     }
 
-    public List<SubjectDto> toDtoList(List<Subject> subjects) {
+    public List<SubjectDto> toDtoList(List<SubjectResult> subjects) {
         if (subjects == null) {
             return Collections.emptyList();
         }
         return subjects.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
-    }
-
-    public PageResponse<SubjectDto> toPageResponse(PagedResult<Subject> pagedResult) {
-        return PageResponse.from(pagedResult, this::toDto);
     }
 }

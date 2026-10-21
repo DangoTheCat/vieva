@@ -1,9 +1,10 @@
 package com.example.vieva.application.usecases.importing;
 
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
-import com.example.vieva.application.ports.output.ImportReport;
-import com.example.vieva.application.ports.output.ImportReport.RowError;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
+import com.example.vieva.application.ports.input.importing.QuestionImportService;
+import com.example.vieva.application.ports.input.importing.ImportReport;
+import com.example.vieva.application.ports.input.importing.ImportReport.RowError;
 import com.example.vieva.application.ports.output.ImportRow;
 import com.example.vieva.application.ports.output.QuestionSpreadsheetPort;
 import com.example.vieva.application.ports.output.SubjectRepository;
@@ -20,12 +21,12 @@ import com.example.vieva.domain.entities.Question;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Topic;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -85,11 +86,11 @@ public class QuestionImportServiceImpl implements QuestionImportService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public ImportReport importQuestions(UUID subjectId, String filename, byte[] content, boolean dryRun, UUID actorId) {
         subjectAccessGuard.requireManage(actorId, subjectId);
         if (subjectRepository.findById(subjectId).isEmpty()) {
-            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.SUBJECT_NOT_FOUND);
         }
         validateFile(filename, content);
 
@@ -97,17 +98,17 @@ public class QuestionImportServiceImpl implements QuestionImportService {
                 .filter(row -> !row.isBlank())
                 .toList();
         if (rows.isEmpty()) {
-            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The file has no data rows");
+            throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The file has no data rows");
         }
         if (rows.size() > settings.getMaxRows()) {
-            throw new AppException(ErrorCode.IMPORT_LIMIT_EXCEEDED,
+            throw new ApplicationException(ErrorCode.IMPORT_LIMIT_EXCEEDED,
                     "The file has " + rows.size() + " rows; the limit is " + settings.getMaxRows());
         }
         List<String> missingHeaders = REQUIRED_HEADERS.stream()
                 .filter(header -> !rows.get(0).values().containsKey(header))
                 .toList();
         if (!missingHeaders.isEmpty()) {
-            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "Missing columns: " + String.join(", ", missingHeaders));
+            throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "Missing columns: " + String.join(", ", missingHeaders));
         }
 
         Map<String, Topic> topicsByName = topicRepository.findBySubjectId(subjectId).stream()
@@ -292,7 +293,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
         try {
             // Flush forces the INSERTs now so a concurrent duplicate surfaces here (unique index)
             topicRepository.saveAllAndFlush(toCreate);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             Map<String, Topic> fresh = topicRepository.findBySubjectId(subjectId).stream()
                     .filter(topic -> topic.getTopicName() != null)
                     .collect(Collectors.toMap(topic -> key(topic.getTopicName()), topic -> topic, (a, b) -> a));
@@ -308,15 +309,15 @@ public class QuestionImportServiceImpl implements QuestionImportService {
 
     private void validateFile(String filename, byte[] content) {
         if (content == null || content.length == 0) {
-            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");
+            throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");
         }
         if (content.length > settings.getMaxFileSizeBytes()) {
-            throw new AppException(ErrorCode.IMPORT_LIMIT_EXCEEDED,
+            throw new ApplicationException(ErrorCode.IMPORT_LIMIT_EXCEEDED,
                     "The file exceeds " + (settings.getMaxFileSizeBytes() / 1024) + " KB");
         }
         String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
         if (!lower.endsWith("." + FORMAT_XLSX) && !lower.endsWith("." + FORMAT_CSV)) {
-            throw new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE, "Import accepts .xlsx or .csv files");
+            throw new ApplicationException(ErrorCode.UNSUPPORTED_FILE_TYPE, "Import accepts .xlsx or .csv files");
         }
     }
 
@@ -350,7 +351,7 @@ public class QuestionImportServiceImpl implements QuestionImportService {
     private static String normalizeFormat(String format) {
         String normalized = format == null ? FORMAT_XLSX : format.trim().toLowerCase(Locale.ROOT);
         if (!normalized.equals(FORMAT_XLSX) && !normalized.equals(FORMAT_CSV)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "format must be xlsx or csv");
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "format must be xlsx or csv");
         }
         return normalized;
     }

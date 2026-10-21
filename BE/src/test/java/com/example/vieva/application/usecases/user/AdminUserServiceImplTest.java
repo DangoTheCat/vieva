@@ -1,19 +1,20 @@
 package com.example.vieva.application.usecases.user;
 
-import com.example.vieva.application.ports.input.CreateUserByAdminRequest;
-import com.example.vieva.application.ports.input.UpdateUserByAdminRequest;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.user.CreateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UpdateUserByAdminRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.DomainEventPublisherPort;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
+import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,15 +64,15 @@ class AdminUserServiceImplTest {
         when(roleRepository.findByRoleCode("ROLE_LECTURER")).thenReturn(Optional.of(lecturerRole));
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        User created = adminUserService.createUser(CreateUserByAdminRequest.builder()
+        UserResult created = adminUserService.createUser(CreateUserByAdminRequest.builder()
                 .email("new.lecturer@fpt.edu.vn")
                 .password("Temp123")
                 .fullName("New Lecturer")
                 .roleCode("LECTURER")
                 .build(), adminId);
 
-        assertThat(created.getUserRoles()).hasSize(1);
-        assertThat(created.getRole().getRoleCode()).isEqualTo("ROLE_LECTURER");
+        assertThat(created.getRoles()).hasSize(1);
+        assertThat(created.getRole()).isEqualTo("ROLE_LECTURER");
         assertThat(created.isMustChangePassword()).isTrue();
         verify(domainEventPublisher).publishAccountCreated(
                 "new.lecturer@fpt.edu.vn", "New Lecturer", "ROLE_LECTURER", "Temp123");
@@ -112,11 +113,11 @@ class AdminUserServiceImplTest {
         when(roleRepository.findByRoleCode("ROLE_LECTURER")).thenReturn(Optional.of(lecturerRole));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        User updated = adminUserService.updateUser(userId,
+        UserResult updated = adminUserService.updateUser(userId,
                 UpdateUserByAdminRequest.builder().roleCode("ROLE_LECTURER").build(), adminId);
 
-        assertThat(updated.getUserRoles()).hasSize(1);
-        assertThat(updated.getRole().getRoleCode()).isEqualTo("ROLE_LECTURER");
+        assertThat(updated.getRoles()).hasSize(1);
+        assertThat(updated.getRole()).isEqualTo("ROLE_LECTURER");
     }
 
     @Test
@@ -142,8 +143,8 @@ class AdminUserServiceImplTest {
                     .fullName("Someone")
                     .roleCode(code)
                     .build(), adminId))
-                    .isInstanceOf(AppException.class)
-                    .extracting(e -> ((AppException) e).getErrorCode())
+                    .isInstanceOf(ApplicationException.class)
+                    .extracting(e -> ((ApplicationException) e).getErrorCode())
                     .isEqualTo(ErrorCode.ROLE_NOT_FOUND);
         }
         verify(userRepository, never()).saveAndFlush(any(User.class));
@@ -155,11 +156,11 @@ class AdminUserServiceImplTest {
         when(roleRepository.findByRoleCode("ROLE_STUDENT")).thenReturn(Optional.of(studentRole));
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        User created = adminUserService.createUser(CreateUserByAdminRequest.builder()
+        UserResult created = adminUserService.createUser(CreateUserByAdminRequest.builder()
                 .email("default@fpt.edu.vn")
                 .fullName("Default Role")
                 .build(), adminId);
 
-        assertThat(created.getRole().getRoleCode()).isEqualTo("ROLE_STUDENT");
+        assertThat(created.getRole()).isEqualTo("ROLE_STUDENT");
     }
 }

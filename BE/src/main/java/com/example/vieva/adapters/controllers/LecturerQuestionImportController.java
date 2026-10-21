@@ -1,10 +1,10 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.application.ports.output.ImportReport;
-import com.example.vieva.application.usecases.importing.QuestionImportService;
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.importing.ImportReport;
+import com.example.vieva.application.ports.input.importing.QuestionImportService;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -56,20 +56,20 @@ public class LecturerQuestionImportController {
     public ResponseEntity<ImportReport> importQuestions(@PathVariable UUID subjectId,
                                                         @RequestParam("file") MultipartFile file,
                                                         @RequestParam(defaultValue = "true") boolean dryRun,
-                                                        @AuthenticationPrincipal User currentUser) {
+                                                        @AuthenticationPrincipal ActorView currentUser) {
         UUID userId = CurrentUser.id(currentUser);
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");
+            throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");
         }
         // Fail fast before loading bytes into heap (import limit 5MB).
         if (file.getSize() > 5L * 1024 * 1024) {
-            throw new AppException(ErrorCode.IMPORT_LIMIT_EXCEEDED, "The file exceeds 5120 KB");
+            throw new ApplicationException(ErrorCode.IMPORT_LIMIT_EXCEEDED, "The file exceeds 5120 KB");
         }
         try {
             return ResponseEntity.ok(importService.importQuestions(subjectId, file.getOriginalFilename(),
                     file.getBytes(), dryRun, userId));
         } catch (IOException e) {
-            throw new AppException(ErrorCode.IMPORT_FILE_INVALID, "Failed to read uploaded file");
+            throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "Failed to read uploaded file");
         }
     }
 }

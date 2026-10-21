@@ -1,6 +1,5 @@
 package com.example.vieva.adapters.controllers.request;
 
-import com.example.vieva.domain.entities.UserStatus;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -27,7 +26,7 @@ public class UpdateUserByAdminApiRequest {
     @Size(max = 20, message = "Phone number must not exceed 20 characters")
     private String phoneNumber;
 
-    private UserStatus status;
+    private String status;
 
     @Size(max = 50, message = "Role code must not exceed 50 characters")
     private String roleCode;

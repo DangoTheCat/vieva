@@ -1,8 +1,8 @@
 package com.example.vieva.infrastructure.service;
 
 import com.example.vieva.application.ports.output.DomainEventPublisherPort;
-import com.example.vieva.application.usecases.document.DocumentUploadedEvent;
-import com.example.vieva.application.usecases.user.AccountCreatedEvent;
+import com.example.vieva.application.ports.output.event.DocumentUploadedEvent;
+import com.example.vieva.application.ports.output.event.AccountCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;

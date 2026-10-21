@@ -5,7 +5,7 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
 import com.example.vieva.domain.exception.FieldViolation;
 
 import java.util.ArrayList;
@@ -37,16 +37,16 @@ public final class QuestionApprovalPolicy {
         List<FieldViolation> violations = new ArrayList<>();
 
         if (isBlank(version.getQuestionContent())) {
-            violations.add(FieldViolation.of("content", ErrorCode.CONTENT_REQUIRED, "Question content must not be empty"));
+            violations.add(FieldViolation.of("content", DomainErrorCode.CONTENT_REQUIRED, "Question content must not be empty"));
         }
         if (isBlank(version.getReferenceAnswer())) {
-            violations.add(FieldViolation.of("expectedAnswer", ErrorCode.CONTENT_REQUIRED, "Expected answer must not be empty"));
+            violations.add(FieldViolation.of("expectedAnswer", DomainErrorCode.CONTENT_REQUIRED, "Expected answer must not be empty"));
         }
 
         if (version.getBloomLevel() == null) {
-            violations.add(FieldViolation.of("bloomLevel", ErrorCode.BLOOM_NOT_CONFIRMED, "Bloom level is required"));
+            violations.add(FieldViolation.of("bloomLevel", DomainErrorCode.BLOOM_NOT_CONFIRMED, "Bloom level is required"));
         } else if (!version.isBloomConfirmed()) {
-            violations.add(FieldViolation.of("bloomConfirmed", ErrorCode.BLOOM_NOT_CONFIRMED,
+            violations.add(FieldViolation.of("bloomConfirmed", DomainErrorCode.BLOOM_NOT_CONFIRMED,
                     "Bloom level " + version.getBloomLevel() + " must be confirmed by the lecturer"));
         }
 
@@ -61,28 +61,28 @@ public final class QuestionApprovalPolicy {
     /** BR-02 checks shared by approval and LLM-output validation. */
     public static void validateRubric(Rubric rubric, Collection<RubricCriterion> criteria, List<FieldViolation> out) {
         if (rubric == null || criteria == null || criteria.isEmpty()) {
-            out.add(FieldViolation.of("rubric.criteria", ErrorCode.RUBRIC_REQUIRED,
+            out.add(FieldViolation.of("rubric.criteria", DomainErrorCode.RUBRIC_REQUIRED,
                     "Rubric must have at least one criterion"));
             return;
         }
         int index = 0;
         for (RubricCriterion criterion : criteria) {
             if (criterion.getMaxPoints() == null || criterion.getMaxPoints().signum() <= 0) {
-                out.add(FieldViolation.of("rubric.criteria[" + index + "].maxScore", ErrorCode.RUBRIC_SCORE_MISMATCH,
+                out.add(FieldViolation.of("rubric.criteria[" + index + "].maxScore", DomainErrorCode.RUBRIC_SCORE_MISMATCH,
                         "Criterion max score must be greater than 0"));
             }
             if (isBlank(criterion.getCriterionName())) {
-                out.add(FieldViolation.of("rubric.criteria[" + index + "].name", ErrorCode.RUBRIC_REQUIRED,
+                out.add(FieldViolation.of("rubric.criteria[" + index + "].name", DomainErrorCode.RUBRIC_REQUIRED,
                         "Criterion name must not be empty"));
             }
             index++;
         }
         if (!rubric.totalMatches(criteria)) {
-            out.add(FieldViolation.of("rubric.totalScore", ErrorCode.RUBRIC_SCORE_MISMATCH,
+            out.add(FieldViolation.of("rubric.totalScore", DomainErrorCode.RUBRIC_SCORE_MISMATCH,
                     "Sum of criteria max scores (" + Rubric.sumOf(criteria) + ") must equal total score ("
                             + rubric.getTotalPoints() + ")"));
         } else if (rubric.getTotalPoints().compareTo(java.math.BigDecimal.TEN)!=0) {
-            out.add(FieldViolation.of("rubric.totalScore",ErrorCode.RUBRIC_SCORE_MISMATCH,"Rubric total must equal 10.0"));
+            out.add(FieldViolation.of("rubric.totalScore", DomainErrorCode.RUBRIC_SCORE_MISMATCH, "Rubric total must equal 10.0"));
         }
     }
 
@@ -91,7 +91,7 @@ public final class QuestionApprovalPolicy {
                                         Set<UUID> readyDocumentIds,
                                         List<FieldViolation> out) {
         if (sources == null || sources.isEmpty()) {
-            out.add(FieldViolation.of("sources", ErrorCode.SOURCE_REQUIRED,
+            out.add(FieldViolation.of("sources", DomainErrorCode.SOURCE_REQUIRED,
                     "AI-generated question must cite at least one source chunk"));
             return;
         }
@@ -100,16 +100,16 @@ public final class QuestionApprovalPolicy {
             String field = "sources[" + index++ + "]";
             DocumentChunk chunk = source.getChunkId() == null ? null : chunksById.get(source.getChunkId());
             if (chunk == null) {
-                out.add(FieldViolation.of(field, ErrorCode.SOURCE_REQUIRED, "Source chunk no longer exists"));
+                out.add(FieldViolation.of(field, DomainErrorCode.SOURCE_REQUIRED, "Source chunk no longer exists"));
                 continue;
             }
             if (!readyDocumentIds.contains(chunk.getDocumentId())) {
-                out.add(FieldViolation.of(field, ErrorCode.SOURCE_REQUIRED,
+                out.add(FieldViolation.of(field, DomainErrorCode.SOURCE_REQUIRED,
                         "Source document is no longer READY or was deleted"));
                 continue;
             }
             if (!source.isGroundedIn(chunk.getContent())) {
-                out.add(FieldViolation.of(field + ".citationQuote", ErrorCode.INVALID_CITATION_QUOTE,
+                out.add(FieldViolation.of(field + ".citationQuote", DomainErrorCode.INVALID_CITATION_QUOTE,
                         "Citation quote is not found in the source chunk"));
             }
         }

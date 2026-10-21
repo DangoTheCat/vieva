@@ -1,8 +1,8 @@
 package com.example.vieva.adapters.controllers;
 
-import com.example.vieva.domain.entities.User;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.common.ActorView;
 
 import java.util.UUID;
 
@@ -11,10 +11,10 @@ final class CurrentUser {
     private CurrentUser() {
     }
 
-    static UUID id(User user) {
-        if (user == null || user.getUserId() == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+    static UUID id(ActorView actor) {
+        if (actor == null || actor.id() == null) {
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
         }
-        return user.getUserId();
+        return actor.id();
     }
 }

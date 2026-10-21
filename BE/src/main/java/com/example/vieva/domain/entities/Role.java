@@ -1,14 +1,19 @@
 package com.example.vieva.domain.entities;
 
-import lombok.AllArgsConstructor;
+import lombok.*;
 import lombok.Builder;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.Instant;
 
-@Data
-@Builder
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Role {

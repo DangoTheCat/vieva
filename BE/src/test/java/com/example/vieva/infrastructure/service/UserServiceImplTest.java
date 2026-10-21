@@ -1,15 +1,16 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.ports.input.ChangePasswordRequest;
-import com.example.vieva.application.ports.input.UpdateProfileRequest;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.user.ChangePasswordRequest;
+import com.example.vieva.application.ports.input.user.UpdateProfileRequest;
+import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.output.AvatarStoragePort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.usecases.user.UserServiceImpl;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,7 @@ class UserServiceImplTest {
                 .phoneNumber("0987654321")
                 .build();
 
-        User result = userService.updateProfile(userId, request);
+        UserResult result = userService.updateProfile(userId, request);
 
         assertThat(result.getFullName()).isEqualTo("Nguyen Van B");
         assertThat(result.getPhoneNumber()).isEqualTo("0987654321");
@@ -90,7 +91,7 @@ class UserServiceImplTest {
                 .phoneNumber(null)
                 .build();
 
-        User result = userService.updateProfile(userId, request);
+        UserResult result = userService.updateProfile(userId, request);
 
         assertThat(result.getFullName()).isEqualTo("Nguyen Van C");
         assertThat(result.getPhoneNumber()).isEqualTo("0912345678");
@@ -108,7 +109,7 @@ class UserServiceImplTest {
                 .phoneNumber("0999888777")
                 .build();
 
-        User result = userService.updateProfile(userId, request);
+        UserResult result = userService.updateProfile(userId, request);
 
         assertThat(result.getFullName()).isEqualTo("Nguyen Van A");
         assertThat(result.getPhoneNumber()).isEqualTo("0999888777");
@@ -125,8 +126,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.updateProfile(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
 
         verify(userRepository, never()).save(any());
     }
@@ -141,8 +142,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.updateProfile(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
 
         verify(userRepository, never()).save(any());
     }
@@ -179,8 +180,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.changePassword(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.INCORRECT_PASSWORD));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.INCORRECT_PASSWORD));
 
         verify(userRepository, never()).save(any());
     }
@@ -197,8 +198,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.changePassword(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.PASSWORD_UNCHANGED));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.PASSWORD_UNCHANGED));
 
         verify(userRepository, never()).save(any());
     }
@@ -214,8 +215,8 @@ class UserServiceImplTest {
                 .build();
 
         assertThatThrownBy(() -> userService.changePassword(userId, request))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
 
         verify(userRepository, never()).save(any());
     }
@@ -223,7 +224,7 @@ class UserServiceImplTest {
     @Test
     @DisplayName("changePassword: clears the forced-change flag set for admin-created accounts")
     void changePassword_ClearsMustChangePassword() {
-        sampleUser.setMustChangePassword(true);
+        sampleUser = sampleUser.toBuilder().mustChangePassword(true).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("temp-password", "hashed-old-password")).thenReturn(true);
         when(passwordEncoder.matches("new-password", "hashed-old-password")).thenReturn(false);
@@ -259,7 +260,7 @@ class UserServiceImplTest {
     @Test
     @DisplayName("uploadAvatar: when user already has an old avatar, deletes old avatar from storage")
     void uploadAvatar_WhenOldAvatarExists_DeletesOldAvatar() {
-        sampleUser.setAvatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/old_avatar.png");
+        sampleUser = sampleUser.toBuilder().avatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/old_avatar.png").build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
         when(avatarStoragePort.uploadAvatar(eq(userId), any(byte[].class), eq("image/png")))
                 .thenReturn("https://res.cloudinary.com/example-cloud/image/upload/v2/new_avatar.png");
@@ -277,7 +278,7 @@ class UserServiceImplTest {
     @Test
     @DisplayName("deleteAvatar: removes avatar URL from user entity and deletes from external storage")
     void deleteAvatar_Success() {
-        sampleUser.setAvatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png");
+        sampleUser = sampleUser.toBuilder().avatarUrl("https://res.cloudinary.com/example-cloud/image/upload/v1/avatar.png").build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

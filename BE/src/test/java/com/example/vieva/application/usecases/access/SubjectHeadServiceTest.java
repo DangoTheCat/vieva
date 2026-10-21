@@ -2,7 +2,9 @@ package com.example.vieva.application.usecases.access;
 
 import com.example.vieva.application.ports.output.*;
 import com.example.vieva.domain.entities.*;
-import com.example.vieva.domain.exception.*;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 import static org.mockito.Mockito.*;
@@ -14,7 +16,7 @@ class SubjectHeadServiceTest {
         var subjects=mock(SubjectRepository.class);
         var assignments=mock(LecturerSubjectRepository.class);
         var users=mock(UserRepository.class);
-        var service=new SubjectHeadService(subjects,assignments,users);
+        var service=new SubjectHeadServiceImpl(subjects,assignments,users);
         UUID subjectId=UUID.randomUUID(),head=UUID.randomUUID(),admin=UUID.randomUUID();
         Subject subject=Subject.builder().subjectId(subjectId).status(SubjectStatus.ACTIVE).headLecturerId(head).build();
         User lecturer=mock(User.class),administrator=mock(User.class);
@@ -25,14 +27,14 @@ class SubjectHeadServiceTest {
         when(users.findById(admin)).thenReturn(Optional.of(administrator));
         when(assignments.isLecturerAssignedToSubject(head,subjectId)).thenReturn(true);
         assertThatCode(() -> service.requireHead(head,subjectId)).doesNotThrowAnyException();
-        assertThatThrownBy(() -> service.requireHead(admin,subjectId)).isInstanceOf(AppException.class)
+        assertThatThrownBy(() -> service.requireHead(admin,subjectId)).isInstanceOf(ApplicationException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.NOT_SUBJECT_HEAD);
         service.assign(subjectId,head,admin); verify(subjects).save(subject);
         when(assignments.isLecturerAssignedToSubject(head,subjectId)).thenReturn(false);
-        assertThatThrownBy(() -> service.requireHead(head,subjectId)).isInstanceOf(AppException.class)
+        assertThatThrownBy(() -> service.requireHead(head,subjectId)).isInstanceOf(ApplicationException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.SUBJECT_HEAD_REQUIRED);
         when(assignments.isLecturerAssignedToSubject(head,subjectId)).thenReturn(true);
         when(lecturer.getStatus()).thenReturn(UserStatus.INACTIVE);
-        assertThatThrownBy(() -> service.headOf(subjectId)).isInstanceOf(AppException.class);
+        assertThatThrownBy(() -> service.headOf(subjectId)).isInstanceOf(ApplicationException.class);
     }
 }

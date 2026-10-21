@@ -1,6 +1,5 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.domain.entities.DocumentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +20,7 @@ public class CourseDocumentDto {
     private String fileUrl;
     private Long fileSizeBytes;
     private String mimeType;
-    private DocumentStatus indexingStatus;
+    private String indexingStatus;
     private String errorMessage;
     private Integer totalChunks;
     private Integer indexAttempts;

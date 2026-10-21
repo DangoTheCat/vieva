@@ -1,5 +1,7 @@
 package com.example.vieva.application.usecases.document;
 
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
+import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
@@ -28,8 +30,10 @@ import com.example.vieva.domain.entities.DocumentChunk;
 import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,7 +82,7 @@ class DocumentIndexingServiceImplTest {
     @Mock private AuditEventRepository auditEventRepository;
 
     @Mock private com.example.vieva.application.ports.output.QuestionDraftWriter db;
-    private DocumentService service;
+    private DocumentServiceImpl service;
     private final RagSettings ragSettings = new RagSettings();
     private final DocumentSettings documentSettings = new DocumentSettings();
     private final UUID lecturer = UUID.randomUUID();
@@ -96,7 +100,7 @@ class DocumentIndexingServiceImplTest {
         ragSettings.setEmbeddingBatchSize(2);
         ragSettings.setEmbeddingDimensions(4);
         documentSettings.setMinTextChars(10);
-        service = new DocumentService(documentRepository, chunkRepository, sourceRepository, subjectRepository,
+        service = new DocumentServiceImpl(documentRepository, chunkRepository, sourceRepository, subjectRepository,
                 parser, storage, typeDetector, splitter, events, direct, json,
                 new SubjectAccessGuard(lecturerSubjectRepository, userRepository),
                 new QuestionBankAuditor(auditEventRepository, json), documentSettings, db);
@@ -137,9 +141,9 @@ class DocumentIndexingServiceImplTest {
         when(storage.store(eq("Giáo trình.pdf"), eq(content), eq("application/pdf")))
                 .thenReturn(new StoredFile("2026/10/k.pdf", "local:2026/10/k.pdf"));
 
-        CourseDocument document = service.uploadDocument(subjectId, "C:\\tmp\\Giáo trình.pdf", content, lecturer);
+        CourseDocumentResult document = service.uploadDocument(subjectId, "C:\\tmp\\Giáo trình.pdf", content, lecturer);
 
-        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED);
+        assertThat(document.getIndexingStatus()).isEqualTo(DocumentStatus.UPLOADED.name());
         assertThat(document.getStorageKey()).isEqualTo("2026/10/k.pdf");
         assertThat(document.getFileSizeBytes()).isEqualTo(content.length);
         verify(events).publishDocumentIndexingRequested(document.getDocumentId());
@@ -152,7 +156,7 @@ class DocumentIndexingServiceImplTest {
         byte[] content = "MZ....".getBytes();
         when(typeDetector.detect(any(), anyString())).thenReturn("application/x-msdownload");
         assertThatThrownBy(() -> service.uploadDocument(subjectId, "slides.pptx", content, lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_FILE_TYPE);
         verify(storage, never()).store(any(), any(), any());
         verify(events, never()).publishDocumentIndexingRequested(any());
     }
@@ -161,7 +165,7 @@ class DocumentIndexingServiceImplTest {
     void uploadRequiresAssignment() {
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(false);
         assertThatThrownBy(() -> service.uploadDocument(subjectId, "a.txt", "hello".getBytes(), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_SUBJECT);
     }
 
     @Test
@@ -243,8 +247,8 @@ class DocumentIndexingServiceImplTest {
 
     @Test
     void indexingSkipsDocumentsNotUploaded() {
-        CourseDocument document = uploadedDocument();
-        document.setIndexingStatus(DocumentStatus.READY);
+        CourseDocument document = uploadedDocument().toBuilder().indexingStatus(DocumentStatus.READY).build();
+        stored.set(document);
         service.indexDocument(document.getDocumentId());
         verify(storage, never()).load(any());
     }
@@ -264,7 +268,7 @@ class DocumentIndexingServiceImplTest {
         document.startIndexing();
         document.markFailed("y");
         assertThatThrownBy(() -> service.retryIndexing(document.getDocumentId(), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.RETRY_LIMIT_EXCEEDED);
+                .isInstanceOf(DomainException.class).extracting("errorCode").isEqualTo(DomainErrorCode.RETRY_LIMIT_EXCEEDED);
     }
 
     @Test
@@ -273,7 +277,7 @@ class DocumentIndexingServiceImplTest {
         CourseDocument document = uploadedDocument();
         when(sourceRepository.existsByDocumentId(document.getDocumentId())).thenReturn(true);
         assertThatThrownBy(() -> service.softDeleteDocument(document.getDocumentId(), lecturer))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_IN_USE);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_IN_USE);
 
         when(sourceRepository.existsByDocumentId(document.getDocumentId())).thenReturn(false);
         service.softDeleteDocument(document.getDocumentId(), lecturer);

@@ -1,9 +1,9 @@
 package com.example.vieva.application.usecases.question;
 
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.CriterionInput;
-import com.example.vieva.application.ports.input.RubricInput;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.CriterionInput;
+import com.example.vieva.application.ports.input.question.RubricInput;
+import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
 import com.example.vieva.application.ports.output.DocumentChunkRepository;
@@ -32,9 +32,10 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.domain.exception.DomainErrorCode;
+import com.example.vieva.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,7 @@ class QuestionReviewAndAuthoringServiceTest {
     @Mock private AuditEventRepository auditEventRepository;
     @Mock private JsonSerializerPort jsonSerializer;
 
-    @Mock private com.example.vieva.application.usecases.access.SubjectHeadService heads;
+    @Mock private com.example.vieva.application.ports.input.access.SubjectHeadService heads;
     @Mock private ReviewNotifications notifications;
     private QuestionReviewServiceImpl reviewService;
     private QuestionAuthoringServiceImpl authoringService;
@@ -123,9 +124,8 @@ class QuestionReviewAndAuthoringServiceTest {
 
     private QuestionVersion storeDraft(QuestionGenerationMode mode, boolean bloomConfirmed) {
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1, "Giải thích ACID?", "ACID là...",
-                BloomLevel.UNDERSTAND, mode, lecturer);
-        version.setBloomConfirmed(bloomConfirmed);
-        version.setVersion(0L);
+                BloomLevel.UNDERSTAND, mode, lecturer)
+                .toBuilder().bloomConfirmed(bloomConfirmed).version(0L).build();
         versions.put(version.getQuestionVersionId(), version);
         Rubric rubric = Rubric.create(version.getQuestionVersionId(), null, null);
         List<RubricCriterion> criteria = List.of(
@@ -137,7 +137,19 @@ class QuestionReviewAndAuthoringServiceTest {
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {
-        assertThatThrownBy(action::run).isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(code);
+        assertThatThrownBy(action::run)
+                .isInstanceOf(RuntimeException.class)
+                .satisfies(e -> {
+                    String actualName;
+                    if (e instanceof ApplicationException ae) {
+                        actualName = ae.getErrorCode() != null ? ae.getErrorCode().name() : null;
+                    } else if (e instanceof DomainException de) {
+                        actualName = de.getErrorCode() != null ? de.getErrorCode().name() : null;
+                    } else {
+                        throw new AssertionError("Expected ApplicationException or DomainException but was: " + e.getClass());
+                    }
+                    assertThat(actualName).isEqualTo(code.name());
+                });
     }
 
     @Test
@@ -193,12 +205,12 @@ class QuestionReviewAndAuthoringServiceTest {
         when(sourceRepository.findByQuestionVersionId(draft.getQuestionVersionId())).thenReturn(List.of());
 
         assertThatThrownBy(() -> reviewService.approve(draft.getQuestionVersionId(), null, lecturer))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(DomainException.class)
                 .satisfies(e -> {
-                    AppException app = (AppException) e;
-                    assertThat(app.getErrorCode()).isEqualTo(ErrorCode.BLOOM_NOT_CONFIRMED);
-                    assertThat(app.getViolations()).extracting(FieldViolation::code)
-                            .containsExactly(ErrorCode.BLOOM_NOT_CONFIRMED, ErrorCode.SOURCE_REQUIRED);
+                    DomainException domainEx = (DomainException) e;
+                    assertThat(domainEx.getErrorCode()).isEqualTo(DomainErrorCode.BLOOM_NOT_CONFIRMED);
+                    assertThat(domainEx.getViolations()).extracting(com.example.vieva.domain.exception.FieldViolation::code)
+                            .containsExactly(DomainErrorCode.BLOOM_NOT_CONFIRMED, DomainErrorCode.SOURCE_REQUIRED);
                 });
         assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.UNDER_REVIEW);
         verify(versionRepository, never()).save(any());
@@ -266,7 +278,7 @@ class QuestionReviewAndAuthoringServiceTest {
         CreateManualQuestionCommand command = CreateManualQuestionCommand.builder()
                 .content("Thế nào là 3NF?")
                 .expectedAnswer("Không có phụ thuộc bắc cầu")
-                .bloomLevel(BloomLevel.REMEMBER)
+                .bloomLevel(BloomLevel.REMEMBER.name())
                 .rubric(new RubricInput(null, null, null, List.of(
                         new CriterionInput("Định nghĩa", "0-4", new BigDecimal("4"), List.of(), null),
                         new CriterionInput("Ví dụ", "0-6", new BigDecimal("6"), List.of(), null))))
@@ -289,13 +301,13 @@ class QuestionReviewAndAuthoringServiceTest {
         CreateManualQuestionCommand command = CreateManualQuestionCommand.builder()
                 .content(" ")
                 .expectedAnswer("x")
-                .bloomLevel(BloomLevel.APPLY)
+                .bloomLevel(BloomLevel.APPLY.name())
                 .rubric(new RubricInput(null, null, new BigDecimal("5"), List.of(
                         new CriterionInput("A", "d", new BigDecimal("4"), List.of(), null))))
                 .build();
         assertThatThrownBy(() -> authoringService.createManualQuestion(subjectId, command, lecturer))
-                .isInstanceOf(AppException.class)
-                .satisfies(e -> assertThat(((AppException) e).getViolations()).extracting(FieldViolation::field)
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> assertThat(((ApplicationException) e).getViolations()).extracting(com.example.vieva.application.exception.FieldViolation::field)
                         .containsExactly("content", "rubric.totalScore"));
         verify(versionRepository, never()).saveAll(anyList());
     }
@@ -368,5 +380,84 @@ class QuestionReviewAndAuthoringServiceTest {
         verify(rubricRepository).save(rubric.capture());
         assertThat(rubric.getValue().getTotalPoints()).isEqualByComparingTo("3");
         verify(criterionRepository).deleteByRubricId(rubric.getValue().getRubricId());
+    }
+
+    @Test
+    @DisplayName("overload methods verify version belongs to question or fail appropriately")
+    void overloadsVerifyQuestionId() {
+        QuestionVersion draft = storeDraft(QuestionGenerationMode.MANUAL, true);
+        UUID realQuestionId = question.getQuestionId();
+        UUID otherQuestionId = UUID.randomUUID();
+        UUID nonExistentVersionId = UUID.randomUUID();
+
+        // Non-existent version (all 4 overloads)
+        assertThatThrownBy(() -> reviewService.submitForReview(realQuestionId, nonExistentVersionId, 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        assertThatThrownBy(() -> reviewService.reviewQuestion(realQuestionId, nonExistentVersionId, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        assertThatThrownBy(() -> reviewService.approve(realQuestionId, nonExistentVersionId, 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        assertThatThrownBy(() -> reviewService.reject(realQuestionId, nonExistentVersionId, "Reason", 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.QUESTION_VERSION_NOT_FOUND);
+
+        // Version belongs to another question (all 4 overloads)
+        assertThatThrownBy(() -> reviewService.submitForReview(otherQuestionId, draft.getQuestionVersionId(), 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        assertThatThrownBy(() -> reviewService.reviewQuestion(otherQuestionId, draft.getQuestionVersionId(), lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        assertThatThrownBy(() -> reviewService.approve(otherQuestionId, draft.getQuestionVersionId(), 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        assertThatThrownBy(() -> reviewService.reject(otherQuestionId, draft.getQuestionVersionId(), "Reason", 0L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessage("Version belongs to another question")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_REQUEST);
+
+        // Valid calls through overloads (all 4 overloads)
+        when(heads.headOf(subjectId)).thenReturn(lecturer);
+
+        var submitted = reviewService.submitForReview(realQuestionId, draft.getQuestionVersionId(), 0L, lecturer);
+        assertThat(submitted).isNotNull();
+        assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.UNDER_REVIEW);
+
+        var reviewed = reviewService.reviewQuestion(realQuestionId, draft.getQuestionVersionId(), lecturer);
+        assertThat(reviewed).isNotNull();
+
+        var rejected = reviewService.reject(realQuestionId, draft.getQuestionVersionId(), "Needs improvement", 0L, lecturer);
+        assertThat(rejected).isNotNull();
+        assertThat(draft.getApprovalStatus()).isEqualTo(QuestionStatus.REJECTED);
+
+        QuestionVersion draft2 = storeDraft(QuestionGenerationMode.MANUAL, true);
+        draft2.submitForReview();
+        var approved = reviewService.approve(realQuestionId, draft2.getQuestionVersionId(), 0L, lecturer);
+        assertThat(approved).isNotNull();
+        assertThat(draft2.getApprovalStatus()).isEqualTo(QuestionStatus.APPROVED);
+    }
+
+    @Test
+    void confirmBloomWithInvalidBloomAndStaleExpectedVersionThrowsMalformedRequestBody() {
+        QuestionVersion draft = storeDraft(QuestionGenerationMode.MANUAL, false);
+        assertThatThrownBy(() -> authoringService.confirmBloom(draft.getQuestionVersionId(), "INVALID_BLOOM", 999L, lecturer))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(e -> {
+                    ApplicationException ae = (ApplicationException) e;
+                    assertThat(ae.getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST);
+                    assertThat(ae.getMessage()).isEqualTo("Malformed request body");
+                });
     }
 }

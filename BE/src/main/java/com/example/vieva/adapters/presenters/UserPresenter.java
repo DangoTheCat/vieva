@@ -1,21 +1,19 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.application.ports.output.PagedResult;
-import com.example.vieva.domain.entities.Role;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.ports.input.user.UserResult;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class UserPresenter {
 
-    public UserDto toDto(User user) {
+    public UserDto toDto(UserResult user) {
         if (user == null) {
             return null;
         }
-        Role role = user.getRole();
         return UserDto.builder()
                 .userId(user.getUserId())
                 .email(user.getEmail())
@@ -24,15 +22,20 @@ public class UserPresenter {
                 .phoneNumber(user.getPhoneNumber())
                 .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
-                .role(role != null ? role.getRoleCode() : null)
-                .roles(role != null ? Set.of(role.getRoleCode()) : Collections.emptySet())
+                .role(user.getRole())
+                .roles(user.getRoles())
                 .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
-    public PageResponse<UserDto> toPageResponse(PagedResult<User> pagedResult) {
-        return PageResponse.from(pagedResult, this::toDto);
+    public List<UserDto> toDtoList(List<UserResult> users) {
+        if (users == null) {
+            return Collections.emptyList();
+        }
+        return users.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 }

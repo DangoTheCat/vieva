@@ -2,8 +2,8 @@ package com.example.vieva.infrastructure.service;
 
 import com.example.vieva.application.ports.output.ParsedSection;
 import com.example.vieva.application.ports.output.TextChunk;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.infrastructure.ai.MockEmbeddingGateway;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
@@ -100,7 +100,7 @@ class DocumentPipelineAdaptersTest {
         byte[] text = "chỉ là văn bản".getBytes(StandardCharsets.UTF_8);
         assertThat(detector.detect(text, "fake.pdf")).isNotEqualTo("application/pdf");
         assertThatThrownBy(() -> parser.extract("%PDF-1.7 broken".getBytes(), "application/pdf"))
-                .isInstanceOf(AppException.class).extracting("errorCode").isEqualTo(ErrorCode.EMPTY_DOCUMENT_TEXT);
+                .isInstanceOf(ApplicationException.class).extracting("errorCode").isEqualTo(ErrorCode.EMPTY_DOCUMENT_TEXT);
     }
 
     @Test

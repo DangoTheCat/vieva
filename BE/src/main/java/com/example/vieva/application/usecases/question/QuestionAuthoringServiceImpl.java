@@ -1,12 +1,14 @@
 package com.example.vieva.application.usecases.question;
 
 import com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort;
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.UpdateDraftCommand;
+import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
+import com.example.vieva.application.usecases.common.EnumValues;
 import com.example.vieva.application.ports.output.QuestionRepository;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
-import com.example.vieva.application.ports.output.QuestionVersionView;
+import com.example.vieva.application.ports.input.question.QuestionVersionView;
 import com.example.vieva.application.ports.output.RubricCriterionRepository;
 import com.example.vieva.application.ports.output.RubricRepository;
 import com.example.vieva.application.ports.output.TopicRepository;
@@ -23,12 +25,12 @@ import com.example.vieva.domain.entities.QuestionSource;
 import com.example.vieva.domain.entities.QuestionVersion;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.RubricCriterion;
-import com.example.vieva.domain.exception.AppException;
-import com.example.vieva.domain.exception.ErrorCode;
-import com.example.vieva.domain.exception.FieldViolation;
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.exception.FieldViolation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,25 +54,29 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     private final QuestionBankAuditor auditor;
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView createManualQuestion(UUID subjectId, CreateManualQuestionCommand command, UUID actorId) {
+        BloomLevel bloomLevel = null;
+        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
+            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
+        }
         subjectAccessGuard.requireManage(actorId, subjectId);
         validateTopic(subjectId, command.topicId());
 
         List<FieldViolation> violations = new ArrayList<>();
         requireText(command.content(), "content", violations);
         requireText(command.expectedAnswer(), "expectedAnswer", violations);
-        if (command.bloomLevel() == null) {
+        if (bloomLevel == null) {
             violations.add(FieldViolation.of("bloomLevel", ErrorCode.INVALID_REQUEST, "Bloom level is required"));
         }
 
         Question question = Question.newDraftOwner(subjectId, command.topicId(), actorId);
         QuestionVersion version = QuestionVersion.newDraft(question.getQuestionId(), 1,
-                trim(command.content()), trim(command.expectedAnswer()), command.bloomLevel(),
+                trim(command.content()), trim(command.expectedAnswer()), bloomLevel,
                 QuestionGenerationMode.MANUAL, actorId);
         RubricDraft rubric = RubricDraftFactory.build(version.getQuestionVersionId(), command.rubric(), violations);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
 
         draftWriter.saveQuestionDraft(List.of(new NewDraft(question, version, rubric.rubric(), rubric.criteria(), List.of())));
@@ -81,8 +87,12 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView updateDraft(UUID versionId, UpdateDraftCommand command, UUID actorId) {
+        BloomLevel bloomLevel = null;
+        if (command.bloomLevel() != null && !command.bloomLevel().isBlank()) {
+            bloomLevel = EnumValues.parse(BloomLevel.class, command.bloomLevel(), "Malformed request body");
+        }
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
         Question question = ctx.question();
@@ -100,17 +110,16 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         RubricDraft newRubric = command.rubric() == null ? null
                 : RubricDraftFactory.build(versionId, command.rubric(), violations);
         if (!violations.isEmpty()) {
-            throw AppException.ofViolations(violations);
+            throw ApplicationException.ofViolations(violations);
         }
 
         Map<String, Object> before = snapshot(version);
         if (command.topicId() != null && !command.topicId().equals(question.getTopicId())) {
             validateTopic(question.getSubjectId(), command.topicId());
-            question.setTopicId(command.topicId());
-            question.setUpdatedAt(java.time.Instant.now());
+            question.moveToTopic(command.topicId(), java.time.Instant.now());
             questionRepository.save(question);
         }
-        version.editContent(command.content(), command.expectedAnswer(), command.bloomLevel(), command.bloomConfirmed());
+        version.editContent(command.content(), command.expectedAnswer(), bloomLevel, command.bloomConfirmed());
         if (newRubric != null) {
             RubricDraftFactory.replace(versionId, newRubric, rubricRepository, rubricCriterionRepository);
         }
@@ -122,14 +131,15 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
-    public QuestionVersionView confirmBloom(UUID versionId, BloomLevel bloomLevel, Long expectedVersion, UUID actorId) {
+    @UseCaseTransaction
+    public QuestionVersionView confirmBloom(UUID versionId, String bloomLevel, Long expectedVersion, UUID actorId) {
+        BloomLevel parsed = EnumValues.parse(BloomLevel.class, bloomLevel, "Malformed request body");
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
         version.ensureVersionMatches(expectedVersion);
         ctx.question().ensureActive();
         BloomLevel previous = version.getBloomLevel();
-        version.confirmBloom(bloomLevel);
+        version.confirmBloom(parsed);
         questionVersionRepository.save(version);
         auditor.record(actorId, "QUESTION_BLOOM_CONFIRMED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("bloomLevel", previous == null ? "" : previous),
@@ -138,7 +148,7 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public void deleteDraft(UUID versionId, UUID actorId) {
         VersionContext ctx = accessLoader.versionForWrite(versionId, actorId);
         QuestionVersion version = ctx.version();
@@ -161,18 +171,18 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
     }
 
     @Override
-    @Transactional
+    @UseCaseTransaction
     public QuestionVersionView createDraftFromApproved(UUID questionId, UUID actorId) {
         Question question = accessLoader.questionForWrite(questionId, actorId);
         question.ensureActive();
         if (question.getCurrentApprovedVersionId() == null) {
-            throw new AppException(ErrorCode.NO_APPROVED_VERSION);
+            throw new ApplicationException(ErrorCode.NO_APPROVED_VERSION);
         }
         if (questionVersionRepository.hasDraftVersion(questionId)) {
-            throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS);
+            throw new ApplicationException(ErrorCode.DRAFT_ALREADY_EXISTS);
         }
         QuestionVersion approved = questionVersionRepository.findById(question.getCurrentApprovedVersionId())
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
         int nextNumber = questionVersionRepository.findLatestVersion(questionId)
                 .map(QuestionVersion::getVersionNumber)
                 .orElse(approved.getVersionNumber()) + 1;
@@ -180,9 +190,9 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
         QuestionVersion draft = approved.copyAsDraft(nextNumber, actorId);
         try {
             questionVersionRepository.save(draft);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             // Concurrent request won the race on uq_question_draft_per_question / uq_question_version.
-            throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS);
+            throw new ApplicationException(ErrorCode.DRAFT_ALREADY_EXISTS);
         }
 
         rubricRepository.findByQuestionVersionId(approved.getQuestionVersionId()).ifPresent(rubric -> {
@@ -210,17 +220,17 @@ public class QuestionAuthoringServiceImpl implements QuestionAuthoringService {
             return;
         }
         if (topicRepository.findById(topicId).isEmpty()) {
-            throw new AppException(ErrorCode.TOPIC_NOT_FOUND);
+            throw new ApplicationException(ErrorCode.TOPIC_NOT_FOUND);
         }
         if (!topicRepository.existsByIdAndSubjectId(topicId, subjectId)) {
-            throw new AppException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
+            throw new ApplicationException(ErrorCode.TOPIC_NOT_IN_SUBJECT);
         }
     }
 
     private QuestionVersionView reloadView(UUID versionId) {
         QuestionVersion fresh = questionVersionRepository.findById(versionId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
-        return viewAssembler.assemble(fresh);
+                .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_VERSION_NOT_FOUND));
+        return QuestionViewMapper.toView(viewAssembler.assemble(fresh));
     }
 
     static Map<String, Object> snapshot(QuestionVersion version) {

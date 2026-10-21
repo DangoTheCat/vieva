@@ -1,9 +1,14 @@
 package com.example.vieva.infrastructure.database;
 
-import com.example.vieva.application.ports.input.QuestionVersionSearchCriteria;
-import com.example.vieva.application.ports.output.PagedResult;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.question.QuestionVersionSearchCriteria;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.input.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
+import com.example.vieva.domain.entities.BloomLevel;
+import com.example.vieva.domain.entities.QuestionGenerationMode;
 import com.example.vieva.domain.entities.QuestionStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.example.vieva.domain.entities.QuestionVersion;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +41,15 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
     @Transactional
     public QuestionVersion save(QuestionVersion version) {
         // saveAndFlush surfaces optimistic-lock and unique-index conflicts inside the use case.
-        return mapper.toDomain(jpaRepository.saveAndFlush(toEntity(version)));
+        try {
+            return mapper.toDomain(jpaRepository.saveAndFlush(toEntity(version)));
+        } catch (DataIntegrityViolationException e) {
+            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+            ErrorCode suggested = (msg != null && msg.contains("uq_question_draft_per_question"))
+                    ? ErrorCode.DRAFT_ALREADY_EXISTS
+                    : ErrorCode.INVALID_REQUEST;
+            throw new DuplicateKeyException("QuestionVersion duplicate key violation: " + e.getMessage(), e, suggested);
+        }
     }
 
     @Override
@@ -105,7 +118,7 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
     }
 
     @Override
-    public PagedResult<QuestionVersion> search(QuestionVersionSearchCriteria criteria) {
+    public PageResult<QuestionVersion> search(QuestionVersionSearchCriteria criteria) {
         int page = Math.max(0, criteria.page());
         int size = criteria.size() > 0 ? Math.min(criteria.size(), MAX_PAGE_SIZE) : 20;
         PageRequest pageRequest = PageRequest.of(page, size,
@@ -117,14 +130,14 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
             if (criteria.topicId() != null) {
                 predicates.add(cb.equal(root.get("question").get("topic").get("topicId"), criteria.topicId()));
             }
-            if (criteria.status() != null) {
-                predicates.add(cb.equal(root.get("approvalStatus"), criteria.status()));
+            if (criteria.status() != null && !criteria.status().isBlank()) {
+                predicates.add(cb.equal(root.get("approvalStatus"), QuestionStatus.valueOf(criteria.status())));
             }
-            if (criteria.origin() != null) {
-                predicates.add(cb.equal(root.get("generationMode"), criteria.origin()));
+            if (criteria.origin() != null && !criteria.origin().isBlank()) {
+                predicates.add(cb.equal(root.get("generationMode"), QuestionGenerationMode.valueOf(criteria.origin())));
             }
-            if (criteria.bloomLevel() != null) {
-                predicates.add(cb.equal(root.get("bloomLevel"), criteria.bloomLevel()));
+            if (criteria.bloomLevel() != null && !criteria.bloomLevel().isBlank()) {
+                predicates.add(cb.equal(root.get("bloomLevel"), BloomLevel.valueOf(criteria.bloomLevel())));
             }
             if (criteria.generationRequestId() != null) {
                 predicates.add(cb.equal(root.get("generationRequestId"), criteria.generationRequestId()));
@@ -140,7 +153,7 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
         List<QuestionVersion> content = result.getContent().stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
-        return PagedResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
+        return PageResult.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
     }
 
     @Override

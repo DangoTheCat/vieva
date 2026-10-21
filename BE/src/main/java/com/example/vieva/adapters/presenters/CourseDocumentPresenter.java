@@ -1,6 +1,7 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.domain.entities.CourseDocument;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
+import com.example.vieva.application.ports.input.document.DocumentPreview;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -10,7 +11,7 @@ import java.util.stream.Collectors;
 @Component
 public class CourseDocumentPresenter {
 
-    public CourseDocumentDto toDto(CourseDocument document) {
+    public CourseDocumentDto toDto(CourseDocumentResult document) {
         if (document == null) {
             return null;
         }
@@ -31,7 +32,7 @@ public class CourseDocumentPresenter {
                 .build();
     }
 
-    public List<CourseDocumentDto> toDtoList(List<CourseDocument> documents) {
+    public List<CourseDocumentDto> toDtoList(List<CourseDocumentResult> documents) {
         if (documents == null) {
             return Collections.emptyList();
         }
@@ -40,7 +41,7 @@ public class CourseDocumentPresenter {
                 .collect(Collectors.toList());
     }
 
-    public DocumentPreviewDto toPreviewDto(com.example.vieva.application.ports.output.DocumentPreview preview) {
+    public DocumentPreviewDto toPreviewDto(DocumentPreview preview) {
         if (preview == null) {
             return null;
         }

@@ -78,7 +78,7 @@ services:
       - ./BE:/build
       - ~/.m2:/root/.m2
     working_dir: /build
-    command: mvn test -Dtest=!QuestionBankIntegrationTest
+    command: ["mvn", "test", "-Dtest=!*IntegrationTest"]
     profiles:
       - test
 

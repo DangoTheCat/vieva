@@ -1,6 +1,6 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.domain.entities.LecturerSubject;
+import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 @Component
 public class LecturerSubjectPresenter {
 
-    public LecturerSubjectDto toDto(LecturerSubject entity) {
+    public LecturerSubjectDto toDto(LecturerSubjectResult entity) {
         if (entity == null) {
             return null;
         }
@@ -25,7 +25,7 @@ public class LecturerSubjectPresenter {
                 .build();
     }
 
-    public List<LecturerSubjectDto> toDtoList(List<LecturerSubject> list) {
+    public List<LecturerSubjectDto> toDtoList(List<LecturerSubjectResult> list) {
         if (list == null) {
             return Collections.emptyList();
         }

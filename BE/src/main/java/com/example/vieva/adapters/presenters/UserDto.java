@@ -1,6 +1,5 @@
 package com.example.vieva.adapters.presenters;
 
-import com.example.vieva.domain.entities.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +20,7 @@ public class UserDto {
     private String fullName;
     private String phoneNumber;
     private String avatarUrl;
-    private UserStatus status;
+    private String status;
     /** The account's single role code. */
     private String role;
     /** Same role as a one-element set; kept for existing clients. */

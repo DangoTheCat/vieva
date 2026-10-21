@@ -7,13 +7,11 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionBankItemDt
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionDetailDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.QuestionVersionDto;
 import com.example.vieva.adapters.presenters.QuestionBankPresenter;
-import com.example.vieva.application.ports.input.CreateManualQuestionCommand;
-import com.example.vieva.application.ports.input.QuestionBankSearchCriteria;
-import com.example.vieva.application.usecases.question.QuestionAuthoringService;
-import com.example.vieva.application.usecases.question.QuestionBankService;
-import com.example.vieva.domain.entities.BloomLevel;
-import com.example.vieva.domain.entities.QuestionLifecycleStatus;
-import com.example.vieva.domain.entities.User;
+import com.example.vieva.application.ports.input.common.ActorView;
+import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
+import com.example.vieva.application.ports.input.question.QuestionAuthoringService;
+import com.example.vieva.application.ports.input.question.QuestionBankSearchCriteria;
+import com.example.vieva.application.ports.input.question.QuestionBankService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -48,7 +46,7 @@ public class LecturerQuestionController {
     public ResponseEntity<QuestionVersionDto> createManualQuestion(
             @PathVariable UUID subjectId,
             @Valid @RequestBody CreateManualQuestionRequest request,
-            @AuthenticationPrincipal User currentUser) {
+            @AuthenticationPrincipal ActorView currentUser) {
         CreateManualQuestionCommand command = CreateManualQuestionCommand.builder()
                 .topicId(request.topicId())
                 .content(request.content())
@@ -66,8 +64,8 @@ public class LecturerQuestionController {
     public ResponseEntity<PageResponse<QuestionBankItemDto>> searchBank(
             @PathVariable UUID subjectId,
             @RequestParam(required = false) UUID topicId,
-            @RequestParam(required = false) BloomLevel bloomLevel,
-            @RequestParam(required = false) QuestionLifecycleStatus status,
+            @RequestParam(required = false) String bloomLevel,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -103,7 +101,7 @@ public class LecturerQuestionController {
     @PostMapping("/questions/{questionId}/versions")
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestion(#questionId, authentication)")
     public ResponseEntity<QuestionVersionDto> createDraftVersion(@PathVariable UUID questionId,
-                                                                 @AuthenticationPrincipal User currentUser) {
+                                                                 @AuthenticationPrincipal ActorView currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(presenter.toDto(authoringService.createDraftFromApproved(questionId, CurrentUser.id(currentUser))));
     }
@@ -111,7 +109,7 @@ public class LecturerQuestionController {
     @PostMapping("/questions/{questionId}/archive")
     @PreAuthorize("@courseSecurityEvaluator.canAccessQuestion(#questionId, authentication)")
     public ResponseEntity<MessageResponse> archiveQuestion(@PathVariable UUID questionId,
-                                                           @AuthenticationPrincipal User currentUser) {
+                                                           @AuthenticationPrincipal ActorView currentUser) {
         bankService.archive(questionId, CurrentUser.id(currentUser));
         return ResponseEntity.ok(new MessageResponse("Question archived"));
     }
