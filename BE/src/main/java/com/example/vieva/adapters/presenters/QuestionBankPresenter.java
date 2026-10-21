@@ -10,7 +10,7 @@ import com.example.vieva.adapters.presenters.QuestionBankDtos.RubricCriterionDto
 import com.example.vieva.adapters.presenters.QuestionBankDtos.RubricDto;
 import com.example.vieva.adapters.presenters.QuestionBankDtos.TopicDto;
 import com.example.vieva.application.ports.input.catalog.TopicResult;
-import com.example.vieva.application.ports.input.common.PageResult;
+import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.input.generation.GenerationRequestResult;
 import com.example.vieva.application.ports.input.generation.GenerationResult;
 import com.example.vieva.application.ports.input.question.PerformanceLevelResult;
