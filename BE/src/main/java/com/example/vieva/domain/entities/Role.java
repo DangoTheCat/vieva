@@ -1,6 +1,6 @@
 package com.example.vieva.domain.entities;
 
-import lombok.AllArgsConstructor;
+import lombok.*;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -10,6 +10,7 @@ import lombok.ToString;
 import java.time.Instant;
 
 @Getter
+@Setter
 @EqualsAndHashCode
 @ToString
 @Builder(toBuilder = true)
