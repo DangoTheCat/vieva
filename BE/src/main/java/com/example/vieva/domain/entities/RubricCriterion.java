@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +29,14 @@ public class RubricCriterion {
     private List<PerformanceLevel> performanceLevels = new ArrayList<>();
     private Integer orderIndex;
     private Instant createdAt;
+
+    public List<PerformanceLevel> getPerformanceLevels() {
+        return performanceLevels != null ? Collections.unmodifiableList(performanceLevels) : Collections.emptyList();
+    }
+
+    public void setPerformanceLevels(List<PerformanceLevel> performanceLevels) {
+        this.performanceLevels = performanceLevels != null ? new ArrayList<>(performanceLevels) : new ArrayList<>();
+    }
 
     public static RubricCriterion create(UUID rubricId, String name, String description, BigDecimal maxPoints,
                                          List<PerformanceLevel> levels, int orderIndex) {
