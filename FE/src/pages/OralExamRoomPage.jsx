@@ -267,6 +267,13 @@ export function OralExamRoomPage({
             if (detail.currentQuestionIndex != null) {
               setActiveQuestionIndex(detail.currentQuestionIndex);
             }
+            if (detail.remainingSeconds != null && detail.remainingSeconds > 0) {
+              setSecondsLeft(detail.remainingSeconds);
+            }
+            if (detail.graceDeadline) {
+              const diffSec = Math.max(0, Math.floor((new Date(detail.graceDeadline).getTime() - Date.now()) / 1000));
+              setReconnectGraceLeft(diffSec);
+            }
             if (detail.status && ['READY', 'IN_PROGRESS', 'RECONNECTING', 'FINALIZING', 'COMPLETED', 'INTERRUPTED'].includes(detail.status)) {
               setExamStage(detail.status);
               if (detail.status === 'COMPLETED') {
@@ -514,6 +521,9 @@ export function OralExamRoomPage({
     try {
       if (currentAttemptId) {
         const sessionRes = await oralExamApi.startExamSession(currentAttemptId, true);
+        if (sessionRes?.remainingSeconds != null && sessionRes.remainingSeconds > 0) {
+          setSecondsLeft(sessionRes.remainingSeconds);
+        }
         if (sessionRes?.currentQuestionText) {
           setQuestions((prev) => {
             const updated = [...prev];
@@ -551,14 +561,23 @@ export function OralExamRoomPage({
 
     if (attemptId) {
       try {
-        await oralExamApi.disconnectExam(attemptId);
+        const disRes = await oralExamApi.disconnectExam(attemptId);
+        if (disRes?.graceDeadline) {
+          const diffSec = Math.max(0, Math.floor((new Date(disRes.graceDeadline).getTime() - Date.now()) / 1000));
+          setReconnectGraceLeft(diffSec);
+        } else {
+          setReconnectGraceLeft(120);
+        }
+        if (disRes?.remainingSeconds != null && disRes.remainingSeconds > 0) {
+          setSecondsLeft(disRes.remainingSeconds);
+        }
       } catch (err) {
         console.warn('oralExamApi.disconnectExam fallback:', err);
+        setReconnectGraceLeft(120);
       }
+    } else {
+      setReconnectGraceLeft(120);
     }
-
-    // Timer pauses automatically because examStage !== 'IN_PROGRESS'
-    setReconnectGraceLeft(120);
     setExamStage('RECONNECTING');
 
     if (showToast) {
@@ -578,7 +597,10 @@ export function OralExamRoomPage({
 
     try {
       if (attemptId) {
-        await oralExamApi.reconnectExam(attemptId);
+        const reconRes = await oralExamApi.reconnectExam(attemptId);
+        if (reconRes?.remainingSeconds != null && reconRes.remainingSeconds > 0) {
+          setSecondsLeft(reconRes.remainingSeconds);
+        }
       }
       setExamStage('IN_PROGRESS');
       if (showToast) {
