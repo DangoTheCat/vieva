@@ -125,7 +125,7 @@ public class ExamAttempt {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Cannot reconnect: grace period has expired");
         }
-        if (this.remainingSeconds == null || this.remainingSeconds <= 0) {
+        if (this.remainingSeconds != null && this.remainingSeconds <= 0) {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Cannot reconnect: remaining exam time has expired");
         }
