@@ -23,4 +23,12 @@ public class DocumentChunk {
     private float[] embedding;
     private String metadataJson;
     private Instant createdAt;
+
+    public float[] getEmbedding() {
+        return embedding != null ? embedding.clone() : null;
+    }
+
+    public void setEmbedding(float[] embedding) {
+        this.embedding = embedding != null ? embedding.clone() : null;
+    }
 }
