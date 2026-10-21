@@ -175,6 +175,8 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
             } else {
                 // All questions finished, trigger grading and complete attempt
                 isAttemptFinished = true;
+                attempt.finish();
+                examAttemptRepository.save(attempt);
                 List<ExamTurn> finalizedTurns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
                 attemptGradingService.gradeAndCompleteAttempt(attempt, finalizedTurns);
             }
