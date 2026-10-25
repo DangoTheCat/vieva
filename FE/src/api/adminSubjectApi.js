@@ -36,9 +36,5 @@ export const adminSubjectApi = {
 
   getSubjectsByLecturer(lecturerId) {
     return apiClient.get(`/admin/lecturer-subjects/by-lecturer/${lecturerId}`);
-  },
-
-  assignSubjectHead(subjectId, lecturerId) {
-    return apiClient.put(`/admin/lecturer-subjects/by-subject/${subjectId}/head`, { lecturerId });
   }
 };

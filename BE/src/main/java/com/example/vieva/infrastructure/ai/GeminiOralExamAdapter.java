@@ -3,6 +3,7 @@ package com.example.vieva.infrastructure.ai;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.AttemptGradingGateway;
 import com.example.vieva.application.ports.output.AttemptGradingResult;
+import com.example.vieva.application.ports.output.VivaEvaluationContext;
 import com.example.vieva.application.ports.output.VivaEvaluationGateway;
 import com.example.vieva.application.ports.output.VivaEvaluationResult;
 import com.example.vieva.domain.entities.ExamAttempt;
@@ -72,8 +73,13 @@ public class GeminiOralExamAdapter implements VivaEvaluationGateway, AttemptGrad
 
     @Override
     public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric) {
+        return evaluateTurn(turn, rubric, VivaEvaluationContext.empty());
+    }
+
+    @Override
+    public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric, VivaEvaluationContext context) {
         if (turn.getTranscriptText() == null || turn.getTranscriptText().trim().isEmpty()) {
-            return fallbackGrader.evaluateTurn(turn, rubric);
+            return fallbackGrader.evaluateTurn(turn, rubric, context);
         }
 
         try {
@@ -98,12 +104,22 @@ public class GeminiOralExamAdapter implements VivaEvaluationGateway, AttemptGrad
             userMessageBuilder.append("CÂU HỎI THI: ").append(turn.getQuestionText()).append("\n\n");
             userMessageBuilder.append("CÂU TRẢ LỜI CỦA SINH VIÊN: ").append(turn.getTranscriptText()).append("\n\n");
 
-            if (rubric != null) {
+            if (context != null && context.expectedAnswer() != null && !context.expectedAnswer().isBlank()) {
+                userMessageBuilder.append("ĐÁP ÁN KỲ VỌNG / GỢI Ý ĐÁNH GIÁ:\n").append(context.expectedAnswer()).append("\n\n");
+            }
+
+            if (context != null && context.rubricJson() != null && !context.rubricJson().isBlank() && !context.rubricJson().equals("[]")) {
+                userMessageBuilder.append("TIÊU CHÍ RUBRIC (FROZEN SNAPSHOT):\n").append(context.rubricJson()).append("\n\n");
+            } else if (rubric != null) {
                 userMessageBuilder.append("THÔNG TIN RUBRIC ĐÁNH GIÁ:\n");
                 userMessageBuilder.append("- Tên Rubric: ").append(rubric.getRubricName()).append("\n");
                 if (rubric.getDescription() != null) {
-                    userMessageBuilder.append("- Mô tả: ").append(rubric.getDescription()).append("\n");
+                    userMessageBuilder.append("- Mô tả: ").append(rubric.getDescription()).append("\n\n");
                 }
+            }
+
+            if (context != null && context.ragContext() != null && !context.ragContext().isBlank()) {
+                userMessageBuilder.append("TÀI LIỆU THAM KHẢO (SCOPED RAG):\n").append(context.ragContext()).append("\n\n");
             }
 
             var response = chatModel.chat(ChatRequest.builder().messages(
@@ -118,9 +134,14 @@ public class GeminiOralExamAdapter implements VivaEvaluationGateway, AttemptGrad
 
             TurnEvalLlmResponse llmPayload = objectMapper.readValue(extractJson(raw), TurnEvalLlmResponse.class);
 
-            BigDecimal score = llmPayload.score() != null
-                    ? BigDecimal.valueOf(llmPayload.score()).setScale(2, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            Double rawScore = llmPayload.score();
+            BigDecimal score;
+            if (rawScore == null || !Double.isFinite(rawScore)) {
+                score = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            } else {
+                double clamped = Math.max(0.0, Math.min(10.0, rawScore));
+                score = BigDecimal.valueOf(clamped).setScale(2, RoundingMode.HALF_UP);
+            }
 
             String rubricEvalStr = llmPayload.rubricEvaluations() != null
                     ? objectMapper.writeValueAsString(llmPayload.rubricEvaluations())
@@ -137,7 +158,7 @@ public class GeminiOralExamAdapter implements VivaEvaluationGateway, AttemptGrad
 
         } catch (Exception ex) {
             log.warn("Gemini oral exam turn evaluation failed: {}, using RuleBasedGraderFallback", ex.getMessage());
-            return fallbackGrader.evaluateTurn(turn, rubric);
+            return fallbackGrader.evaluateTurn(turn, rubric, context);
         }
     }
 
@@ -196,9 +217,14 @@ public class GeminiOralExamAdapter implements VivaEvaluationGateway, AttemptGrad
 
             GradeAttemptLlmResponse llmPayload = objectMapper.readValue(extractJson(raw), GradeAttemptLlmResponse.class);
 
-            BigDecimal totalScore = llmPayload.totalScore() != null
-                    ? BigDecimal.valueOf(llmPayload.totalScore()).setScale(2, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            Double rawTotal = llmPayload.totalScore();
+            BigDecimal totalScore;
+            if (rawTotal == null || !Double.isFinite(rawTotal)) {
+                totalScore = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            } else {
+                double clamped = Math.max(0.0, Math.min(10.0, rawTotal));
+                totalScore = BigDecimal.valueOf(clamped).setScale(2, RoundingMode.HALF_UP);
+            }
 
             GradeLevel gradeLevel;
             try {

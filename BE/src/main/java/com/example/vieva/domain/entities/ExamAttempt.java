@@ -17,6 +17,7 @@ public class ExamAttempt {
     private UUID id;
     private UUID studentId;
     private UUID subjectId;
+    private UUID examId;
     private AttemptStatus status;
     private Integer currentQuestionIndex;
     private Integer totalQuestions;
@@ -60,6 +61,12 @@ public class ExamAttempt {
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+    }
+
+    public static ExamAttempt initForExam(UUID examId, UUID studentId, UUID subjectId, int totalQuestions, int remainingSeconds) {
+        ExamAttempt attempt = init(studentId, subjectId, totalQuestions, remainingSeconds);
+        attempt.setExamId(examId);
+        return attempt;
     }
 
     @Deprecated
@@ -166,6 +173,9 @@ public class ExamAttempt {
     }
 
     public void finish() {
+        if (this.status == AttemptStatus.FINALIZING || this.status == AttemptStatus.COMPLETED) {
+            return;
+        }
         ensureInProgress();
         this.status = AttemptStatus.FINALIZING;
         this.updatedAt = Instant.now();

@@ -3,6 +3,7 @@ package com.example.vieva.application.ports.output;
 import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.common.SubjectSearchCriteria;
 import com.example.vieva.domain.entities.Subject;
+import com.example.vieva.domain.entities.SubjectStatus;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,6 +19,7 @@ public interface SubjectRepository {
     Subject saveAndFlush(Subject subject);
     Optional<Subject> findById(UUID subjectId);
     Optional<Subject> findByIdForUpdate(UUID subjectId);
+    List<Subject> findByStatus(SubjectStatus status);
     List<Subject> findAllByIds(Collection<UUID> subjectIds);
     Optional<Subject> findBySubjectCode(String subjectCode);
     boolean existsBySubjectCode(String subjectCode);

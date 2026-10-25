@@ -14,7 +14,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class SubjectDto {
     private UUID subjectId;
-    private UUID headLecturerId;
     private String subjectCode;
     private String subjectName;
     private String description;

@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -45,6 +47,18 @@ public class LocalFileStorageGateway implements FileStoragePort {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot store uploaded file", e);
         }
+
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == STATUS_ROLLED_BACK) {
+                        delete(key);
+                    }
+                }
+            });
+        }
+
         return new StoredFile(key, "local:" + key);
     }
 
@@ -54,6 +68,21 @@ public class LocalFileStorageGateway implements FileStoragePort {
             return Files.readAllBytes(resolve(storageKey));
         } catch (IOException e) {
             throw new UncheckedIOException("Stored file is missing or unreadable", e);
+        }
+    }
+
+    @Override
+    public void delete(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) {
+            return;
+        }
+        try {
+            Path target = resolve(storageKey);
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            log.warn("Failed to delete stored local file: {}", storageKey, e);
+        } catch (IllegalArgumentException e) {
+            log.warn("Skipping deletion of invalid storage key: {}", storageKey);
         }
     }
 

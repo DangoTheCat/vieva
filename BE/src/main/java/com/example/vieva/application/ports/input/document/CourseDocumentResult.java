@@ -15,6 +15,7 @@ import java.util.UUID;
 public class CourseDocumentResult {
     private UUID documentId;
     private UUID subjectId;
+    private UUID topicId;
     private UUID uploadedBy;
     private String fileName;
     private String fileUrl;

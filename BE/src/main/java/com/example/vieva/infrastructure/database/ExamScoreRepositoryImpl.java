@@ -28,10 +28,25 @@ public class ExamScoreRepositoryImpl implements ExamScoreRepository {
     }
 
     @Override
+    public Optional<ExamScore> findById(UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return jpaRepository.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<ExamScore> findByAttemptId(UUID attemptId) {
         if (attemptId == null) {
             return Optional.empty();
         }
         return jpaRepository.findByAttemptId(attemptId).map(mapper::toDomain);
+    }
+
+    @Override
+    public java.util.List<ExamScore> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(mapper::toDomain)
+                .collect(java.util.stream.Collectors.toList());
     }
 }

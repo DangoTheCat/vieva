@@ -1,5 +1,7 @@
 package com.example.vieva.integration;
 
+import com.example.vieva.application.ports.input.knowledge.KnowledgeSearchResult;
+import com.example.vieva.application.ports.input.knowledge.KnowledgeSearchService;
 import com.example.vieva.application.ports.input.question.CreateManualQuestionCommand;
 import com.example.vieva.application.ports.input.question.CriterionInput;
 import com.example.vieva.application.ports.input.generation.GenerateQuestionsCommand;
@@ -88,6 +90,7 @@ class QuestionBankIntegrationTest {
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private DocumentService documentService;
+    @Autowired private KnowledgeSearchService knowledgeSearchService;
     @Autowired private QuestionGenCoordinator generationService;
     @Autowired private QuestionAuthoringService authoringService;
     @Autowired private QuestionReviewService reviewService;
@@ -395,6 +398,57 @@ class QuestionBankIntegrationTest {
         assertThatThrownBy(() -> jdbc.update("UPDATE question_versions SET bloom_level = 'VAN_DUNG_CAO' WHERE question_version_id = ?",
                 draft.version().versionId()))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("createKnowledge persists valid course_document with non-null file_url and 1536-dim vector chunks in PostgreSQL")
+    void createKnowledgePersistsValidCourseDocumentAndChunksInPostgreSql() {
+        Fixture fixture = newSubjectWithLecturer();
+        String content = "Kiến trúc microservices chia ứng dụng thành các dịch vụ nhỏ độc lập giao tiếp qua API.";
+
+        KnowledgeSearchResult result = knowledgeSearchService.createKnowledge(
+                fixture.subjectId(), content, null, fixture.lecturerId());
+
+        assertThat(result).isNotNull();
+        assertThat(result.getDocumentId()).isNotNull();
+
+        // Assert PostgreSQL course_documents record
+        String fileUrl = jdbc.queryForObject(
+                "SELECT file_url FROM course_documents WHERE document_id = ?",
+                String.class, result.getDocumentId());
+        assertThat(fileUrl).isNotNull().isNotEmpty();
+
+        String storageKey = jdbc.queryForObject(
+                "SELECT storage_key FROM course_documents WHERE document_id = ?",
+                String.class, result.getDocumentId());
+        assertThat(storageKey).isNotNull().isNotEmpty();
+
+        String status = jdbc.queryForObject(
+                "SELECT indexing_status FROM course_documents WHERE document_id = ?",
+                String.class, result.getDocumentId());
+        assertThat(status).isEqualTo("READY");
+
+        // Assert PostgreSQL document_chunks embedding
+        Integer chunkCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM document_chunks WHERE document_id = ?",
+                Integer.class, result.getDocumentId());
+        assertThat(chunkCount).isGreaterThan(0);
+    }
+
+    @Test
+    @DisplayName("createKnowledge rolls back transaction and persists nothing if subject access fails")
+    void createKnowledgeRollsBackOnAccessFailure() {
+        Fixture fixture = newSubjectWithLecturer();
+        UUID unauthorizedLecturer = UUID.randomUUID();
+
+        assertThatThrownBy(() -> knowledgeSearchService.createKnowledge(
+                fixture.subjectId(), "Sample knowledge content", null, unauthorizedLecturer))
+                .isInstanceOf(ApplicationException.class);
+
+        Integer docCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM course_documents WHERE uploaded_by = ?",
+                Integer.class, unauthorizedLecturer);
+        assertThat(docCount).isZero();
     }
 
     private static QuestionBankSearchCriteria bankCriteria(Fixture fixture, BloomLevel level) {

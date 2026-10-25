@@ -17,6 +17,7 @@ public class UpdateUserByAdminRequest {
     private String fullName;
     private String phoneNumber;
     private String status;
-    /** Single role code (an account has exactly one role). */
     private String roleCode;
+    private String email;
+    private String userCode;
 }

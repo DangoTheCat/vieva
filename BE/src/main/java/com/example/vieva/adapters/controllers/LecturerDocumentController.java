@@ -34,6 +34,11 @@ public class LecturerDocumentController {
     private final DocumentService documentIndexingService;
     private final CourseDocumentPresenter presenter;
 
+    public record UpdateDocumentMetadataApiRequest(
+            UUID topicId,
+            String metadataJson
+    ) {}
+
     @PostMapping(value = "/subjects/{subjectId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
     public ResponseEntity<CourseDocumentDto> uploadDocument(
@@ -44,7 +49,6 @@ public class LecturerDocumentController {
         if (file == null || file.isEmpty()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Uploaded file must not be empty");
         }
-        // Fail fast on size before loading bytes into heap (OOM guard for concurrent 20MB uploads).
         if (file.getSize() > 20L * 1024 * 1024) {
             throw new ApplicationException(ErrorCode.FILE_TOO_LARGE, "File exceeds the maximum size of 20 MB");
         }
@@ -67,6 +71,21 @@ public class LecturerDocumentController {
     @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
     public ResponseEntity<CourseDocumentDto> getDocumentById(@PathVariable UUID documentId) {
         return ResponseEntity.ok(presenter.toDto(documentIndexingService.getDocumentById(documentId)));
+    }
+
+    @PatchMapping("/documents/{documentId}")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessDocument(#documentId, authentication)")
+    public ResponseEntity<CourseDocumentDto> updateDocumentMetadata(
+            @PathVariable UUID documentId,
+            @RequestBody(required = false) UpdateDocumentMetadataApiRequest request,
+            @AuthenticationPrincipal ActorView currentUser) {
+        CourseDocumentResult result = documentIndexingService.updateDocumentMetadata(
+                documentId,
+                request != null ? request.topicId() : null,
+                request != null ? request.metadataJson() : null,
+                CurrentUser.id(currentUser)
+        );
+        return ResponseEntity.ok(presenter.toDto(result));
     }
 
     @GetMapping("/documents/{documentId}/preview")

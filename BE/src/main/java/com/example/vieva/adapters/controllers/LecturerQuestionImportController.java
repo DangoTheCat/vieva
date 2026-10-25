@@ -1,10 +1,15 @@
 package com.example.vieva.adapters.controllers;
 
+import com.example.vieva.adapters.controllers.request.ImportTextQuestionsApiRequest;
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.importing.ImportReport;
 import com.example.vieva.application.ports.input.importing.QuestionImportService;
+import com.example.vieva.application.ports.input.importing.TextQuestionImportCommand;
+import com.example.vieva.application.ports.input.importing.TextQuestionImportResult;
+import com.example.vieva.application.ports.input.importing.TextQuestionImportService;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -12,12 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -36,6 +36,7 @@ public class LecturerQuestionImportController {
             MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
     private final QuestionImportService importService;
+    private final TextQuestionImportService textQuestionImportService;
 
     @GetMapping("/import-templates/questions")
     public ResponseEntity<byte[]> downloadTemplate(@RequestParam(defaultValue = "xlsx") String format) {
@@ -61,7 +62,6 @@ public class LecturerQuestionImportController {
         if (file == null || file.isEmpty()) {
             throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "The file is empty");
         }
-        // Fail fast before loading bytes into heap (import limit 5MB).
         if (file.getSize() > 5L * 1024 * 1024) {
             throw new ApplicationException(ErrorCode.IMPORT_LIMIT_EXCEEDED, "The file exceeds 5120 KB");
         }
@@ -71,5 +71,22 @@ public class LecturerQuestionImportController {
         } catch (IOException e) {
             throw new ApplicationException(ErrorCode.IMPORT_FILE_INVALID, "Failed to read uploaded file");
         }
+    }
+
+    @PostMapping("/subjects/{subjectId}/questions/import-text")
+    @PreAuthorize("@courseSecurityEvaluator.canAccessSubject(#subjectId, authentication)")
+    public ResponseEntity<TextQuestionImportResult> importQuestionsFromText(
+            @PathVariable UUID subjectId,
+            @Valid @RequestBody ImportTextQuestionsApiRequest request,
+            @AuthenticationPrincipal ActorView currentUser) {
+        UUID userId = CurrentUser.id(currentUser);
+        TextQuestionImportCommand cmd = TextQuestionImportCommand.builder()
+                .subjectId(subjectId)
+                .text(request.getText())
+                .topicId(request.getTopicId())
+                .bloomLevel(request.getBloomLevel())
+                .rubricTemplateId(request.getRubricTemplateId())
+                .build();
+        return ResponseEntity.ok(textQuestionImportService.importTextQuestions(cmd, userId));
     }
 }

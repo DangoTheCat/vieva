@@ -64,6 +64,16 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
+    public List<Subject> findByStatus(SubjectStatus status) {
+        if (status == null) {
+            return List.of();
+        }
+        return subjectJpaRepository.findByStatus(status).stream()
+                .map(subjectMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Subject> findAllByIds(java.util.Collection<UUID> subjectIds) {
         if (subjectIds == null || subjectIds.isEmpty()) {
             return List.of();

@@ -74,8 +74,21 @@ public class ExamTurnJpaEntity implements Persistable<UUID> {
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "rubric_evaluations", columnDefinition = "jsonb")
     private String rubricEvaluations;
+
+    @Column(name = "teacher_score", precision = 5, scale = 2)
+    private BigDecimal teacherScore;
+
+    @Column(name = "teacher_feedback", columnDefinition = "TEXT")
+    private String teacherFeedback;
+
+    @Column(name = "teacher_id")
+    private UUID teacherId;
+
+    @Column(name = "teacher_graded_at")
+    private Instant teacherGradedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -33,6 +33,10 @@ class GlobalExceptionHandlerTest {
             Map.entry(ErrorCode.CRITERION_NOT_FOUND, HttpStatus.NOT_FOUND),
             Map.entry(ErrorCode.AI_RULE_NOT_FOUND, HttpStatus.NOT_FOUND),
             Map.entry(ErrorCode.NOTIFICATION_NOT_FOUND, HttpStatus.NOT_FOUND),
+            Map.entry(ErrorCode.RUBRIC_TEMPLATE_NOT_FOUND, HttpStatus.NOT_FOUND),
+            Map.entry(ErrorCode.EXAM_NOT_FOUND, HttpStatus.NOT_FOUND),
+            Map.entry(ErrorCode.ATTEMPT_NOT_FOUND, HttpStatus.NOT_FOUND),
+            Map.entry(ErrorCode.TURN_NOT_FOUND, HttpStatus.NOT_FOUND),
 
             // 401 UNAUTHORIZED
             Map.entry(ErrorCode.UNAUTHENTICATED, HttpStatus.UNAUTHORIZED),
@@ -44,6 +48,8 @@ class GlobalExceptionHandlerTest {
             Map.entry(ErrorCode.PASSWORD_CHANGE_REQUIRED, HttpStatus.FORBIDDEN),
             Map.entry(ErrorCode.NOT_SUBJECT_HEAD, HttpStatus.FORBIDDEN),
             Map.entry(ErrorCode.NOT_QUESTION_AUTHOR, HttpStatus.FORBIDDEN),
+            Map.entry(ErrorCode.ATTEMPT_NOT_OWNED, HttpStatus.FORBIDDEN),
+            Map.entry(ErrorCode.GRADING_FORBIDDEN, HttpStatus.FORBIDDEN),
 
             // 409 CONFLICT
             Map.entry(ErrorCode.VERSION_NOT_UNDER_REVIEW, HttpStatus.CONFLICT),
@@ -60,6 +66,11 @@ class GlobalExceptionHandlerTest {
             Map.entry(ErrorCode.DOCUMENT_NOT_READY, HttpStatus.CONFLICT),
             Map.entry(ErrorCode.REGENERATION_NOT_SUPPORTED, HttpStatus.CONFLICT),
             Map.entry(ErrorCode.SUBJECT_INACTIVE, HttpStatus.CONFLICT),
+            Map.entry(ErrorCode.CANNOT_DELETE_STUDENT_WITH_ATTEMPTS, HttpStatus.CONFLICT),
+            Map.entry(ErrorCode.EXAM_NOT_DRAFT, HttpStatus.CONFLICT),
+            Map.entry(ErrorCode.EXAM_CLOSED, HttpStatus.CONFLICT),
+            Map.entry(ErrorCode.EXAM_NOT_ACTIVE, HttpStatus.CONFLICT),
+            Map.entry(ErrorCode.STUDENT_ALREADY_ATTEMPTED, HttpStatus.CONFLICT),
 
             // 422 UNPROCESSABLE_ENTITY
             Map.entry(ErrorCode.RUBRIC_SCORE_MISMATCH, HttpStatus.UNPROCESSABLE_ENTITY),
@@ -73,6 +84,8 @@ class GlobalExceptionHandlerTest {
             Map.entry(ErrorCode.IMPORT_FILE_INVALID, HttpStatus.UNPROCESSABLE_ENTITY),
             Map.entry(ErrorCode.INVALID_BLOOM_DISTRIBUTION, HttpStatus.UNPROCESSABLE_ENTITY),
             Map.entry(ErrorCode.DOCUMENT_SUBJECT_MISMATCH, HttpStatus.UNPROCESSABLE_ENTITY),
+            Map.entry(ErrorCode.EXAM_QUESTION_MISMATCH, HttpStatus.UNPROCESSABLE_ENTITY),
+            Map.entry(ErrorCode.MAX_FOLLOWUPS_EXCEEDED, HttpStatus.UNPROCESSABLE_ENTITY),
 
             // 413 PAYLOAD_TOO_LARGE
             Map.entry(ErrorCode.FILE_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE),
@@ -108,7 +121,10 @@ class GlobalExceptionHandlerTest {
             Map.entry(ErrorCode.CANNOT_ASSIGN_DUPLICATE, HttpStatus.BAD_REQUEST),
             Map.entry(ErrorCode.TOPIC_NOT_IN_SUBJECT, HttpStatus.BAD_REQUEST),
             Map.entry(ErrorCode.MULTIPLE_ROLES_NOT_ALLOWED, HttpStatus.BAD_REQUEST),
-            Map.entry(ErrorCode.DOCUMENT_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
+            Map.entry(ErrorCode.DOCUMENT_ALREADY_EXISTS, HttpStatus.BAD_REQUEST),
+            Map.entry(ErrorCode.INVALID_SPEECH_VOICE, HttpStatus.BAD_REQUEST),
+            Map.entry(ErrorCode.INVALID_SPEECH_LOCALE, HttpStatus.BAD_REQUEST),
+            Map.entry(ErrorCode.INVALID_SCORE, HttpStatus.BAD_REQUEST)
     );
 
     @Test

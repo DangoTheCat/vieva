@@ -272,7 +272,7 @@ HTTP JSON ← Presenter ← Response Model ◀───────────�
 
 ### 9.3. Bảng quy tắc kiến trúc (R1–R9)
 
-Hệ thống được kiểm tra tự động bởi 9 luật ArchUnit (`BE/src/test/java/com/example/vieva/architecture/ArchitectureTest.java`), thực thi 100% không freeze:
+Bảng dưới đây là các quy tắc kiến trúc mục tiêu để review. Hiện repository chưa có `ArchitectureTest.java` hoặc dependency ArchUnit; không coi bảng này là các kiểm tra tự động đã được thực thi.
 
 | Luật | Tên luật ArchUnit | Ý nghĩa tóm tắt |
 |---|---|---|
@@ -295,7 +295,7 @@ Hệ thống được kiểm tra tự động bởi 9 luật ArchUnit (`BE/src/t
 
 1. **JSON Snapshot Tests**: Mọi thay đổi về cấu trúc DTO / contract phải có snapshot tests bảo vệ (`JsonContractSnapshotTest`, `AiPromptAndGatewaySnapshotTest`), đảm bảo JSON payload và HTTP status code không bao giờ bị phá vỡ ngoài ý muốn.
 2. **Không nhét logic nghiệp vụ vào mock (`No business logic in mocks`)**: Tuyệt đối không dùng `lenient().when(...).thenAnswer(...)` trong mock để tự parse enum, validate tham số hay tái hiện logic nghiệp vụ. Muốn kiểm tra logic thì phải dùng use case / service thật với các output port được mock.
-3. **Luôn chạy `mvnw clean test`**: Trước khi commit và tạo PR, bắt buộc chạy `mvnw clean test` để kiểm tra toàn bộ 442+ bài test (unit tests, contract snapshots, integration tests và toàn bộ 9 luật ArchUnit).
+3. **Luôn chạy `mvnw clean test`**: Trước khi commit và tạo PR, bắt buộc chạy `mvnw clean test` để kiểm tra toàn bộ unit tests, contract snapshots và integration tests hiện có. Quy tắc kiến trúc ở mục 9.3 được review riêng, chưa có bộ ArchUnit tự động.
 
 ---
 
@@ -312,9 +312,9 @@ Hệ thống được kiểm tra tự động bởi 9 luật ArchUnit (`BE/src/t
 - Backend studio: `/api/v1/lecturer/studio`. FE hiện tại chưa tích hợp nút gửi duyệt hay chuông.
 - Upload: `POST /subjects/{subjectId}/documents` (multipart `file`) trả `202 UPLOADED`; worker chuyển `INDEXING → READY`, hoặc `FAILED` nếu lỗi. Poll endpoint document hiện có. `POST /documents/{documentId}/archive` ngừng dùng tài liệu trong retrieval và giữ nguyên nguồn lịch sử.
 - Sinh một câu: `POST /questions/generate` với `{ "topicId": "<uuid>", "difficulty": "APPLY", "documentIds": ["<uuid>"] }`. Bỏ `documentIds` để dùng tài liệu READY của môn; `difficulty` là một trong sáu mã Bloom. Trả `201` với câu hỏi, đáp án và `rubricJson`, tổng điểm 10.0. Batch API cũ tiếp tục hoạt động.
-- Admin chỉ định trưởng bộ môn bằng `PUT /api/v1/admin/lecturer-subjects/by-subject/{subjectId}/head` với `{ "lecturerId": "<uuid>" }`. Người được chọn phải là ROLE_LECTURER còn hoạt động và đang được phân công môn đó. Không tự động chọn trưởng môn cho dữ liệu cũ.
+- Chỉ ADMIN có quyền tạo môn học (`POST /api/v1/admin/subjects`) và phân công/thu hồi giảng viên (`POST|DELETE /api/v1/admin/lecturer-subjects`). Vai trò trưởng bộ môn (head) đã được bãi bỏ hoàn toàn khỏi backend API và UI; giảng viên chỉ thao tác trong phạm vi các môn được admin phân công.
 - Tác giả sửa/xác nhận Bloom rồi `POST /questions/{questionId}/submit-for-review` với `{ "versionId": "<uuid>", "expectedVersion": 0 }`. Lấy lockVersion mới từ response cho bước tiếp theo.
-- Trưởng môn dùng `GET /questions/{questionId}/review?versionId=<uuid>`, sau đó `POST /questions/{questionId}/approve` hoặc `/reject` (thêm `reason`). Chỉ UNDER_REVIEW được approve/reject. Tác giả được sửa REJECTED rồi gửi lại; UNDER_REVIEW bị khóa sửa. Trưởng môn được tự duyệt, ADMIN không có đường tắt duyệt.
+- Quy trình duyệt câu hỏi: Tác giả (người tạo) trực tiếp xem xét và phê duyệt câu hỏi của mình qua `GET /questions/{questionId}/review?versionId=<uuid>`, sau đó `POST /questions/{questionId}/approve` hoặc `/reject` (thêm `reason`). Chỉ trạng thái UNDER_REVIEW mới được approve/reject. Người không phải tác giả sẽ nhận lỗi `NOT_QUESTION_AUTHOR`. Tác giả có thể sửa câu hỏi bị REJECTED rồi submit lại; trạng thái UNDER_REVIEW bị khóa chỉnh sửa nội dung.
 - Thông báo trong DB: `GET /api/v1/notifications?page=0&size=20`, `GET /api/v1/notifications/unread-count`, `PATCH /api/v1/notifications/{id}/read`. Chỉ người nhận được đọc/đánh dấu; thay đổi trạng thái và thông báo commit cùng nhau.
 - Áp dụng `V16__studio_review_and_notifications.sql` thủ công cho database cũ sau khi sao lưu. Không bật Flyway và không reset volume. SQL bảo toàn version/rubric/source, thêm trạng thái và notification. Schema JSON gửi model dùng evidence IDs; quote lưu trong DB luôn lấy nguyên văn từ evidence được chọn.
 
@@ -367,3 +367,4 @@ docker compose up -d postgres
 - [ ] `npm install` và `npm run dev` trong `FE/` → đăng nhập được ở http://localhost:5173
 - [ ] `./mvnw test` pass
 - [ ] Tạo nhánh `feat/...` đầu tiên
+

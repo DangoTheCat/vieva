@@ -132,6 +132,17 @@ class QuestionGenerationServiceImplTest {
                 assembler, new QuestionBankAuditor(auditEventRepository, json), settings);
 
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(true);
+        when(userRepository.findById(any())).thenAnswer(inv -> {
+            java.util.UUID id = inv.getArgument(0);
+            com.example.vieva.domain.entities.User u = com.example.vieva.domain.entities.User.builder()
+                    .userId(id)
+                    .email("lecturer@fpt.edu.vn")
+                    .fullName("Lecturer")
+                    .status(com.example.vieva.domain.entities.UserStatus.ACTIVE)
+                    .build();
+            u.assignRole(com.example.vieva.domain.entities.Role.builder().roleId(2).roleCode("ROLE_LECTURER").build(), null);
+            return java.util.Optional.of(u);
+        });
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(
                 Subject.builder().subjectId(subjectId).subjectName("Cơ sở dữ liệu").build()));
         document = CourseDocument.builder().documentId(UUID.randomUUID()).subjectId(subjectId).fileName("csdl.pdf")

@@ -14,7 +14,6 @@ public final class SubjectResults {
         }
         return SubjectResult.builder()
                 .subjectId(subject.getSubjectId())
-                .headLecturerId(subject.getHeadLecturerId())
                 .subjectCode(subject.getSubjectCode())
                 .subjectName(subject.getSubjectName())
                 .description(subject.getDescription())

@@ -47,6 +47,8 @@ class StudentExamAttemptControllerTest {
     private GetExamAttemptUseCase getExamAttemptUseCase;
     @Mock
     private SubmitTurnAnswerUseCase submitTurnAnswerUseCase;
+    @Mock
+    private StudentExamService studentExamService;
 
     private MockMvc mockMvc;
     private final UUID studentId = UUID.randomUUID();
@@ -62,6 +64,7 @@ class StudentExamAttemptControllerTest {
                 manageExamConnectionUseCase,
                 getExamAttemptUseCase,
                 submitTurnAnswerUseCase,
+                studentExamService,
                 presenter
         );
 
