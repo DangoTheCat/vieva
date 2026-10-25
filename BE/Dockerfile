@@ -8,7 +8,8 @@ RUN mvn dependency:go-offline -B
 
 # Copy source code and build project
 COPY src ./src
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B \
+    && find target -maxdepth 1 -name "*.jar" ! -name "original-*" ! -name "*.original" -exec cp {} /build/app.jar \;
 
 # Stage 2: Minimal runtime image
 FROM eclipse-temurin:17-jre-alpine
@@ -22,8 +23,11 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
 USER appuser
 
 # Copy built artifact from builder stage
-COPY --from=builder /build/target/*.jar app.jar
+COPY --from=builder /build/app.jar app.jar
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+  CMD wget -qO- http://localhost:8080/api/v1/health/readiness || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

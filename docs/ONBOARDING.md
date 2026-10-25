@@ -11,10 +11,12 @@ Tài liệu dành cho dev mới. Làm lần lượt từ trên xuống, mỗi b�
 | Database | PostgreSQL 16 + pgvector (Docker image `pgvector/pgvector:pg16`) | — | `5432` |
 | Backend (BE) | Java 17, Spring Boot 3.4.3, LangChain4j, Maven | `BE/` | `8080` |
 | Frontend (FE) | React 19, Vite 5, Tailwind CSS 3 | `FE/` | `5173` (dev) / `3000` (Docker) |
+| (Tuỳ chọn) TTS | ZeroTTS (CPU, ONNX runtime) | `ai-services/tts` | `8001` |
+| (Tuỳ chọn) STT | faster-whisper (GPU CUDA) | `ai-services/stt` | `8002` |
 
 Ghi chú quan trọng:
 
-- PostgreSQL khởi tạo database mới bằng `BE/src/main/resources/db/init.sh` và các SQL trong `db/migration`. Hibernate dùng `ddl-auto=none`; database hiện có không tự thay đổi.
+- PostgreSQL khởi tạo database mới bằng `BE/src/main/resources/db/init.sh` và các SQL trong `db/migration`. Hibernate dùng `ddl-auto=none`; database hiện có không tự thay đổi. Dự án không sử dụng Flyway.
 - `V10__seed_initial_data.sql` tạo sẵn tài khoản, môn học, câu hỏi mẫu (xem mục 6).
 - AI mặc định chạy ở chế độ **mock** (offline, không cần API key). Chỉ cần key thật khi muốn test với OpenAI.
 - BE theo Clean Architecture: `domain/` → `application/` (use case, port) → `adapters/` (controller) → `infrastructure/` (DB, security, AI, storage).
@@ -70,39 +72,86 @@ openssl rand -base64 48
 
 Gợi ý: đặt `DB_PASSWORD=root` ở máy local. Giá trị này trùng với giá trị mặc định trong `application.properties`, nên khi chạy BE từ IDE bạn không cần khai báo thêm biến môi trường cho DB. Chỉ dùng mật khẩu yếu này ở máy local.
 
-Các biến còn lại (`OPENAI_API_KEY`, `CLOUDINARY_*`) có thể để trống khi dùng chế độ mock.
+Các biến còn lại (`OPENAI_API_KEY`, `CLOUDINARY_*`, `TTS_BASE_URL`) có thể để trống khi dùng cấu hình mặc định hoặc chế độ mock.
 
 ---
 
-## 4. Cách A — Chạy toàn bộ bằng Docker Compose (nhanh nhất, để xem demo)
+## 4. Cách A — Chạy bằng Docker Compose (nhanh nhất, để xem demo)
 
-Chạy ở thư mục gốc:
+Chạy ở thư mục gốc repo.
+
+### 4.1. Lệnh khởi chạy
+
+**Khởi chạy CHỈ Backend + Database (mặc định):**
+
+Mặc định `docker-compose.yml` chỉ khởi chạy `postgres` và `backend` (không cần profile):
 
 ```bash
+docker compose up -d --build postgres backend
+# hoặc ngắn gọn:
 docker compose up -d --build
 ```
 
-Lần đầu mất vài phút (tải image, tải dependency Maven, `npm ci`).
+**Khởi chạy Backend + Database kèm dịch vụ TTS (Text-to-Speech):**
 
-Kiểm tra:
+Dịch vụ `tts-service` (ZeroTTS) chạy trên CPU với ONNX runtime mà không đòi hỏi card đồ họa rời (Nvidia GPU):
+
+```bash
+docker compose --profile tts up -d --build postgres backend tts-service
+# hoặc bật profile tts:
+docker compose --profile tts up -d --build
+```
+
+**Tuỳ chọn khởi chạy kèm Frontend hoặc toàn bộ hệ thống:**
+
+- Chạy thêm Frontend container (profile `frontend`):
+  ```bash
+  docker compose --profile frontend up -d --build
+  ```
+- Chạy toàn bộ hệ thống gồm DB, BE, FE, TTS, STT (profile `full` — lưu ý `stt-service` yêu cầu máy có GPU Nvidia):
+  ```bash
+  docker compose --profile full up -d --build
+  ```
+
+Lần đầu chạy mất vài phút để tải image và build các service.
+
+### 4.2. Kiểm tra trạng thái và Healthcheck
+
+Sau khi khởi chạy:
 
 ```bash
 docker compose ps
 docker compose logs -f backend
 ```
 
-Đợi đến khi log backend có dòng `Started VievaApplication`. Sau đó mở:
+- PostgreSQL container có healthcheck tự động: `pg_isready`.
+- Backend Spring Boot có healthcheck kiểm tra endpoint sức khỏe: `wget -qO- http://localhost:8080/api/v1/health`.
+- Chờ đến khi log backend hiện `Started VievaApplication` và cột `STATUS` hiển thị `healthy`.
 
-- FE: http://localhost:3000 (Nginx tự proxy `/api/*` sang container backend)
-- BE: http://localhost:8080
+Có thể chạy script smoke test kiểm tra tự động:
+- Linux / macOS / Git Bash: `./scripts/docker-smoke.sh`
+- Windows PowerShell: `.\scripts\docker-smoke.ps1`
 
-Dừng:
+Sau đó truy cập:
+- Backend Health API: http://localhost:8080/api/v1/health
+- Backend API: http://localhost:8080
+- Frontend Web Client (nếu bật profile `frontend` hoặc `full`): http://localhost:3000 (Nginx tự proxy `/api/*` sang backend)
+- TTS Service (nếu bật profile `tts` hoặc `full`): http://localhost:8001
 
-```bash
-docker compose down
-```
+### 4.3. Cơ chế khởi tạo Database và SQL Migrations
 
-Cách này phù hợp để xem sản phẩm, **không** phù hợp để code hằng ngày vì mỗi lần sửa code phải build lại image. Để code, dùng cách B.
+- **Khởi tạo volume mới (New-volume SQL initialization):**
+  Khi khởi động với volume `postgres_data` mới tinh chưa có dữ liệu (fresh volume), PostgreSQL container sẽ tự động kích hoạt script `BE/src/main/resources/db/init.sh` (được mount tại `/docker-entrypoint-initdb.d/01-vieva.sh`). Script này duyệt và thực thi toàn bộ các file `V*__*.sql` từ thư mục mount `/opt/vieva-schema` (`BE/src/main/resources/db/migration`) theo đúng thứ tự phiên bản (`sort -V`), bao gồm cả dữ liệu mẫu từ `V10__seed_initial_data.sql`.
+- **Migration cho volume hiện có (Manual existing-volume migrations):**
+  Dự án **tuyệt đối KHÔNG sử dụng hay cấu hình Flyway**; Hibernate cũng được cấu hình `spring.jpa.hibernate.ddl-auto=none`. Các database đã tồn tại trên volume hiện có **sẽ không bao giờ tự động được nâng cấp hoặc drop** khi container chạy lại. Khi có file migration mới (ví dụ `V15__...`, `V16__...`), dev phải áp dụng script thủ công bằng lệnh `psql` lên database hiện có.
+- **Bảo toàn dữ liệu & Cảnh báo an toàn:**
+  - **Luôn sao lưu (backup) dữ liệu** trước khi thực hiện bất kỳ migration SQL thủ công nào trên volume database đang có.
+  - **CẢNH BÁO NGUY HIỂM — TUYỆT ĐỐI TRÁNH `docker compose down -v`:** Cờ `-v` (volumes) sẽ **xóa sạch vĩnh viễn toàn bộ dữ liệu** của volume `postgres_data` và tài liệu lưu trong `backend_documents`. Để dừng hệ thống an toàn mà không làm mất dữ liệu, chỉ dùng:
+    ```bash
+    docker compose down
+    ```
+
+Cách chạy Docker toàn bộ phù hợp để xem sản phẩm / demo, **không** phù hợp để code hằng ngày vì mỗi lần sửa code phải build lại image. Để code, dùng cách B.
 
 Docker Compose truyền `VIEVA_AI_PROVIDER` và cấu hình model từ `.env`; mặc định là `mock`. Chat và embedding thật chạy qua LangChain4j.
 
@@ -204,6 +253,7 @@ Mặc định mọi thứ chạy offline. Để bật dịch vụ thật, đặt
 | Lưu tài liệu lên Cloudinary | `VIEVA_STORAGE_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 | Thư mục lưu file local | `VIEVA_STORAGE_ROOT` (mặc định `./data/documents`) |
 | Gửi email thật khi admin tạo tài khoản | `VIEVA_MAIL_PROVIDER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` (Gmail: App Password), `MAIL_FROM`, `APP_LOGIN_URL`. Mặc định `log`: chỉ ghi log người nhận và tiêu đề, không gửi |
+| Dịch vụ chuyển văn bản thành giọng nói (TTS) | `TTS_BASE_URL=http://localhost:8001` (chạy local) hoặc `http://tts-service:8001` (trong mạng Docker) |
 
 Không bao giờ commit API key. Mỗi người tự xin key và để trong `.env` của mình.
 
@@ -304,8 +354,10 @@ Bảng dưới đây là các quy tắc kiến trúc mục tiêu để review. H
 ### 10.1. Database migration
 
 - Muốn đổi schema: tạo file mới `BE/src/main/resources/db/migration/V15__mo_ta_ngan.sql` (số version tiếp theo).
-- SQL đã áp dụng trên database hiện có không tự chạy lại. Thay đổi schema phải áp dụng thủ công bằng script mới, sau khi sao lưu.
+- SQL đã áp dụng trên database hiện có không tự chạy lại. Thay đổi schema phải áp dụng thủ công bằng script mới, sau khi sao lưu dữ liệu.
+- Dự án **tuyệt đối không sử dụng hay kích hoạt Flyway**. Script `init.sh` chỉ tự động chạy trên fresh volume mới; database cũ không tự nâng cấp.
 - Khi sửa entity JPA, cập nhật SQL khởi tạo và áp dụng SQL tương ứng lên database hiện có; Hibernate dùng `ddl-auto=none` nên không tự thêm cột.
+- Cảnh báo: không dùng lệnh `docker compose down -v` vì sẽ xóa sạch volume `postgres_data`.
 
 ### 10.2. Studio và quy trình duyệt
 
@@ -367,4 +419,3 @@ docker compose up -d postgres
 - [ ] `npm install` và `npm run dev` trong `FE/` → đăng nhập được ở http://localhost:5173
 - [ ] `./mvnw test` pass
 - [ ] Tạo nhánh `feat/...` đầu tiên
-

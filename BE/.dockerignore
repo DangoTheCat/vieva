@@ -8,3 +8,5 @@ mvnw.cmd
 .idea
 .vscode
 *.log
+.env
+data/

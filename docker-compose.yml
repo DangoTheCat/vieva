@@ -16,12 +16,12 @@ services:
       - ./BE/src/main/resources/db/migration:/opt/vieva-schema:ro
       - ./BE/src/main/resources/db/init.sh:/docker-entrypoint-initdb.d/01-vieva.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-vieva_db}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-vieva_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # Backend Spring Boot Application (Optional: can run in container or via local IDE)
+  # Backend Spring Boot Application (Starts by default with postgres)
   backend:
     build:
       context: ./BE
@@ -29,7 +29,7 @@ services:
     container_name: vieva-backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -38,6 +38,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET env var is required}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-1}
+      TTS_BASE_URL: ${DOCKER_TTS_BASE_URL:-http://tts-service:8001}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-test-dummy-key}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
@@ -54,11 +55,19 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       APP_LOGIN_URL: ${APP_LOGIN_URL:-http://localhost:5173/login}
+    volumes:
+      - backend_documents:/app/data/documents
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # Frontend Web Client (React + Tailwind + Nginx)
+  # Frontend Web Client (React + Tailwind + Nginx) - Optional profile
   frontend:
     build:
       context: ./FE
@@ -66,11 +75,14 @@ services:
     container_name: vieva-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
+    profiles:
+      - frontend
+      - full
     depends_on:
       - backend
 
-  # AI Speech-to-Text Service (faster-whisper GPU)
+  # AI Speech-to-Text Service (faster-whisper GPU) - Opt-in GPU profile
   stt-service:
     build:
       context: ./ai-services/stt
@@ -78,7 +90,11 @@ services:
     container_name: vieva-stt
     restart: unless-stopped
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
+    profiles:
+      - stt-gpu
+      - gpu
+      - full
     environment:
       - STT_MODEL_ID=suzii/vi-whisper-large-v3-turbo
       - STT_DEVICE=cuda
@@ -91,7 +107,7 @@ services:
               count: all
               capabilities: [gpu]
 
-  # AI Text-to-Speech Service (ZeroTTS GPU)
+  # AI Text-to-Speech Service (ZeroTTS CPU) - Optional CPU profile
   tts-service:
     build:
       context: ./ai-services/tts
@@ -99,17 +115,15 @@ services:
     container_name: vieva-tts
     restart: unless-stopped
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
+    profiles:
+      - tts
+      - full
     environment:
       - TTS_MODEL_ID=zeroweight-ai/ZeroTTS
       - TTS_DEFAULT_SPEAKER=maichi
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    volumes:
+      - tts_model_cache:/root/.cache/huggingface
 
   # Run Backend Test Suite via Docker: docker compose run --rm test
   test:
@@ -125,3 +139,5 @@ services:
 
 volumes:
   postgres_data:
+  backend_documents:
+  tts_model_cache:
