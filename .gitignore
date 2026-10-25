@@ -22,3 +22,29 @@ dist/
 !.agents/skills/gsap-motion-craft
 !.agents/skills/impeccable-ui-craft
 
+# Python cache & virtual environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.review-python/
+**/.review-python/
+
+# Generated media, audio samples & local test data
+*.wav
+*.mp3
+data/
+**/data/
+ai-services/tts/review-output/
+
+# Intermediate agent scratch, review & task transcripts
+docs/AIVES_*_RESULT.md
+docs/AIVES_*_TASKS.md
+docs/AIVES_*REVIEW*.md
+docs/AIVES_CORRECTIONS.md
+docs/AIVES_DELETE_LIST.txt
+docs/AIVES_PROGRESS.md
+docs/AIVES_SOURCE_MAP.txt
+docs/AIVES_TTS_RESULT.md
+docs/AIVES_ZEROTTS_DOCKER_TASK.md
+
