@@ -29,6 +29,10 @@ public class ExamTurn {
     private BigDecimal score;
     private String feedback;
     private String rubricEvaluations;
+    private BigDecimal teacherScore;
+    private String teacherFeedback;
+    private UUID teacherId;
+    private Instant teacherGradedAt;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -90,5 +94,23 @@ public class ExamTurn {
         this.rubricEvaluations = rubricEvaluations;
         this.status = TurnStatus.EVALUATED;
         this.updatedAt = Instant.now();
+    }
+
+    public void gradeByTeacher(BigDecimal teacherScore, String teacherFeedback, UUID teacherId) {
+        if (teacherScore != null && (teacherScore.compareTo(BigDecimal.ZERO) < 0 || teacherScore.compareTo(BigDecimal.TEN) > 0)) {
+            throw new IllegalArgumentException("Score must be between 0 and 10");
+        }
+        this.teacherScore = teacherScore;
+        this.teacherFeedback = teacherFeedback;
+        this.teacherId = teacherId;
+        this.teacherGradedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public BigDecimal getEffectiveScore() {
+        if (teacherScore != null) {
+            return teacherScore;
+        }
+        return score != null ? score : BigDecimal.ZERO;
     }
 }

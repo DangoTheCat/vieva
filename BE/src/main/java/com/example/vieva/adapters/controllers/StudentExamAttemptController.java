@@ -5,10 +5,13 @@ import com.example.vieva.adapters.presenters.ExamAttemptPresenter;
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.exam.ExamAttemptDetailView;
 import com.example.vieva.application.ports.input.exam.ExamAttemptView;
+import com.example.vieva.application.ports.input.exam.ExamTurnDetailView;
 import com.example.vieva.application.ports.input.exam.GetExamAttemptUseCase;
 import com.example.vieva.application.ports.input.exam.ManageExamConnectionUseCase;
 import com.example.vieva.application.ports.input.exam.StartExamSessionUseCase;
 import com.example.vieva.application.ports.input.exam.StartExamUseCase;
+import com.example.vieva.application.ports.input.exam.StudentExamService;
+import com.example.vieva.application.ports.input.exam.StudentFrozenQuestionView;
 import com.example.vieva.application.ports.input.exam.SubmitTurnAnswerUseCase;
 import com.example.vieva.application.ports.input.exam.TurnEvaluationView;
 import jakarta.validation.Valid;
@@ -37,6 +40,7 @@ public class StudentExamAttemptController {
     private final ManageExamConnectionUseCase manageExamConnectionUseCase;
     private final GetExamAttemptUseCase getExamAttemptUseCase;
     private final SubmitTurnAnswerUseCase submitTurnAnswerUseCase;
+    private final StudentExamService studentExamService;
     private final ExamAttemptPresenter presenter;
 
     public record StartSessionApiRequest(
@@ -103,6 +107,24 @@ public class StudentExamAttemptController {
         UUID studentId = CurrentUser.id(currentUser);
         ExamAttemptDetailView detailView = getExamAttemptUseCase.getAttemptDetail(id, studentId);
         return ResponseEntity.ok(presenter.toAttemptDetailResponse(detailView));
+    }
+
+    @GetMapping("/{id}/questions")
+    public ResponseEntity<java.util.List<StudentFrozenQuestionView>> getAttemptQuestions(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        return ResponseEntity.ok(studentExamService.getAttemptQuestions(id, studentId));
+    }
+
+    @GetMapping("/{id}/turns")
+    public ResponseEntity<java.util.List<ExamTurnDetailView>> getAttemptTurns(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        return ResponseEntity.ok(studentExamService.getAttemptTurns(id, studentId));
     }
 
     @PostMapping(value = "/{id}/turns/{turnId}/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

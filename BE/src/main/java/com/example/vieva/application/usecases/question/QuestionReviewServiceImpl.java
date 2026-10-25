@@ -94,6 +94,9 @@ public class QuestionReviewServiceImpl implements QuestionReviewService {
         validateForReview(ctx.version());
         ctx.version().submitForReview();
         QuestionVersion submitted = db.updateStatus(ctx.version());
+        if (notifications != null) {
+            notifications.notifyPendingReview(actorId, ctx.question().getQuestionId(), versionId);
+        }
         auditor.record(actorId, "QUESTION_SUBMITTED", QuestionBankAuditor.QUESTION_VERSION, versionId,
                 Map.of("questionId", ctx.question().getQuestionId()));
         return QuestionViewMapper.toView(db.fetchQuestionWithRubric(submitted));

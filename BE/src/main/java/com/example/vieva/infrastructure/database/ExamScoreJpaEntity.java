@@ -5,6 +5,7 @@ import com.example.vieva.domain.entities.ScoringMode;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
@@ -46,9 +47,40 @@ public class ExamScoreJpaEntity implements Persistable<UUID> {
     @Column(name = "scoring_mode", nullable = false, length = 50)
     private ScoringMode scoringMode;
 
+    @Column(name = "ai_score", precision = 5, scale = 2)
+    private BigDecimal aiScore;
+
+    @Column(name = "ai_feedback", columnDefinition = "TEXT")
+    private String aiFeedback;
+
+    @Column(name = "teacher_score", precision = 5, scale = 2)
+    private BigDecimal teacherScore;
+
+    @Column(name = "teacher_feedback", columnDefinition = "TEXT")
+    private String teacherFeedback;
+
+    @Column(name = "teacher_id")
+    private UUID teacherId;
+
+    @Column(name = "override_total_score", precision = 5, scale = 2)
+    private BigDecimal overrideTotalScore;
+
+    @Column(name = "override_by")
+    private UUID overrideBy;
+
+    @Column(name = "override_at")
+    private Instant overrideAt;
+
+    @Column(name = "override_reason", columnDefinition = "TEXT")
+    private String overrideReason;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
     @Transient
     @Builder.Default

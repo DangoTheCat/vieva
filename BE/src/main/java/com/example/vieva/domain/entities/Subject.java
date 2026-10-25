@@ -18,7 +18,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Subject {
     private UUID subjectId;
-    private UUID headLecturerId;
     private String subjectCode;
     private String subjectName;
     private String description;
@@ -48,11 +47,6 @@ public class Subject {
         if (newStatus != null) {
             this.status = newStatus;
         }
-        this.updatedAt = Instant.now();
-    }
-
-    public void assignHead(UUID lecturerId) {
-        this.headLecturerId = lecturerId;
         this.updatedAt = Instant.now();
     }
 }

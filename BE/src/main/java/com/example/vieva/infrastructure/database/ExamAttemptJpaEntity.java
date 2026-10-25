@@ -18,6 +18,7 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_exam_attempts_student_id", columnList = "student_id"),
                 @Index(name = "idx_exam_attempts_subject_id", columnList = "subject_id"),
+                @Index(name = "idx_exam_attempts_exam_id", columnList = "exam_id"),
                 @Index(name = "idx_exam_attempts_status", columnList = "status"),
                 @Index(name = "idx_exam_attempts_student_status", columnList = "student_id, status")
         }
@@ -38,6 +39,9 @@ public class ExamAttemptJpaEntity implements Persistable<UUID> {
 
     @Column(name = "subject_id", nullable = false)
     private UUID subjectId;
+
+    @Column(name = "exam_id")
+    private UUID examId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)

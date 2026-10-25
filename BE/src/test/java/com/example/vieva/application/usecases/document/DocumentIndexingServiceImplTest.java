@@ -19,6 +19,7 @@ import com.example.vieva.application.ports.output.StoredFile;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.TextChunk;
 import com.example.vieva.application.ports.output.TextSplitterPort;
+import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.ports.output.TransactionRunnerPort;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.settings.DocumentSettings;
@@ -28,8 +29,11 @@ import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
 import com.example.vieva.domain.entities.DocumentStatus;
+import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.Subject;
 import com.example.vieva.domain.entities.SubjectStatus;
+import com.example.vieva.domain.entities.User;
+import com.example.vieva.domain.entities.UserStatus;
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.domain.exception.DomainErrorCode;
@@ -70,6 +74,7 @@ class DocumentIndexingServiceImplTest {
     @Mock private DocumentChunkRepository chunkRepository;
     @Mock private QuestionSourceRepository sourceRepository;
     @Mock private SubjectRepository subjectRepository;
+    @Mock private TopicRepository topicRepository;
     @Mock private DocumentParserPort parser;
     @Mock private FileStoragePort storage;
     @Mock private FileTypeDetectorPort typeDetector;
@@ -100,8 +105,16 @@ class DocumentIndexingServiceImplTest {
         ragSettings.setEmbeddingBatchSize(2);
         ragSettings.setEmbeddingDimensions(4);
         documentSettings.setMinTextChars(10);
+
+        User lecturerUser = User.builder()
+                .userId(lecturer)
+                .status(UserStatus.ACTIVE)
+                .build();
+        lecturerUser.assignRole(Role.builder().roleId(1).roleCode("ROLE_LECTURER").build(), null);
+        when(userRepository.findById(lecturer)).thenReturn(Optional.of(lecturerUser));
+
         service = new DocumentServiceImpl(documentRepository, chunkRepository, sourceRepository, subjectRepository,
-                parser, storage, typeDetector, splitter, events, direct, json,
+                topicRepository, parser, storage, typeDetector, splitter, events, direct, json,
                 new SubjectAccessGuard(lecturerSubjectRepository, userRepository),
                 new QuestionBankAuditor(auditEventRepository, json), documentSettings, db);
 

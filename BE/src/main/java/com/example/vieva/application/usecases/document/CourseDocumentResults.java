@@ -15,6 +15,7 @@ public final class CourseDocumentResults {
         return CourseDocumentResult.builder()
                 .documentId(document.getDocumentId())
                 .subjectId(document.getSubjectId())
+                .topicId(document.getTopicId())
                 .uploadedBy(document.getUploadedBy())
                 .fileName(document.getFileName())
                 .fileUrl(document.getFileUrl())

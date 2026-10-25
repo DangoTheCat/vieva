@@ -32,7 +32,14 @@ class HibernateMappingSmokeTest {
             RubricCriterionJpaEntity.class,
             RubricJpaEntity.class,
             SubjectJpaEntity.class,
-            TopicJpaEntity.class
+            TopicJpaEntity.class,
+            ExamJpaEntity.class,
+            ExamQuestionJpaEntity.class,
+            ExamAttemptJpaEntity.class,
+            ExamAttemptQuestionSnapshotJpaEntity.class,
+            ExamTurnJpaEntity.class,
+            ExamScoreJpaEntity.class,
+            SpeechSettingsJpaEntity.class
     };
 
     @Test

@@ -175,6 +175,7 @@ class JsonContractSnapshotTest {
                 {
                   "documentId": "00000000-0000-0000-0000-000000000001",
                   "subjectId": "00000000-0000-0000-0000-000000000002",
+                  "topicId": null,
                   "uploadedBy": "00000000-0000-0000-0000-000000000003",
                   "fileName": "lecture1.pdf",
                   "fileUrl": "https://storage.example.com/lecture1.pdf",
@@ -208,6 +209,7 @@ class JsonContractSnapshotTest {
                   "document": {
                     "documentId": "00000000-0000-0000-0000-000000000001",
                     "subjectId": "00000000-0000-0000-0000-000000000002",
+                    "topicId": null,
                     "uploadedBy": "00000000-0000-0000-0000-000000000003",
                     "fileName": "lecture1.pdf",
                     "fileUrl": "https://storage.example.com/lecture1.pdf",
@@ -598,7 +600,6 @@ class JsonContractSnapshotTest {
     void snapshotSubjectDto() throws Exception {
         SubjectDto dto = SubjectDto.builder()
                 .subjectId(U1)
-                .headLecturerId(U2)
                 .subjectCode("PRJ301")
                 .subjectName("Java Web")
                 .description("Java Web Course")
@@ -611,7 +612,6 @@ class JsonContractSnapshotTest {
         String expectedJson = """
                 {
                   "subjectId": "00000000-0000-0000-0000-000000000001",
-                  "headLecturerId": "00000000-0000-0000-0000-000000000002",
                   "subjectCode": "PRJ301",
                   "subjectName": "Java Web",
                   "description": "Java Web Course",

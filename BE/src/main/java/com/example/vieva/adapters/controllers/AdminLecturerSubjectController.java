@@ -4,13 +4,11 @@ import com.example.vieva.adapters.controllers.request.AssignLecturerApiRequest;
 import com.example.vieva.adapters.presenters.LecturerSubjectDto;
 import com.example.vieva.adapters.presenters.LecturerSubjectPresenter;
 import com.example.vieva.adapters.presenters.MessageResponse;
-import com.example.vieva.application.ports.input.access.SubjectHeadService;
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.lecturer.AssignLecturerRequest;
 import com.example.vieva.application.ports.input.lecturer.LecturerSubjectResult;
 import com.example.vieva.application.ports.input.lecturer.LecturerSubjectService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,17 +27,6 @@ public class AdminLecturerSubjectController {
 
     private final LecturerSubjectService lecturerSubjectService;
     private final LecturerSubjectPresenter presenter;
-    private final SubjectHeadService heads;
-
-    public record AssignHeadRequest(@NotNull UUID lecturerId) { }
-
-    @PutMapping("/by-subject/{subjectId}/head")
-    public java.util.Map<String,UUID> assignHead(@PathVariable UUID subjectId,
-                                                @Valid @RequestBody AssignHeadRequest request,
-                                                @AuthenticationPrincipal ActorView admin) {
-        heads.assign(subjectId,request.lecturerId(),CurrentUser.id(admin));
-        return java.util.Map.of("subjectId",subjectId,"headLecturerId",request.lecturerId());
-    }
 
     @PostMapping
     public ResponseEntity<List<LecturerSubjectDto>> assignLecturers(

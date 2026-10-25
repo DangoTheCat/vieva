@@ -8,4 +8,6 @@ public interface FileStoragePort {
     StoredFile store(String filename, byte[] content, String contentType);
 
     byte[] load(String storageKey);
+
+    void delete(String storageKey);
 }

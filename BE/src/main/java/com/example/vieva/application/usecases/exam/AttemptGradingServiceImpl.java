@@ -14,17 +14,18 @@ import com.example.vieva.domain.entities.ExamTurn;
 import com.example.vieva.domain.entities.GradeLevel;
 import com.example.vieva.domain.entities.Rubric;
 import com.example.vieva.domain.entities.ScoringMode;
-import lombok.RequiredArgsConstructor;
+import com.example.vieva.application.ports.output.ExamAttemptQuestionSnapshotRepository;
+import com.example.vieva.domain.entities.ExamAttemptQuestionSnapshot;
+import com.example.vieva.domain.entities.TurnStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
-@RequiredArgsConstructor
 public class AttemptGradingServiceImpl implements AttemptGradingService {
 
     private final AttemptGradingGateway attemptGradingGateway;
@@ -32,11 +33,58 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
     private final RubricRepository rubricRepository;
     private final ExamAttemptRepository examAttemptRepository;
     private final ExamScoreRepository examScoreRepository;
+    private final ExamAttemptQuestionSnapshotRepository snapshotRepository;
+
+    public AttemptGradingServiceImpl(
+            AttemptGradingGateway attemptGradingGateway,
+            RuleBasedGraderPort ruleBasedGraderPort,
+            RubricRepository rubricRepository,
+            ExamAttemptRepository examAttemptRepository,
+            ExamScoreRepository examScoreRepository
+    ) {
+        this(attemptGradingGateway, ruleBasedGraderPort, rubricRepository, examAttemptRepository, examScoreRepository, null);
+    }
+
+    public AttemptGradingServiceImpl(
+            AttemptGradingGateway attemptGradingGateway,
+            RuleBasedGraderPort ruleBasedGraderPort,
+            RubricRepository rubricRepository,
+            ExamAttemptRepository examAttemptRepository,
+            ExamScoreRepository examScoreRepository,
+            ExamAttemptQuestionSnapshotRepository snapshotRepository
+    ) {
+        this.attemptGradingGateway = attemptGradingGateway;
+        this.ruleBasedGraderPort = ruleBasedGraderPort;
+        this.rubricRepository = rubricRepository;
+        this.examAttemptRepository = examAttemptRepository;
+        this.examScoreRepository = examScoreRepository;
+        this.snapshotRepository = snapshotRepository;
+    }
 
     @Override
     @UseCaseTransaction
     public ExamScore gradeAndCompleteAttempt(ExamAttempt attempt, List<ExamTurn> turns) {
+        if (attempt == null) {
+            return null;
+        }
+
         try {
+            // Lock attempt for grading
+            ExamAttempt lockedAttempt = examAttemptRepository.findByIdForUpdate(attempt.getId())
+                    .orElse(attempt);
+
+            // Idempotent score saving: check if already graded
+            Optional<ExamScore> existing = examScoreRepository.findByAttemptId(attempt.getId());
+            if (existing.isPresent()) {
+                ExamScore existingScore = existing.get();
+                if (lockedAttempt.getStatus() == AttemptStatus.FINALIZING) {
+                    lockedAttempt.syncSuccess();
+                    lockedAttempt.recordScore(existingScore.getTotalScore(), existingScore.getGrade());
+                    examAttemptRepository.save(lockedAttempt);
+                }
+                return existingScore;
+            }
+
             Rubric rubric = null;
             if (!turns.isEmpty()) {
                 UUID questionVersionId = turns.get(0).getQuestionVersionId();
@@ -48,7 +96,7 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
             AttemptGradingResult gradingResult = null;
             try {
                 if (attemptGradingGateway != null) {
-                    gradingResult = attemptGradingGateway.gradeAttempt(attempt, turns, rubric);
+                    gradingResult = attemptGradingGateway.gradeAttempt(lockedAttempt, turns, rubric);
                 }
             } catch (Exception ex) {
                 log.warn("AttemptGradingGateway failed for attempt {}, falling back to rule-based grading: {}",
@@ -57,14 +105,62 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
 
             if (gradingResult == null) {
                 if (ruleBasedGraderPort != null) {
-                    gradingResult = ruleBasedGraderPort.grade(attempt, turns, rubric);
+                    gradingResult = ruleBasedGraderPort.grade(lockedAttempt, turns, rubric);
                 } else {
                     gradingResult = fallbackRuleBasedGrading(turns);
                 }
             }
 
+            // P1 Deterministic main-group aggregation for snapshotted attempts:
+            List<ExamAttemptQuestionSnapshot> snapshots = snapshotRepository != null
+                    ? snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(lockedAttempt.getId())
+                    : List.of();
+
+            if (!snapshots.isEmpty()) {
+                BigDecimal sum = BigDecimal.ZERO;
+                for (ExamAttemptQuestionSnapshot snapshot : snapshots) {
+                    UUID qId = snapshot.getQuestionId();
+                    List<ExamTurn> questionTurns = turns.stream()
+                            .filter(t -> qId != null && qId.equals(t.getQuestionId()))
+                            .toList();
+
+                    BigDecimal questionScore = BigDecimal.ZERO;
+                    Optional<ExamTurn> teacherGraded = questionTurns.stream()
+                            .filter(t -> t.getTeacherScore() != null)
+                            .findFirst();
+                    if (teacherGraded.isPresent()) {
+                        questionScore = teacherGraded.get().getTeacherScore();
+                    } else {
+                        Optional<ExamTurn> lastEvaluated = questionTurns.stream()
+                                .filter(t -> t.getStatus() == TurnStatus.EVALUATED && t.getScore() != null)
+                                .reduce((first, second) -> second);
+                        if (lastEvaluated.isPresent()) {
+                            questionScore = lastEvaluated.get().getScore();
+                        }
+                    }
+                    sum = sum.add(questionScore);
+                }
+
+                BigDecimal totalScore = sum.divide(BigDecimal.valueOf(snapshots.size()), 2, RoundingMode.HALF_UP);
+                GradeLevel gradeLevel;
+                double avgDouble = totalScore.doubleValue();
+                if (avgDouble >= 8.5) {
+                    gradeLevel = GradeLevel.EXCELLENT;
+                } else if (avgDouble >= 7.0) {
+                    gradeLevel = GradeLevel.GOOD;
+                } else if (avgDouble >= 5.0) {
+                    gradeLevel = GradeLevel.AVERAGE;
+                } else {
+                    gradeLevel = GradeLevel.POOR;
+                }
+
+                String feedback = gradingResult != null ? gradingResult.detailedFeedback() : "Hoàn thành bài thi vấn đáp.";
+                ScoringMode mode = gradingResult != null ? gradingResult.scoringMode() : ScoringMode.RULE_BASED_FALLBACK;
+                gradingResult = new AttemptGradingResult(totalScore, gradeLevel, feedback, mode);
+            }
+
             ExamScore examScore = ExamScore.create(
-                    attempt.getId(),
+                    lockedAttempt.getId(),
                     gradingResult.totalScore(),
                     gradingResult.gradeLevel(),
                     gradingResult.detailedFeedback(),
@@ -72,17 +168,22 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
             );
             ExamScore savedScore = examScoreRepository.save(examScore);
 
-            attempt.syncSuccess();
-            attempt.recordScore(savedScore.getTotalScore(), savedScore.getGrade());
-            examAttemptRepository.save(attempt);
+            if (lockedAttempt.getStatus() == AttemptStatus.FINALIZING) {
+                lockedAttempt.syncSuccess();
+            }
+            lockedAttempt.recordScore(savedScore.getTotalScore(), savedScore.getGrade());
+            examAttemptRepository.save(lockedAttempt);
 
             return savedScore;
         } catch (Exception ex) {
             log.error("Unrecoverable error during attempt grading for attempt {}: {}", attempt.getId(), ex.getMessage(), ex);
             try {
-                if (attempt.getStatus() == AttemptStatus.FINALIZING) {
-                    attempt.syncError();
-                    examAttemptRepository.save(attempt);
+                ExamAttempt toInterrupt = examAttemptRepository.findByIdForUpdate(attempt.getId())
+                        .or(() -> examAttemptRepository.findById(attempt.getId()))
+                        .orElse(attempt);
+                if (toInterrupt.getStatus() == AttemptStatus.FINALIZING) {
+                    toInterrupt.syncError();
+                    examAttemptRepository.save(toInterrupt);
                 }
             } catch (Exception syncErr) {
                 log.error("Failed to mark attempt as INTERRUPTED: {}", syncErr.getMessage(), syncErr);

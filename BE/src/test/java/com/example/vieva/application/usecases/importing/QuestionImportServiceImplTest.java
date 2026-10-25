@@ -86,6 +86,17 @@ class QuestionImportServiceImplTest {
                         sourceRepository, org.mockito.Mockito.mock(com.example.vieva.application.ports.output.CourseDocumentRepository.class), org.mockito.Mockito.mock(com.example.vieva.application.ports.output.QuestionVersionViewAssemblerPort.class)),
                 new QuestionBankAuditor(auditEventRepository, json), settings);
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, subjectId)).thenReturn(true);
+        when(userRepository.findById(any())).thenAnswer(inv -> {
+            java.util.UUID id = inv.getArgument(0);
+            com.example.vieva.domain.entities.User u = com.example.vieva.domain.entities.User.builder()
+                    .userId(id)
+                    .email("lecturer@fpt.edu.vn")
+                    .fullName("Lecturer")
+                    .status(com.example.vieva.domain.entities.UserStatus.ACTIVE)
+                    .build();
+            u.assignRole(com.example.vieva.domain.entities.Role.builder().roleId(2).roleCode("ROLE_LECTURER").build(), null);
+            return java.util.Optional.of(u);
+        });
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(Subject.builder().subjectId(subjectId).build()));
         when(topicRepository.findBySubjectId(subjectId)).thenReturn(List.of(
                 Topic.builder().topicId(UUID.randomUUID()).subjectId(subjectId).topicName("Giao dịch").orderIndex(1).build()));

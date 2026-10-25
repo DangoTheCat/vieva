@@ -72,7 +72,23 @@ public enum ErrorCode {
     NOT_SUBJECT_HEAD("1065", "Only the assigned subject head can review this question"),
     NOT_QUESTION_AUTHOR("1066", "Only the question author can edit or submit this version"),
     NOTIFICATION_NOT_FOUND("1067", "Notification not found"),
-    DOCUMENT_ALREADY_EXISTS("1068", "A document with the same name and size already exists in this subject");
+    DOCUMENT_ALREADY_EXISTS("1068", "A document with the same name and size already exists in this subject"),
+    CANNOT_DELETE_STUDENT_WITH_ATTEMPTS("1069", "Cannot delete student with existing exam attempts"),
+    RUBRIC_TEMPLATE_NOT_FOUND("1070", "Rubric template not found"),
+    INVALID_SPEECH_VOICE("1071", "Unsupported speech voice for language locale"),
+    INVALID_SPEECH_LOCALE("1072", "Unsupported speech language locale"),
+    EXAM_NOT_FOUND("1073", "Exam not found"),
+    EXAM_NOT_DRAFT("1074", "Only DRAFT exams can be modified, deleted or have questions replaced"),
+    EXAM_CLOSED("1075", "Exam is closed for new attempts"),
+    EXAM_NOT_ACTIVE("1076", "Exam is not currently in progress"),
+    STUDENT_ALREADY_ATTEMPTED("1077", "Student has already participated in this exam"),
+    EXAM_QUESTION_MISMATCH("1078", "Questions must belong to the exam subject and be approved"),
+    ATTEMPT_NOT_FOUND("1079", "Exam attempt not found"),
+    ATTEMPT_NOT_OWNED("1080", "Attempt does not belong to the current student"),
+    TURN_NOT_FOUND("1081", "Exam turn not found"),
+    MAX_FOLLOWUPS_EXCEEDED("1082", "Maximum of 2 follow-up questions per main question reached"),
+    GRADING_FORBIDDEN("1083", "You do not have permission to grade this attempt"),
+    INVALID_SCORE("1084", "Score must be between 0 and 10");
 
     private final String code;
     private final String message;

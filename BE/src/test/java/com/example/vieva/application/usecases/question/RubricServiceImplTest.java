@@ -88,6 +88,17 @@ class RubricServiceImplTest {
 
         when(questionRepository.findById(question.getQuestionId())).thenReturn(Optional.of(question));
         when(lecturerSubjectRepository.isLecturerAssignedToSubject(lecturer, question.getSubjectId())).thenReturn(true);
+        when(userRepository.findById(any())).thenAnswer(inv -> {
+            java.util.UUID id = inv.getArgument(0);
+            com.example.vieva.domain.entities.User u = com.example.vieva.domain.entities.User.builder()
+                    .userId(id)
+                    .email("lecturer@fpt.edu.vn")
+                    .fullName("Lecturer")
+                    .status(com.example.vieva.domain.entities.UserStatus.ACTIVE)
+                    .build();
+            u.assignRole(com.example.vieva.domain.entities.Role.builder().roleId(2).roleCode("ROLE_LECTURER").build(), null);
+            return java.util.Optional.of(u);
+        });
         when(versionRepository.findById(version.getQuestionVersionId())).thenReturn(Optional.of(version));
         when(rubricRepository.findByQuestionVersionId(version.getQuestionVersionId())).thenReturn(Optional.of(rubric));
         when(criterionRepository.findByRubricId(rubric.getRubricId())).thenAnswer(inv -> new ArrayList<>(criteria));

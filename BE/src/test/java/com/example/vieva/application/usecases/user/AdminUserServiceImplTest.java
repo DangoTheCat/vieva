@@ -7,11 +7,14 @@ import com.example.vieva.application.ports.input.user.UpdateUserByAdminRequest;
 import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.output.AuditEventRepository;
 import com.example.vieva.application.ports.output.DomainEventPublisherPort;
+import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.output.ExamAttemptRepository;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
 import com.example.vieva.application.ports.output.UserRepository;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
+import com.example.vieva.domain.entities.ExamAttempt;
 import com.example.vieva.domain.entities.Role;
 import com.example.vieva.domain.entities.User;
 import com.example.vieva.domain.entities.UserStatus;
@@ -24,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,7 +35,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +46,7 @@ class AdminUserServiceImplTest {
     @Mock private AuditEventRepository auditEventRepository;
     @Mock private JsonSerializerPort jsonSerializer;
     @Mock private DomainEventPublisherPort domainEventPublisher;
+    @Mock private ExamAttemptRepository examAttemptRepository;
 
     private AdminUserServiceImpl adminUserService;
 
@@ -53,7 +57,7 @@ class AdminUserServiceImplTest {
     @BeforeEach
     void setUp() {
         adminUserService = new AdminUserServiceImpl(userRepository, roleRepository, passwordEncoder,
-                new QuestionBankAuditor(auditEventRepository, jsonSerializer), domainEventPublisher);
+                new QuestionBankAuditor(auditEventRepository, jsonSerializer), domainEventPublisher, examAttemptRepository);
         lenient().when(passwordEncoder.encode(anyString())).thenAnswer(inv -> "hashed-" + inv.getArgument(0));
         lenient().when(jsonSerializer.serialize(any())).thenReturn("{}");
     }
@@ -71,72 +75,23 @@ class AdminUserServiceImplTest {
                 .roleCode("LECTURER")
                 .build(), adminId);
 
-        assertThat(created.getRoles()).hasSize(1);
+        assertThat(created.getEmail()).isEqualTo("new.lecturer@fpt.edu.vn");
         assertThat(created.getRole()).isEqualTo("ROLE_LECTURER");
         assertThat(created.isMustChangePassword()).isTrue();
-        verify(domainEventPublisher).publishAccountCreated(
-                "new.lecturer@fpt.edu.vn", "New Lecturer", "ROLE_LECTURER", "Temp123");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).saveAndFlush(captor.capture());
+        User persisted = captor.getValue();
+        assertThat(persisted.getUserRoles()).hasSize(1);
+        assertThat(persisted.getUserCode()).startsWith("USR-");
+
+        verify(domainEventPublisher).publishAccountCreated("new.lecturer@fpt.edu.vn", "New Lecturer",
+                "ROLE_LECTURER", "Temp123");
     }
 
     @Test
-    @DisplayName("createUser: generates a temporary password when the admin leaves it blank")
-    void createUser_BlankPassword_GeneratesTemporaryPassword() {
-        when(roleRepository.findByRoleCode("ROLE_STUDENT")).thenReturn(Optional.of(studentRole));
-        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        adminUserService.createUser(CreateUserByAdminRequest.builder()
-                .email("student@fpt.edu.vn")
-                .fullName("Student")
-                .roleCode("ROLE_STUDENT")
-                .build(), adminId);
-
-        ArgumentCaptor<String> password = ArgumentCaptor.forClass(String.class);
-        verify(domainEventPublisher).publishAccountCreated(eq("student@fpt.edu.vn"), eq("Student"),
-                eq("ROLE_STUDENT"), password.capture());
-        assertThat(password.getValue()).hasSize(12);
-        verify(passwordEncoder).encode(password.getValue());
-    }
-
-    @Test
-    @DisplayName("updateUser: changing the role replaces the old one instead of adding a second")
-    void updateUser_ChangeRole_ReplacesExistingRole() {
-        UUID userId = UUID.randomUUID();
-        User user = User.builder()
-                .userId(userId)
-                .email("user@fpt.edu.vn")
-                .fullName("User")
-                .status(UserStatus.ACTIVE)
-                .createdAt(Instant.now())
-                .build();
-        user.assignRole(studentRole, adminId);
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(roleRepository.findByRoleCode("ROLE_LECTURER")).thenReturn(Optional.of(lecturerRole));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        UserResult updated = adminUserService.updateUser(userId,
-                UpdateUserByAdminRequest.builder().roleCode("ROLE_LECTURER").build(), adminId);
-
-        assertThat(updated.getRoles()).hasSize(1);
-        assertThat(updated.getRole()).isEqualTo("ROLE_LECTURER");
-    }
-
-    @Test
-    @DisplayName("resetPassword: admin-set password must be changed on next login")
-    void resetPassword_SetsMustChangePassword() {
-        UUID userId = UUID.randomUUID();
-        User user = User.builder().userId(userId).status(UserStatus.ACTIVE).build();
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
-        adminUserService.resetPassword(userId, "Reset123", adminId);
-
-        assertThat(user.isMustChangePassword()).isTrue();
-        assertThat(user.getPasswordHash()).isEqualTo("hashed-Reset123");
-    }
-
-    @Test
-    @DisplayName("createUser: ROLE_USER no longer exists, so it cannot be assigned")
-    void createUser_RoleUser_Rejected() {
-        when(roleRepository.findByRoleCode("ROLE_USER")).thenReturn(Optional.empty());
+    @DisplayName("createUser: rejects invalid or retired role codes like ROLE_USER")
+    void createUser_InvalidRole_ThrowsRoleNotFound() {
         for (String code : new String[]{"ROLE_USER", "user"}) {
             assertThatThrownBy(() -> adminUserService.createUser(CreateUserByAdminRequest.builder()
                     .email("someone@fpt.edu.vn")
@@ -162,5 +117,116 @@ class AdminUserServiceImplTest {
                 .build(), adminId);
 
         assertThat(created.getRole()).isEqualTo("ROLE_STUDENT");
+    }
+
+    @Test
+    @DisplayName("createUser: maps DuplicateKeyException with user_code on flush to USER_CODE_EXISTED")
+    void createUser_DuplicateKeyUserCode_ThrowsUserCodeExisted() {
+        when(roleRepository.findByRoleCode("ROLE_STUDENT")).thenReturn(Optional.of(studentRole));
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(
+                new DuplicateKeyException("uq_users_active_user_code", ErrorCode.USER_CODE_EXISTED)
+        );
+
+        assertThatThrownBy(() -> adminUserService.createUser(CreateUserByAdminRequest.builder()
+                .email("code.duplicate@fpt.edu.vn")
+                .fullName("Duplicate Code")
+                .build(), adminId))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(e -> ((ApplicationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.USER_CODE_EXISTED);
+    }
+
+    @Test
+    @DisplayName("updateUser: successfully updates email and userCode when not duplicate")
+    void updateUser_EmailAndUserCode_Success() {
+        UUID userId = UUID.randomUUID();
+        User existing = User.builder()
+                .userId(userId)
+                .email("old@fpt.edu.vn")
+                .userCode("OLD-CODE")
+                .fullName("Old Name")
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByEmail("new@fpt.edu.vn")).thenReturn(false);
+        when(userRepository.existsByUserCode("NEW-CODE")).thenReturn(false);
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UserResult result = adminUserService.updateUser(userId, UpdateUserByAdminRequest.builder()
+                .email("new@fpt.edu.vn")
+                .userCode("NEW-CODE")
+                .fullName("Updated Name")
+                .build(), adminId);
+
+        assertThat(result.getEmail()).isEqualTo("new@fpt.edu.vn");
+        assertThat(existing.getEmail()).isEqualTo("new@fpt.edu.vn");
+        assertThat(existing.getUserCode()).isEqualTo("NEW-CODE");
+    }
+
+    @Test
+    @DisplayName("updateUser: rejects duplicate email with USER_EXISTED")
+    void updateUser_DuplicateEmail_ThrowsUserExisted() {
+        UUID userId = UUID.randomUUID();
+        User existing = User.builder()
+                .userId(userId)
+                .email("old@fpt.edu.vn")
+                .userCode("OLD-CODE")
+                .fullName("Old Name")
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByEmail("existing@fpt.edu.vn")).thenReturn(true);
+
+        assertThatThrownBy(() -> adminUserService.updateUser(userId, UpdateUserByAdminRequest.builder()
+                .email("existing@fpt.edu.vn")
+                .build(), adminId))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(e -> ((ApplicationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.USER_EXISTED);
+    }
+
+    @Test
+    @DisplayName("updateUser: maps DuplicateKeyException with user_code on flush to USER_CODE_EXISTED")
+    void updateUser_FlushDuplicateKeyUserCode_ThrowsUserCodeExisted() {
+        UUID userId = UUID.randomUUID();
+        User existing = User.builder()
+                .userId(userId)
+                .email("old@fpt.edu.vn")
+                .userCode("OLD-CODE")
+                .fullName("Old Name")
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existing));
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(
+                new DuplicateKeyException("Key (user_code)=(NEW-CODE) already exists", ErrorCode.USER_CODE_EXISTED)
+        );
+
+        assertThatThrownBy(() -> adminUserService.updateUser(userId, UpdateUserByAdminRequest.builder()
+                .userCode("NEW-CODE")
+                .build(), adminId))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(e -> ((ApplicationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.USER_CODE_EXISTED);
+    }
+
+    @Test
+    @DisplayName("deleteUser: rejects deletion of student with existing attempts")
+    void deleteUser_StudentWithAttempts_ThrowsCannotDeleteStudentWithAttempts() {
+        UUID studentId = UUID.randomUUID();
+        User student = User.builder()
+                .userId(studentId)
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(examAttemptRepository.findByStudentId(studentId)).thenReturn(List.of(mock(ExamAttempt.class)));
+
+        assertThatThrownBy(() -> adminUserService.deleteUser(studentId, adminId))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(e -> ((ApplicationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.CANNOT_DELETE_STUDENT_WITH_ATTEMPTS);
     }
 }

@@ -18,10 +18,21 @@ public class ExamScore {
     private GradeLevel grade;
     private String detailedFeedback;
     private ScoringMode scoringMode;
+    private BigDecimal aiScore;
+    private String aiFeedback;
+    private BigDecimal teacherScore;
+    private String teacherFeedback;
+    private UUID teacherId;
+    private BigDecimal overrideTotalScore;
+    private UUID overrideBy;
+    private Instant overrideAt;
+    private String overrideReason;
     private Instant createdAt;
+    private Instant updatedAt;
 
     public static ExamScore create(UUID attemptId, BigDecimal totalScore, GradeLevel grade,
                                    String detailedFeedback, ScoringMode scoringMode) {
+        Instant now = Instant.now();
         return ExamScore.builder()
                 .id(UUID.randomUUID())
                 .attemptId(attemptId)
@@ -29,7 +40,40 @@ public class ExamScore {
                 .grade(grade)
                 .detailedFeedback(detailedFeedback)
                 .scoringMode(scoringMode)
-                .createdAt(Instant.now())
+                .aiScore(totalScore)
+                .aiFeedback(detailedFeedback)
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
+    }
+
+    public BigDecimal getEffectiveTotalScore() {
+        if (overrideTotalScore != null) {
+            return overrideTotalScore;
+        }
+        return totalScore != null ? totalScore : BigDecimal.ZERO;
+    }
+
+    public void overrideTotal(BigDecimal overrideScore, UUID teacherId) {
+        overrideTotal(overrideScore, teacherId, null);
+    }
+
+    public void overrideTotal(BigDecimal overrideScore, UUID teacherId, String reason) {
+        if (overrideScore != null && (overrideScore.compareTo(BigDecimal.ZERO) < 0 || overrideScore.compareTo(BigDecimal.TEN) > 0)) {
+            throw new IllegalArgumentException("Score must be between 0 and 10");
+        }
+        this.overrideTotalScore = overrideScore;
+        this.overrideBy = teacherId;
+        this.overrideAt = Instant.now();
+        this.overrideReason = reason;
+        this.updatedAt = Instant.now();
+    }
+
+    public void clearOverride() {
+        this.overrideTotalScore = null;
+        this.overrideBy = null;
+        this.overrideAt = null;
+        this.overrideReason = null;
+        this.updatedAt = Instant.now();
     }
 }

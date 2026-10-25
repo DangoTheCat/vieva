@@ -4,6 +4,7 @@ import com.example.vieva.adapters.controllers.request.LoginApiRequest;
 import com.example.vieva.adapters.controllers.request.RegisterApiRequest;
 import com.example.vieva.adapters.presenters.AuthPresenter;
 import com.example.vieva.adapters.presenters.AuthResponse;
+import com.example.vieva.adapters.presenters.MessageResponse;
 import com.example.vieva.application.ports.input.auth.AuthResult;
 import com.example.vieva.application.ports.input.auth.AuthService;
 import com.example.vieva.application.ports.input.auth.LoginRequest;
@@ -47,5 +48,10 @@ public class AuthController {
 
         AuthResult result = authService.login(request);
         return ResponseEntity.ok(authPresenter.toResponse(result));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponse> logout() {
+        return ResponseEntity.ok(new MessageResponse("Logged out successfully. Please discard your token."));
     }
 }

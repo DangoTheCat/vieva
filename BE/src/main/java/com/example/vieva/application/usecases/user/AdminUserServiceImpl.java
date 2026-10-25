@@ -9,6 +9,7 @@ import com.example.vieva.application.ports.input.user.UserResult;
 import com.example.vieva.application.ports.common.UserSearchCriteria;
 import com.example.vieva.application.ports.output.DomainEventPublisherPort;
 import com.example.vieva.application.ports.output.DuplicateKeyException;
+import com.example.vieva.application.ports.output.ExamAttemptRepository;
 import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.output.PasswordEncoderPort;
 import com.example.vieva.application.ports.output.RoleRepository;
@@ -38,6 +39,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PasswordEncoderPort passwordEncoder;
     private final QuestionBankAuditor auditor;
     private final DomainEventPublisherPort domainEventPublisher;
+    private final ExamAttemptRepository examAttemptRepository;
 
     @Override
     @UseCaseTransaction(readOnly = true)
@@ -125,6 +127,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             savedUser = userRepository.saveAndFlush(user);
         } catch (DuplicateKeyException e) {
             // Concurrent creation with the same email/userCode won the race (unique indexes)
+            if (e.getSuggestedErrorCode() != null && e.getSuggestedErrorCode() != ErrorCode.INVALID_REQUEST) {
+                throw new ApplicationException(e.getSuggestedErrorCode());
+            }
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("user_code")) {
+                throw new ApplicationException(ErrorCode.USER_CODE_EXISTED);
+            }
             throw new ApplicationException(ErrorCode.USER_EXISTED);
         }
 
@@ -166,7 +174,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot lock / deactivate the last active ADMIN
-        // Use FOR UPDATE lock to serialize concurrent demote attempts
         if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE
                 && targetStatus != null && targetStatus != UserStatus.ACTIVE) {
             if (userRepository.countActiveAdmins() <= 1) {
@@ -183,11 +190,32 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot demote the last ADMIN
-        // Use FOR UPDATE lock to serialize concurrent demote attempts
         if (isTargetAdmin && user.getStatus() == UserStatus.ACTIVE && request.getRoleCode() != null) {
             boolean willRemainAdmin = isAdminRoleCode(request.getRoleCode());
             if (!willRemainAdmin && userRepository.countActiveAdmins() <= 1) {
                 throw new ApplicationException(ErrorCode.CANNOT_DEMOTE_LAST_ADMIN);
+            }
+        }
+
+        // Update email if provided and changed
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            String newEmail = new Email(request.getEmail()).getValue();
+            if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+                if (userRepository.existsByEmail(newEmail)) {
+                    throw new ApplicationException(ErrorCode.USER_EXISTED);
+                }
+                user.setEmail(newEmail);
+            }
+        }
+
+        // Update userCode if provided and changed
+        if (request.getUserCode() != null && !request.getUserCode().trim().isEmpty()) {
+            String newUserCode = request.getUserCode().trim();
+            if (!newUserCode.equalsIgnoreCase(user.getUserCode())) {
+                if (userRepository.existsByUserCode(newUserCode)) {
+                    throw new ApplicationException(ErrorCode.USER_CODE_EXISTED);
+                }
+                user.setUserCode(newUserCode);
             }
         }
 
@@ -207,11 +235,21 @@ public class AdminUserServiceImpl implements AdminUserService {
             user.changeStatus(targetStatus, now);
         }
         if (request.getRoleCode() != null) {
-            // Replaces the current role: an account has exactly one
             user.assignRole(resolveRole(request.getRoleCode()), currentAdminId);
         }
 
-        User updatedUser = userRepository.save(user);
+        final User updatedUser;
+        try {
+            updatedUser = userRepository.saveAndFlush(user);
+        } catch (DuplicateKeyException e) {
+            if (e.getSuggestedErrorCode() != null && e.getSuggestedErrorCode() != ErrorCode.INVALID_REQUEST) {
+                throw new ApplicationException(e.getSuggestedErrorCode());
+            }
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("user_code")) {
+                throw new ApplicationException(ErrorCode.USER_CODE_EXISTED);
+            }
+            throw new ApplicationException(ErrorCode.USER_EXISTED);
+        }
 
         auditor.record(currentAdminId, "USER_UPDATED", "USER", updatedUser.getUserId(),
                 Map.of("status", updatedUser.getStatus().name()));
@@ -235,10 +273,14 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Rule: ADMIN cannot delete the last active ADMIN
-        // Use FOR UPDATE lock to serialize concurrent delete attempts at the DB level
         if (user.isAdmin() && user.getStatus() == UserStatus.ACTIVE
                 && userRepository.countActiveAdmins() <= 1) {
             throw new ApplicationException(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
+        }
+
+        // Rule: Reject deletion of student with attempts through existing delete path
+        if (examAttemptRepository != null && !examAttemptRepository.findByStudentId(targetUserId).isEmpty()) {
+            throw new ApplicationException(ErrorCode.CANNOT_DELETE_STUDENT_WITH_ATTEMPTS);
         }
 
         user.delete();
@@ -261,17 +303,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
 
-        // The admin knows this password, so the user must replace it on next login
         user.issueTemporaryPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         auditor.record(currentAdminId, "USER_PASSWORD_RESET", "USER", user.getUserId(), Map.of("passwordReset", true));
     }
 
-    /**
-     * Resolve a single role code (ROLE_ADMIN, ROLE_LECTURER or ROLE_STUDENT) to its Role.
-     * The {@code ROLE_} prefix is optional ({@code LECTURER} works); a blank code means ROLE_STUDENT.
-     */
     private Role resolveRole(String roleCode) {
         if (roleCode == null || roleCode.isBlank()) {
             return findDefaultRole();

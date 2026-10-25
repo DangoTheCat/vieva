@@ -35,6 +35,9 @@ public class CourseDocumentJpaEntity implements Persistable<UUID> {
     @JoinColumn(name = "subject_id", nullable = false)
     private SubjectJpaEntity subject;
 
+    @Column(name = "topic_id")
+    private UUID topicId;
+
     @Column(name = "uploaded_by", nullable = false)
     private UUID uploadedBy;
 

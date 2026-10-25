@@ -171,10 +171,14 @@ public class UserRepositoryImpl implements UserRepository {
             return userMapper.toDomain(userJpaRepository.saveAndFlush(userMapper.toEntity(user)));
         } catch (DataIntegrityViolationException e) {
             String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
-            ErrorCode suggested = (msg != null && (msg.contains("uq_users_active_email") || msg.contains("uq_users_active_user_code")
-                    || (msg.contains("email") && msg.contains("unique"))))
-                    ? ErrorCode.USER_EXISTED
-                    : ErrorCode.INVALID_REQUEST;
+            ErrorCode suggested;
+            if (msg != null && (msg.contains("uq_users_active_user_code") || msg.toLowerCase().contains("user_code"))) {
+                suggested = ErrorCode.USER_CODE_EXISTED;
+            } else if (msg != null && (msg.contains("uq_users_active_email") || msg.toLowerCase().contains("email"))) {
+                suggested = ErrorCode.USER_EXISTED;
+            } else {
+                suggested = ErrorCode.USER_EXISTED;
+            }
             throw new DuplicateKeyException("User duplicate key violation: " + e.getMessage(), e, suggested);
         }
     }

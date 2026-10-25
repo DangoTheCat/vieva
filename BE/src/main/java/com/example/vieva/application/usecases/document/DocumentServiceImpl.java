@@ -1,7 +1,11 @@
 package com.example.vieva.application.usecases.document;
 
+import com.example.vieva.application.exception.ApplicationException;
+import com.example.vieva.application.exception.ErrorCode;
+import com.example.vieva.application.ports.input.document.CourseDocumentResult;
 import com.example.vieva.application.ports.input.document.DocumentCleanupUseCase;
 import com.example.vieva.application.ports.input.document.DocumentIndexingUseCase;
+import com.example.vieva.application.ports.input.document.DocumentPreview;
 import com.example.vieva.application.ports.input.document.DocumentService;
 import com.example.vieva.application.ports.output.AiServiceException;
 import com.example.vieva.application.ports.output.CourseDocumentRepository;
@@ -12,27 +16,24 @@ import com.example.vieva.application.ports.output.FileStoragePort;
 import com.example.vieva.application.ports.output.FileTypeDetectorPort;
 import com.example.vieva.application.ports.output.JsonSerializerPort;
 import com.example.vieva.application.ports.output.ParsedSection;
+import com.example.vieva.application.ports.output.QuestionDraftWriter;
 import com.example.vieva.application.ports.output.QuestionSourceRepository;
 import com.example.vieva.application.ports.output.StoredFile;
 import com.example.vieva.application.ports.output.SubjectRepository;
 import com.example.vieva.application.ports.output.TextChunk;
 import com.example.vieva.application.ports.output.TextSplitterPort;
+import com.example.vieva.application.ports.output.TopicRepository;
 import com.example.vieva.application.ports.output.TransactionRunnerPort;
 import com.example.vieva.application.settings.DocumentSettings;
+import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.domain.entities.CourseDocument;
 import com.example.vieva.domain.entities.DocumentChunk;
 import com.example.vieva.domain.entities.DocumentStatus;
 import com.example.vieva.domain.entities.SubjectStatus;
-import com.example.vieva.application.exception.ApplicationException;
-import com.example.vieva.application.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.example.vieva.application.transaction.UseCaseTransaction;
-
-import com.example.vieva.application.ports.input.document.CourseDocumentResult;
-import com.example.vieva.application.ports.input.document.DocumentPreview;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -50,21 +51,6 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class DocumentServiceImpl implements DocumentService, DocumentIndexingUseCase, DocumentCleanupUseCase {
-    @Override
-    @UseCaseTransaction
-    public void archiveDocument(UUID documentId, UUID actorId) {
-        CourseDocument document = courseDocumentRepository.findByIdForUpdate(documentId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
-        subjectAccessGuard.requireManage(actorId,document.getSubjectId());
-        document.archive();
-        courseDocumentRepository.save(document);
-    }
-
-    @Override
-    @UseCaseTransaction
-    public CourseDocumentResult processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId) {
-        return uploadDocument(subjectId,filename,content,actorId);
-    }
 
     private static final int SUMMARY_LENGTH = 500;
 
@@ -72,6 +58,7 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
     private final DocumentChunkRepository documentChunkRepository;
     private final QuestionSourceRepository questionSourceRepository;
     private final SubjectRepository subjectRepository;
+    private final TopicRepository topicRepository;
     private final DocumentParserPort documentParser;
     private final FileStoragePort fileStorage;
     private final FileTypeDetectorPort fileTypeDetector;
@@ -82,7 +69,23 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
     private final SubjectAccessGuard subjectAccessGuard;
     private final QuestionBankAuditor auditor;
     private final DocumentSettings documentSettings;
-    private final com.example.vieva.application.ports.output.QuestionDraftWriter db;
+    private final QuestionDraftWriter db;
+
+    @Override
+    @UseCaseTransaction
+    public void archiveDocument(UUID documentId, UUID actorId) {
+        CourseDocument document = courseDocumentRepository.findByIdForUpdate(documentId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
+        subjectAccessGuard.requireManage(actorId, document.getSubjectId());
+        document.archive();
+        courseDocumentRepository.save(document);
+    }
+
+    @Override
+    @UseCaseTransaction
+    public CourseDocumentResult processDocumentUpload(UUID subjectId, String filename, byte[] content, UUID actorId) {
+        return uploadDocument(subjectId, filename, content, actorId);
+    }
 
     @Override
     @UseCaseTransaction
@@ -191,7 +194,7 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
                 // Clean slate: a previous partial run never leaves chunks behind.
                 documentChunkRepository.deleteByDocumentId(documentId);
                 documentChunkRepository.storeEmbeddings(chunks);
-                db.updateDocumentStatus(doc,DocumentStatus.READY,chunks.size(),summary);
+                db.updateDocumentStatus(doc, DocumentStatus.READY, chunks.size(), summary);
                 auditor.record(null, "DOCUMENT_INDEXED", QuestionBankAuditor.DOCUMENT, documentId,
                         Map.of("chunks", chunks.size(), "attempt", doc.getIndexAttempts(),
                                 "uploadedBy", String.valueOf(doc.getUploadedBy())));
@@ -286,6 +289,53 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
 
     @Override
     @UseCaseTransaction
+    public CourseDocumentResult updateDocumentMetadata(UUID documentId, UUID topicId, String metadataJson, UUID actorId) {
+        CourseDocument document = courseDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DOCUMENT_NOT_FOUND));
+        subjectAccessGuard.requireManage(actorId, document.getSubjectId());
+
+        if (topicId != null && !topicRepository.existsByIdAndSubjectId(topicId, document.getSubjectId())) {
+            throw new ApplicationException(ErrorCode.TOPIC_NOT_IN_SUBJECT, "Topic does not belong to the document's subject");
+        }
+
+        document.setTopicId(topicId);
+
+        List<DocumentChunk> chunks = documentChunkRepository.findByDocumentId(documentId);
+        if (!chunks.isEmpty()) {
+            for (DocumentChunk chunk : chunks) {
+                Map<String, Object> metaMap = new HashMap<>();
+                if (chunk.getMetadataJson() != null && !chunk.getMetadataJson().isBlank()) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> existing = jsonSerializer.deserialize(chunk.getMetadataJson(), Map.class);
+                        if (existing != null) metaMap.putAll(existing);
+                    } catch (Exception ignored) {
+                    }
+                }
+                if (metadataJson != null && !metadataJson.isBlank()) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> parsed = jsonSerializer.deserialize(metadataJson, Map.class);
+                        if (parsed != null) metaMap.putAll(parsed);
+                    } catch (Exception ignored) {
+                    }
+                }
+                if (topicId != null) {
+                    metaMap.put("topicId", topicId.toString());
+                }
+                chunk.setMetadataJson(jsonSerializer.serialize(metaMap));
+            }
+            documentChunkRepository.saveAll(chunks);
+        }
+        document.setUpdatedAt(Instant.now());
+        CourseDocument saved = courseDocumentRepository.save(document);
+        auditor.record(actorId, "DOCUMENT_METADATA_UPDATED", QuestionBankAuditor.DOCUMENT, documentId,
+                Map.of("topicId", topicId != null ? topicId.toString() : "", "metadata", metadataJson != null ? metadataJson : ""));
+        return CourseDocumentResults.from(saved);
+    }
+
+    @Override
+    @UseCaseTransaction
     public int failStaleDocuments(Instant indexingThreshold, Instant uploadedThreshold) {
         List<CourseDocument> stale = new ArrayList<>();
         for (CourseDocument doc : courseDocumentRepository.findStaleIndexingDocuments(indexingThreshold)) {
@@ -302,8 +352,6 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
             auditor.record(null, "DOCUMENT_INDEX_FAILED", QuestionBankAuditor.DOCUMENT, doc.getDocumentId(),
                     Map.of("reason", doc.getErrorMessage()));
         }
-        // Re-read statuses: skip documents that concurrently reached READY (or were deleted)
-        // after our read, so saveAll cannot overwrite fresh progress (Rule 5).
         List<CourseDocument> fresh = courseDocumentRepository.findAllByIds(staleIds);
         List<CourseDocument> toFail = new ArrayList<>(stale.size());
         for (CourseDocument doc : stale) {
@@ -322,7 +370,6 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
                 log.info("Skip failing stale document {}: concurrently progressed or deleted", doc.getDocumentId());
             }
         }
-        // One batched DELETE instead of one per stale document (Rule 4).
         List<UUID> toFailIds = new ArrayList<>(toFail.size());
         for (CourseDocument doc : toFail) {
             toFailIds.add(doc.getDocumentId());
@@ -347,7 +394,6 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
                 });
             });
         } catch (Exception e) {
-            // The stale-document scheduler will eventually move it to FAILED.
             log.error("Could not record indexing failure for document {}", documentId, e);
         }
     }
@@ -403,7 +449,6 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
         return builder.toString();
     }
 
-    /** User-facing reason; never includes stack traces or provider secrets. */
     private static String failureReason(Exception e) {
         if (e instanceof ApplicationException app) {
             return app.getMessage();

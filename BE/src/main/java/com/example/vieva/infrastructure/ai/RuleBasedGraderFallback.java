@@ -2,6 +2,7 @@ package com.example.vieva.infrastructure.ai;
 
 import com.example.vieva.application.ports.output.AttemptGradingResult;
 import com.example.vieva.application.ports.output.RuleBasedGraderPort;
+import com.example.vieva.application.ports.output.VivaEvaluationContext;
 import com.example.vieva.application.ports.output.VivaEvaluationGateway;
 import com.example.vieva.application.ports.output.VivaEvaluationResult;
 import com.example.vieva.domain.entities.ExamAttempt;
@@ -39,6 +40,11 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
 
     @Override
     public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric) {
+        return evaluateTurn(turn, rubric, VivaEvaluationContext.empty());
+    }
+
+    @Override
+    public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric, VivaEvaluationContext context) {
         String answer = turn.getTranscriptText();
         if (answer == null || answer.trim().isEmpty()) {
             return new VivaEvaluationResult(
@@ -61,6 +67,9 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
 
         Set<String> expectedKeywords = new HashSet<>(questionKeywords);
         expectedKeywords.addAll(rubricKeywords);
+        if (context != null && context.expectedAnswer() != null && !context.expectedAnswer().isBlank()) {
+            expectedKeywords.addAll(extractKeywords(context.expectedAnswer()));
+        }
 
         Set<String> answerKeywords = extractKeywords(answer);
 
@@ -80,6 +89,9 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
         // Weighted score 0 to 10
         // Score = (coverageRatio * 0.6 + lengthRatio * 0.4) * 10
         double rawScore = (coverageRatio * 0.6 + lengthRatio * 0.4) * 10.0;
+        if (!Double.isFinite(rawScore)) {
+            rawScore = 0.0;
+        }
         BigDecimal finalScore = BigDecimal.valueOf(Math.min(10.0, Math.max(0.0, rawScore)))
                 .setScale(2, RoundingMode.HALF_UP);
 

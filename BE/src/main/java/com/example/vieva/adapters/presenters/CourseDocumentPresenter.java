@@ -18,6 +18,7 @@ public class CourseDocumentPresenter {
         return CourseDocumentDto.builder()
                 .documentId(document.getDocumentId())
                 .subjectId(document.getSubjectId())
+                .topicId(document.getTopicId())
                 .uploadedBy(document.getUploadedBy())
                 .fileName(document.getFileName())
                 .fileUrl(document.getFileUrl())

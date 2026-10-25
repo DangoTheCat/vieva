@@ -7,5 +7,7 @@ import java.util.UUID;
 
 public interface ExamScoreRepository {
     ExamScore save(ExamScore score);
+    Optional<ExamScore> findById(UUID id);
     Optional<ExamScore> findByAttemptId(UUID attemptId);
+    java.util.List<ExamScore> findAll();
 }

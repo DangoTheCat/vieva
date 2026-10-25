@@ -45,6 +45,8 @@ class ExamAttemptStateTransitionsTest {
     private QuestionRepository questionRepository;
     @Mock
     private QuestionVersionRepository questionVersionRepository;
+    @Mock
+    private com.example.vieva.application.ports.output.ExamAttemptQuestionSnapshotRepository snapshotRepository;
 
     private final UUID studentId = UUID.randomUUID();
     private final UUID subjectId = UUID.randomUUID();
@@ -78,7 +80,8 @@ class ExamAttemptStateTransitionsTest {
 
             StartExamUseCaseImpl startExamUseCase = new StartExamUseCaseImpl(
                     userRepository, subjectRepository, questionRepository,
-                    questionVersionRepository, examAttemptRepository, examTurnRepository
+                    questionVersionRepository, examAttemptRepository, examTurnRepository,
+                    snapshotRepository
             );
 
             ExamAttemptView view = startExamUseCase.startExam(studentId, subjectId);

@@ -118,6 +118,17 @@ class QuestionReviewAndAuthoringServiceTest {
             return saved;
         });
         when(rubricRepository.findByQuestionVersionIds(anyCollection())).thenReturn(List.of());
+        when(userRepository.findById(any())).thenAnswer(inv -> {
+            java.util.UUID id = inv.getArgument(0);
+            com.example.vieva.domain.entities.User u = com.example.vieva.domain.entities.User.builder()
+                    .userId(id)
+                    .email("lecturer@fpt.edu.vn")
+                    .fullName("Lecturer")
+                    .status(com.example.vieva.domain.entities.UserStatus.ACTIVE)
+                    .build();
+            u.assignRole(com.example.vieva.domain.entities.Role.builder().roleId(2).roleCode("ROLE_LECTURER").build(), null);
+            return java.util.Optional.of(u);
+        });
     }
 
     private QuestionVersion storeDraft(QuestionGenerationMode mode, boolean bloomConfirmed) {

@@ -26,9 +26,6 @@ public class SubjectJpaEntity implements Persistable<UUID> {
     @Column(name = "subject_id", updatable = false, nullable = false)
     private UUID subjectId;
 
-    @Column(name = "head_lecturer_id")
-    private UUID headLecturerId;
-
     @Column(name = "subject_code", nullable = false, unique = true, length = 50)
     private String subjectCode;
 

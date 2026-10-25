@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -45,6 +47,10 @@ public class CloudinaryStorageGateway implements FileStoragePort {
                 "secure", true));
     }
 
+    public CloudinaryStorageGateway(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
+    }
+
     @Override
     public StoredFile store(String filename, byte[] content, String contentType) {
         try {
@@ -52,6 +58,18 @@ public class CloudinaryStorageGateway implements FileStoragePort {
                     "resource_type", "raw",
                     "public_id", "vieva_docs/" + UUID.randomUUID() + "_" + filename));
             String url = (String) result.get("secure_url");
+
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == STATUS_ROLLED_BACK) {
+                            delete(url);
+                        }
+                    }
+                });
+            }
+
             return new StoredFile(url, url);
         } catch (IOException e) {
             throw new IllegalStateException("Cloudinary upload failed", e);
@@ -76,5 +94,39 @@ public class CloudinaryStorageGateway implements FileStoragePort {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Cloudinary download interrupted", e);
         }
+    }
+
+    @Override
+    public void delete(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) {
+            return;
+        }
+        try {
+            String publicId = extractPublicId(storageKey);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "raw"));
+        } catch (Exception e) {
+            log.warn("Failed to delete Cloudinary resource: {}", storageKey, e);
+        }
+    }
+
+    private String extractPublicId(String keyOrUrl) {
+        if (!keyOrUrl.startsWith("http://") && !keyOrUrl.startsWith("https://")) {
+            return keyOrUrl;
+        }
+        int uploadIdx = keyOrUrl.indexOf("/upload/");
+        if (uploadIdx != -1) {
+            String afterUpload = keyOrUrl.substring(uploadIdx + "/upload/".length());
+            if (afterUpload.matches("^v\\d+/.*")) {
+                afterUpload = afterUpload.substring(afterUpload.indexOf('/') + 1);
+            }
+            int qIdx = afterUpload.indexOf('?');
+            return qIdx != -1 ? afterUpload.substring(0, qIdx) : afterUpload;
+        }
+        if (keyOrUrl.contains("vieva_docs/")) {
+            String after = keyOrUrl.substring(keyOrUrl.indexOf("vieva_docs/"));
+            int qIdx = after.indexOf('?');
+            return qIdx != -1 ? after.substring(0, qIdx) : after;
+        }
+        return keyOrUrl;
     }
 }

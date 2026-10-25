@@ -19,4 +19,6 @@ public interface DocumentService {
     DocumentPreview previewDocument(UUID documentId, UUID actorId);
 
     void softDeleteDocument(UUID documentId, UUID actorId);
+
+    CourseDocumentResult updateDocumentMetadata(UUID documentId, UUID topicId, String metadataJson, UUID actorId);
 }

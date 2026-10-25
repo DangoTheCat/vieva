@@ -102,6 +102,8 @@ public class AdminUserController {
                 .phoneNumber(apiRequest.getPhoneNumber())
                 .status(apiRequest.getStatus())
                 .roleCode(resolveRoleCode(apiRequest.getRoleCode(), apiRequest.getRoleCodes()))
+                .email(apiRequest.getEmail())
+                .userCode(apiRequest.getUserCode())
                 .build();
 
         UserResult updatedUser = adminUserService.updateUser(id, request, currentAdminId);
