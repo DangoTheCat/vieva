@@ -229,21 +229,15 @@ export function AdminSubjectPage({ showToast }) {
   };
 
   // Revoke assignment
-  const handleRevokeAssignment = async (assignmentId, lecturerId) => {
+  const handleRevokeAssignment = async (assignmentId) => {
     try {
       await adminSubjectApi.revokeAssignment(assignmentId);
       setAssignments(prev => prev.filter(a => a.lecturerSubjectId !== assignmentId));
-      if (activeSubjectForAssign && activeSubjectForAssign.headLecturerId === lecturerId) {
-        setActiveSubjectForAssign(prev => ({ ...prev, headLecturerId: null }));
-        setSubjects(prev => prev.map(s => s.subjectId === activeSubjectForAssign.subjectId ? { ...s, headLecturerId: null } : s));
-      }
       showToast({ type: 'success', message: 'Đã thu hồi quyền giảng viên phụ trách môn học.' });
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     }
   };
-
-
 
   // Filtered subjects
   const filteredSubjects = useMemo(() => {
@@ -723,7 +717,6 @@ export function AdminSubjectPage({ showToast }) {
                 </h2>
                 <div className="text-xs text-green-900 flex items-center gap-2 flex-wrap">
                   <span>Quyền Course-scoped RLS cho phép giảng viên biên soạn, phê duyệt và giám sát ngân hàng đề thi môn học.</span>
-                  
                 </div>
               </div>
               <button
@@ -781,13 +774,10 @@ export function AdminSubjectPage({ showToast }) {
                 <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                   {activeSubjectAssignments.map(asg => {
                     const lecturer = lecturers.find(l => l.userId === asg.lecturerId);
-                    const isHead = activeSubjectForAssign.headLecturerId === asg.lecturerId;
                     return (
                       <div
                         key={asg.lecturerSubjectId}
-                        className={`p-3.5 rounded-xl border-2 ${
-                          isHead ? 'border-green-600 bg-green-50/70' : 'border-green-500 bg-paper'
-                        } flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_#DEB9B5]`}
+                        className="p-3.5 rounded-xl border-2 border-green-500 bg-paper flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_#DEB9B5]"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg border-2 border-green-500 bg-green-50 flex items-center justify-center text-green-900 font-bold text-sm shadow-[1px_1px_0_#DEB9B5] overflow-hidden shrink-0">
@@ -813,11 +803,9 @@ export function AdminSubjectPage({ showToast }) {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          
-
                           <button
                             type="button"
-                            onClick={() => handleRevokeAssignment(asg.lecturerSubjectId, asg.lecturerId)}
+                            onClick={() => handleRevokeAssignment(asg.lecturerSubjectId)}
                             className="p-1.5 rounded-lg border-2 border-green-500 bg-paper text-pink-700 hover:bg-pink-100 shadow-[2px_2px_0_#DEB9B5] transition-all cursor-pointer"
                             title="Gỡ quyền phụ trách môn"
                           >
