@@ -27,7 +27,7 @@ import { VoiceWaveform } from '../components/common/VoiceWaveform';
 
 const PORTAL_ROLES = {
   stu: { code: 'ROLE_STUDENT', label: 'Sinh Viên', view: 'discover' },
-  lec: { code: 'ROLE_LECTURER', label: 'Giảng Viên', view: 'lecturer-questions' },
+  lec: { code: 'ROLE_LECTURER', label: 'Giảng Viên', view: 'lecturer-dashboard' },
   adm: { code: 'ROLE_ADMIN', label: 'Ban Khảo Thí (Admin)', view: 'admin-users' }
 };
 
@@ -416,7 +416,7 @@ export function LoginPage({ onNavigate, showToast }) {
 
               <div>
                 <label className="font-bold text-ink block mb-1">
-                  <span>Email Tài Khoản Trường / Mã Số</span>
+                  <span>Email Tài Khoản Trường</span>
                   <span className="text-pink-700 ml-1">(*)</span>
                 </label>
                 <div className="relative">
@@ -429,10 +429,10 @@ export function LoginPage({ onNavigate, showToast }) {
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder={
                       selectedRole === 'stu'
-                        ? 'student@fpt.edu.vn hoặc MSSV'
+                        ? 'student@fpt.edu.vn'
                         : selectedRole === 'lec'
-                        ? 'vancee@fpt.edu.vn hoặc Mã GV'
-                        : 'admin@aives.edu.vn hoặc Mã QTV'
+                        ? 'vancee@fpt.edu.vn'
+                        : 'admin@aives.edu.vn'
                     }
                     className="w-full bg-white border border-green-300 focus:border-green-600 rounded-xl p-3 pl-9 text-xs text-ink placeholder:text-outline focus:ring-2 focus:ring-green-600 shadow-[2px_2px_0px_#DEB9B5] focus:outline-none transition font-sans"
                   />

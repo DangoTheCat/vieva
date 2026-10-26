@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { courseDocumentApi } from '../api/courseDocumentApi';
+import { knowledgeApi } from '../api/knowledgeApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { MaterialDropzone } from '../components/teacher/MaterialDropzone';
 import {
@@ -38,6 +39,17 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
   const [fileToUpload, setFileToUpload] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Syllabus topics (documents can be tagged with one)
+  const [topics, setTopics] = useState([]);
+  const [updatingDocId, setUpdatingDocId] = useState(null);
+
+  // Knowledge search over indexed chunks
+  const [knowledgeQuery, setKnowledgeQuery] = useState('');
+  const [knowledgeResults, setKnowledgeResults] = useState(null);
+  const [isSearchingKnowledge, setIsSearchingKnowledge] = useState(false);
+  const [manualKnowledge, setManualKnowledge] = useState('');
+  const [isAddingKnowledge, setIsAddingKnowledge] = useState(false);
+
   // 1. Load assigned subjects from BE
   useEffect(() => {
     async function loadSubjects() {
@@ -54,12 +66,69 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       } catch (err) {
         setSubjects([]);
         setSelectedSubjectId('');
+        showToast({ type: 'error', message: getErrorMessage(err) });
       } finally {
         setIsLoading(false);
       }
     }
     loadSubjects();
   }, []);
+
+  useEffect(() => {
+    setKnowledgeResults(null);
+    if (!selectedSubjectId) {
+      setTopics([]);
+      return;
+    }
+    lecturerCatalogApi.getTopics(selectedSubjectId)
+      .then(list => setTopics(Array.isArray(list) ? list : []))
+      .catch(err => {
+        setTopics([]);
+        showToast({ type: 'error', message: getErrorMessage(err) });
+      });
+  }, [selectedSubjectId]);
+
+  const handleAssignTopic = async (docId, topicId) => {
+    setUpdatingDocId(docId);
+    try {
+      const updated = await courseDocumentApi.updateMetadata(docId, { topicId });
+      setDocuments(prev => prev.map(d => ((d.documentId || d.id) === docId ? { ...d, ...updated } : d)));
+      showToast({ type: 'success', message: 'Đã cập nhật chủ đề cho tài liệu.' });
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setUpdatingDocId(null);
+    }
+  };
+
+  const handleSearchKnowledge = async (e) => {
+    e?.preventDefault();
+    setIsSearchingKnowledge(true);
+    try {
+      const results = await knowledgeApi.search(selectedSubjectId, knowledgeQuery.trim(), 10);
+      setKnowledgeResults(Array.isArray(results) ? results : []);
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsSearchingKnowledge(false);
+    }
+  };
+
+  const handleAddKnowledge = async (e) => {
+    e.preventDefault();
+    if (!manualKnowledge.trim()) return;
+    setIsAddingKnowledge(true);
+    try {
+      await knowledgeApi.create({ subjectId: selectedSubjectId, content: manualKnowledge.trim() });
+      setManualKnowledge('');
+      showToast({ type: 'success', message: 'Đã thêm đoạn kiến thức vào kho của môn học.' });
+      handleSearchKnowledge();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsAddingKnowledge(false);
+    }
+  };
 
   // 2. Load documents for selected subject from BE
   useEffect(() => {
@@ -76,6 +145,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
         setDocuments(list);
       } catch (err) {
         setDocuments([]);
+        showToast({ type: 'error', message: getErrorMessage(err) });
       } finally {
         setIsLoading(false);
       }
@@ -268,7 +338,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                   <th className="py-3 px-4 sm:px-6">Tên Tệp Giáo Trình</th>
                   <th className="py-3 px-4">Trạng Thái RAG</th>
                   <th className="py-3 px-4">Số Phân Đoạn (Chunks)</th>
-                  <th className="py-3 px-4">Cấu Hình Token</th>
+                  <th className="py-3 px-4">Chủ Đề</th>
                   <th className="py-3 px-4 sm:px-6 text-right">Thao Tác</th>
                 </tr>
               </thead>
@@ -327,8 +397,17 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                           {chunkCount} chunks
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-on-surface-variant font-mono text-[11px] whitespace-nowrap">
-                        {doc.chunkSize ? `${doc.chunkSize} tokens` : '512 tokens / overlap 50'}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <select
+                          value={doc.topicId || ''}
+                          disabled={updatingDocId === docId}
+                          onChange={(e) => handleAssignTopic(docId, e.target.value)}
+                          aria-label="Chủ đề của tài liệu"
+                          className="max-w-[180px] bg-white border-2 border-green-300 rounded-lg p-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-green-600 disabled:opacity-50"
+                        >
+                          <option value="">— Chưa gán —</option>
+                          {topics.map(t => <option key={t.topicId} value={t.topicId}>{t.name}</option>)}
+                        </select>
                       </td>
                       <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap space-x-1.5">
                         <button
@@ -374,12 +453,65 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
             <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
             <span className="font-semibold text-ink">Tổng số tài liệu giáo trình: {documents.length}</span>
           </div>
-          <div className="font-mono text-green-800 font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span>Vector Store Pipeline: ONLINE (pgvector)</span>
-          </div>
         </div>
       </div>
+
+      {/* KNOWLEDGE SEARCH (GET/POST /knowledge) */}
+      {selectedSubjectId && (
+        <div className="bg-surface-container-lowest border-2 border-green-500 rounded-xl shadow-[6px_6px_0_#D5A6A2] p-4 sm:p-6 space-y-4 text-xs">
+          <div>
+            <h2 className="font-heading font-bold text-sm text-ink">Tra Cứu Kho Kiến Thức</h2>
+            <p className="text-on-surface-variant mt-0.5">Tìm các đoạn giáo trình đã lập chỉ mục mà AI dùng để sinh câu hỏi. Để trống để xem các đoạn mới nhất.</p>
+          </div>
+          <form onSubmit={handleSearchKnowledge} className="flex gap-2">
+            <input
+              value={knowledgeQuery}
+              onChange={(e) => setKnowledgeQuery(e.target.value)}
+              placeholder="VD: dependency inversion"
+              aria-label="Từ khoá tìm kiếm"
+              className="flex-1 bg-white border-2 border-green-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+            <button type="submit" disabled={isSearchingKnowledge}
+              className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
+              {isSearchingKnowledge && <Loader2 className="w-4 h-4 animate-spin" />} Tìm
+            </button>
+          </form>
+
+          {knowledgeResults && (
+            knowledgeResults.length === 0 ? (
+              <p className="text-on-surface-variant">Không tìm thấy đoạn kiến thức phù hợp.</p>
+            ) : (
+              <ul className="space-y-2">
+                {knowledgeResults.map(k => (
+                  <li key={k.chunkId} className="bg-white border-2 border-green-200 rounded-xl p-3 space-y-1">
+                    <p className="text-[11px] font-bold text-green-800">
+                      {k.documentName || 'Kiến thức thủ công'}{k.pageStart != null ? ` • trang ${k.pageStart}` : ''}{knowledgeQuery.trim() ? ` • độ tương đồng ${(k.similarity * 100).toFixed(0)}%` : ''}
+                    </p>
+                    <p className="text-ink leading-relaxed line-clamp-4">{k.content}</p>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+
+          <form onSubmit={handleAddKnowledge} className="pt-3 border-t-2 border-cream space-y-2">
+            <label className="font-bold block">Thêm đoạn kiến thức thủ công</label>
+            <textarea
+              rows={3}
+              value={manualKnowledge}
+              onChange={(e) => setManualKnowledge(e.target.value)}
+              placeholder="Dán định nghĩa, ví dụ hoặc ghi chú bài giảng cần đưa vào kho kiến thức..."
+              className="w-full bg-white border-2 border-green-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+            <div className="flex justify-end">
+              <button type="submit" disabled={isAddingKnowledge || !manualKnowledge.trim()}
+                className="px-4 py-2 rounded-xl bg-white border-2 border-green-500 font-bold hover:bg-green-50 flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600">
+                {isAddingKnowledge && <Loader2 className="w-4 h-4 animate-spin" />} Thêm vào kho
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* UPLOAD MODAL WITH MATERIAL DROPZONE */}
       {isUploadModalOpen && (

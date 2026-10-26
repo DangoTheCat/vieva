@@ -32,6 +32,11 @@ export function RubricStudioPage({ showToast }) {
   const [criteriaMaxScore, setCriteriaMaxScore] = useState('2.5');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Rubric templates of the selected subject
+  const [templates, setTemplates] = useState([]);
+  const [templateName, setTemplateName] = useState('');
+  const [templateBusyId, setTemplateBusyId] = useState(null);
+
   // Keyboard accessibility: Escape to close rubric modal
   useEffect(() => {
     if (!isRubricModalOpen) return;
@@ -78,23 +83,97 @@ export function RubricStudioPage({ showToast }) {
       try {
         const data = await questionBankApi.searchBank(selectedSubjectId, { page: 0, size: 50 });
         const list = data?.content || (Array.isArray(data) ? data : []);
-        setQuestions(list);
-        if (list.length > 0) {
-          const firstVersionId = list[0].activeVersionId || list[0].questionId;
-          setSelectedVersionId(firstVersionId);
-        } else {
-          setSelectedVersionId('');
-        }
+        // Rubrics hang off a question *version*; bank items expose it as currentVersion
+        const withVersion = list.filter(q => q.currentVersion?.versionId);
+        setQuestions(withVersion);
+        setSelectedVersionId(withVersion[0]?.currentVersion.versionId || '');
       } catch (err) {
         setQuestions([]);
         setSelectedVersionId('');
+        showToast({ type: 'error', message: getErrorMessage(err) });
       } finally {
         setIsLoading(false);
       }
     }
 
     loadQuestions();
+    loadTemplates();
   }, [selectedSubjectId]);
+
+  async function loadTemplates() {
+    try {
+      const list = await rubricApi.listTemplates(selectedSubjectId);
+      setTemplates(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setTemplates([]);
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    }
+  }
+
+  const handleSaveAsTemplate = async (e) => {
+    e.preventDefault();
+    if (!templateName.trim() || rubricCriteria.length === 0) return;
+    setTemplateBusyId('new');
+    try {
+      const criteria = rubricCriteria.map((c, i) => ({
+        name: c.name,
+        description: c.description,
+        maxScore: Number(c.maxScore),
+        levels: c.levels || [],
+        orderIndex: c.orderIndex ?? i + 1
+      }));
+      await rubricApi.createTemplate(selectedSubjectId, {
+        name: templateName.trim(),
+        description: null,
+        criteriaJson: JSON.stringify(criteria)
+      });
+      setTemplateName('');
+      showToast({ type: 'success', message: 'Đã lưu rubric hiện tại thành mẫu.' });
+      loadTemplates();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setTemplateBusyId(null);
+    }
+  };
+
+  const handleApplyTemplate = async (template) => {
+    setTemplateBusyId(template.id);
+    try {
+      await rubricApi.applyTemplate(selectedSubjectId, template.id, selectedVersionId);
+      await loadRubric();
+      showToast({ type: 'success', message: `Đã áp dụng mẫu "${template.name}" cho câu hỏi.` });
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setTemplateBusyId(null);
+    }
+  };
+
+  const handleDeleteTemplate = async (template) => {
+    setTemplateBusyId(template.id);
+    try {
+      await rubricApi.deleteTemplate(selectedSubjectId, template.id);
+      setTemplates(prev => prev.filter(t => t.id !== template.id));
+      showToast({ type: 'success', message: `Đã xoá mẫu "${template.name}".` });
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setTemplateBusyId(null);
+    }
+  };
+
+  const templateCriteriaCount = (t) => {
+    try {
+      const parsed = JSON.parse(t.criteriaJson || '[]');
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch (_) {
+      return 0;
+    }
+  };
+
+  const selectedVersion = questions.find(q => q.currentVersion.versionId === selectedVersionId)?.currentVersion;
+  const isVersionEditable = selectedVersion?.status === 'DRAFT';
 
   // 3. Fetch Rubric Criteria for selectedVersionId from BE
   useEffect(() => {
@@ -103,20 +182,28 @@ export function RubricStudioPage({ showToast }) {
       return;
     }
 
-    async function loadRubric() {
-      try {
-        const data = await rubricApi.getRubric(selectedVersionId);
-        const criteriaList = data?.rubric?.criteria || data?.criteria || [];
-        setRubricCriteria(Array.isArray(criteriaList) ? criteriaList : []);
-        if (data?.lockVersion != null) setVersionLock(data.lockVersion);
-        if (data?.rubric?.totalScore != null) setVersionTotalScore(data.rubric.totalScore);
-      } catch (err) {
-        setRubricCriteria([]);
-      }
-    }
-
     loadRubric();
   }, [selectedVersionId]);
+
+  async function loadRubric() {
+    try {
+      const data = await rubricApi.getRubric(selectedVersionId);
+      applyRubricResponse(data);
+    } catch (err) {
+      setRubricCriteria([]);
+      setVersionTotalScore(null);
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    }
+  }
+
+  // BE answers rubric reads/writes with the version DTO ({ rubric, lockVersion, ... }) or a bare rubric
+  function applyRubricResponse(data) {
+    const criteriaList = data?.rubric?.criteria || data?.criteria || [];
+    setRubricCriteria(Array.isArray(criteriaList) ? criteriaList : []);
+    if (data?.lockVersion != null) setVersionLock(data.lockVersion);
+    const total = data?.rubric?.totalScore ?? data?.totalScore;
+    setVersionTotalScore(total != null ? total : null);
+  }
 
   const handleRubricSubmit = async (e) => {
     e.preventDefault();
@@ -134,50 +221,10 @@ export function RubricStudioPage({ showToast }) {
 
       if (editingCriterion) {
         const critId = editingCriterion.criterionId || editingCriterion.id;
-        if (selectedVersionId && !selectedVersionId.startsWith('ver-rubric-')) {
-          const res = await rubricApi.updateCriterion(selectedVersionId, critId, payload);
-          const updatedList = res?.rubric?.criteria || res?.criteria;
-          if (Array.isArray(updatedList)) {
-            setRubricCriteria(updatedList);
-          } else {
-            setRubricCriteria(prev => prev.map(c => 
-              (c.criterionId || c.id) === critId
-                ? { ...c, ...payload }
-                : c
-            ));
-          }
-          if (res?.lockVersion != null) setVersionLock(res.lockVersion);
-          if (res?.rubric?.totalScore != null) setVersionTotalScore(res.rubric.totalScore);
-        } else {
-          setRubricCriteria(prev => prev.map(c => 
-            (c.criterionId || c.id) === critId
-              ? { ...c, ...payload }
-              : c
-          ));
-        }
+        applyRubricResponse(await rubricApi.updateCriterion(selectedVersionId, critId, payload));
         showToast({ type: 'success', message: 'Cập nhật tiêu chí Rubric thành công!' });
       } else {
-        if (selectedVersionId && !selectedVersionId.startsWith('ver-rubric-')) {
-          const res = await rubricApi.addCriterion(selectedVersionId, payload);
-          const updatedList = res?.rubric?.criteria || res?.criteria;
-          if (Array.isArray(updatedList)) {
-            setRubricCriteria(updatedList);
-          } else {
-            const newCrit = {
-              criterionId: `crit-${Date.now()}`,
-              ...payload
-            };
-            setRubricCriteria(prev => [...prev, newCrit]);
-          }
-          if (res?.lockVersion != null) setVersionLock(res.lockVersion);
-          if (res?.rubric?.totalScore != null) setVersionTotalScore(res.rubric.totalScore);
-        } else {
-          const newCrit = {
-            criterionId: `crit-${Date.now()}`,
-            ...payload
-          };
-          setRubricCriteria(prev => [...prev, newCrit]);
-        }
+        applyRubricResponse(await rubricApi.addCriterion(selectedVersionId, payload));
         showToast({ type: 'success', message: 'Thêm tiêu chí Rubric thành công!' });
       }
 
@@ -195,14 +242,9 @@ export function RubricStudioPage({ showToast }) {
   const handleDeleteCriterion = async (criterionId) => {
     if (!selectedVersionId || !criterionId) return;
     try {
-      if (!selectedVersionId.startsWith('ver-rubric-') && !criterionId.startsWith('crit-')) {
-        const res = await rubricApi.deleteCriterion(selectedVersionId, criterionId, versionLock);
-        if (res?.rubric?.criteria) setRubricCriteria(res.rubric.criteria);
-        if (res?.lockVersion != null) setVersionLock(res.lockVersion);
-        if (res?.rubric?.totalScore != null) setVersionTotalScore(res.rubric.totalScore);
-      } else {
-        setRubricCriteria(prev => prev.filter(c => (c.criterionId || c.id) !== criterionId));
-      }
+      const res = await rubricApi.deleteCriterion(selectedVersionId, criterionId, versionLock);
+      if (res) applyRubricResponse(res);
+      else await loadRubric();
       showToast({ type: 'success', message: 'Đã xóa tiêu chí Rubric khỏi hệ thống!' });
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
@@ -254,7 +296,7 @@ export function RubricStudioPage({ showToast }) {
             {/* Add Rubric Criterion Button */}
             <button 
               type="button"
-              disabled={!selectedVersionId}
+              disabled={!selectedVersionId || !isVersionEditable}
               onClick={() => {
                 setEditingCriterion(null);
                 setCriteriaName('');
@@ -287,12 +329,77 @@ export function RubricStudioPage({ showToast }) {
               className="w-full md:max-w-3xl bg-green-50 text-ink text-xs px-3.5 py-2.5 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DADFD3] focus:outline-none focus:border-green-700 cursor-pointer transition-all truncate"
             >
               {questions.map((q) => (
-                <option key={q.questionId} value={q.activeVersionId || q.questionId}>
-                  #{q.code || q.questionId.substring(0, 8)} — {q.content || 'Câu hỏi thi'} {q.bloomLevel ? `(${q.bloomLevel})` : ''}
+                <option key={q.questionId} value={q.currentVersion.versionId}>
+                  #{q.questionCode} v{q.currentVersion.versionNumber} [{q.currentVersion.status}] — {q.currentVersion.content} {q.currentVersion.bloomLevelLabel ? `(${q.currentVersion.bloomLevelLabel})` : ''}
                 </option>
               ))}
             </select>
           </div>
+          {selectedVersion && !isVersionEditable && (
+            <p className="mt-3 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
+              Phiên bản này đang ở trạng thái {selectedVersion.status} — chỉ phiên bản DRAFT mới chỉnh sửa hoặc áp dụng mẫu rubric được.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* 2b. Rubric templates of the subject */}
+      {selectedSubjectId && (
+        <div className="bg-paper border-2 border-green-500 rounded-2xl p-4 sm:p-5 shadow-[3px_3px_0_#DEB9B5] space-y-3 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-heading font-bold text-sm">Mẫu Rubric của môn học ({templates.length})</h2>
+            <form onSubmit={handleSaveAsTemplate} className="flex items-center gap-2">
+              <input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="Tên mẫu mới"
+                aria-label="Tên mẫu rubric"
+                className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+              <button
+                type="submit"
+                disabled={!templateName.trim() || rubricCriteria.length === 0 || templateBusyId === 'new'}
+                title={rubricCriteria.length === 0 ? 'Rubric hiện tại chưa có tiêu chí' : ''}
+                className="px-3 py-2 rounded-xl bg-white border-2 border-green-500 font-bold hover:bg-green-50 disabled:opacity-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-green-600"
+              >
+                {templateBusyId === 'new' && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Lưu rubric hiện tại thành mẫu
+              </button>
+            </form>
+          </div>
+          {templates.length === 0 ? (
+            <p className="text-on-surface-variant">Chưa có mẫu nào. Soạn rubric cho một câu hỏi rồi lưu lại để tái sử dụng.</p>
+          ) : (
+            <ul className="divide-y divide-green-100 border-2 border-green-200 rounded-xl bg-white">
+              {templates.map(t => (
+                <li key={t.id} className="p-3 flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <span className="font-bold">{t.name}</span>
+                    <span className="text-on-surface-variant"> • {templateCriteriaCount(t)} tiêu chí</span>
+                  </span>
+                  <span className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleApplyTemplate(t)}
+                      disabled={!isVersionEditable || templateBusyId === t.id}
+                      title={!isVersionEditable ? 'Chỉ áp dụng được cho phiên bản DRAFT' : 'Thay rubric của câu hỏi đang chọn bằng mẫu này'}
+                      className="px-3 py-1.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                    >
+                      Áp dụng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTemplate(t)}
+                      disabled={templateBusyId === t.id}
+                      aria-label={`Xoá mẫu ${t.name}`}
+                      className="px-2 py-1.5 rounded-xl border-2 border-pink-300 text-pink-800 hover:bg-pink-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

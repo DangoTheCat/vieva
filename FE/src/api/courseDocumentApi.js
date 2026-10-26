@@ -25,5 +25,10 @@ export const courseDocumentApi = {
 
   getDocumentPreview(documentId) {
     return apiClient.get(`/lecturer/documents/${documentId}/preview`);
+  },
+
+  /** PATCH /lecturer/documents/{id} — assign the document to a syllabus topic (null clears it) */
+  updateMetadata(documentId, { topicId, metadataJson } = {}) {
+    return apiClient.patch(`/lecturer/documents/${documentId}`, { topicId: topicId || null, metadataJson: metadataJson ?? null });
   }
 };

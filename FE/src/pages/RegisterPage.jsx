@@ -61,14 +61,12 @@ export function RegisterPage({ onNavigate, showToast }) {
       };
 
       // Self-registration always creates a student account; lecturers are created by an admin
-      const result = await register(payload, 'ROLE_STUDENT');
+      const result = await register(payload);
       if (showToast) {
         showToast({
-          type: result?.isDemoFallback ? 'warning' : 'success',
-          title: result?.isDemoFallback ? 'Đăng Ký Khảo Thí (Chế độ Cục bộ)' : 'Đăng Ký Thành Công',
-          message: result?.isDemoFallback
-            ? `Đã tạo tài khoản ${result.user?.email || email} ở chế độ trải nghiệm. Bạn đã được cấp quyền Sinh viên.`
-            : `Tài khoản ${result.user?.email || email} đã được kích hoạt thành công!`
+          type: 'success',
+          title: 'Đăng Ký Thành Công',
+          message: `Tài khoản ${result.user?.email || email} đã được kích hoạt thành công!`
         });
       }
       onNavigate('discover');

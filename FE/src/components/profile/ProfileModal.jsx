@@ -5,7 +5,7 @@ import { getErrorMessage } from '../../utils/errorCodes';
 import { User, Key, X, CheckCircle, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
 export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }) {
-  const { currentUser, refreshProfile, isDemoMode, setCurrentUser } = useAuth();
+  const { currentUser, refreshProfile, setCurrentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(initialTab);
   
   // Profile form state
@@ -65,20 +65,6 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
 
     setIsUpdatingProfile(true);
     try {
-      if (isDemoMode) {
-        const updated = {
-          ...currentUser,
-          fullName: fullName.trim(),
-          phoneNumber: phoneNumber ? phoneNumber.trim() : null,
-          updatedAt: new Date().toISOString()
-        };
-        setCurrentUser(updated);
-        localStorage.setItem('aives_user', JSON.stringify(updated));
-        showToast({ type: 'success', message: 'Cập nhật hồ sơ cá nhân thành công (Chế độ Demo)!' });
-        onClose();
-        return;
-      }
-
       await userApi.updateProfile({
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim()
@@ -117,15 +103,6 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
 
     setIsChangingPassword(true);
     try {
-      if (isDemoMode) {
-        showToast({ type: 'success', message: 'Đổi mật khẩu thành công (Chế độ Demo)!' });
-        setOldPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        onClose();
-        return;
-      }
-
       await userApi.changePassword({ oldPassword, newPassword });
       showToast({ type: 'success', message: 'Đổi mật khẩu thành công! Vui lòng lưu nhớ mật khẩu mới.' });
       setOldPassword('');

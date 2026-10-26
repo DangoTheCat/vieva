@@ -2,16 +2,51 @@ import { apiClient } from './client';
 
 export const oralExamApi = {
   /**
-   * Start a new oral exam attempt for a subject
-   * POST /api/v1/student/attempts
-   * @param {string|number} subjectId
+   * Exams currently open (IN_PROGRESS) with this student's attempt status, if any
+   * GET /api/v1/student/exams
+   * @returns {Promise<Array<{id: string, subjectId: string, title: string, durationSeconds: number, questionCount: number, studentAttemptStatus: string|null, studentAttemptId: string|null}>>}
+   */
+  listExams() {
+    return apiClient.get('/student/exams');
+  },
+
+  /**
+   * Enter an open exam; returns the existing attempt when the student already entered
+   * POST /api/v1/student/exams/{examId}/enter
+   * @param {string} examId
    * @returns {Promise<any>}
    */
-  startExam(subjectId) {
-    const normalizedSubjectId = (!subjectId || subjectId === 1 || subjectId === '1')
-      ? 'd0000000-0000-0000-0000-000000000001'
-      : subjectId;
-    return apiClient.post('/student/attempts', { subjectId: normalizedSubjectId });
+  enterExam(examId) {
+    return apiClient.post(`/student/exams/${examId}/enter`);
+  },
+
+  /**
+   * Completed attempts with their scores
+   * GET /api/v1/student/scores
+   * @returns {Promise<Array<{attemptId: string, examId: string, examTitle: string, totalScore: number, gradeLevel: string, completedAt: string}>>}
+   */
+  getScores() {
+    return apiClient.get('/student/scores');
+  },
+
+  /**
+   * Questions frozen into the attempt when it was created
+   * GET /api/v1/student/attempts/{attemptId}/questions
+   * @param {string} attemptId
+   * @returns {Promise<Array<{questionId: string, questionVersionId: string, orderIndex: number, questionText: string}>>}
+   */
+  getAttemptQuestions(attemptId) {
+    return apiClient.get(`/student/attempts/${attemptId}/questions`);
+  },
+
+  /**
+   * Turns (main questions and probes) asked so far in the attempt
+   * GET /api/v1/student/attempts/{attemptId}/turns
+   * @param {string} attemptId
+   * @returns {Promise<any[]>}
+   */
+  getAttemptTurns(attemptId) {
+    return apiClient.get(`/student/attempts/${attemptId}/turns`);
   },
 
   /**

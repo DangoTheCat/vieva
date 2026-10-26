@@ -1,25 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
-import { courseDocumentApi } from '../api/courseDocumentApi';
-import { questionBankApi } from '../api/questionBankApi';
+import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
-import { 
-  Plus, 
-  Search, 
-  ArrowRight, 
-  Sparkles, 
-  Layers, 
-  ShieldCheck, 
-  Zap, 
-  User, 
-  X, 
-  Clock, 
+import {
+  Plus,
+  Search,
+  ArrowRight,
+  User,
+  X,
+  Clock,
   CheckCircle2,
   BookOpen,
   Loader2,
   FolderPlus,
-  Mic
+  ClipboardList
 } from 'lucide-react';
 
 export function LecturerDashboardPage({ onNavigate, showToast }) {
@@ -30,15 +25,11 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
   const [topicsMap, setTopicsMap] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [gradingCourses, setGradingCourses] = useState([]);
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
-  const [spaceForm, setSpaceForm] = useState({
-    title: '',
-    description: '',
-    examiner: 'Dr. Sophia (Học thuật chuẩn)',
-    duration: 15
-  });
+  const [spaceForm, setSpaceForm] = useState({ title: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch real assigned subjects & topics from Backend API
@@ -46,24 +37,22 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
     async function loadDashboardData() {
       setIsLoading(true);
       try {
-        const assignedData = await lecturerCatalogApi.getAssignedSubjects();
+        const [assignedData, courses] = await Promise.all([
+          lecturerCatalogApi.getAssignedSubjects(),
+          lecturerGradingApi.getCourses()
+        ]);
         const list = Array.isArray(assignedData) ? assignedData : assignedData?.content || [];
         setSubjects(list);
+        setGradingCourses(Array.isArray(courses) ? courses : []);
         
         if (list.length > 0) {
           setSelectedSubjectId(list[0].subjectId);
           
           const map = {};
-          for (const sub of list) {
-            const custom = JSON.parse(localStorage.getItem(`aives_custom_topics_${sub.subjectId}`) || '[]');
-            try {
-              const topList = await lecturerCatalogApi.getTopics(sub.subjectId);
-              const fetched = Array.isArray(topList) ? topList : [];
-              map[sub.subjectId] = [...custom, ...fetched];
-            } catch (err) {
-              map[sub.subjectId] = [...custom];
-            }
-          }
+          const topicLists = await Promise.all(list.map(sub => lecturerCatalogApi.getTopics(sub.subjectId)));
+          list.forEach((sub, i) => {
+            map[sub.subjectId] = Array.isArray(topicLists[i]) ? topicLists[i] : [];
+          });
           setTopicsMap(map);
         } else {
           setSelectedSubjectId('');
@@ -73,6 +62,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
         setSubjects([]);
         setSelectedSubjectId('');
         setTopicsMap({});
+        showToast({ type: 'error', message: getErrorMessage(err) });
       } finally {
         setIsLoading(false);
       }
@@ -87,27 +77,10 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
 
     setIsSubmitting(true);
     try {
-      let createdTopic = {
-        topicId: `top-${Date.now()}`,
+      const createdTopic = await lecturerCatalogApi.createTopic(selectedSubjectId, {
         name: spaceForm.title.trim(),
         description: spaceForm.description.trim() || 'Không gian khảo thí tự động'
-      };
-
-      try {
-        const result = await lecturerCatalogApi.createTopic(selectedSubjectId, {
-          name: spaceForm.title.trim(),
-          description: spaceForm.description.trim() || 'Không gian khảo thí tự động'
-        });
-        if (result && (result.topicId || result.id || result.name)) {
-          createdTopic = result;
-        }
-      } catch (err) {
-        console.warn('Backend createTopic API error, using local fallback topic creation.', err);
-      }
-
-      // Persist created topic locally so QuestionStudio & other views see it
-      const existingCustom = JSON.parse(localStorage.getItem(`aives_custom_topics_${selectedSubjectId}`) || '[]');
-      localStorage.setItem(`aives_custom_topics_${selectedSubjectId}`, JSON.stringify([...existingCustom, createdTopic]));
+      });
 
       setTopicsMap(prev => ({
         ...prev,
@@ -121,11 +94,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
       });
 
       setIsCreateModalOpen(false);
-      setSpaceForm({ title: '', description: '', examiner: 'Dr. Sophia (Học thuật chuẩn)', duration: 15 });
-
-      if (onNavigate) {
-        onNavigate('space-detail');
-      }
+      setSpaceForm({ title: '', description: '' });
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     } finally {
@@ -138,6 +107,13 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
     sub.subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sub.subjectCode?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const gradingTotals = gradingCourses.reduce((acc, c) => ({
+    examCount: acc.examCount + (c.examCount || 0),
+    submittedCount: acc.submittedCount + (c.submittedCount || 0),
+    pendingCount: acc.pendingCount + (c.pendingCount || 0),
+    totalParticipants: acc.totalParticipants + (c.totalParticipants || 0)
+  }), { examCount: 0, submittedCount: 0, pendingCount: 0, totalParticipants: 0 });
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto w-full animate-modal-entry text-ink pb-10">
@@ -173,86 +149,51 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
             className="inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-400 text-ink font-bold text-xs px-5 py-2.5 rounded-full border-2 border-green-600 shadow-[3px_3px_0_#DEB9B5] hover:shadow-[1px_1px_0_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4 text-pink-900 font-bold" />
-            <span>Tạo Phòng Thi (Create Space)</span>
+            <span>Tạo Chủ Đề</span>
           </button>
         </div>
       </div>
 
-      {/* FEATURED HERO BANNER */}
-      <div className="rounded-3xl bg-gradient-to-br from-pink-50 to-green-100 border-2 border-green-500 p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-[6px_6px_0_#D5A6A2]">
-        <div className="space-y-4 max-w-lg z-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-paper text-green-800 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
-              Phân Hệ Giảng Viên
-            </span>
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-paper text-on-surface-variant border-2 border-outline-variant shadow-[2px_2px_0_#DEB9B5]">
-              Real-time API
-            </span>
+      {/* GRADING OVERVIEW (GET /lecturer/grading/courses) */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Kỳ thi', value: gradingTotals.examCount, icon: ClipboardList },
+          { label: 'Bài đã nộp', value: gradingTotals.submittedCount, icon: CheckCircle2 },
+          { label: 'Đang thi / chờ chấm', value: gradingTotals.pendingCount, icon: Clock },
+          { label: 'Thí sinh', value: gradingTotals.totalParticipants, icon: User }
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-paper border-2 border-green-500 rounded-2xl p-4 shadow-[3px_3px_0_#DEB9B5]">
+            <div className="flex items-center gap-2 text-[11px] font-bold text-green-700 uppercase tracking-wide"><Icon className="w-4 h-4" /> {label}</div>
+            <p className="font-heading font-black text-2xl mt-1">{isLoading ? '…' : value}</p>
           </div>
+        ))}
+      </section>
 
-          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-ink tracking-tight leading-snug">
-            Cổng Quản Lý Khảo Thí Vấn Đáp AI
-          </h2>
-
-          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-            Hệ thống kết nối trực tiếp cơ sở dữ liệu Backend: Lập chỉ mục giáo trình RAG, soạn ngân hàng câu hỏi thích ứng và chấm điểm tự động đối chiếu Rubric.
-          </p>
-
-          <div className="pt-2 flex items-center gap-3">
-            <button 
-              type="button"
-              onClick={() => onNavigate && onNavigate('space-detail')}
-              className="inline-flex items-center gap-2 bg-paper text-ink hover:bg-green-50 font-bold text-xs sm:text-sm px-6 py-2.5 rounded-full border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
-            >
-              <span>Vào QuestionStudio</span>
-              <ArrowRight className="w-4 h-4 text-green-700 font-extrabold" />
-            </button>
-          </div>
-        </div>
-
-        {/* AI Examiner Live Card Illustration */}
-        <div className="w-64 rounded-2xl bg-paper border-2 border-green-500 p-4 shadow-[6px_6px_0_#DEB9B5] flex flex-col justify-between shrink-0 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-cream">
-            <span className="text-[10px] font-bold text-green-800 uppercase tracking-wider">AI Examiner Active</span>
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-600"></span>
-            </span>
-          </div>
-          <div className="space-y-1.5 text-center py-2">
-            <div className="w-12 h-12 rounded-full bg-pink-100 border-2 border-green-500 mx-auto flex items-center justify-center shadow-[2px_2px_0_#DEB9B5]">
-              <Sparkles className="w-6 h-6 text-pink-700" />
-            </div>
-            <p className="text-xs font-bold text-ink">API Live Connection</p>
-            <p className="text-[11px] text-green-700 font-medium">Đối chiếu Rubric Tức Thì</p>
-          </div>
-          {/* Audio Waveform Bars Simulation */}
-          <div className="bg-green-50 rounded-lg p-2.5 border border-green-300/80">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] text-on-surface-variant font-medium">Kênh Âm Thanh Khảo Thí</span>
-              <Mic className="w-3.5 h-3.5 text-green-700" />
-            </div>
-            <div className="flex items-end justify-center gap-1.5 h-8 w-full pt-1">
-              <span className="w-1.5 bg-green-500 rounded-full h-3 animate-pulse"></span>
-              <span className="w-1.5 bg-pink-500 rounded-full h-6 animate-pulse [animation-delay:150ms]"></span>
-              <span className="w-1.5 bg-green-600 rounded-full h-8 animate-pulse [animation-delay:300ms]"></span>
-              <span className="w-1.5 bg-pink-400 rounded-full h-4 animate-pulse [animation-delay:75ms]"></span>
-              <span className="w-1.5 bg-green-500 rounded-full h-7 animate-pulse [animation-delay:200ms]"></span>
-              <span className="w-1.5 bg-pink-600 rounded-full h-3.5 animate-pulse [animation-delay:400ms]"></span>
-              <span className="w-1.5 bg-green-500 rounded-full h-6.5 animate-pulse [animation-delay:120ms]"></span>
-              <span className="w-1.5 bg-pink-500 rounded-full h-5 animate-pulse [animation-delay:250ms]"></span>
-              <span className="w-1.5 bg-green-400 rounded-full h-3 animate-pulse [animation-delay:180ms]"></span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <section className="flex flex-wrap gap-3">
+        {[
+          { view: 'lecturer-exams', label: 'Quản lý kỳ thi' },
+          { view: 'lecturer-grading', label: 'Chấm điểm bài thi' },
+          { view: 'lecturer-scores', label: 'Phúc khảo điểm' },
+          { view: 'lecturer-questions', label: 'Ngân hàng câu hỏi' }
+        ].map(link => (
+          <button
+            key={link.view}
+            type="button"
+            onClick={() => onNavigate && onNavigate(link.view)}
+            className="inline-flex items-center gap-2 bg-paper text-ink hover:bg-green-50 font-bold text-xs px-4 py-2 rounded-full border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
+          >
+            <span>{link.label}</span>
+            <ArrowRight className="w-4 h-4 text-green-700" />
+          </button>
+        ))}
+      </section>
 
       {/* ASSIGNED SUBJECTS & TOPICS SECTION (FROM BE API) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b-2 border-cream">
           <h3 className="font-heading font-bold text-base text-ink flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-green-700" />
-            <span>Môn Học Phụ Trách (Dữ Liệu Từ Backend API)</span>
+            <span>Môn Học Phụ Trách</span>
           </h3>
           <span className="text-xs font-semibold text-green-700 px-3 py-1 rounded-full bg-green-100 border border-green-500 shadow-[2px_2px_0_#DEB9B5]">
             {subjects.length} Môn học được phân công
@@ -337,7 +278,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
                 <div className="w-8 h-8 rounded-lg bg-pink-100 border-2 border-green-500 text-pink-700 flex items-center justify-center font-bold text-sm shadow-[2px_2px_0_#DEB9B5]">
                   +
                 </div>
-                <h3 className="font-heading font-bold text-base text-ink">Tạo Chủ Đề / Không Gian Thi Mới</h3>
+                <h3 className="font-heading font-bold text-base text-ink">Tạo Chủ Đề Đề Cương Mới</h3>
               </div>
               <button 
                 type="button"
@@ -367,7 +308,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
               </div>
 
               <div>
-                <label className="font-bold text-ink block mb-1">Tên Chủ Đề / Phòng Thi Mới</label>
+                <label className="font-bold text-ink block mb-1">Tên Chủ Đề</label>
                 <input 
                   type="text" 
                   required

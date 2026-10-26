@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { userApi } from '../api/userApi';
 import { oralExamApi } from '../api/oralExamApi';
+import { getErrorMessage } from '../utils/errorCodes';
+import { getActiveExam, gradeLabel } from '../utils/activeExam';
 import { useVoiceSTT } from '../hooks/useVoiceSTT';
 import { useZeroTTS } from '../hooks/useZeroTTS';
 import { 
@@ -35,72 +37,8 @@ import {
 } from 'lucide-react';
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
 
-const DEFAULT_QUESTIONS = [
-  {
-    id: 1,
-    turnId: 101,
-    questionNumber: 1,
-    totalQuestions: 5,
-    type: 'MAIN', // 'MAIN' or 'PROBING'
-    badge: 'Câu hỏi chính',
-    title: 'Câu 1: Bản chất Kiến trúc Phân tầng (Onion Architecture)',
-    content: 'Em hãy phân tích cấu trúc các tầng trong Onion Architecture và giải thích tại sao tầng Domain Core lại độc lập hoàn toàn với các Framework hay ORM?',
-    hint: 'Tập trung vào Dependency Inversion Principle và Business Rules không phụ thuộc vào Infrastructure.',
-    rubricCriteria: 'Hiểu rõ các lớp đồng tâm và ranh giới phân tách Domain / Application / Infrastructure.'
-  },
-  {
-    id: 2,
-    turnId: 102,
-    questionNumber: 2,
-    totalQuestions: 5,
-    type: 'PROBING',
-    turnIndex: 1,
-    maxTurns: 2,
-    badge: 'Câu hỏi xoáy thích ứng (Lượt 1/2)',
-    title: 'Câu 2: Hỏi xoáy Thích ứng (Adaptive Probing - DIP)',
-    content: 'Nếu tầng Application cần lưu trữ dữ liệu vào PostgreSQL, theo Onion Architecture thì Repository Interface sẽ được khai báo ở tầng nào và Implementation nằm ở tầng nào?',
-    hint: 'Interface thuộc Application/Domain, JPA/Hibernate RepositoryImpl thuộc tầng Infrastructure.',
-    rubricCriteria: 'Áp dụng chính xác Dependency Inversion: Tầng trong định nghĩa Contract, tầng ngoài thực thi.'
-  },
-  {
-    id: 3,
-    turnId: 103,
-    questionNumber: 3,
-    totalQuestions: 5,
-    type: 'MAIN',
-    badge: 'Câu hỏi chính',
-    title: 'Câu 3: Đảm bảo Độ tin cậy (Transactional Outbox Pattern)',
-    content: 'Làm thế nào để đảm bảo dữ liệu chấm thi được lưu an toàn vào DB đồng thời gửi Event sang hệ thống bên ngoài mà không gặp sự cố Dual-Write khi rớt mạng?',
-    hint: 'Transactional Outbox lưu Outbox Event cùng Transaction với kết quả thi trước khi Relay xử lý.',
-    rubricCriteria: 'Nắm vững Transactional Outbox Pattern và tính bất biến (Eventual Consistency).'
-  },
-  {
-    id: 4,
-    turnId: 104,
-    questionNumber: 4,
-    totalQuestions: 5,
-    type: 'PROBING',
-    turnIndex: 2,
-    maxTurns: 2,
-    badge: 'Câu hỏi xoáy thích ứng (Lượt 2/2)',
-    title: 'Câu 4: Tối ưu Hóa và Xử lý Trùng Lặp (Idempotent Consumer)',
-    content: 'Khi message broker gửi lại bản tin nhiều lần (at-least-once delivery), phía Consumer cần triển khai cơ chế nào để tránh ghi nhận điểm số 2 lần?',
-    hint: 'Dùng Idempotency Key hoặc Deduplication Table dựa trên Message ID duy nhất.',
-    rubricCriteria: 'Hiểu nguyên lý At-least-once và kỹ thuật Idempotency trong hệ thống phân tán.'
-  },
-  {
-    id: 5,
-    turnId: 105,
-    questionNumber: 5,
-    totalQuestions: 5,
-    type: 'MAIN',
-    badge: 'Câu hỏi chính',
-    title: 'Câu 5: Tổng kết & Thực tiễn Triển khai',
-    content: 'Theo em, sự đánh đổi lớn nhất khi áp dụng kiến trúc Event-Driven kết hợp CQRS vào một hệ thống khảo thí trực tuyến quy mô lớn là gì?',
-    hint: 'Phức tạp trong Eventual Consistency, debug tracing và vận hành hạ tầng.',
-    rubricCriteria: 'Tư duy phản biện về trade-off kiến trúc: Consistency vs Availability.'
-  }
-];
+// Placeholder rendered until the attempt's first turn arrives from the BE
+const EMPTY_QUESTION = { content: '', title: 'Đang tải câu hỏi...', badge: '', type: 'MAIN' };
 
 /**
  * Maps backend ExamTurnDetailResponse list to frontend Question structure
@@ -123,9 +61,9 @@ const mapTurnsToQuestions = (turns, totalQuestions) => {
 };
 
 /**
- * Maps backend turns or fallback to Bloom rubric criteria
+ * Maps backend turns to per-turn rubric results
  */
-const mapRubricsFromTurns = (turns, defaultFeedback) => {
+const mapRubricsFromTurns = (turns) => {
   if (Array.isArray(turns) && turns.length > 0) {
     const list = [];
     turns.forEach((t, i) => {
@@ -143,27 +81,32 @@ const mapRubricsFromTurns = (turns, defaultFeedback) => {
       }
       list.push({
         name: `Lượt ${t.turnOrder || i + 1}: ${t.turnType === 'PROBING' ? 'Hỏi xoáy thích ứng' : 'Kiến thức cốt lõi'}`,
-        score: t.score != null ? Number(t.score) : 9.0,
+        score: t.score != null ? Number(t.score) : null,
         max: 10,
-        comment: t.feedback || t.rubricEvaluations || defaultFeedback || 'Đáp ứng tốt các tiêu chí đánh giá theo chuẩn đầu ra.'
+        comment: t.feedback || ''
       });
     });
-    if (list.length > 0) return list;
+    return list;
   }
-
-  return [
-    { name: 'Kiến thức cốt lõi & Nguyên lý Kiến trúc', score: 9.5, max: 10, comment: 'Đạt chuẩn Bloom 4. Định nghĩa chính xác Domain Core độc lập.' },
-    { name: 'Khả năng Phản xạ & Câu hỏi xoáy thích ứng', score: 9.0, max: 10, comment: 'Xác định chuẩn Contract Interface và Implementation Adapter.' },
-    { name: 'Độ tin cậy & Giải pháp phân tán (Outbox / Idempotency)', score: 9.2, max: 10, comment: 'Phân tích thấu đáo lỗi Dual-Write và kỹ thuật deduplication.' }
-  ];
+  return [];
 };
 
-export function OralExamRoomPage({ 
-  onNavigate, 
-  showToast, 
-  subjectId = 1, 
-  attemptId: initialAttemptId = null 
+/** Builds the COMPLETED-screen result from the BE attempt detail; score stays null while grading is pending */
+const toExamResult = (detail) => ({
+  totalScore: detail?.totalScore != null ? Number(detail.totalScore) : null,
+  grade: gradeLabel(detail?.gradeLevel),
+  maxScore: 10,
+  feedback: detail?.detailedFeedback || '',
+  rubrics: mapRubricsFromTurns(detail?.turns)
+});
+
+export function OralExamRoomPage({
+  onNavigate,
+  showToast
 }) {
+  // The attempt comes from DiscoverPage (POST /student/exams/{id}/enter)
+  const activeExam = getActiveExam();
+  const initialAttemptId = activeExam?.attemptId || null;
   const { currentUser } = useAuth();
   const [profile, setProfile] = useState(currentUser || null);
 
@@ -171,10 +114,11 @@ export function OralExamRoomPage({
   const [examStage, setExamStage] = useState('READY');
 
   // Attempt & Questions state
-  const [attemptId, setAttemptId] = useState(initialAttemptId);
-  const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
+  const [attemptId] = useState(initialAttemptId);
+  const [questions, setQuestions] = useState([]);
+  const [totalQuestions, setTotalQuestions] = useState(activeExam?.questionCount || 0);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(900); // 15:00 countdown for exam
+  const [secondsLeft, setSecondsLeft] = useState(activeExam?.durationSeconds || 900);
   const [isSubmittingTurn, setIsSubmittingTurn] = useState(false);
 
   // Reconnection state (Grace period max 120s)
@@ -187,7 +131,6 @@ export function OralExamRoomPage({
 
   // Support / Certificate Modal states
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [showCertModal, setShowCertModal] = useState(false);
   const [copiedAttempt, setCopiedAttempt] = useState(false);
 
   // Answers store
@@ -243,7 +186,7 @@ export function OralExamRoomPage({
   });
 
   // Current Question
-  const currentQuestion = questions[activeQuestionIndex] || questions[0];
+  const currentQuestion = questions[activeQuestionIndex] || questions[0] || EMPTY_QUESTION;
 
   // Sync profile & exam data on mount
   useEffect(() => {
@@ -255,17 +198,17 @@ export function OralExamRoomPage({
         if (isMounted) setProfile(u);
       } catch (e) {}
 
-      // If initialAttemptId exists, load from API
       if (initialAttemptId) {
         try {
           const detail = await oralExamApi.getAttemptDetail(initialAttemptId);
           if (isMounted && detail) {
+            if (detail.totalQuestions) setTotalQuestions(detail.totalQuestions);
             const mappedQuestions = mapTurnsToQuestions(detail.turns, detail.totalQuestions);
             if (mappedQuestions && mappedQuestions.length > 0) {
               setQuestions(mappedQuestions);
-            }
-            if (detail.currentQuestionIndex != null) {
-              setActiveQuestionIndex(detail.currentQuestionIndex);
+              // Resume on the latest turn that still awaits an answer
+              const pendingIdx = detail.turns.findIndex(t => t.status === 'PENDING');
+              setActiveQuestionIndex(pendingIdx >= 0 ? pendingIdx : mappedQuestions.length - 1);
             }
             if (detail.remainingSeconds != null && detail.remainingSeconds > 0) {
               setSecondsLeft(detail.remainingSeconds);
@@ -277,27 +220,16 @@ export function OralExamRoomPage({
             if (detail.status && ['READY', 'IN_PROGRESS', 'RECONNECTING', 'FINALIZING', 'COMPLETED', 'INTERRUPTED'].includes(detail.status)) {
               setExamStage(detail.status);
               if (detail.status === 'COMPLETED') {
-                const totalScore = detail.totalScore != null ? Number(detail.totalScore) : 9.0;
-                let grade = detail.gradeLevel || 'Xuất sắc';
-                if (grade === 'EXCELLENT' || grade === 'Xuất sắc') grade = 'Xuất sắc';
-                else if (grade === 'GOOD' || grade === 'Giỏi') grade = 'Giỏi';
-                else if (grade === 'AVERAGE' || grade === 'Khá') grade = 'Khá';
-                else if (grade === 'POOR' || grade === 'Chưa đạt') grade = 'Chưa đạt';
-
-                setExamResult({
-                  totalScore,
-                  grade,
-                  maxScore: 10,
-                  feedback: detail.detailedFeedback || 'Ca thi đã hoàn tất.',
-                  rubrics: mapRubricsFromTurns(detail.turns, detail.detailedFeedback)
-                });
+                setExamResult(toExamResult(detail));
               } else if (detail.status === 'INTERRUPTED') {
                 setInterruptedReason(detail.detailedFeedback || 'Ca thi bị gián đoạn do mất kết nối hoặc sự cố đồng bộ.');
               }
             }
           }
         } catch (err) {
-          console.warn('Could not fetch attempt detail, using default questions:', err);
+          if (isMounted && showToast) {
+            showToast({ type: 'error', title: 'Không Tải Được Ca Thi', message: getErrorMessage(err) });
+          }
         }
       }
     }
@@ -488,57 +420,42 @@ export function OralExamRoomPage({
     stopPreflightMic();
     stopTTS();
 
-    let currentAttemptId = attemptId;
-
-    // If attemptId doesn't exist yet, create via startExam
-    if (!currentAttemptId) {
-      try {
-        const res = await oralExamApi.startExam(subjectId);
-        if (res && res.attemptId) {
-          currentAttemptId = res.attemptId;
-          setAttemptId(currentAttemptId);
-          if (res.currentQuestionText) {
-            setQuestions((prev) => {
-              const updated = [...prev];
-              updated[0] = {
-                ...updated[0],
-                turnId: res.currentTurnId || updated[0].turnId,
-                content: res.currentQuestionText,
-                ttsAudioUrl: res.currentTtsAudioUrl
-              };
-              return updated;
-            });
-          }
-        }
-      } catch (err) {
-        console.warn('oralExamApi.startExam fallback:', err);
-        currentAttemptId = Date.now();
-        setAttemptId(currentAttemptId);
-      }
+    if (!attemptId) {
+      showToast?.({ type: 'error', title: 'Chưa Chọn Ca Thi', message: 'Vui lòng chọn ca thi tại Cổng Thi trước khi bắt đầu.' });
+      onNavigate?.('discover');
+      return;
     }
 
-    // Call startExamSession(attemptId, deviceReady = true)
+    let sessionRes;
     try {
-      if (currentAttemptId) {
-        const sessionRes = await oralExamApi.startExamSession(currentAttemptId, true);
-        if (sessionRes?.remainingSeconds != null && sessionRes.remainingSeconds > 0) {
-          setSecondsLeft(sessionRes.remainingSeconds);
-        }
-        if (sessionRes?.currentQuestionText) {
-          setQuestions((prev) => {
-            const updated = [...prev];
-            updated[0] = {
-              ...updated[0],
-              turnId: sessionRes.currentTurnId || updated[0].turnId,
-              content: sessionRes.currentQuestionText,
-              ttsAudioUrl: sessionRes.currentTtsAudioUrl
-            };
-            return updated;
-          });
-        }
-      }
+      sessionRes = await oralExamApi.startExamSession(attemptId, true);
     } catch (err) {
-      console.warn('oralExamApi.startExamSession fallback:', err);
+      showToast?.({ type: 'error', title: 'Không Thể Bắt Đầu Bài Thi', message: getErrorMessage(err) });
+      return;
+    }
+
+    if (sessionRes?.totalQuestions) setTotalQuestions(sessionRes.totalQuestions);
+    if (sessionRes?.remainingSeconds != null && sessionRes.remainingSeconds > 0) {
+      setSecondsLeft(sessionRes.remainingSeconds);
+    }
+    if (sessionRes?.currentTurnId) {
+      const existingIdx = questions.findIndex(q => q.turnId === sessionRes.currentTurnId);
+      if (existingIdx >= 0) {
+        setActiveQuestionIndex(existingIdx);
+      } else {
+        const number = questions.length + 1;
+        setQuestions(prev => [...prev, {
+          id: number,
+          turnId: sessionRes.currentTurnId,
+          questionNumber: number,
+          type: 'MAIN',
+          badge: 'Câu hỏi chính',
+          title: `Câu ${number}: Kiến thức cốt lõi`,
+          content: sessionRes.currentQuestionText || '',
+          ttsAudioUrl: sessionRes.currentTtsAudioUrl
+        }]);
+        setActiveQuestionIndex(questions.length);
+      }
     }
 
     // Enter IN_PROGRESS & start exam timer
@@ -572,7 +489,7 @@ export function OralExamRoomPage({
           setSecondsLeft(disRes.remainingSeconds);
         }
       } catch (err) {
-        console.warn('oralExamApi.disconnectExam fallback:', err);
+        // Expected while offline: the BE grace window (120s) still applies server-side
         setReconnectGraceLeft(120);
       }
     } else {
@@ -619,16 +536,6 @@ export function OralExamRoomPage({
 
       if (isGraceExpired) {
         handleGraceTimeout();
-      } else if (err?.code === 'NETWORK_ERROR' && navigator.onLine) {
-        // Fallback for offline local dev mode
-        setExamStage('IN_PROGRESS');
-        if (showToast) {
-          showToast({
-            type: 'success',
-            title: 'Tiếp Tục Bài Thi',
-            message: 'Đã phục hồi phiên thi cục bộ.'
-          });
-        }
       } else {
         if (showToast) {
           showToast({
@@ -693,20 +600,27 @@ export function OralExamRoomPage({
       stopRecording();
     }
 
-    const answerContent = currentCompositeTranscript || 'Thí sinh xác nhận hoàn thành câu trả lời.';
+    const answerContent = currentCompositeTranscript;
+    if (!answerContent && !audioBlob) {
+      showToast?.({ type: 'warning', title: 'Chưa Có Câu Trả Lời', message: 'Hãy trả lời bằng giọng nói hoặc nhập câu trả lời trước khi nộp.' });
+      return;
+    }
+    if (!attemptId || !currentQuestion.turnId) {
+      showToast?.({ type: 'error', message: 'Không xác định được lượt hỏi hiện tại. Vui lòng tải lại phòng thi.' });
+      return;
+    }
     setIsSubmittingTurn(true);
 
-    let evalRes = null;
+    let evalRes;
     try {
-      const turnId = currentQuestion.turnId || currentQuestion.id;
-      if (attemptId) {
-        evalRes = await oralExamApi.submitTurnAnswer(attemptId, turnId, {
-          transcriptText: answerContent,
-          audioBlob: audioBlob
-        });
-      }
+      evalRes = await oralExamApi.submitTurnAnswer(attemptId, currentQuestion.turnId, {
+        transcriptText: answerContent,
+        audioBlob: audioBlob
+      });
     } catch (err) {
-      console.warn('Backend turn submit fallback:', err);
+      setIsSubmittingTurn(false);
+      showToast?.({ type: 'error', title: 'Nộp Câu Trả Lời Thất Bại', message: getErrorMessage(err) });
+      return;
     }
 
     // Save answer locally with evaluation metrics if available
@@ -774,25 +688,8 @@ export function OralExamRoomPage({
       return;
     }
 
-    // Fallback question loop
-    if (activeQuestionIndex < questions.length - 1) {
-      const nextIndex = activeQuestionIndex + 1;
-      const nextQ = questions[nextIndex];
-      setActiveQuestionIndex(nextIndex);
-
-      if (nextQ && nextQ.type === 'PROBING') {
-        if (showToast) {
-          showToast({
-            type: 'info',
-            title: 'Hỏi Xoáy Thích Ứng (Adaptive Probing)',
-            message: 'Giám thị AI đưa ra câu hỏi xoáy thích ứng để làm rõ câu trả lời vừa rồi.'
-          });
-        }
-      }
-    } else {
-      // Completed all questions -> move to FINALIZING
-      handleFinishExam('ALL_QUESTIONS_ANSWERED');
-    }
+    // BE returned no next turn: the interview is over
+    handleFinishExam('ALL_QUESTIONS_ANSWERED');
   };
 
   /**
@@ -813,14 +710,13 @@ export function OralExamRoomPage({
       setFinalizingStep(2);
 
       // Step 2: Call finishExam API
-      if (attemptId) {
-        try {
-          await oralExamApi.finishExam(attemptId);
-        } catch (apiErr) {
-          console.warn('finishExam API fallback:', apiErr);
-          if (apiErr?.code !== 'NETWORK_ERROR' && apiErr?.status && apiErr.status >= 500) {
-            throw apiErr;
-          }
+      try {
+        await oralExamApi.finishExam(attemptId);
+      } catch (apiErr) {
+        // A 4xx means the BE already moved the attempt past IN_PROGRESS (e.g. last turn auto-finished it);
+        // polling below picks up the real status. Network/5xx errors are real failures.
+        if (!apiErr?.status || apiErr.status >= 500) {
+          throw apiErr;
         }
       }
 
@@ -870,35 +766,13 @@ export function OralExamRoomPage({
         return;
       }
 
-      // syncSuccess() or fallback
-      const totalScore = detailResult?.totalScore != null 
-        ? Number(detailResult.totalScore) 
-        : 9.2;
-
-      let grade = detailResult?.gradeLevel || 'Xuất sắc';
-      if (grade === 'EXCELLENT' || grade === 'Xuất sắc') grade = 'Xuất sắc';
-      else if (grade === 'GOOD' || grade === 'Giỏi') grade = 'Giỏi';
-      else if (grade === 'AVERAGE' || grade === 'Khá') grade = 'Khá';
-      else if (grade === 'POOR' || grade === 'Chưa đạt') grade = 'Chưa đạt';
-
-      const rubrics = mapRubricsFromTurns(detailResult?.turns, detailResult?.detailedFeedback);
-
-      // syncSuccess() -> Transition to COMPLETED
-      setExamResult({
-        totalScore,
-        grade,
-        maxScore: 10,
-        feedback: detailResult?.detailedFeedback || 'Thí sinh nắm rất vững các nguyên lý phân tầng và kiến trúc Onion. Diễn giải mạch lạc nguyên lý Đảo ngược phụ thuộc (DIP) và Transactional Outbox Pattern. Phản xạ hỏi xoáy thích ứng tự tin, xử lý tốt rủi ro mất mát dữ liệu và tính bất biến.',
-        rubrics
-      });
-
+      // syncSuccess(), or still grading after the polling window: the score stays empty until the BE has it
+      setExamResult(toExamResult(syncStatus === 'COMPLETED' ? detailResult : null));
       setExamStage('COMPLETED');
       if (showToast) {
-        showToast({
-          type: 'success',
-          title: 'Ca Thi Hoàn Tất',
-          message: 'Dữ liệu đã được đồng bộ thành công. Báo cáo đánh giá đã sẵn sàng!'
-        });
+        showToast(syncStatus === 'COMPLETED'
+          ? { type: 'success', title: 'Ca Thi Hoàn Tất', message: 'Dữ liệu đã được đồng bộ thành công. Báo cáo đánh giá đã sẵn sàng!' }
+          : { type: 'info', title: 'Đã Nộp Bài', message: 'Bài thi đang được chấm. Xem điểm tại Cổng Thi khi có kết quả.' });
       }
     } catch (err) {
       console.error('Finalizing synchronization error:', err);
@@ -936,6 +810,25 @@ export function OralExamRoomPage({
   // ==========================================
   // RENDER STATE 1: READY (Pre-flight check)
   // ==========================================
+  if (!attemptId) {
+    return (
+      <div className="max-w-md mx-auto py-12 px-4">
+        <div className="bg-paper border-2 border-green-500 rounded-3xl p-8 shadow-[8px_8px_0_#DEB9B5] text-center space-y-4">
+          <BookOpen className="w-10 h-10 text-green-700 mx-auto" />
+          <h2 className="font-heading font-black text-xl text-ink">Chưa chọn ca thi</h2>
+          <p className="text-xs text-green-800">Hãy chọn một ca thi đang mở tại Cổng Thi để vào phòng thi vấn đáp.</p>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('discover')}
+            className="px-6 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-green-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
+          >
+            Về Cổng Thi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (examStage === 'READY') {
     return (
       <div className="max-w-3xl mx-auto py-8 px-4 animate-in fade-in duration-300">
@@ -1280,10 +1173,10 @@ export function OralExamRoomPage({
 
           {/* Technical Attempt Reference */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-rose-100 border border-rose-300 rounded-xl text-xs font-mono text-rose-900">
-            <span>Mã ca thi (Attempt ID): #{attemptId || 'SWD392_ATTEMPT'}</span>
+            <span>Mã ca thi (Attempt ID): #{attemptId}</span>
             <button
               type="button"
-              onClick={() => copyToClipboard(attemptId || 'SWD392_ATTEMPT')}
+              onClick={() => copyToClipboard(attemptId)}
               className="flex items-center gap-1 font-bold text-rose-800 hover:text-rose-950 cursor-pointer underline"
             >
               <Copy className="w-3.5 h-3.5" />
@@ -1344,7 +1237,7 @@ export function OralExamRoomPage({
                 </div>
 
                 <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-xs text-rose-900">
-                  Vui lòng cung cấp <strong>Mã SV: {studentCode}</strong> và <strong>Mã Ca Thi: #{attemptId || 'SWD392'}</strong> khi liên hệ để được hỗ trợ mở lại ca thi ân hạn.
+                  Vui lòng cung cấp <strong>Mã SV: {studentCode}</strong> và <strong>Mã Ca Thi: #{attemptId}</strong> khi liên hệ để được hỗ trợ mở lại ca thi ân hạn.
                 </div>
               </div>
 
@@ -1366,13 +1259,7 @@ export function OralExamRoomPage({
   // RENDER STATE 5: COMPLETED (Rubric Report & Certificate)
   // ==========================================
   if (examStage === 'COMPLETED') {
-    const displayResult = examResult || {
-      totalScore: 9.2,
-      grade: 'Xuất sắc',
-      maxScore: 10,
-      feedback: 'Thí sinh đã hoàn thành đầy đủ các phần thi vấn đáp. Dữ liệu bài thi đã được lưu trữ và bảo vệ an toàn trên hệ thống khảo thí.',
-      rubrics: mapRubricsFromTurns([], '')
-    };
+    const displayResult = examResult || toExamResult(null);
 
     return (
       <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-300">
@@ -1406,7 +1293,7 @@ export function OralExamRoomPage({
                 Điểm Tổng Kết
               </span>
               <div className="font-heading font-black text-4xl text-pink-600">
-                {displayResult.totalScore} <span className="text-lg text-ink font-sans">/ {displayResult.maxScore}</span>
+                {displayResult.totalScore != null ? displayResult.totalScore : '—'} <span className="text-lg text-ink font-sans">/ {displayResult.maxScore}</span>
               </div>
             </div>
 
@@ -1424,21 +1311,29 @@ export function OralExamRoomPage({
                 Số Lượt Câu Hỏi
               </span>
               <div className="font-heading font-black text-2xl sm:text-3xl text-ink">
-                {questions.length} / {questions.length}
+                {questions.length}
               </div>
             </div>
           </div>
 
-          {/* AI Comprehensive Feedback */}
-          <div className="bg-pink-50/70 border-2 border-pink-300 p-5 sm:p-6 rounded-2xl shadow-[4px_4px_0_#DADFD3] space-y-2">
-            <div className="flex items-center gap-2 text-pink-900 font-bold text-sm">
-              <Sparkles className="w-5 h-5 text-pink-600" />
-              <span>Nhận Xét Chuyên Môn Từ Giám Thị AI</span>
+          {displayResult.totalScore == null && (
+            <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs text-amber-900 font-medium">
+              Bài thi đã được nộp và đang chờ chấm điểm. Điểm sẽ hiển thị tại Cổng Thi khi giảng viên/AI hoàn tất.
             </div>
-            <p className="text-xs sm:text-sm text-pink-950 leading-relaxed font-medium">
-              "{displayResult.feedback}"
-            </p>
-          </div>
+          )}
+
+          {/* AI Comprehensive Feedback */}
+          {displayResult.feedback && (
+            <div className="bg-pink-50/70 border-2 border-pink-300 p-5 sm:p-6 rounded-2xl shadow-[4px_4px_0_#DADFD3] space-y-2">
+              <div className="flex items-center gap-2 text-pink-900 font-bold text-sm">
+                <Sparkles className="w-5 h-5 text-pink-600" />
+                <span>Nhận Xét Chuyên Môn Từ Giám Thị AI</span>
+              </div>
+              <p className="text-xs sm:text-sm text-pink-950 leading-relaxed font-medium">
+                "{displayResult.feedback}"
+              </p>
+            </div>
+          )}
 
           {/* Rubric Breakdown List */}
           <div className="space-y-4">
@@ -1458,14 +1353,14 @@ export function OralExamRoomPage({
                     <p className="text-xs text-green-800">{r.comment}</p>
                   </div>
                   <div className="shrink-0 font-mono font-black text-sm bg-green-100 text-green-900 border border-green-400 px-3 py-1 rounded-xl self-start sm:self-center">
-                    {r.score} / {r.max}
+                    {r.score != null ? r.score : '—'} / {r.max}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Actions: Certificate & Return */}
+          {/* Actions */}
           <div className="pt-6 border-t-2 border-green-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <button
               type="button"
@@ -1475,62 +1370,10 @@ export function OralExamRoomPage({
               ← Trở Về Danh Sách Học Phần
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (onNavigate) {
-                  onNavigate('submission-success');
-                } else {
-                  setShowCertModal(true);
-                }
-              }}
-              className="px-8 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-green-700 shadow-[3px_3px_0_#DEB9B5] cursor-pointer flex items-center gap-2"
-            >
-              <FileCheck2 className="w-4 h-4" />
-              <span>Xem Giấy Chứng Nhận SHA-256 ↗</span>
-            </button>
           </div>
 
         </div>
 
-        {/* Certificate Modal */}
-        {showCertModal && (
-          <div className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-paper border-4 border-green-700 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[8px_8px_0_#DEB9B5] space-y-5 text-ink">
-              <div className="flex items-center justify-between pb-3 border-b-2 border-green-200">
-                <div className="flex items-center gap-2 font-heading font-black text-lg text-green-900">
-                  <Award className="w-5 h-5 text-green-700" />
-                  <span>Chứng Chỉ Khảo Thí AI Xác Thực</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCertModal(false)}
-                  className="p-1 rounded-lg hover:bg-green-100 text-green-800 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-4 bg-white border-2 border-green-400 rounded-2xl space-y-3 text-center">
-                <div className="text-xs uppercase font-bold text-green-700">VIEVA ACADEMIC AI VERIFICATION</div>
-                <div className="font-heading font-black text-xl text-ink">Chứng Nhận Hoàn Thành Bài Thi Vấn Đáp</div>
-                <p className="text-xs text-green-800">Cấp cho: <strong>{studentName} ({studentCode})</strong></p>
-                <div className="font-mono text-sm font-black text-pink-600">Điểm số: {displayResult.totalScore} / 10 ({displayResult.grade})</div>
-                <div className="p-2 bg-green-50 rounded-xl text-[10px] font-mono text-green-800 break-all border border-green-200">
-                  SHA-256: 4f1a8c9b2e7d3f8a0c5b4e2d1f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowCertModal(false)}
-                className="w-full py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-green-700 shadow-[2px_2px_0_#DEB9B5] cursor-pointer"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -1562,7 +1405,7 @@ export function OralExamRoomPage({
               </span>
             </div>
             <p className="text-xs text-green-800 mt-0.5">
-              Thí sinh: <strong>{studentName} ({studentCode})</strong> • Học phần: <strong>SWD392 - Software Architecture</strong>
+              Thí sinh: <strong>{studentName} ({studentCode})</strong> • Ca thi: <strong>{activeExam?.title || '—'}</strong>
             </p>
           </div>
         </div>
@@ -1572,7 +1415,7 @@ export function OralExamRoomPage({
           <div className="text-right font-mono bg-white border-2 border-green-400 px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#DADFD3]">
             <span className="text-[9px] font-bold text-green-700 uppercase tracking-wider block">Tiến độ câu hỏi</span>
             <p className="text-xs sm:text-sm font-extrabold text-ink">
-              Câu {activeQuestionIndex + 1} / {questions.length}
+              Lượt {activeQuestionIndex + 1}{totalQuestions ? ` • ${totalQuestions} câu chính` : ''}
             </p>
           </div>
 

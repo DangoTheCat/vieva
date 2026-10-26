@@ -12,7 +12,6 @@ import {
   Radio, 
   Send, 
   HelpCircle,
-  FileCheck2,
   AlertTriangle
 } from 'lucide-react';
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
@@ -123,21 +122,16 @@ export function CalibrationPage({ onNavigate, showToast }) {
         });
       }
     } catch (err) {
-      console.warn('Microphone permission denied or device not found, activating simulated mic test.', err);
-      // Simulate mic for offline / permission denied environments
-      setIsMicListening(true);
-      let count = 0;
-      const interval = setInterval(() => {
-        const simulated = Math.floor(30 + Math.random() * 45);
-        setMicVolumeLevel(simulated);
-        count++;
-        if (count > 5) {
-          setTranscriptPreview('Tôi đã sẵn sàng tham gia kỳ thi vấn đáp AI trực tuyến!');
-          setMicTestedSuccessfully(true);
-          clearInterval(interval);
-        }
-      }, 300);
-      animationFrameRef.current = interval;
+      // A device check must not pass without a real microphone
+      setIsMicListening(false);
+      setMicTestedSuccessfully(false);
+      if (showToast) {
+        showToast({
+          type: 'error',
+          title: 'Không Truy Cập Được Micro',
+          message: 'Hãy cấp quyền micro cho trình duyệt và kiểm tra thiết bị đã được cắm, sau đó thử lại.'
+        });
+      }
     }
   };
 
@@ -271,18 +265,8 @@ export function CalibrationPage({ onNavigate, showToast }) {
           </p>
         </div>
 
-        {/* Instant Exam / Quick Submit shortcut for quick testing */}
+        {/* Enter exam room */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigate && onNavigate('submission-success')}
-            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-            title="Kiểm tra ngay giao diện biên bản nộp bài thành công"
-          >
-            <FileCheck2 className="w-3.5 h-3.5 text-slate-500" />
-            <span>Test Nộp Bài Nhanh</span>
-          </button>
-
           <button
             type="button"
             onClick={() => onNavigate && onNavigate('exam-room')}

@@ -15,17 +15,22 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ defaul
 const AdminUserPage = lazy(() => import('./pages/AdminUserPage').then(m => ({ default: m.AdminUserPage })));
 const AdminSubjectPage = lazy(() => import('./pages/AdminSubjectPage').then(m => ({ default: m.AdminSubjectPage })));
 const AdminVoiceLabPage = lazy(() => import('./pages/AdminVoiceLabPage').then(m => ({ default: m.AdminVoiceLabPage })));
+const AdminOperationsPage = lazy(() => import('./pages/AdminOperationsPage').then(m => ({ default: m.AdminOperationsPage })));
 
 // Nhóm 1: Quản Lý Ngân Hàng Câu Hỏi & Rubric (Lecturer)
 const LecturerQuestionBankPage = lazy(() => import('./pages/LecturerQuestionBankPage').then(m => ({ default: m.LecturerQuestionBankPage })));
 const LecturerDocsRagPage = lazy(() => import('./pages/LecturerDocsRagPage').then(m => ({ default: m.LecturerDocsRagPage })));
 const RubricStudioPage = lazy(() => import('./pages/RubricStudioPage').then(m => ({ default: m.RubricStudioPage })));
+const LecturerDashboardPage = lazy(() => import('./pages/LecturerDashboardPage').then(m => ({ default: m.LecturerDashboardPage })));
+const LecturerExamsPage = lazy(() => import('./pages/LecturerExamsPage').then(m => ({ default: m.LecturerExamsPage })));
+const LecturerGradingQueuePage = lazy(() => import('./pages/LecturerGradingQueuePage').then(m => ({ default: m.LecturerGradingQueuePage })));
+const LecturerReviewRegradingPage = lazy(() => import('./pages/LecturerReviewRegradingPage').then(m => ({ default: m.LecturerReviewRegradingPage })));
 
 // Nhóm 3: Lõi Phỏng Vấn AI (Student - Oral Exam Room)
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
 const CalibrationPage = lazy(() => import('./pages/CalibrationPage').then(m => ({ default: m.CalibrationPage })));
 const OralExamRoomPage = lazy(() => import('./pages/OralExamRoomPage').then(m => ({ default: m.OralExamRoomPage })));
-const StudentSubmissionSuccessPage = lazy(() => import('./pages/StudentSubmissionSuccessPage').then(m => ({ default: m.StudentSubmissionSuccessPage })));
+const StudentResultsPage = lazy(() => import('./pages/StudentResultsPage').then(m => ({ default: m.StudentResultsPage })));
 
 // Authentication & Security
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -87,25 +92,33 @@ function AppContent() {
   // Views each role may open — Strictly limited to 3 Core Functional Groups + Profile Page
   const allowedViews = [
     ...(isAdmin ? [
+      'admin-stats',
       'admin-users', 
       'admin-subjects', 
       'admin-voice-lab', 
       'voice-lab'
     ] : []),
     ...(isAdmin || isLecturer ? [
-      'lecturer-questions', 
-      'lecturer-docs-rag', 
-      'rubric-studio'
+      'lecturer-dashboard',
+      'lecturer-questions',
+      'lecturer-docs-rag',
+      'rubric-studio',
+      'lecturer-exams',
+      'lecturer-grading',
+      'lecturer-scores'
     ] : []),
-    'discover',
-    'calibration',
-    'exam-room',
-    'submission-success',
+    // Student exam flow — BE restricts /student/** to ROLE_STUDENT
+    ...(!isAdmin && !isLecturer ? [
+      'discover',
+      'calibration',
+      'exam-room',
+      'my-results'
+    ] : []),
     'profile',
     'profile-password'
   ];
 
-  const defaultRoleHome = isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover';
+  const defaultRoleHome = isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover';
   const activeView = allowedViews.includes(currentView) ? currentView : defaultRoleHome;
 
   // Keep browser URL hash synchronized with activeView (must be before any early return)
@@ -231,6 +244,12 @@ function AppContent() {
           <ErrorBoundary key={activeView}>
             <Suspense fallback={<PageSkeleton />}>
             {/* Nhóm 7: Quản Trị Hệ Thống (Admin) */}
+            {activeView === 'admin-stats' && (
+              <AdminOperationsPage
+                showToast={showToast}
+              />
+            )}
+
             {activeView === 'admin-users' && (
               <AdminUserPage
                 onOpenMatrix={() => setIsMatrixOpen(true)}
@@ -251,6 +270,31 @@ function AppContent() {
             )}
 
             {/* Nhóm 1: Quản Lý Ngân Hàng Câu Hỏi & Rubric (Lecturer) */}
+            {activeView === 'lecturer-dashboard' && (
+              <LecturerDashboardPage
+                onNavigate={(view) => setCurrentView(view)}
+                showToast={showToast}
+              />
+            )}
+
+            {activeView === 'lecturer-exams' && (
+              <LecturerExamsPage
+                showToast={showToast}
+              />
+            )}
+
+            {activeView === 'lecturer-grading' && (
+              <LecturerGradingQueuePage
+                showToast={showToast}
+              />
+            )}
+
+            {activeView === 'lecturer-scores' && (
+              <LecturerReviewRegradingPage
+                showToast={showToast}
+              />
+            )}
+
             {activeView === 'lecturer-questions' && (
               <LecturerQuestionBankPage
                 showToast={showToast}
@@ -292,9 +336,8 @@ function AppContent() {
               />
             )}
 
-            {(activeView === 'submission-success' || activeView === 'exam-success') && (
-              <StudentSubmissionSuccessPage
-                onNavigate={(view) => setCurrentView(view)}
+            {activeView === 'my-results' && (
+              <StudentResultsPage
                 showToast={showToast}
               />
             )}
