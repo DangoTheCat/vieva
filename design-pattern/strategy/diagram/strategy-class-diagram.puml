@@ -1,0 +1,60 @@
+@startuml strategy-payment
+' Render: paste into https://www.plantuml.com/plantuml or use the PlantUML extension in VS Code / IntelliJ.
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+title Strategy Pattern - Checkout Payment (Java)
+
+class Main <<Client>> {
+  +main(args: String[]): void
+}
+
+class PaymentContext <<Context>> {
+  -strategy: PaymentStrategy
+  +PaymentContext(strategy: PaymentStrategy)
+  +setStrategy(strategy: PaymentStrategy): void
+  +checkout(amount: long): long
+}
+
+interface PaymentStrategy <<Strategy>> {
+  +pay(amount: long): long
+}
+
+class CashOnDeliveryStrategy <<ConcreteStrategy>> {
+  -COD_FEE: long = 15000
+  +pay(amount: long): long
+}
+
+class CreditCardStrategy <<ConcreteStrategy>> {
+  -FEE_PERCENT: long = 2
+  +pay(amount: long): long
+}
+
+class MoMoWalletStrategy <<ConcreteStrategy>> {
+  -DISCOUNT_PERCENT: long = 5
+  -MAX_DISCOUNT: long = 20000
+  +pay(amount: long): long
+}
+
+class ZaloPayStrategy <<ConcreteStrategy>> {
+  -VOUCHER: long = 10000
+  -MIN_ORDER: long = 200000
+  +pay(amount: long): long
+}
+
+PaymentContext o-right-> PaymentStrategy : strategy
+PaymentStrategy <|.. CashOnDeliveryStrategy
+PaymentStrategy <|.. CreditCardStrategy
+PaymentStrategy <|.. MoMoWalletStrategy
+PaymentStrategy <|.. ZaloPayStrategy
+
+Main --> PaymentContext : uses
+Main ..> CashOnDeliveryStrategy : creates
+Main ..> CreditCardStrategy : creates
+Main ..> MoMoWalletStrategy : creates
+Main ..> ZaloPayStrategy : creates
+
+note bottom of PaymentContext
+  checkout(amount):
+    return strategy.pay(amount)
+end note
+@enduml
