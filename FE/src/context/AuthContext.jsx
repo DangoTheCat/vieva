@@ -23,7 +23,6 @@ export function AuthProvider({ children }) {
     }
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isLiveBackendReachable, setIsLiveBackendReachable] = useState(true);
 
   // Check initial connection and refresh current user profile
@@ -31,7 +30,7 @@ export function AuthProvider({ children }) {
     async function initAuth() {
       try {
         Object.keys(localStorage).forEach(k => {
-          if (k.startsWith('aives_user_role_')) {
+          if (k.startsWith('aives_user_role_') || k.startsWith('aives_custom_topics_')) {
             localStorage.removeItem(k);
           }
         });
@@ -50,11 +49,10 @@ export function AuthProvider({ children }) {
           localStorage.setItem('aives_user', JSON.stringify(mergedUser));
           setIsLiveBackendReachable(true);
         } catch (err) {
-          // If 401 or network error
           if (err.status === 401) {
             handleLogout();
           } else {
-            // Network unreachable, keep offline user if any
+            // BE unreachable: keep the stored session, pages surface their own API errors
             setIsLiveBackendReachable(false);
           }
         }
@@ -109,45 +107,19 @@ export function AuthProvider({ children }) {
       setCurrentUser(mergedUser);
       localStorage.setItem('aives_user', JSON.stringify(mergedUser));
       localStorage.setItem('aives_user_role', effectiveRole);
-      setIsDemoMode(false);
       setIsLiveBackendReachable(true);
       return { ...data, user: mergedUser, effectiveRole };
     } catch (err) {
-      if (err.code === 'ROLE_MISMATCH') {
-        throw err;
-      }
-      // If server error (500) or network unreachable, fallback to local offline mode for testing
-      if (err.status === 500 || err.status === 502 || err.status === 503 || err.status === 504 || !err.status) {
-        console.warn('Backend server error or unreachable, activating local session fallback.', err);
-        const fallbackRole = roleOverride || 'ROLE_STUDENT';
-        const fallbackUser = {
-          userId: `demo-${Date.now()}`,
-          email: credentials?.email || 'user@fpt.edu.vn',
-          fullName: fallbackRole === 'ROLE_ADMIN' ? 'Ban Khảo Thí (Offline)' : fallbackRole === 'ROLE_LECTURER' ? 'Giảng Viên (Offline)' : 'Sinh Viên (Offline)',
-          selectedRole: fallbackRole,
-          status: 'ACTIVE'
-        };
-        const mockToken = `demo-token-${Date.now()}`;
-        apiClient.setToken(mockToken);
-        setToken(mockToken);
-        setCurrentUser(fallbackUser);
-        localStorage.setItem('aives_user', JSON.stringify(fallbackUser));
-        localStorage.setItem('aives_user_role', fallbackRole);
-        setIsDemoMode(true);
-        setIsLiveBackendReachable(false);
-        return { accessToken: mockToken, user: fallbackUser, effectiveRole: fallbackRole, isDemoFallback: true };
-      }
+      if (!err.status && err.code !== 'ROLE_MISMATCH') setIsLiveBackendReachable(false);
       throw err;
     }
   };
 
-  const handleRegister = async (payload, roleOverride) => {
-    const selectedRole = roleOverride || localStorage.getItem('aives_user_role') || 'ROLE_STUDENT';
-
+  const handleRegister = async (payload) => {
     try {
       const data = await authApi.register(payload);
-      // Self-registered accounts are always ROLE_STUDENT on the BE; its role wins over the picked tab
-      const actualRole = getUserRole(data.user) || selectedRole;
+      // Self-registered accounts are always ROLE_STUDENT on the BE
+      const actualRole = getUserRole(data.user) || 'ROLE_STUDENT';
       localStorage.setItem('aives_user_role', actualRole);
 
       const mergedUser = {
@@ -157,36 +129,10 @@ export function AuthProvider({ children }) {
       setToken(data.accessToken);
       setCurrentUser(mergedUser);
       localStorage.setItem('aives_user', JSON.stringify(mergedUser));
-      setIsDemoMode(false);
       setIsLiveBackendReachable(true);
       return { ...data, user: mergedUser, effectiveRole: actualRole };
     } catch (err) {
-      // Re-throw domain validation errors (e.g., duplicate user 1001)
-      if (err.code === '1001' || err.code === 'USER_EXISTED' || (err.status === 400 || err.status === 409)) {
-        throw err;
-      }
-      // If server error (500) or network unreachable, fallback to local offline mode for testing
-      if (err.status === 500 || err.status === 502 || err.status === 503 || err.status === 504 || !err.status) {
-        console.warn('Backend registration failed with server error, fallback to local session mode.', err);
-        const fallbackUser = {
-          userId: `demo-${Date.now()}`,
-          email: payload.email,
-          fullName: payload.fullName || (selectedRole === 'ROLE_LECTURER' ? 'Giảng Viên FPT' : 'Sinh Viên FPT'),
-          phoneNumber: payload.phoneNumber || null,
-          selectedRole: selectedRole,
-          status: 'ACTIVE'
-        };
-        const mockToken = `demo-token-${Date.now()}`;
-        apiClient.setToken(mockToken);
-        setToken(mockToken);
-        setCurrentUser(fallbackUser);
-        localStorage.setItem('aives_user', JSON.stringify(fallbackUser));
-        localStorage.setItem('aives_user_role', selectedRole);
-        if (emailKey) localStorage.setItem(emailKey, selectedRole);
-        setIsDemoMode(true);
-        setIsLiveBackendReachable(false);
-        return { accessToken: mockToken, user: fallbackUser, effectiveRole: selectedRole, isDemoFallback: true };
-      }
+      if (!err.status) setIsLiveBackendReachable(false);
       throw err;
     }
   };
@@ -216,15 +162,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const setDemoRole = (role) => {
-    if (currentUser) {
-      const updated = { ...currentUser, selectedRole: role };
-      localStorage.setItem('aives_user_role', role);
-      localStorage.setItem('aives_user', JSON.stringify(updated));
-      setCurrentUser(updated);
-    }
-  };
-
   /**
    * First login after an admin created the account (or reset its password):
    * BE revokes the current token once the password changes, so sign out and ask for a fresh login.
@@ -233,11 +170,11 @@ export function AuthProvider({ children }) {
     handleLogout();
   };
 
-  // An account has exactly one role; the demo (offline) session has none and uses the picked tab
+  // An account has exactly one role
   const effectiveRole = getUserRole(currentUser) || currentUser?.selectedRole;
   const isAdmin = effectiveRole === 'ROLE_ADMIN';
   const isLecturer = effectiveRole === 'ROLE_LECTURER';
-  const mustChangePassword = !!currentUser?.mustChangePassword && !isDemoMode;
+  const mustChangePassword = !!currentUser?.mustChangePassword;
 
   return (
     <AuthContext.Provider
@@ -249,14 +186,11 @@ export function AuthProvider({ children }) {
         isLecturer,
         mustChangePassword,
         completeForcedPasswordChange,
-        isDemoMode,
         isLiveBackendReachable,
-        setIsDemoMode,
         login: handleLogin,
         register: handleRegister,
         logout: handleLogout,
         refreshProfile,
-        setDemoRole,
         setCurrentUser
       }}
     >

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
-  const { currentUser, refreshProfile, isDemoMode, setCurrentUser, isAdmin, isLecturer } = useAuth();
+  const { currentUser, refreshProfile, setCurrentUser, isAdmin, isLecturer } = useAuth();
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Avatar upload state
@@ -106,22 +106,6 @@ export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
 
     setIsUploadingAvatar(true);
     try {
-      if (isDemoMode) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64Url = reader.result;
-          const updated = { ...currentUser, avatarUrl: base64Url };
-          setCurrentUser(updated);
-          localStorage.setItem('aives_user', JSON.stringify(updated));
-          showToast({
-            type: 'success',
-            message: 'Tải lên ảnh đại diện thành công (Chế độ Demo)!'
-          });
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-
       const updatedUser = await userApi.uploadAvatar(file);
       if (updatedUser) {
         const merged = {
@@ -153,14 +137,6 @@ export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
 
     setIsUploadingAvatar(true);
     try {
-      if (isDemoMode) {
-        const updated = { ...currentUser, avatarUrl: null };
-        setCurrentUser(updated);
-        localStorage.setItem('aives_user', JSON.stringify(updated));
-        showToast({ type: 'info', message: 'Đã gỡ ảnh đại diện (Chế độ Demo).' });
-        return;
-      }
-
       const updatedUser = await userApi.deleteAvatar();
       if (updatedUser) {
         const merged = {
@@ -208,20 +184,6 @@ export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
 
     setIsUpdatingProfile(true);
     try {
-      if (isDemoMode) {
-        const updated = {
-          ...currentUser,
-          fullName: fullName.trim(),
-          phoneNumber: phoneNumber ? phoneNumber.trim() : null,
-          updatedAt: new Date().toISOString()
-        };
-        setCurrentUser(updated);
-        localStorage.setItem('aives_user', JSON.stringify(updated));
-        setProfileSuccessMessage('Cập nhật hồ sơ cá nhân thành công (Chế độ Demo)!');
-        showToast({ type: 'success', message: 'Cập nhật hồ sơ cá nhân thành công!' });
-        return;
-      }
-
       await userApi.updateProfile({
         fullName: fullName.trim(),
         phoneNumber: phoneNumber ? phoneNumber.trim() : null
@@ -261,15 +223,6 @@ export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
 
     setIsChangingPassword(true);
     try {
-      if (isDemoMode) {
-        setPasswordSuccess('Đổi mật khẩu thành công (Chế độ Demo)!');
-        showToast({ type: 'success', message: 'Đổi mật khẩu thành công (Chế độ Demo)!' });
-        setOldPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        return;
-      }
-
       await userApi.changePassword({ oldPassword, newPassword });
       setPasswordSuccess('Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới cho các lần đăng nhập tiếp theo.');
       showToast({ type: 'success', message: 'Đổi mật khẩu thành công! Mật khẩu mới đã được cập nhật.' });

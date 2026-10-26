@@ -14,9 +14,10 @@ import {
   X
 } from 'lucide-react';
 import { VoiceWaveform } from './VoiceWaveform';
+import { NotificationBell } from './NotificationBell';
 
 export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate, currentTab }) {
-  const { currentUser, logout, isDemoMode, setIsDemoMode, isLiveBackendReachable, isAdmin, isLecturer } = useAuth();
+  const { currentUser, logout, isLiveBackendReachable, isAdmin, isLecturer } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isTroubleshootOpen, setIsTroubleshootOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -136,11 +137,11 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
         {/* Left: Brand & Nav Links */}
         <div className="flex items-center gap-6">
           <div
-            onClick={() => onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover')}
+            onClick={() => onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
             className="flex items-center gap-3 cursor-pointer group select-none"
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-questions' : 'discover')}
+            onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
           >
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-pink-100 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[2px_2px_0_#DEB9B5] group-hover:scale-105 transition-transform">
@@ -216,6 +217,24 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                 >
                   3. Ma Trận Rubric
                 </button>
+                <button
+                  onClick={() => onNavigate('lecturer-exams')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-exams'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
+                    }`}
+                >
+                  4. Kỳ Thi
+                </button>
+                <button
+                  onClick={() => onNavigate('lecturer-grading')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-grading'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
+                    }`}
+                >
+                  5. Chấm Điểm
+                </button>
               </>
             )}
             {!isAdmin && !isLecturer && (
@@ -247,6 +266,15 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                 >
                   Phòng Thi Vấn Đáp AI
                 </button>
+                <button
+                  onClick={() => onNavigate('my-results')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'my-results'
+                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
+                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
+                    }`}
+                >
+                  Kết Quả Thi
+                </button>
               </>
             )}
           </nav>
@@ -273,6 +301,8 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
               <span className="hidden sm:inline">Thêm Người Dùng</span>
             </button>
           )}
+
+          <NotificationBell />
 
           <div className="h-6 w-0.5 bg-green-300 hidden sm:block"></div>
 

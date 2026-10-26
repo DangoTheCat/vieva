@@ -68,6 +68,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Edge/IE add a native reveal/clear button to password inputs; we render our own Eye toggle */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;
   }

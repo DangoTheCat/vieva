@@ -22,7 +22,12 @@ import {
   Cpu,
   Layers,
   Settings2,
-  Check
+  Check,
+  LayoutDashboard,
+  CalendarCheck,
+  ClipboardCheck,
+  Scale,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -44,8 +49,8 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
   // Intelligent filter auto-sync if user navigates to a tab from another group
   useEffect(() => {
     if (!isAdmin) return;
-    const adminTabs = ['admin-users', 'admin-subjects', 'admin-voice-lab', 'voice-lab'];
-    const lecturerTabs = ['lecturer-questions', 'lecturer-docs-rag', 'rubric-studio'];
+    const adminTabs = ['admin-stats', 'admin-users', 'admin-subjects', 'admin-voice-lab', 'voice-lab'];
+    const lecturerTabs = ['lecturer-dashboard', 'lecturer-questions', 'lecturer-docs-rag', 'rubric-studio', 'lecturer-exams', 'lecturer-grading', 'lecturer-scores'];
 
     if (adminFilter === 'ADMIN' && lecturerTabs.includes(currentTab)) {
       setAdminFilter('LECTURER');
@@ -265,10 +270,10 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
                 })}
 
                 {renderItem({
-                  id: 'submission-success',
-                  title: 'Biên Bản Bài Thi',
-                  subtitle: 'Chứng thực băm SHA-256 kết quả',
-                  tag: 'Biên bản',
+                  id: 'my-results',
+                  title: 'Kết Quả Thi',
+                  subtitle: 'Điểm & nhận xét từng lượt hỏi',
+                  tag: 'Kết quả',
                   icon: CheckCircle2
                 })}
               </>
@@ -283,6 +288,14 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
                     <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800 border border-green-300 shrink-0">Admin</span>
                   </div>
                 )}
+
+                {renderItem({
+                  id: 'admin-stats',
+                  title: 'Thống Kê Hệ Thống',
+                  subtitle: 'Người dùng, kỳ thi & kết quả',
+                  tag: 'Stats',
+                  icon: BarChart3
+                })}
 
                 {renderItem({
                   id: 'admin-users',
@@ -322,6 +335,14 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
                 )}
 
                 {renderItem({
+                  id: 'lecturer-dashboard',
+                  title: 'Tổng Quan',
+                  subtitle: 'Môn học phụ trách & tiến độ chấm',
+                  tag: 'Home',
+                  icon: LayoutDashboard
+                })}
+
+                {renderItem({
                   id: 'lecturer-questions',
                   title: 'Ngân Hàng Câu Hỏi',
                   subtitle: 'Thang Bloom & duyệt đề thi AI',
@@ -343,6 +364,30 @@ export function Sidebar({ currentTab, onNavigate, onOpenMatrix }) {
                   subtitle: 'Tiêu chí & thang điểm chấm vấn đáp',
                   tag: 'Rubric',
                   icon: Award
+                })}
+
+                {renderItem({
+                  id: 'lecturer-exams',
+                  title: 'Quản Lý Kỳ Thi',
+                  subtitle: 'Tạo kỳ thi, chọn câu hỏi, mở/đóng',
+                  tag: 'Kỳ thi',
+                  icon: CalendarCheck
+                })}
+
+                {renderItem({
+                  id: 'lecturer-grading',
+                  title: 'Chấm Điểm',
+                  subtitle: 'Bài làm thí sinh & điểm từng câu',
+                  tag: 'Chấm',
+                  icon: ClipboardCheck
+                })}
+
+                {renderItem({
+                  id: 'lecturer-scores',
+                  title: 'Phúc Khảo',
+                  subtitle: 'Điều chỉnh điểm tổng có lý do',
+                  tag: 'Điểm',
+                  icon: Scale
                 })}
               </>
             )}
