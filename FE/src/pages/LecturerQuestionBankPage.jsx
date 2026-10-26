@@ -321,6 +321,11 @@ export function LecturerQuestionBankPage({ showToast }) {
   const [isImporting, setIsImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
 
+  // Text import (one question per line)
+  const [textImport, setTextImport] = useState(null); // { text, topicId, bloomLevel, rubricTemplateId }
+  const [rubricTemplates, setRubricTemplates] = useState([]);
+  const [isImportingText, setIsImportingText] = useState(false);
+
   // Confirm delete / action targets
   const [deleteDocTarget, setDeleteDocTarget] = useState(null);
   const [deleteDraftTarget, setDeleteDraftTarget] = useState(null);
@@ -376,16 +381,11 @@ export function LecturerQuestionBankPage({ showToast }) {
 
     async function loadTopics() {
       try {
-        const custom = JSON.parse(localStorage.getItem(`aives_custom_topics_${selectedSubjectId}`) || '[]');
         const list = await lecturerCatalogApi.getTopics(selectedSubjectId);
-        const fetched = Array.isArray(list) ? list : [];
-        const combined = [...custom, ...fetched];
-        const uniqueMap = new Map();
-        combined.forEach(t => uniqueMap.set(t.topicId || t.name, t));
-        setTopics(Array.from(uniqueMap.values()));
+        setTopics(Array.isArray(list) ? list : []);
       } catch (err) {
-        const custom = JSON.parse(localStorage.getItem(`aives_custom_topics_${selectedSubjectId}`) || '[]');
-        setTopics(custom);
+        setTopics([]);
+        showToast({ type: 'error', message: getErrorMessage(err) });
       }
     }
 
@@ -558,24 +558,10 @@ export function LecturerQuestionBankPage({ showToast }) {
     if (!newTopicName.trim()) return;
 
     try {
-      let created = {
-        topicId: `top-${Date.now()}`,
+      const created = await lecturerCatalogApi.createTopic(selectedSubjectId, {
         name: newTopicName.trim(),
         description: newTopicDesc.trim()
-      };
-      try {
-        const res = await lecturerCatalogApi.createTopic(selectedSubjectId, {
-          name: newTopicName.trim(),
-          description: newTopicDesc.trim()
-        });
-        if (res && (res.topicId || res.id)) created = res;
-      } catch (err) {
-        console.warn('Backend createTopic error, fallback to local state.', err);
-      }
-
-      const existingCustom = JSON.parse(localStorage.getItem(`aives_custom_topics_${selectedSubjectId}`) || '[]');
-      localStorage.setItem(`aives_custom_topics_${selectedSubjectId}`, JSON.stringify([...existingCustom, created]));
-
+      });
       setTopics(prev => [...prev, created]);
       showToast({ type: 'success', message: 'Tạo chủ đề đề cương thành công!' });
       setIsCreateTopicModalOpen(false);
@@ -591,24 +577,8 @@ export function LecturerQuestionBankPage({ showToast }) {
     if (!docFileToUpload) return;
     setIsUploadingDoc(true);
     try {
-      try {
-        await courseDocumentApi.uploadDocument(selectedSubjectId, docFileToUpload);
-        await loadDocuments();
-      } catch (err) {
-        console.warn('Backend uploadDocument error, fallback to local state.', err);
-        const newDoc = {
-          documentId: `doc-${Date.now()}`,
-          fileName: docFileToUpload.name,
-          fileType: docFileToUpload.name.split('.').pop() || 'pdf',
-          fileSizeBytes: docFileToUpload.size || 2500000,
-          indexingStatus: 'READY',
-          status: 'READY',
-          totalChunks: 24,
-          chunkCount: 24,
-          createdAt: new Date().toISOString()
-        };
-        setDocuments(prev => [newDoc, ...prev]);
-      }
+      await courseDocumentApi.uploadDocument(selectedSubjectId, docFileToUpload);
+      await loadDocuments();
       setDocFileToUpload(null);
       showToast({ type: 'success', message: 'Đã nhận tài liệu! Đang xử lý bóc tách và lập chỉ mục ngầm.' });
     } catch (err) {
@@ -621,7 +591,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   // Retry Indexing
   const handleRetryIndexing = async (documentId) => {
     try {
-      await courseDocumentApi.retryIndexing(documentId).catch(() => {});
+      await courseDocumentApi.retryIndexing(documentId);
       await loadDocuments();
       showToast({ type: 'success', message: 'Đã gửi yêu cầu lập chỉ mục lại.' });
     } catch (err) {
@@ -633,7 +603,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   const handleConfirmDeleteDoc = async () => {
     if (!deleteDocTarget) return;
     try {
-      await courseDocumentApi.deleteDocument(deleteDocTarget.documentId).catch(() => {});
+      await courseDocumentApi.deleteDocument(deleteDocTarget.documentId);
       setDocuments(prev => prev.filter(d => d.documentId !== deleteDocTarget.documentId));
       showToast({ type: 'success', message: 'Xóa tài liệu giáo trình thành công.' });
     } catch (err) {
@@ -983,6 +953,32 @@ export function LecturerQuestionBankPage({ showToast }) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const openTextImport = async () => {
+    setTextImport({ text: '', topicId: '', bloomLevel: '', rubricTemplateId: '' });
+    try {
+      const list = await rubricApi.listTemplates(selectedSubjectId);
+      setRubricTemplates(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setRubricTemplates([]);
+    }
+  };
+
+  const handleImportText = async (e) => {
+    e.preventDefault();
+    if (!textImport.text.trim()) return;
+    setIsImportingText(true);
+    try {
+      const result = await questionImportApi.importText(selectedSubjectId, textImport);
+      showToast({ type: 'success', message: `Đã nhập ${result?.totalImported || 0} câu hỏi vào Hàng đợi duyệt.` });
+      setTextImport(null);
+      loadReviewQueue();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsImportingText(false);
     }
   };
 
@@ -1384,6 +1380,16 @@ export function LecturerQuestionBankPage({ showToast }) {
               >
                 <FileSpreadsheet className="w-4 h-4 text-green-700" />
                 <span>Nhập Excel/CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={openTextImport}
+                disabled={!selectedSubjectId}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
+              >
+                <FileText className="w-4 h-4 text-green-700" />
+                <span>Nhập Từ Văn Bản</span>
               </button>
 
               <button
@@ -2434,6 +2440,69 @@ export function LecturerQuestionBankPage({ showToast }) {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* MODAL: NHẬP CÂU HỎI TỪ VĂN BẢN (mỗi dòng một câu) */}
+      {textImport && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <form onSubmit={handleImportText} className="bg-paper rounded-2xl max-w-2xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
+              <span className="font-heading uppercase tracking-wider font-bold text-green-800">Nhập Câu Hỏi Từ Văn Bản</span>
+              <button type="button" onClick={() => setTextImport(null)} aria-label="Đóng" className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <label className="block font-bold space-y-1">
+              <span>Nội dung — mỗi dòng là một câu hỏi (tối đa 2000 dòng, dòng trống được bỏ qua)</span>
+              <textarea
+                rows={10}
+                required
+                autoFocus
+                value={textImport.text}
+                onChange={(e) => setTextImport({ ...textImport, text: e.target.value })}
+                placeholder={'Trình bày nguyên lý Dependency Inversion.\nSo sánh Layered Architecture và Clean Architecture.'}
+                className="w-full bg-white border-2 border-green-300 rounded-xl p-3 font-normal focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </label>
+            <p className="text-on-surface-variant">
+              {textImport.text.split(/\r?\n/).filter(l => l.trim()).length} câu hỏi sẽ được tạo ở trạng thái nháp.
+            </p>
+            <div className="grid sm:grid-cols-3 gap-3">
+              <label className="block font-bold space-y-1">
+                <span>Chủ đề (tuỳ chọn)</span>
+                <select value={textImport.topicId} onChange={(e) => setTextImport({ ...textImport, topicId: e.target.value })}
+                  className="w-full bg-white border-2 border-green-300 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-green-600">
+                  <option value="">— Không gán —</option>
+                  {topics.map(t => <option key={t.topicId} value={t.topicId}>{t.name}</option>)}
+                </select>
+              </label>
+              <label className="block font-bold space-y-1">
+                <span>Mức Bloom (tuỳ chọn)</span>
+                <select value={textImport.bloomLevel} onChange={(e) => setTextImport({ ...textImport, bloomLevel: e.target.value })}
+                  className="w-full bg-white border-2 border-green-300 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-green-600">
+                  <option value="">— Không gán —</option>
+                  {BLOOM_LEVELS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+              </label>
+              <label className="block font-bold space-y-1">
+                <span>Mẫu rubric (tuỳ chọn)</span>
+                <select value={textImport.rubricTemplateId} onChange={(e) => setTextImport({ ...textImport, rubricTemplateId: e.target.value })}
+                  className="w-full bg-white border-2 border-green-300 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-green-600">
+                  <option value="">— Không áp dụng —</option>
+                  {rubricTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-3 border-t-2 border-cream">
+              <button type="button" onClick={() => setTextImport(null)} className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 font-bold hover:bg-green-100">Hủy Bỏ</button>
+              <button type="submit" disabled={isImportingText || !textImport.text.trim()}
+                className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] disabled:opacity-50 flex items-center gap-2">
+                {isImportingText && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
+                Nhập câu hỏi
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
