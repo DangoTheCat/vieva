@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Edit3, X, ShieldAlert, Check, AlertTriangle, Info } from 'lucide-react';
 
 export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
-  const { currentUser, isDemoMode } = useAuth();
+  const { currentUser } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -89,22 +89,6 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
         // Only send the single roleCode when it changed (null = keep the current role)
         roleCode: selectedRole && selectedRole !== originalRole ? selectedRole : null
       };
-
-      if (isDemoMode) {
-        const updated = {
-          ...user,
-          fullName: payload.fullName,
-          phoneNumber: payload.phoneNumber,
-          status: payload.status,
-          role: payload.roleCode || user.role,
-          roles: payload.roleCode ? [payload.roleCode] : user.roles,
-          updatedAt: new Date().toISOString()
-        };
-        showToast({ type: 'success', message: `Cập nhật thông tin ${updated.fullName} thành công (Demo Mode)!` });
-        onSuccess(updated);
-        onClose();
-        return;
-      }
 
       const updated = await adminUserApi.updateUser(user.userId, payload);
       showToast({ type: 'success', message: `Cập nhật người dùng ${updated.fullName} thành công!` });

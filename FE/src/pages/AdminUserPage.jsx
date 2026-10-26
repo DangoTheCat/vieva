@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export function AdminUserPage({ onOpenMatrix, showToast }) {
-  const { isDemoMode, setIsDemoMode, currentUser } = useAuth();
+  const { currentUser } = useAuth();
 
   // Search & Filter state
   const [keyword, setKeyword] = useState('');
@@ -108,9 +108,9 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     return () => clearTimeout(timer);
   }, [fetchUsers]);
 
-  // Reconnect countdown timer when there is a fetch error and not in demo mode
+  // Reconnect countdown timer while the user list cannot be fetched
   useEffect(() => {
-    if (!fetchError || isDemoMode) return;
+    if (!fetchError) return;
 
     const interval = setInterval(() => {
       setReconnectCountdown((prev) => {
@@ -123,7 +123,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [fetchError, isDemoMode, fetchUsers]);
+  }, [fetchError, fetchUsers]);
 
   const handleResetFilters = () => {
     setKeyword('');
@@ -154,13 +154,6 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
 
     setIsDeleting(true);
     try {
-      if (isDemoMode) {
-        setUsers(prev => prev.filter(u => u.userId !== deletingUser.userId));
-        showToast({ type: 'success', message: `Đã xóa mềm người dùng ${deletingUser.fullName} (Demo Mode).` });
-        setDeletingUser(null);
-        return;
-      }
-
       await adminUserApi.deleteUser(deletingUser.userId);
       showToast({ type: 'success', message: `Xóa thành công người dùng ${deletingUser.fullName}!` });
       setDeletingUser(null);
@@ -249,7 +242,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
       </header>
 
       {/* HARDENED RECONNECT & OFFLINE BANNER (fe-resilience-hardening) */}
-      {fetchError && !isDemoMode && (
+      {fetchError && (
         <div className="p-4 bg-pink-50 border-2 border-pink-700 rounded-2xl text-pink-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0px_#713D38] animate-modal-entry mb-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-pink-100 border-2 border-pink-700 flex items-center justify-center text-pink-800 shrink-0 shadow-[2px_2px_0px_#DEB9B5]">
@@ -260,7 +253,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
                 Không thể kết nối đến Máy chủ Backend Spring Boot (Cổng 8080)
               </p>
               <p className="text-[11px] text-pink-800 mt-0.5">
-                Đang hiển thị dữ liệu dự phòng. Hệ thống tự động thử kết nối lại sau: <strong className="font-mono">{reconnectCountdown}s</strong>
+                Hệ thống tự động thử kết nối lại sau: <strong className="font-mono">{reconnectCountdown}s</strong>
               </p>
             </div>
           </div>
@@ -274,12 +267,6 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Thử Lại Ngay</span>
-            </button>
-            <button
-              onClick={() => setIsDemoMode(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-pink-700 hover:bg-pink-800 text-white text-xs font-bold transition shadow-[2px_2px_0px_#492A27]"
-            >
-              Chuyển Demo Mode
             </button>
           </div>
         </div>

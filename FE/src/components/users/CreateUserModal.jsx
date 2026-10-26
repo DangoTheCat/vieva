@@ -2,11 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
 import { ROLE_OPTIONS } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
-import { useAuth } from '../../context/AuthContext';
 import { UserPlus, X, ShieldAlert, Check, Eye, EyeOff, Info, KeyRound, ShieldCheck, GraduationCap, UserCheck } from 'lucide-react';
 
 export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
-  const { isDemoMode } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -73,27 +71,6 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
         status,
         roleCode: selectedRole
       };
-
-      if (isDemoMode) {
-        const dummyCreated = {
-          userId: crypto.randomUUID ? crypto.randomUUID() : 'demo-' + Date.now(),
-          email: payload.email,
-          userCode: payload.userCode || 'USR-' + Math.floor(100000 + Math.random() * 900000),
-          fullName: payload.fullName,
-          phoneNumber: payload.phoneNumber,
-          status: payload.status,
-          role: payload.roleCode,
-          roles: [payload.roleCode],
-          mustChangePassword: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        showToast({ type: 'success', message: `Tạo người dùng ${dummyCreated.fullName} thành công (Demo Mode)!` });
-        onSuccess(dummyCreated);
-        resetForm();
-        onClose();
-        return;
-      }
 
       const created = await adminUserApi.createUser(payload);
       showToast({
