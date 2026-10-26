@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "be-dev-mock",
+      "runtimeExecutable": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "runtimeArgs": ["-c", "cd BE && set -a && source ../.env && set +a && export VIEVA_AI_PROVIDER=mock VIEVA_MAIL_PROVIDER=log && ./mvnw spring-boot:run"],
+      "port": 8080
+    },
+    {
       "name": "fe-test",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "FE", "run", "dev", "--", "--port", "5174", "--strictPort"],
