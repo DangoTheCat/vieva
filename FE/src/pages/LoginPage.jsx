@@ -2,99 +2,78 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorCodes';
 import {
-  ShieldCheck,
   Mail,
-  User,
   Key,
   Eye,
   EyeOff,
   ShieldAlert,
-  CheckCircle2,
-  Lock,
-  Database,
-  Bot,
-  ExternalLink,
-  Mic,
-  GraduationCap,
-  School,
-  Shield,
+  ShieldCheck,
   UserPlus,
-  Activity,
-  Cpu,
-  Layers
+  ArrowRight,
+  Headphones,
+  Volume2,
+  FileCheck2,
+  HelpCircle,
+  School,
+  GraduationCap,
+  Shield
 } from 'lucide-react';
-import { VoiceWaveform } from '../components/common/VoiceWaveform';
 
-const PORTAL_ROLES = {
-  stu: { code: 'ROLE_STUDENT', label: 'Sinh Viên', view: 'discover' },
-  lec: { code: 'ROLE_LECTURER', label: 'Giảng Viên', view: 'lecturer-dashboard' },
-  adm: { code: 'ROLE_ADMIN', label: 'Ban Khảo Thí (Admin)', view: 'admin-users' }
-};
-
-const ROLE_TO_PORTAL = {
-  ROLE_STUDENT: 'stu',
-  ROLE_LECTURER: 'lec',
-  ROLE_ADMIN: 'adm'
-};
+const PORTAL_ROLES = [
+  {
+    code: 'ROLE_STUDENT',
+    label: 'Sinh Viên',
+    icon: GraduationCap,
+    targetView: 'discover',
+    placeholder: 'sinhvien@fpt.edu.vn hoặc MSSV'
+  },
+  {
+    code: 'ROLE_LECTURER',
+    label: 'Giảng Viên',
+    icon: School,
+    targetView: 'lecturer-dashboard',
+    placeholder: 'giangvien@fpt.edu.vn hoặc Mã GV'
+  },
+  {
+    code: 'ROLE_ADMIN',
+    label: 'Ban Khảo Thí',
+    icon: Shield,
+    targetView: 'admin-users',
+    placeholder: 'admin@fpt.edu.vn hoặc Mã QTV'
+  }
+];
 
 export function LoginPage({ onNavigate, showToast }) {
-  const { login, logout, isLiveBackendReachable } = useAuth();
+  const { login, isLiveBackendReachable } = useAuth();
 
-  const [selectedRole, setSelectedRole] = useState('stu'); // 'stu', 'lec', 'adm'
-  const [roleMismatch, setRoleMismatch] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showForgotNotice, setShowForgotNotice] = useState(false);
+  // Role portal selection - Standard webapp role method
+  const [selectedRole, setSelectedRole] = useState('ROLE_STUDENT');
 
-  // Form credentials
+  // Form credentials - Starts empty, standard secure input
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showForgotNotice, setShowForgotNotice] = useState(false);
 
   const emailInputRef = useRef(null);
 
-  // Select role tab
-  const handleRoleChange = (role) => {
-    setSelectedRole(role);
-    setRoleMismatch(null);
-    setErrorMsg('');
-  };
-
-  // Focus email input when modal opens & handle Escape key
   useEffect(() => {
-    if (isModalOpen) {
-      const timer = setTimeout(() => emailInputRef.current?.focus(), 50);
-      const handleKeyDown = (e) => {
-        if (e.key === 'Escape') setIsModalOpen(false);
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    }
-  }, [isModalOpen]);
+    emailInputRef.current?.focus();
+  }, [selectedRole]);
 
-  const handleOpenLoginModal = () => {
+  const activePortal = PORTAL_ROLES.find(r => r.code === selectedRole) || PORTAL_ROLES[0];
+
+  const handleRoleChange = (roleCode) => {
+    setSelectedRole(roleCode);
     setErrorMsg('');
-    setEmail('');
-    setPassword('');
-    setShowForgotNotice(false);
-    setIsModalOpen(true);
-  };
-
-  // Handle email change without auto-switching the selected role
-  const handleEmailChange = (val) => {
-    setEmail(val);
-    if (errorMsg) setErrorMsg('');
-    if (roleMismatch) setRoleMismatch(null);
   };
 
   const handleSubmitLogin = async (e) => {
     e.preventDefault();
     setErrorMsg('');
-    setRoleMismatch(null);
 
     if (!email.trim() || !password) {
       setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu.');
@@ -103,28 +82,12 @@ export function LoginPage({ onNavigate, showToast }) {
 
     setIsLoading(true);
     try {
-      const expectedRole = PORTAL_ROLES[selectedRole]?.code || 'ROLE_STUDENT';
-      // Real BE API Call: POST /api/v1/auth/login
-      const result = await login({ email: email.trim(), password }, expectedRole);
+      // Standard authentication via POST /api/v1/auth/login with strict role portal enforcement
+      const result = await login({ email: email.trim(), password }, selectedRole);
       
-      const actualRole = result.effectiveRole || result.user?.selectedRole || (result.user?.role?.startsWith('ROLE_') ? result.user.role : result.user?.role ? `ROLE_${result.user.role}` : expectedRole);
-
-      // Strict Role Portal Enforcement
-      if (actualRole && actualRole !== expectedRole) {
-        // Sign out immediately so incorrect role session does not persist
-        await logout();
-
-        const errMsg = 'Vai trò đã chọn không chính xác đối với tài khoản này.';
-        setErrorMsg(errMsg);
-        if (showToast) {
-          showToast({
-            type: 'error',
-            title: 'Lỗi Đăng Nhập',
-            message: errMsg
-          });
-        }
-        return;
-      }
+      const effectiveRole = result.effectiveRole 
+        || result.user?.selectedRole 
+        || (result.user?.role?.startsWith('ROLE_') ? result.user.role : result.user?.role ? `ROLE_${result.user.role}` : selectedRole);
 
       if (showToast) {
         showToast({
@@ -133,192 +96,325 @@ export function LoginPage({ onNavigate, showToast }) {
           message: `Chào mừng ${result.user?.fullName || result.user?.email || 'bạn'} kết nối hệ thống AIVES!`
         });
       }
-      setIsModalOpen(false);
-      const targetView = PORTAL_ROLES[selectedRole]?.view || 'discover';
-      onNavigate(targetView);
+
+      // Route to selected portal view
+      const targetConfig = PORTAL_ROLES.find(r => r.code === effectiveRole) || activePortal;
+      onNavigate(targetConfig.targetView);
     } catch (err) {
-      if (err.code === 'ROLE_MISMATCH') {
-        const errMsg = 'Vai trò đã chọn không chính xác đối với tài khoản này.';
-        setErrorMsg(errMsg);
-        if (showToast) {
-          showToast({
-            type: 'error',
-            title: 'Lỗi Đăng Nhập',
-            message: errMsg
-          });
-        }
-        return;
-      }
-      const msg = err.code === '1003' ? 'Email hoặc mật khẩu không chính xác.' : getErrorMessage(err);
+      // Secure authentication failure: never leak account existence or assigned roles (OWASP A01/A07)
+      const msg = (err.code === 'ROLE_MISMATCH' || err.code === '1003')
+        ? 'Thông tin đăng nhập không chính xác.'
+        : getErrorMessage(err);
       setErrorMsg(msg);
-      if (showToast) showToast({ type: 'error', title: 'Lỗi Đăng Nhập', message: msg });
+      if (showToast) {
+        showToast({ type: 'error', title: 'Lỗi Đăng Nhập', message: msg });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-paper text-ink antialiased font-sans relative overflow-x-hidden selection:bg-pink-200 selection:text-pink-900">
+    <div className="min-h-screen flex flex-col justify-between bg-canvasBg text-ink antialiased font-sans selection:bg-slate-200 selection:text-ink">
 
       {/* TOP HEADER BAR */}
-      <header className="w-full max-w-[1400px] mx-auto px-6 py-5 flex items-center justify-between z-10">
-
+      <header className="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between border-b border-pink-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-20">
+        
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shadow-[3px_3px_0px_#DEB9B5] border border-pink-200">
-              <svg className="w-5 h-5 text-pink-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <span className="font-heading font-black text-2xl tracking-tight text-ink">aives.</span>
+          <div className="w-9 h-9 rounded-xl bg-pink-700 text-white flex items-center justify-center shadow-xs">
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <span className="font-heading font-black text-xl tracking-tight text-ink">
+              aives<span className="text-pink-600">.</span>
+            </span>
+            <span className="text-[11px] text-pink-800/80 font-medium block -mt-1">
+              Hệ thống Khảo thí Vấn đáp AI • FPT University
+            </span>
           </div>
         </div>
 
-        {/* Header Right Status & Actions */}
+        {/* Header Right Actions */}
         <div className="flex items-center gap-3 text-xs">
-          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-900 shadow-[3px_3px_0px_#DEB9B5]">
-            <span className={`w-2 h-2 rounded-full ${isLiveBackendReachable ? 'bg-green-600 animate-pulse' : 'bg-pink-700'}`}></span>
-            <span className="font-medium text-[11px]">Hội đồng Khảo thí Kỹ thuật Phần mềm (FPTU)</span>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-800 shadow-2xs">
+            <span className={`w-2 h-2 rounded-full ${isLiveBackendReachable ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+            <span className="font-medium text-[11px]">Cổng dịch vụ trực tuyến</span>
           </div>
 
           <button
             onClick={() => onNavigate('register')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-paper border border-green-200 text-green-800 font-bold transition text-xs shadow-[3px_3px_0px_#DEB9B5] hover:bg-green-50 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-pink-200 text-pink-800 hover:bg-pink-50 font-semibold transition text-xs shadow-2xs hover:bg-slate-50 hover:text-ink active:scale-[0.98] cursor-pointer"
           >
-            <UserPlus className="w-3.5 h-3.5 text-green-800" />
-            <span>Đăng Ký </span>
+            <UserPlus className="w-3.5 h-3.5 text-pink-800/80" />
+            <span>Đăng Ký</span>
           </button>
         </div>
       </header>
 
-      {/* MAIN TWO-COLUMN CONTAINER */}
-      <main className="flex-1 max-w-[1400px] w-full mx-auto px-6 py-8 md:py-12 flex items-center z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full">
+      {/* MAIN AUTHENTICATION CONTAINER */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 md:py-16 flex items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center w-full">
 
-          {/* LEFT COLUMN: HERO & AUTH BUTTONS */}
-          <div className="lg:col-span-6 space-y-7 max-w-xl">
+          {/* LEFT COLUMN: STANDARD AUTHENTICATION FORM WITH ROLE SELECTION */}
+          <div className="lg:col-span-6 max-w-md w-full mx-auto lg:mx-0 space-y-6">
 
-            {/* Top Micro-badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-green-50 border border-green-200 text-xs text-green-900 shadow-[3px_3px_0px_#DEB9B5]">
-              <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center">
-                <Mic className="w-3.5 h-3.5 text-pink-700" />
-              </div>
-              <span className="font-semibold text-green-900">Đàm thoại Vấn đáp Giọng nói Trực quan</span>
-              <span className="text-green-600">•</span>
-              <span className="text-green-700 font-mono font-bold text-[11px]">Active Speech-to-Speech</span>
-            </div>
-
-            {/* Main Headline */}
-            <div className="space-y-3">
-              <h1 className="font-heading font-extrabold text-4xl sm:text-5xl text-ink tracking-tight leading-[1.12]">
-                Nắm bắt năng lực vấn đáp <br />
-                <span className="text-pink-600">
-                  học thuật chuẩn xác tức thì.
-                </span>
+            {/* Headline */}
+            <div className="space-y-1.5">
+              <h1 className="font-heading font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+                Đăng nhập hệ thống
               </h1>
-              <p className="text-on-surface-variant text-sm sm:text-base leading-relaxed font-normal">
-                Hệ thống khảo thí đàm thoại AI thông minh thế hệ mới. Trực tiếp vấn đáp kiến trúc phần mềm, đối sánh Rubric đa chiều, phân tích phản xạ học thuật minh bạch và khách quan.
+              <p className="text-pink-800/80 text-xs sm:text-sm leading-relaxed">
+                Chọn cổng vai trò và đăng nhập bằng tài khoản học thuật FPT Education.
               </p>
             </div>
 
-            {/* Action Buttons Stack */}
-            <div className="space-y-3 pt-2">
+            {/* Main Form Card */}
+            <div className="bg-white border border-pink-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
 
-              {/* Email & Password Main Button */}
-              <button
-                type="button"
-                onClick={handleOpenLoginModal}
-                className="w-full bg-pink-500 hover:bg-pink-400 active:bg-pink-600 text-ink font-extrabold text-xs py-3.5 px-5 rounded-2xl shadow-[3px_3px_0px_#DEB9B5] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none flex items-center justify-center gap-2.5 transition active:scale-98 focus:outline-none focus:ring-2 focus:ring-green-600 cursor-pointer"
-              >
-                <Mail className="w-4 h-4 text-pink-900 shrink-0" />
-                <span>Đăng nhập bằng Email &amp; Mật Khẩu</span>
-              </button>
+              {/* Standard Role / Portal Segmented Tabs */}
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">
+                  Cổng đăng nhập theo vai trò:
+                </label>
+                <div className="p-1 bg-pink-100/70 rounded-xl grid grid-cols-3 gap-1 border border-pink-200/60 p-1">
+                  {PORTAL_ROLES.map(({ code, label, icon: Icon }) => {
+                    const isSelected = selectedRole === code;
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => handleRoleChange(code)}
+                        className={`py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-white text-pink-900 shadow-xs ring-1 ring-pink-300 font-bold'
+                            : 'text-pink-800 hover:text-pink-900 hover:bg-pink-50/60'
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-pink-600' : 'text-pink-600/70'}`} />
+                        <span className="truncate">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Error Message Alert */}
+              {errorMsg && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-medium flex items-center gap-2 animate-in fade-in">
+                  <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              {/* Login Form */}
+              <form onSubmit={handleSubmitLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1.5">
+                    Email tài khoản trường <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      ref={emailInputRef}
+                      type="text"
+                      required
+                      autoComplete="username"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errorMsg) setErrorMsg('');
+                      }}
+                      placeholder={`vd: ${activePortal.placeholder}`}
+                      className="w-full bg-white border border-pink-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl py-2.5 pl-9 pr-3 text-xs text-ink placeholder:text-pink-600/70 shadow-2xs outline-none transition"
+                    />
+                    <Mail className="w-4 h-4 text-pink-600/70 absolute left-3 top-3" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-ink">
+                      Mật khẩu <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotNotice(!showForgotNotice)}
+                      className="text-[11px] text-pink-600 hover:text-pink-700 font-medium cursor-pointer"
+                    >
+                      Quên mật khẩu?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errorMsg) setErrorMsg('');
+                      }}
+                      placeholder="Nhập mật khẩu"
+                      className="w-full bg-white border border-pink-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl py-2.5 pl-9 pr-10 text-xs text-ink placeholder:text-pink-600/70 shadow-2xs outline-none transition"
+                    />
+                    <Key className="w-4 h-4 text-pink-600/70 absolute left-3 top-3" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 text-pink-600/70 hover:text-slate-600 focus:outline-none cursor-pointer"
+                      aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center justify-between pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-pink-200 text-ink focus:ring-pink-500 accent-pink-600 cursor-pointer"
+                    />
+                    <span className="text-xs text-slate-600 font-medium">Ghi nhớ đăng nhập</span>
+                  </label>
+                </div>
+
+                {/* Forgot Password Accordion */}
+                {showForgotNotice && (
+                  <div className="p-3.5 bg-pink-50/60 border border-pink-200 rounded-xl space-y-1.5 text-xs text-ink animate-in fade-in">
+                    <div className="flex items-center justify-between font-semibold text-ink">
+                      <span>Cấp lại mật khẩu</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotNotice(false)}
+                        className="text-pink-600/70 hover:text-slate-600 text-sm leading-none cursor-pointer"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Để bảo mật dữ liệu thi vấn đáp, vui lòng liên hệ Ban Khảo Thí để được hướng dẫn đặt lại mật khẩu học thuật.
+                    </p>
+                    <div className="text-[10px] text-slate-600 font-mono bg-white p-2 rounded-lg border border-pink-200">
+                      Email: khaothi_hcm@fpt.edu.vn • Hotline: (028) 7300 5588
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-xs active:scale-[0.99] flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Đang xác thực...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Đăng nhập với tư cách {activePortal.label}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Register link */}
+              <div className="pt-2 text-center text-xs text-pink-800/80">
+                Chưa có tài khoản khảo thí?{' '}
+                <button
+                  type="button"
+                  onClick={() => onNavigate('register')}
+                  className="text-pink-600 hover:text-pink-700 font-semibold cursor-pointer"
+                >
+                  Đăng ký tài khoản
+                </button>
+              </div>
 
             </div>
 
-            {/* Legal terms note */}
-            <p className="text-[11px] text-on-surface-variant leading-relaxed pt-1">
-              Bằng việc truy cập vào AIVES, thí sinh và cán bộ xác nhận đồng ý với{' '}
-              <strong className="text-pink-700 font-extrabold">Quy Chế Khảo Thí </strong>{' '}
-              và{' '}
-              <strong className="text-pink-700 font-extrabold"> các quy định của FPT University</strong>.
+            {/* Legal text */}
+            <p className="text-[11px] text-pink-600/70 leading-relaxed text-center">
+              Bằng việc đăng nhập, bạn đồng ý tuân thủ <span className="font-medium text-slate-600">Quy chế Khảo thí FPTU</span> và cam kết bảo mật nội dung đề thi.
             </p>
 
           </div>
 
-          {/* RIGHT COLUMN: REAL BE SYSTEM MONITORING DASHBOARD CARD */}
+          {/* RIGHT COLUMN: ACADEMIC PORTAL INFORMATION */}
           <div className="lg:col-span-6 flex justify-center lg:justify-end">
-            <div className="w-full max-w-md rounded-3xl bg-paper border border-green-200 p-6 sm:p-7 space-y-5 shadow-[6px_6px_0px_#D5A6A2] relative overflow-hidden text-ink">
+            <div className="w-full max-w-md rounded-2xl bg-white border border-pink-200 p-6 sm:p-7 space-y-5 shadow-xs">
 
-              {/* Top System Header - Dynamic BE Status Connection */}
-              <div className="flex items-center justify-between pb-3 border-b border-green-200">
-                <div className="flex items-center gap-2.5">
-                  <span className={`w-2.5 h-2.5 rounded-full ${isLiveBackendReachable ? 'bg-green-600 animate-pulse' : 'bg-pink-700'}`}></span>
-                  <span className="font-heading font-extrabold text-xs text-pink-800 uppercase tracking-wider block">
-                    HỆ THỐNG KHẢO THÍ AIVES
+              {/* Portal Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-pink-100">
+                <div className="flex items-center gap-2">
+                  <School className="w-4 h-4 text-pink-600" />
+                  <span className="font-heading font-bold text-xs text-slate-800 uppercase tracking-wider">
+                    Quy Chuẩn Phòng Thi Vấn Đáp
                   </span>
                 </div>
+                <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-pink-200">
+                  Học Kỳ 2024-2025
+                </span>
               </div>
 
-              {/* Feature Box 1: Exam Room & AI Examiner (ACOUSTIC SYNTHESIZER KEPT EXACTLY INTTACT) */}
-              <div className="p-4 rounded-2xl bg-surface-container-low border border-green-200 space-y-3 shadow-[3px_3px_0px_#DEB9B5]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-pink-100 border border-pink-200 text-pink-700 flex items-center justify-center">
-                      <Bot className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-heading font-extrabold text-xs text-ink">
-                        Phòng Thi Vấn Đáp Trực Tuyến AI
-                      </h3>
-                      <p className="text-[11px] text-green-700">
-                        Giám thị Ảo: <strong className="text-pink-800">Dr. Sophia (AI Examiner)</strong>
-                      </p>
-                    </div>
+              {/* Guidelines for Exam Takers */}
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-pink-200/80 flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-pink-200 text-ink flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                    <Headphones className="w-4 h-4 text-pink-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-xs text-slate-800">Chuẩn bị thiết bị thu âm</p>
+                    <p className="text-[11px] text-pink-800/80 mt-0.5 leading-relaxed">
+                      Sử dụng tai nghe có microphone để đảm bảo chất lượng nhận diện giọng nói đàm thoại với hệ thống.
+                    </p>
                   </div>
                 </div>
 
-                {/* Acoustic Synthesizer Live Waveform */}
-                <div className="pt-2 border-t border-green-200 flex items-center justify-between text-[11px]">
-                  <span className="text-green-700 font-mono flex items-center gap-1.5">
-                    <Mic className="w-3.5 h-3.5 text-pink-700" />
-                    Bộ tổng hợp âm thanh:
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <VoiceWaveform isSpeaking={true} volume={0.65} barCount={5} height={16} barWidth="w-1" barGap="gap-0.5" colorClass="bg-pink-500" />
-                    <span className="text-[10px] font-mono font-bold text-pink-800 bg-pink-100 px-2 py-0.5 rounded">Ready</span>
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-pink-200/80 flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-pink-200 text-ink flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                    <Volume2 className="w-4 h-4 text-pink-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-xs text-slate-800">Không gian yên tĩnh</p>
+                    <p className="text-[11px] text-pink-800/80 mt-0.5 leading-relaxed">
+                      Thực hiện bài thi tại nơi yên tĩnh, hạn chế tiếng ồn xung quanh để kết quả ghi âm và chấm điểm chính xác.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-pink-200/80 flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-pink-200 text-ink flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                    <FileCheck2 className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-xs text-slate-800">Biên bản khảo thí điện tử</p>
+                    <p className="text-[11px] text-pink-800/80 mt-0.5 leading-relaxed">
+                      Mọi lượt hỏi đáp, câu hỏi đào sâu và tiêu chí Rubric được ghi nhận tự động vào hồ sơ điểm học phần.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Feature Box 2: JWT Bearer & BE Rate Limit Security (REAL BE CAPABILITY) */}
-              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-green-200 flex items-center gap-3 shadow-[2px_2px_0px_#DEB9B5]">
-                <div className="w-8 h-8 rounded-xl bg-green-100 border border-green-200 text-green-700 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
+              {/* Support Info Box */}
+              <div className="p-4 rounded-xl bg-pink-50/60 border border-pink-200 text-xs space-y-1.5">
+                <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-[11px]">
+                  <HelpCircle className="w-3.5 h-3.5 text-pink-800/80" />
+                  <span>Bộ Phận Hỗ Trợ Kỹ Thuật Khảo Thí</span>
                 </div>
-                <div className="flex-1">
-                  <span className="font-bold text-xs text-ink">Bảo Mật Phiên Đăng Nhập  </span>
-                </div>
-              </div>
-
-              {/* Feature Box 3: Course-Scoped RBAC & Clean Architecture (REAL BE CAPABILITY) */}
-              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-green-200 flex items-center gap-3 shadow-[2px_2px_0px_#DEB9B5]">
-                <div className="w-8 h-8 rounded-xl bg-pink-100 border border-pink-200 text-pink-700 flex items-center justify-center shrink-0">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                  <span className="font-bold text-xs text-ink">Phân Quyền Linh Hoạt </span>
-                </div>
-              </div>
-
-              {/* Feature Box 4: PostgreSQL PGVector & V11 Seed Rules (REAL BE CAPABILITY) */}
-              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-green-200 flex items-center gap-3 shadow-[2px_2px_0px_#DEB9B5]">
-                <div className="w-8 h-8 rounded-xl bg-sand/30 border border-sand text-ink flex items-center justify-center shrink-0">
-                  <Database className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                  <span className="font-bold text-xs text-ink">Cơ Sở Dữ Liệu AI  </span>
+                <p className="text-[11px] text-pink-800/80 leading-relaxed">
+                  Nếu gặp sự cố về tài khoản hoặc kết nối âm thanh phòng thi, vui lòng liên hệ Trạm Khảo Thí:
+                </p>
+                <div className="text-[11px] font-mono text-ink bg-white p-2 rounded-lg border border-pink-200">
+                  Phòng Khảo Thí &amp; Đảm bảo chất lượng FPTU<br />
+                  Hotline: (028) 7300 5588 • Email: khaothi_hcm@fpt.edu.vn
                 </div>
               </div>
 
@@ -328,205 +424,9 @@ export function LoginPage({ onNavigate, showToast }) {
         </div>
       </main>
 
-      {/* CREDENTIALS LOGIN MODAL */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/65 backdrop-blur-[2px] animate-in fade-in duration-150"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="bg-paper rounded-3xl max-w-md w-full p-6 shadow-modal border border-green-200 space-y-5 animate-modal-entry text-ink">
-
-            <div className="flex items-center justify-between pb-3 border-b border-green-200">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center border border-pink-200">
-                  <Key className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-extrabold text-sm text-pink-800">Xác Thực Mã Định Danh AIVES</h3>
-                  <p className="text-[11px] text-green-700">Đăng nhập tài khoản hệ thống</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="text-green-800 hover:text-pink-700 hover:bg-pink-100 rounded-lg p-1 text-xl font-bold transition leading-none cursor-pointer"
-                aria-label="Đóng"
-              >
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitLogin} className="space-y-4 text-xs" autoComplete="off">
-              {/* Role Selection Tabs inside Modal */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-green-900">
-                  <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-pink-700" />
-                    <span>Vai trò đăng nhập:</span>
-                  </span>
-                  <span className="text-pink-800 bg-pink-100 px-2 py-0.5 rounded-full font-semibold">{PORTAL_ROLES[selectedRole]?.label}</span>
-                </div>
-                <div className="flex items-center gap-1.5 p-1 bg-surface-container border border-green-200 rounded-xl text-xs shadow-[2px_2px_0px_#DEB9B5]">
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('stu')}
-                    className={`flex-1 py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer ${
-                      selectedRole === 'stu'
-                        ? 'bg-green-500 text-paper font-semibold shadow-[2px_2px_0px_#3A422E]'
-                        : 'text-on-surface-variant hover:text-ink hover:bg-green-100'
-                    }`}
-                  >
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    <span>Sinh Viên</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('lec')}
-                    className={`flex-1 py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer ${
-                      selectedRole === 'lec'
-                        ? 'bg-green-500 text-paper font-semibold shadow-[2px_2px_0px_#3A422E]'
-                        : 'text-on-surface-variant hover:text-ink hover:bg-green-100'
-                    }`}
-                  >
-                    <School className="w-3.5 h-3.5" />
-                    <span>Giảng Viên</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('adm')}
-                    className={`flex-1 py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer ${
-                      selectedRole === 'adm'
-                        ? 'bg-green-500 text-paper font-semibold shadow-[2px_2px_0px_#3A422E]'
-                        : 'text-on-surface-variant hover:text-ink hover:bg-green-100'
-                    }`}
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Ban Khảo Thí</span>
-                  </button>
-                </div>
-              </div>
-
-              {errorMsg && (
-                <div className="p-3 bg-pink-100 border border-pink-300 rounded-xl text-pink-900 text-[11px] font-medium flex items-center gap-2 animate-in fade-in">
-                  <ShieldAlert className="w-4 h-4 shrink-0 text-pink-700" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="font-bold text-ink block mb-1">
-                  <span>Email Tài Khoản Trường</span>
-                  <span className="text-pink-700 ml-1">(*)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    ref={emailInputRef}
-                    type="email"
-                    required
-                    autoComplete="off"
-                    value={email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder={
-                      selectedRole === 'stu'
-                        ? 'student@fpt.edu.vn'
-                        : selectedRole === 'lec'
-                        ? 'vancee@fpt.edu.vn'
-                        : 'admin@aives.edu.vn'
-                    }
-                    className="w-full bg-white border border-green-300 focus:border-green-600 rounded-xl p-3 pl-9 text-xs text-ink placeholder:text-outline focus:ring-2 focus:ring-green-600 shadow-[2px_2px_0px_#DEB9B5] focus:outline-none transition font-sans"
-                  />
-                  <Mail className="w-4 h-4 text-green-700 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-ink block mb-1">
-                  <span>Mật Khẩu</span>
-                  <span className="text-pink-700 ml-1">(*)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
-                    className="w-full bg-white border border-green-300 focus:border-green-600 rounded-xl p-3 pl-9 pr-10 text-xs text-ink placeholder:text-outline focus:ring-2 focus:ring-green-600 shadow-[2px_2px_0px_#DEB9B5] focus:outline-none transition font-sans"
-                  />
-                  <Key className="w-4 h-4 text-green-700 absolute left-3 top-3.5" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-on-surface-variant hover:text-ink focus:outline-none"
-                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {showForgotNotice ? (
-                <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl space-y-2 text-xs text-green-900 shadow-xs animate-in fade-in">
-                  <div className="flex items-center justify-between text-pink-800 font-bold">
-                    <div className="flex items-center gap-1.5">
-                      <Shield className="w-4 h-4 text-pink-700" />
-                      <span>Hỗ Trợ Khôi Phục Mật Khẩu</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotNotice(false)}
-                      className="text-green-800 hover:text-pink-700 text-sm leading-none"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-green-900">
-                    Theo quy chuẩn bảo mật khảo thí AIVES, người dùng quên mật khẩu vui lòng liên hệ trực tiếp <strong>Trạm Khảo Thí FPTU</strong> hoặc Quản trị viên để được cấp lại mật khẩu tạm thời.
-                  </p>
-                  <div className="text-[10px] text-pink-900 font-mono bg-white border border-green-200 p-2 rounded-lg">
-                    📧 Email: <span className="text-ink font-semibold">khaothi_hcm@fpt.edu.vn</span> • Hotline: 028.7300.5588
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-end text-[11px] pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotNotice(true)}
-                    className="text-pink-700 hover:text-pink-900 underline font-medium cursor-pointer"
-                  >
-                    Quên mật khẩu?
-                  </button>
-                </div>
-              )}
-
-              <div className="pt-3 border-t border-green-200 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-green-300 text-xs font-semibold text-green-800 bg-white hover:bg-green-100 transition shadow-xs cursor-pointer"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-6 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-400 active:bg-pink-600 text-ink text-xs font-bold shadow-[2px_2px_0px_#DEB9B5] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-2 disabled:opacity-50 transition cursor-pointer"
-                >
-                  {isLoading && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
-                  <span>Đăng nhập</span>
-                </button>
-              </div>
-            </form>
-
-          </div>
-        </div>
-      )}
-
       {/* GLOBAL FOOTER */}
-      <footer className="bg-paper border-t border-green-200 text-green-800 text-xs py-4 px-6 text-center relative z-10">
-        © 2026 AIVES Assessment Network • FPT University SWD392
+      <footer className="bg-white border-t border-pink-200 text-pink-600/70 text-xs py-4 px-6 text-center font-normal">
+        © 2026 Hệ thống Khảo thí Vấn đáp Trực tuyến AIVES • Đại học FPT
       </footer>
 
     </div>
