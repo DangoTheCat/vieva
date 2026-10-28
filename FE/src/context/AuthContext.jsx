@@ -91,6 +91,8 @@ export function AuthProvider({ children }) {
       // Strict role enforcement: If the user selected a specific portal/role,
       // require that the account's actual role matches that selection.
       if (roleOverride && actualRole && actualRole !== roleOverride) {
+        // authApi.login already stored the token; drop it so a reload doesn't sign the user in
+        authApi.logout();
         const mismatchErr = new Error('ROLE_MISMATCH');
         mismatchErr.code = 'ROLE_MISMATCH';
         mismatchErr.actualRole = actualRole;

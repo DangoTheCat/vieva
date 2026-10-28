@@ -116,6 +116,28 @@ class ExamServiceImplTest {
     }
 
     @Test
+    @DisplayName("updateExamStatus: refuses to publish an exam that contains an archived question")
+    void updateExamStatus_PublishWithArchivedQuestion_Throws() {
+        Exam exam = Exam.builder()
+                .id(examId)
+                .subjectId(subjectId)
+                .creatorId(actorId)
+                .title("Midterm")
+                .status(ExamStatus.DRAFT)
+                .build();
+        when(examRepository.findByIdForUpdate(examId)).thenReturn(Optional.of(exam));
+        UUID questionId = UUID.randomUUID();
+        when(examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId))
+                .thenReturn(List.of(ExamQuestion.create(examId, questionId, UUID.randomUUID(), 0)));
+        when(questionRepository.findById(questionId)).thenReturn(Optional.of(Question.builder()
+                .questionId(questionId).subjectId(subjectId).status(QuestionLifecycleStatus.ARCHIVED).build()));
+
+        assertThatThrownBy(() -> examService.updateExamStatus(examId, new UpdateExamStatusCommand(ExamStatus.IN_PROGRESS), actorId))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessageContaining("archived");
+    }
+
+    @Test
     @DisplayName("updateExamStatus: successfully publishes exam when questions are configured")
     void updateExamStatus_PublishWithQuestions_Success() {
         Exam exam = Exam.builder()
@@ -128,8 +150,11 @@ class ExamServiceImplTest {
         when(examRepository.findByIdForUpdate(examId)).thenReturn(Optional.of(exam));
         when(examRepository.save(any(Exam.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ExamQuestion eq = ExamQuestion.create(examId, UUID.randomUUID(), UUID.randomUUID(), 0);
+        UUID questionId = UUID.randomUUID();
+        ExamQuestion eq = ExamQuestion.create(examId, questionId, UUID.randomUUID(), 0);
         when(examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId)).thenReturn(List.of(eq));
+        when(questionRepository.findById(questionId)).thenReturn(Optional.of(Question.builder()
+                .questionId(questionId).subjectId(subjectId).status(QuestionLifecycleStatus.ACTIVE).build()));
 
         UpdateExamStatusCommand cmd = new UpdateExamStatusCommand(ExamStatus.IN_PROGRESS);
         ExamView view = examService.updateExamStatus(examId, cmd, actorId);

@@ -21,7 +21,8 @@ public interface RubricJpaRepository extends JpaRepository<RubricJpaEntity, UUID
     @EntityGraph(attributePaths = {"questionVersion"})
     List<RubricJpaEntity> findByQuestionVersion_QuestionVersionIdIn(Collection<UUID> questionVersionIds);
 
-    @Modifying
+    // Bulk JPQL delete bypasses the persistence context: flush first, then evict stale managed rows
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM RubricJpaEntity r WHERE r.questionVersion.questionVersionId = :versionId")
     void deleteByVersionId(@Param("versionId") UUID versionId);
 }

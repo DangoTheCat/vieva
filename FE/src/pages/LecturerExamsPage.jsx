@@ -139,6 +139,8 @@ export function LecturerExamsPage({ showToast }) {
       const approved = page?.content || (Array.isArray(page) ? page : []);
       const contentByVersion = new Map(approved.map(v => [v.versionId, v.content]));
       const selected = (detail?.questions || [])
+        // Drop picks that are no longer selectable (question archived since), or they can't be removed
+        .filter(q => contentByVersion.has(q.questionVersionId))
         .slice()
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map(q => ({
@@ -312,7 +314,7 @@ export function LecturerExamsPage({ showToast }) {
             {!form.examId && (
               <label className="block text-xs font-bold space-y-1">
                 <span>Thời lượng (phút)</span>
-                <input type="number" min="1" required value={form.minutes} onChange={e => setForm({ ...form, minutes: e.target.value })} className={inputClass} />
+                <input type="number" min="1" max="240" required value={form.minutes} onChange={e => setForm({ ...form, minutes: e.target.value })} className={inputClass} />
               </label>
             )}
             <div className="flex justify-end gap-2 pt-2">

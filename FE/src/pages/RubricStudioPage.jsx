@@ -525,6 +525,9 @@ export function RubricStudioPage({ showToast }) {
                       <div className="inline-flex items-center gap-1.5">
                         <button 
                           type="button"
+                          // Approved versions are immutable on the BE: edit via a new draft instead
+                          disabled={!isVersionEditable}
+                          title={isVersionEditable ? undefined : "Câu hỏi đã duyệt — tạo bản nháp mới ở Ngân hàng câu hỏi để chỉnh rubric"}
                           onClick={() => {
                             setEditingCriterion(item);
                             setCriteriaName(item.name || '');
@@ -532,14 +535,17 @@ export function RubricStudioPage({ showToast }) {
                             setCriteriaMaxScore(String(item.maxScore || '2.5'));
                             setIsRubricModalOpen(true);
                           }} 
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-pink-200 shadow-2xs active:scale-[0.98] cursor-pointer transition-all"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-pink-200 shadow-2xs active:scale-[0.98] cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Chỉnh sửa
                         </button>
                         <button 
                           type="button"
+                          // Approved versions are immutable on the BE: edit via a new draft instead
+                          disabled={!isVersionEditable}
+                          title={isVersionEditable ? undefined : "Câu hỏi đã duyệt — tạo bản nháp mới ở Ngân hàng câu hỏi để chỉnh rubric"}
                           onClick={() => handleDeleteCriterion(item.criterionId || item.id)} 
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-pink-50 hover:bg-pink-100 rounded-lg border-2 border-pink-400 shadow-sm active:scale-[0.98] cursor-pointer transition-all"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-pink-50 hover:bg-pink-100 rounded-lg border-2 border-pink-400 shadow-sm active:scale-[0.98] cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Xóa
                         </button>

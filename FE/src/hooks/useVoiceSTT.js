@@ -27,6 +27,49 @@ export function useVoiceSTT({
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const recordedChunksRef = useRef([]);
+  // Browser Web Speech fallback, used only when the STT server can't be reached
+  const speechRecRef = useRef(null);
+
+  const startBrowserRecognition = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return false;
+    const rec = new SpeechRecognition();
+    rec.lang = 'vi-VN';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          setTranscript((prev) => {
+            const updated = `${prev} ${text}`.trim();
+            if (onFinalTranscript) onFinalTranscript(updated);
+            return updated;
+          });
+        } else {
+          interim += text;
+        }
+      }
+      setPartialTranscript(interim);
+      if (interim && onPartialTranscript) onPartialTranscript(interim);
+    };
+    rec.onerror = (e) => console.warn('[useVoiceSTT] Browser speech recognition error:', e.error);
+    // Chrome ends a continuous session after a pause; keep listening while recording
+    rec.onend = () => {
+      if (speechRecRef.current === rec) {
+        try { rec.start(); } catch (_) {}
+      }
+    };
+    try {
+      rec.start();
+      speechRecRef.current = rec;
+      return true;
+    } catch (e) {
+      console.warn('[useVoiceSTT] Cannot start browser speech recognition:', e);
+      return false;
+    }
+  }, [onFinalTranscript, onPartialTranscript]);
 
   // Cleanly close WebSocket
   const closeSocket = useCallback(() => {
@@ -129,7 +172,8 @@ export function useVoiceSTT({
       try {
         wsInstance = await connectSocket();
       } catch (wsErr) {
-        console.warn('[useVoiceSTT] STT server not reachable, fallback to offline audio recording:', wsErr);
+        console.warn('[useVoiceSTT] STT server not reachable, falling back to browser speech recognition:', wsErr);
+        startBrowserRecognition();
       }
 
       // Pick supported mime type
@@ -171,7 +215,7 @@ export function useVoiceSTT({
       if (onError) onError(err);
       throw err;
     }
-  }, [connectSocket, resetTranscript, onError]);
+  }, [connectSocket, resetTranscript, onError, startBrowserRecognition]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
@@ -190,6 +234,12 @@ export function useVoiceSTT({
         console.warn('[useVoiceSTT] Error stopping tracks:', e);
       }
       streamRef.current = null;
+    }
+
+    if (speechRecRef.current) {
+      const rec = speechRecRef.current;
+      speechRecRef.current = null; // clear first so onend doesn't restart it
+      try { rec.stop(); } catch (_) {}
     }
 
     // Tell STT server stream ended

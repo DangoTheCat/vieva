@@ -10,6 +10,7 @@ import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
 import com.example.vieva.application.usecases.document.DocumentServiceImpl;
 import com.example.vieva.application.usecases.exam.AttemptGradingServiceImpl;
 import com.example.vieva.application.usecases.exam.ExamServiceImpl;
+import com.example.vieva.application.usecases.exam.ExpireExamAttemptsUseCaseImpl;
 import com.example.vieva.application.usecases.exam.GetExamAttemptUseCaseImpl;
 import com.example.vieva.application.usecases.exam.ManageExamConnectionUseCaseImpl;
 import com.example.vieva.application.usecases.exam.StartExamSessionUseCaseImpl;
@@ -119,6 +120,14 @@ public class ApplicationUseCaseConfiguration {
                 attemptGradingService,
                 examFinalizationPort
         );
+    }
+
+    @Bean
+    public ExpireExamAttemptsUseCaseImpl expireExamAttemptsUseCase(
+            ExamAttemptRepository examAttemptRepository,
+            ExamFinalizationPort examFinalizationPort
+    ) {
+        return new ExpireExamAttemptsUseCaseImpl(examAttemptRepository, examFinalizationPort);
     }
 
     @Bean

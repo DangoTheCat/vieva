@@ -20,7 +20,8 @@ public interface RubricCriterionJpaRepository extends JpaRepository<RubricCriter
     @EntityGraph(attributePaths = {"rubric"})
     List<RubricCriterionJpaEntity> findByRubric_RubricIdInOrderByOrderIndexAsc(Collection<UUID> rubricIds);
 
-    @Modifying
+    // Bulk JPQL delete bypasses the persistence context: flush first, then evict stale managed rows
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM RubricCriterionJpaEntity c WHERE c.rubric.rubricId = :rubricId")
     void deleteByRubricId(@Param("rubricId") UUID rubricId);
 }

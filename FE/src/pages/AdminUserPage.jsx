@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { userApi } from '../api/userApi';
+import { adminUserApi } from '../api/adminUserApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { UserTable } from '../components/users/UserTable';
 import { UserFilterBar } from '../components/users/UserFilterBar';
@@ -20,6 +20,21 @@ import {
   WifiOff,
   RotateCcw
 } from 'lucide-react';
+
+// 12 chars from an unambiguous alphabet, with at least one letter and one digit
+function generateTemporaryPassword() {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const alphabet = letters + digits;
+  const pick = (set) => set[crypto.getRandomValues(new Uint32Array(1))[0] % set.length];
+  const chars = [pick(letters), pick(digits)];
+  while (chars.length < 12) chars.push(pick(alphabet));
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
 
 export function AdminUserPage({ onOpenMatrix, showToast }) {
   const [users, setUsers] = useState([]);
@@ -48,6 +63,8 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
   const [resettingUser, setResettingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  // Temporary password just issued; shown once so the admin can hand it to the user
+  const [issuedPassword, setIssuedPassword] = useState(null);
 
   // Resilience & Auto-reconnect
   const [fetchError, setFetchError] = useState(null);
@@ -68,7 +85,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         sortDirection
       };
 
-      const data = await userApi.getUsers(params);
+      const data = await adminUserApi.getUsers(params);
       
       if (Array.isArray(data)) {
         setUsers(data);
@@ -161,12 +178,14 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     if (!resettingUser) return;
     setIsResetting(true);
     try {
-      await userApi.resetPassword(resettingUser.userId);
+      const tempPassword = generateTemporaryPassword();
+      await adminUserApi.resetPassword(resettingUser.userId, tempPassword);
       showToast({
         type: 'success',
         title: 'Đặt Lại Mật Khẩu Thành Công',
-        message: `Mật khẩu tạm thời đã được gửi tới email ${resettingUser.email}`
+        message: `Người dùng ${resettingUser.email} phải đổi mật khẩu ở lần đăng nhập tới.`
       });
+      setIssuedPassword({ email: resettingUser.email, password: tempPassword });
       setResettingUser(null);
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
@@ -179,7 +198,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     if (!deletingUser) return;
     setIsDeleting(true);
     try {
-      await userApi.deleteUser(deletingUser.userId);
+      await adminUserApi.deleteUser(deletingUser.userId);
       showToast({
         type: 'success',
         title: 'Khóa Tài Khoản Thành Công',
@@ -426,13 +445,28 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
       <ConfirmModal
         isOpen={Boolean(resettingUser)}
         title="Đặt Lại Mật Khẩu"
-        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resettingUser?.fullName}" (${resettingUser?.email})? Mật khẩu tạm thời sẽ được tạo và gửi tới email của người dùng.`}
+        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resettingUser?.fullName}" (${resettingUser?.email})? Một mật khẩu tạm thời ngẫu nhiên sẽ được tạo và hiển thị một lần để bạn chuyển cho người dùng.`}
         confirmText="Đặt Lại Mật Khẩu"
         cancelText="Hủy Bỏ"
         isDanger={false}
         isLoading={isResetting}
         onConfirm={handleConfirmResetPassword}
         onCancel={() => setResettingUser(null)}
+      />
+
+      {/* ONE-TIME DISPLAY OF THE ISSUED TEMPORARY PASSWORD */}
+      <ConfirmModal
+        isOpen={Boolean(issuedPassword)}
+        title="Mật Khẩu Tạm Thời"
+        message={`Mật khẩu tạm thời của ${issuedPassword?.email}: ${issuedPassword?.password} — chỉ hiển thị một lần. Người dùng phải đổi mật khẩu khi đăng nhập.`}
+        confirmText="Sao Chép & Đóng"
+        cancelText="Đóng"
+        isDanger={false}
+        onConfirm={() => {
+          navigator.clipboard?.writeText(issuedPassword.password).catch(() => {});
+          setIssuedPassword(null);
+        }}
+        onCancel={() => setIssuedPassword(null)}
       />
 
       {/* BATCH USER IMPORT MODAL (CSV / EXCEL) */}

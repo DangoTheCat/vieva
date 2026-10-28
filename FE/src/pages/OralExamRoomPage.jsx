@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { userApi } from '../api/userApi';
 import { oralExamApi } from '../api/oralExamApi';
 import { getErrorMessage } from '../utils/errorCodes';
-import { getActiveExam, gradeLabel } from '../utils/activeExam';
+import { getActiveExam, gradeLabel, isProbeTurn } from '../utils/activeExam';
 import { useVoiceSTT } from '../hooks/useVoiceSTT';
 import { useZeroTTS } from '../hooks/useZeroTTS';
 import { 
@@ -47,19 +47,25 @@ const EMPTY_QUESTION = { content: '', title: 'Đang tải câu hỏi...', badge:
  */
 const mapTurnsToQuestions = (turns, totalQuestions) => {
   if (!Array.isArray(turns) || turns.length === 0) return null;
-  return turns.map((t, idx) => ({
+  // Number main questions on their own; a follow-up belongs to the main question before it
+  let mainNumber = 0;
+  return turns.map((t, idx) => {
+    const probe = isProbeTurn(t.turnType);
+    if (!probe) mainNumber += 1;
+    return {
     id: t.questionId || idx + 1,
     turnId: t.turnId,
-    questionNumber: t.turnOrder || idx + 1,
+    questionNumber: Math.max(mainNumber, 1),
     totalQuestions: totalQuestions || turns.length,
     type: t.turnType || 'MAIN',
-    badge: t.turnType === 'PROBING' ? `Câu hỏi xoáy thích ứng (Lượt ${t.turnOrder || idx + 1})` : 'Câu hỏi chính',
-    title: `Câu ${t.turnOrder || idx + 1}: ${t.turnType === 'PROBING' ? 'Hỏi xoáy thích ứng (Adaptive Probing)' : 'Kiến thức cốt lõi'}`,
+    badge: probe ? `Câu hỏi xoáy thích ứng (Lượt ${t.turnOrder || idx + 1})` : 'Câu hỏi chính',
+    title: probe ? `Câu ${Math.max(mainNumber, 1)} — Hỏi thêm` : `Câu ${mainNumber}: Kiến thức cốt lõi`,
     content: t.questionText || '',
     ttsAudioUrl: t.ttsAudioUrl,
-    hint: t.turnType === 'PROBING' ? 'Phân tích sâu hơn các khía cạnh kỹ thuật đã nêu.' : '',
+    hint: isProbeTurn(t.turnType) ? 'Phân tích sâu hơn các khía cạnh kỹ thuật đã nêu.' : '',
     rubricCriteria: t.rubricEvaluations || 'Đánh giá năng lực chuyên môn và phản xạ kiến trúc.'
-  }));
+    };
+  });
 };
 
 /**
@@ -82,7 +88,7 @@ const mapRubricsFromTurns = (turns) => {
         } catch (e) {}
       }
       list.push({
-        name: `Lượt ${t.turnOrder || i + 1}: ${t.turnType === 'PROBING' ? 'Hỏi xoáy thích ứng' : 'Kiến thức cốt lõi'}`,
+        name: `Lượt ${t.turnOrder || i + 1}: ${isProbeTurn(t.turnType) ? 'Hỏi xoáy thích ứng' : 'Kiến thức cốt lõi'}`,
         score: t.score != null ? Number(t.score) : null,
         max: 10,
         comment: t.feedback || ''
@@ -122,6 +128,14 @@ export function OralExamRoomPage({
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(activeExam?.durationSeconds || 900);
   const [isSubmittingTurn, setIsSubmittingTurn] = useState(false);
+
+  // Opened directly (sidebar / URL) without entering an exam from the portal: nothing to run here
+  useEffect(() => {
+    if (!initialAttemptId) {
+      showToast?.({ type: 'info', title: 'Chưa Chọn Ca Thi', message: 'Vui lòng chọn ca thi tại Cổng Thi Vấn Đáp để vào phòng thi.' });
+      onNavigate?.('discover');
+    }
+  }, []);
 
   // Reconnection state (Grace period max 120s)
   const [reconnectGraceLeft, setReconnectGraceLeft] = useState(120);
@@ -685,18 +699,20 @@ export function OralExamRoomPage({
 
     // If backend generated adaptive probe question or dynamic next turn
     if (evalRes?.nextQuestionText && evalRes?.nextTurnId) {
-      const isProbing = evalRes.nextTurnType === 'PROBING';
+      const isProbing = isProbeTurn(evalRes.nextTurnType);
       const nextIndex = activeQuestionIndex + 1;
       setQuestions((prevQuestions) => {
         const updated = [...prevQuestions];
+        const mainsBefore = updated.slice(0, nextIndex).filter(q => !isProbeTurn(q.type)).length;
+        const mainNumber = isProbing ? Math.max(mainsBefore, 1) : mainsBefore + 1;
         const nextQData = {
           id: nextIndex + 1,
           turnId: evalRes.nextTurnId,
-          questionNumber: nextIndex + 1,
+          questionNumber: mainNumber,
           totalQuestions: Math.max(updated.length, nextIndex + 1),
           type: evalRes.nextTurnType || (isProbing ? 'PROBING' : 'MAIN'),
           badge: isProbing ? `Câu hỏi xoáy thích ứng (Lượt ${nextIndex + 1})` : 'Câu hỏi chính',
-          title: `Câu ${nextIndex + 1}: ${isProbing ? 'Hỏi xoáy thích ứng (Adaptive Probing)' : 'Kiến thức cốt lõi'}`,
+          title: isProbing ? `Câu ${mainNumber} — Hỏi thêm` : `Câu ${mainNumber}: Kiến thức cốt lõi`,
           content: evalRes.nextQuestionText,
           rubricCriteria: isProbing ? 'Làm rõ và đào sâu nội dung câu trả lời trước đó.' : 'Nắm vững kiến trúc và nguyên lý hệ thống.'
         };
@@ -1312,7 +1328,7 @@ export function OralExamRoomPage({
               Kết Quả Bài Thi Vấn Đáp Trực Tuyến
             </h1>
             <p className="text-xs sm:text-sm text-green-800">
-              Thí sinh: <strong>{studentName}</strong> • Mã SV: <strong>{studentCode}</strong> • Ca thi: <strong>#{attemptId}</strong>
+              Thí sinh: <strong>{studentName}</strong> • Mã SV: <strong>{studentCode}</strong> • Ca thi: <strong>{activeExam?.title || `#${attemptId}`}</strong>
             </p>
           </div>
 
@@ -1562,11 +1578,11 @@ export function OralExamRoomPage({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${
-                    currentQuestion.type === 'PROBING'
+                    isProbeTurn(currentQuestion.type)
                       ? 'bg-rose-50 text-rose-800 border-rose-200'
                       : 'bg-green-100 text-green-900 border-green-400'
                   }`}>
-                    {currentQuestion.badge || (currentQuestion.type === 'PROBING' ? 'Câu hỏi xoáy thích ứng' : 'Câu hỏi chính')}
+                    {currentQuestion.badge || (isProbeTurn(currentQuestion.type) ? 'Câu hỏi xoáy thích ứng' : 'Câu hỏi chính')}
                   </span>
                   <span className="text-xs font-mono font-bold text-green-700">
                     Mã lượt: #{currentQuestion.turnId || currentQuestion.id}

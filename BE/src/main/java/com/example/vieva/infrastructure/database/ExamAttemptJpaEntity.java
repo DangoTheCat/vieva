@@ -72,6 +72,9 @@ public class ExamAttemptJpaEntity implements Persistable<UUID> {
     @Column(name = "remaining_seconds")
     private Integer remainingSeconds;
 
+    @Column(name = "resumed_at")
+    private Instant resumedAt;
+
     @Column(name = "grace_deadline")
     private Instant graceDeadline;
 

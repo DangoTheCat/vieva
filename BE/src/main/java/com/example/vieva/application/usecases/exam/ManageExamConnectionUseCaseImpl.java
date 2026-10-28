@@ -14,6 +14,7 @@ import com.example.vieva.domain.entities.ExamTurn;
 import com.example.vieva.domain.exception.DomainException;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -134,7 +135,7 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
-                attempt.getRemainingSeconds(),
+                attempt.remainingSecondsAt(Instant.now()),
                 attempt.getGraceDeadline(),
                 turn != null ? turn.getId() : null,
                 turn != null ? turn.getQuestionText() : null,

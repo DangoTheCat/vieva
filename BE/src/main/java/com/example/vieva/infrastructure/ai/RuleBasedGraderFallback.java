@@ -31,12 +31,18 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
 
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^\\p{Alnum}\\s]");
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    private static final Pattern PUNCTUATION = Pattern.compile("[^\\p{L}\\p{N}\\s]");
 
     private static final Set<String> STOP_WORDS_VI = Set.of(
             "là", "và", "của", "các", "những", "cho", "với", "được", "trong", "đã",
             "về", "có", "không", "một", "này", "khi", "để", "như", "theo", "thì",
-            "tại", "từ", "hay", "hoặc", "nếu", "bởi", "vì", "ra", "lại", "đến"
+            "tại", "từ", "hay", "hoặc", "nếu", "bởi", "vì", "ra", "lại", "đến",
+            "hãy", "nào", "gì", "sao", "rõ", "chỉ", "giữa"
     );
+    // Keywords are compared without diacritics, so the stop words must be too
+    private static final Set<String> STOP_WORDS = STOP_WORDS_VI.stream()
+            .map(RuleBasedGraderFallback::normalize)
+            .collect(Collectors.toUnmodifiableSet());
 
     @Override
     public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric) {
@@ -162,18 +168,27 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
         }
 
         String detailedFeedback = String.format(
-                "Tổng kết bài thi vấn đáp (Hệ thống dự phòng): Điểm trung bình %.2f/10 qua %d lượt vấn đáp. Xếp loại: %s.",
-                avgDouble, evaluatedCount, grade.name()
+                "Tổng kết bài thi vấn đáp (Hệ thống dự phòng): Điểm trung bình %.2f/10 trên %d/%d lượt vấn đáp đã trả lời. Xếp loại: %s.",
+                avgDouble, evaluatedCount, turns.size(), gradeLabelVi(grade)
         );
 
         return new AttemptGradingResult(average, grade, detailedFeedback, ScoringMode.RULE_BASED_FALLBACK);
     }
 
     private String generateFollowUpQuestion(String originalQuestion, Set<String> expectedKeywords, Set<String> answerKeywords) {
-        List<String> missingKeywords = expectedKeywords.stream()
-                .filter(k -> !answerKeywords.contains(k))
-                .limit(3)
-                .toList();
+        // Show the question's own (accented) words, in reading order, that the answer did not cover
+        List<String> missingKeywords = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        String questionText = originalQuestion != null ? originalQuestion : "";
+        for (String word : WHITESPACE.split(PUNCTUATION.matcher(questionText).replaceAll(" ").trim())) {
+            String key = normalize(word);
+            if (word.length() >= 4 && expectedKeywords.contains(key) && !answerKeywords.contains(key) && seen.add(key)) {
+                missingKeywords.add(word);
+                if (missingKeywords.size() == 3) {
+                    break;
+                }
+            }
+        }
 
         if (!missingKeywords.isEmpty()) {
             return String.format("Bạn có thể làm rõ thêm mối liên hệ hoặc vai trò của khái niệm \"%s\" trong câu hỏi trên không?",
@@ -182,20 +197,35 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
         return "Bạn hãy giải thích chi tiết hơn và lấy ví dụ minh họa cụ thể cho câu trả lời vừa rồi.";
     }
 
+    // Same wording as the FE grade labels (utils/activeExam.js)
+    private static String gradeLabelVi(GradeLevel grade) {
+        return switch (grade) {
+            case EXCELLENT -> "Xuất sắc";
+            case GOOD -> "Khá";
+            case AVERAGE -> "Trung bình";
+            case POOR -> "Chưa đạt";
+        };
+    }
+
+    private static String normalize(String text) {
+        return Normalizer.normalize(text, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase(Locale.ROOT);
+    }
+
     private Set<String> extractKeywords(String text) {
         if (text == null || text.isBlank()) {
             return Collections.emptySet();
         }
-        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT);
-        String cleaned = NON_ALPHANUMERIC.matcher(normalized).replaceAll(" ");
+        String cleaned = NON_ALPHANUMERIC.matcher(normalize(text)).replaceAll(" ");
         String[] tokens = WHITESPACE.split(cleaned.trim());
 
         return Arrays.stream(tokens)
                 .map(String::trim)
                 .filter(s -> s.length() >= 2)
-                .filter(s -> !STOP_WORDS_VI.contains(s))
+                .filter(s -> !STOP_WORDS.contains(s))
                 .collect(Collectors.toSet());
     }
 

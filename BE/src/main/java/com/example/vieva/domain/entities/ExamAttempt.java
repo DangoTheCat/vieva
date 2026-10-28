@@ -5,6 +5,7 @@ import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -28,6 +29,8 @@ public class ExamAttempt {
     private Instant pausedAt;
     private Integer remainingSeconds;
     private Instant graceDeadline;
+    // Start of the current IN_PROGRESS segment; remainingSeconds is the budget left at that moment
+    private Instant resumedAt;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -88,6 +91,7 @@ public class ExamAttempt {
         Instant now = Instant.now();
         this.status = AttemptStatus.IN_PROGRESS;
         this.startedAt = now;
+        this.resumedAt = now;
         this.updatedAt = now;
     }
 
@@ -131,12 +135,15 @@ public class ExamAttempt {
                     "Cannot disconnect: exam attempt is not in progress (current status: " + this.status + ")");
         }
         Instant now = Instant.now();
+        // Server clock is authoritative (read while still IN_PROGRESS); a client value may only shorten it
+        int serverRemaining = remainingSecondsAt(now);
         this.status = AttemptStatus.RECONNECTING;
         this.pausedAt = now;
         this.graceDeadline = now.plusSeconds(120);
-        if (currentRemainingSeconds != null) {
-            this.remainingSeconds = Math.max(0, currentRemainingSeconds);
-        }
+        this.remainingSeconds = currentRemainingSeconds != null
+                ? Math.max(0, Math.min(currentRemainingSeconds, serverRemaining))
+                : serverRemaining;
+        this.resumedAt = null;
         this.updatedAt = now;
     }
 
@@ -158,6 +165,7 @@ public class ExamAttempt {
         this.status = AttemptStatus.IN_PROGRESS;
         this.pausedAt = null;
         this.graceDeadline = null;
+        this.resumedAt = now;
         this.updatedAt = now;
     }
 
@@ -177,13 +185,42 @@ public class ExamAttempt {
             return;
         }
         ensureInProgress();
+        this.remainingSeconds = remainingSecondsAt(Instant.now());
+        this.resumedAt = null;
         this.status = AttemptStatus.FINALIZING;
         this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Seconds left at {@code now}: while IN_PROGRESS the clock runs from resumedAt
+     * (startedAt for rows created before resumedAt existed); otherwise the stored budget.
+     */
+    public int remainingSecondsAt(Instant now) {
+        int budget = this.remainingSeconds != null ? this.remainingSeconds : 0;
+        if (this.status != AttemptStatus.IN_PROGRESS) {
+            return Math.max(0, budget);
+        }
+        Instant segmentStart = this.resumedAt != null ? this.resumedAt : this.startedAt;
+        if (segmentStart == null) {
+            return Math.max(0, budget);
+        }
+        long elapsed = Math.max(0, Duration.between(segmentStart, now).getSeconds());
+        return (int) Math.max(0, budget - elapsed);
+    }
+
+    public boolean isTimeUp(Instant now) {
+        return this.status == AttemptStatus.IN_PROGRESS && remainingSecondsAt(now) <= 0;
+    }
+
+    public boolean isGraceExpired(Instant now) {
+        return this.status == AttemptStatus.RECONNECTING
+                && this.graceDeadline != null && now.isAfter(this.graceDeadline);
     }
 
     public void timeoutSession() {
         ensureInProgress();
         this.remainingSeconds = 0;
+        this.resumedAt = null;
         this.status = AttemptStatus.FINALIZING;
         this.updatedAt = Instant.now();
     }
@@ -225,8 +262,11 @@ public class ExamAttempt {
 
     public void updateRemainingSeconds(int remainingSeconds) {
         ensureInProgress();
-        this.remainingSeconds = Math.max(0, remainingSeconds);
-        this.updatedAt = Instant.now();
+        Instant now = Instant.now();
+        // Re-anchor the running clock; never extend beyond what the server clock allows
+        this.remainingSeconds = Math.max(0, Math.min(remainingSeconds, remainingSecondsAt(now)));
+        this.resumedAt = now;
+        this.updatedAt = now;
     }
 
     @Deprecated

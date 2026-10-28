@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { oralExamApi } from '../api/oralExamApi';
 import { getErrorMessage } from '../utils/errorCodes';
-import { gradeLabel } from '../utils/activeExam';
+import { gradeLabel, isProbeTurn } from '../utils/activeExam';
 import { Award, ChevronRight, Loader2, RotateCcw, MessageSquareText, X } from 'lucide-react';
 
 const formatDate = (iso) => (iso ? new Date(iso).toLocaleString('vi-VN') : '—');
@@ -160,7 +160,7 @@ export function StudentResultsPage({ showToast }) {
                       <li key={t.turnId} className="bg-white border border-pink-200 rounded-xl p-3 space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-bold">
-                            Lượt {t.turnOrder || i + 1} • {t.turnType === 'PROBING' ? 'Câu hỏi xoáy' : 'Câu hỏi chính'}
+                            Lượt {t.turnOrder || i + 1} • {isProbeTurn(t.turnType) ? 'Câu hỏi xoáy' : 'Câu hỏi chính'}
                           </span>
                           <span className="font-mono font-black bg-slate-100 border border-pink-200 text-slate-800 rounded-lg px-2 py-0.5">
                             {t.score != null ? Number(t.score) : '—'} / 10

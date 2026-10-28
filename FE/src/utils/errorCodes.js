@@ -63,7 +63,7 @@ export const ERROR_MESSAGES = {
   '1055': 'Chỉ các bản nháp sinh từ AI RAG có lưu trữ ngữ cảnh mới có thể tạo lại (Regenerate).',
 
   // Rubric & Import (1034, 1056 - 1058)
-  '1034': 'Tổng điểm tối đa của các tiêu chí con phải bằng chính xác tổng điểm của Rubric.',
+  '1034': 'Tổng điểm các tiêu chí Rubric phải bằng đúng 10 điểm.',
   '1056': 'Không tìm thấy tiêu chí chấm điểm (Rubric Criterion) này.',
   '1057': 'Tệp nhập dữ liệu (Excel/CSV) không đúng cấu trúc mẫu quy định.',
   '1058': 'Số lượng câu hỏi trong tệp nhập vượt quá giới hạn tối đa cho phép.',
@@ -83,6 +83,34 @@ export const ERROR_MESSAGES = {
 // Codes whose BE message carries specifics (field names, Bloom sums) that the static text would hide
 const PREFER_BACKEND_MESSAGE = new Set(['1006', '1052']);
 
+// Field violations carry the BE error *name*; map it to the numeric code used by ERROR_MESSAGES
+const FIELD_ERROR_CODES = {
+  INVALID_CITATION_QUOTE: '1033',
+  RUBRIC_SCORE_MISMATCH: '1034',
+  SOURCE_REQUIRED: '1038',
+  BLOOM_NOT_CONFIRMED: '1039',
+  RUBRIC_REQUIRED: '1040',
+  CONTENT_REQUIRED: '1041',
+  QUESTION_ARCHIVED: '1042',
+  INVALID_BLOOM_DISTRIBUTION: '1052'
+};
+
+const FIELD_LABELS = {
+  content: 'Nội dung câu hỏi',
+  expectedAnswer: 'Đáp án mong đợi'
+};
+
+function translateFieldError(fe) {
+  const code = FIELD_ERROR_CODES[fe.error];
+  if (code === '1041' && FIELD_LABELS[fe.field]) {
+    return `${FIELD_LABELS[fe.field]} không được để trống.`;
+  }
+  if (code && ERROR_MESSAGES[code]) {
+    return ERROR_MESSAGES[code];
+  }
+  return fe.message;
+}
+
 export function getErrorMessage(error) {
   if (!error) return 'Đã xảy ra lỗi không xác định.';
   if (typeof error === 'string') return error;
@@ -91,7 +119,7 @@ export function getErrorMessage(error) {
 
   const fieldErrors = error.data?.errors;
   if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-    return fieldErrors.map(fe => `${fe.field}: ${fe.message}`).join('; ');
+    return [...new Set(fieldErrors.map(translateFieldError))].join(' ');
   }
 
   if (PREFER_BACKEND_MESSAGE.has(code) && error.data?.message) {

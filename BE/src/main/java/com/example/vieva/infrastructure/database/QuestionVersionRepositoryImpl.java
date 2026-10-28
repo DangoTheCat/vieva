@@ -7,6 +7,7 @@ import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.output.QuestionVersionRepository;
 import com.example.vieva.domain.entities.BloomLevel;
 import com.example.vieva.domain.entities.QuestionGenerationMode;
+import com.example.vieva.domain.entities.QuestionLifecycleStatus;
 import com.example.vieva.domain.entities.QuestionStatus;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.example.vieva.domain.entities.QuestionVersion;
@@ -132,6 +133,10 @@ public class QuestionVersionRepositoryImpl implements QuestionVersionRepository 
             }
             if (criteria.status() != null && !criteria.status().isBlank()) {
                 predicates.add(cb.equal(root.get("approvalStatus"), QuestionStatus.valueOf(criteria.status())));
+                // An archived question keeps its APPROVED version for history but is no longer usable
+                if (QuestionStatus.valueOf(criteria.status()) == QuestionStatus.APPROVED) {
+                    predicates.add(cb.equal(root.get("question").get("status"), QuestionLifecycleStatus.ACTIVE));
+                }
             }
             if (criteria.origin() != null && !criteria.origin().isBlank()) {
                 predicates.add(cb.equal(root.get("generationMode"), QuestionGenerationMode.valueOf(criteria.origin())));

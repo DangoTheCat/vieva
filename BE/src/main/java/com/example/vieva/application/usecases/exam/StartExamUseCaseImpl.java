@@ -9,6 +9,7 @@ import com.example.vieva.application.ports.output.*;
 import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.*;
 
+import java.time.Instant;
 import java.util.*;
 
 public class StartExamUseCaseImpl implements StartExamUseCase {
@@ -192,7 +193,7 @@ public class StartExamUseCaseImpl implements StartExamUseCase {
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
                 savedAttempt.getPausedAt(),
-                savedAttempt.getRemainingSeconds(),
+                savedAttempt.remainingSecondsAt(Instant.now()),
                 savedAttempt.getGraceDeadline(),
                 savedTurn.getId(),
                 savedTurn.getQuestionText(),

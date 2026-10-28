@@ -14,6 +14,7 @@ import com.example.vieva.domain.entities.ExamScore;
 import com.example.vieva.domain.entities.ExamTurn;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,7 +72,7 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
-                attempt.getRemainingSeconds(),
+                attempt.remainingSecondsAt(Instant.now()),
                 attempt.getGraceDeadline(),
                 score != null ? score.getDetailedFeedback() : null,
                 score != null && score.getScoringMode() != null ? score.getScoringMode().name() : null,

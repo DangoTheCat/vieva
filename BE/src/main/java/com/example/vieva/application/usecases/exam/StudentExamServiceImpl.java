@@ -8,6 +8,7 @@ import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.*;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -228,7 +229,7 @@ public class StudentExamServiceImpl implements StudentExamService {
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
-                attempt.getRemainingSeconds(),
+                attempt.remainingSecondsAt(Instant.now()),
                 attempt.getGraceDeadline(),
                 lastTurn != null ? lastTurn.getId() : null,
                 lastTurn != null ? lastTurn.getQuestionText() : null,

@@ -509,7 +509,8 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     title,
                     a.getStudentId(),
                     studentName,
-                    s.getOverrideTotalScore() != null ? s.getOverrideTotalScore() : s.getTotalScore(),
+                    // System (AI + lecturer grading) score; the override is reported separately
+                    s.getTotalScore(),
                     s.getOverrideTotalScore(),
                     s.getGrade(),
                     s.getCreatedAt()
@@ -583,7 +584,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 title,
                 attempt.getStudentId(),
                 studentName,
-                saved.getOverrideTotalScore() != null ? saved.getOverrideTotalScore() : saved.getTotalScore(),
+                saved.getTotalScore(),
                 saved.getOverrideTotalScore(),
                 saved.getGrade(),
                 saved.getCreatedAt()

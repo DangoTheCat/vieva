@@ -11,6 +11,7 @@ import com.example.vieva.domain.entities.ExamAttempt;
 import com.example.vieva.domain.entities.ExamTurn;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,7 +49,7 @@ public class StartExamSessionUseCaseImpl implements StartExamSessionUseCase {
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
                 savedAttempt.getPausedAt(),
-                savedAttempt.getRemainingSeconds(),
+                savedAttempt.remainingSecondsAt(Instant.now()),
                 savedAttempt.getGraceDeadline(),
                 currentTurn != null ? currentTurn.getId() : null,
                 currentTurn != null ? currentTurn.getQuestionText() : null,

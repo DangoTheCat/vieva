@@ -179,6 +179,11 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     "Exam attempt is not IN_PROGRESS (current: " + attempt.getStatus() + ")");
         }
 
+        // Time is up on the server clock; ExamAttemptTimeoutScheduler finalizes the attempt
+        if (attempt.isTimeUp(java.time.Instant.now())) {
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam time is up");
+        }
+
         // Reject empty or blank transcript AND empty audio
         boolean hasTranscript = transcriptText != null && !transcriptText.trim().isEmpty();
         boolean hasAudio = audioBytes != null && audioBytes.length > 0;

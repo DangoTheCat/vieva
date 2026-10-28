@@ -50,10 +50,11 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // headers last: options.headers is already merged above and must not drop Authorization
     const config = {
+      ...options,
       method: options.method || 'GET',
       headers,
-      ...options,
     };
 
     if (options.body && typeof options.body === 'object' && !isFormData) {
