@@ -40,7 +40,7 @@ public class CloudinaryAvatarStorageGateway implements AvatarStoragePort {
                     "secure", true));
         } else {
             log.warn("Cloudinary credentials not provided in environment. Initializing empty client.");
-            this.cloudinary = new Cloudinary();
+            this.cloudinary = new Cloudinary(ObjectUtils.emptyMap());
         }
     }
 
