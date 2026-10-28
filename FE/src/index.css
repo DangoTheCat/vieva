@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* Pink scale */
+  /* Pink scale (AIVES signature blush & rose) */
   --pink-50:  #FAF5F5;
   --pink-100: #F3E8E7;
   --pink-200: #EAD4D2;
@@ -28,33 +28,39 @@
   --green-900: #25291E;
 
   /* Neutrals */
-  --paper: #FBF5EE;
-  --ink:   #1F1F1D;
-  --sand:  #CFB997;
+  --paper:     #FBF5EE;
+  --ink:       #1F1F1D;
+  --sand:      #CFB997;
+  --canvas-bg: #FAF5F5;
+  --surface-bg:#FFFFFF;
+  --border:    #EAD4D2;
 
   /* Semantic */
-  --color-bg:            var(--paper);
-  --color-surface:       var(--pink-100);
+  --color-bg:            var(--canvas-bg);
+  --color-surface:       var(--surface-bg);
   --color-text:          var(--ink);
-  --color-text-muted:    var(--pink-900);
-  --color-primary:       var(--pink-500);
-  --color-primary-hover: var(--pink-400);
+  --color-text-muted:    var(--pink-800);
+  --color-primary:       var(--pink-600);
+  --color-primary-hover: var(--pink-700);
   --color-secondary:     var(--green-500);
-  --color-border:        var(--green-200);
-  --color-link:          var(--green-700);
-  --color-focus:         var(--green-600);
+  --color-border:        var(--pink-200);
+  --color-link:          var(--pink-700);
+  --color-focus:         var(--pink-500);
   --color-success:       var(--green-600);
-  --color-error:         var(--pink-700);
+  --color-error:         #DC2626;
   --color-warning:       var(--sand);
 
-  /* Shape */
+  /* Shape tokens */
   --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(31, 31, 29, 0.08);
-  --shadow-md: 0 4px 12px rgba(31, 31, 29, 0.10);
-  --shadow-lg: 0 12px 32px rgba(31, 31, 29, 0.14);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* Elevation (Soft rose tinted depth) */
+  --shadow-sm: 0 1px 2px rgba(31, 31, 29, 0.05);
+  --shadow-md: 0 4px 12px rgba(206, 152, 147, 0.12);
+  --shadow-lg: 0 12px 32px rgba(206, 152, 147, 0.16);
+  --shadow-modal: 0 20px 48px -8px rgba(31, 31, 29, 0.16), 0 4px 16px rgba(206, 152, 147, 0.10);
 
   /* Fonts */
   --font-display: "Fraunces", Georgia, serif;
@@ -63,19 +69,20 @@
 
 @layer base {
   body {
-    @apply bg-canvasBg text-ink font-sans antialiased selection:bg-pink-500 selection:text-ink;
+    @apply bg-canvasBg text-ink font-sans antialiased selection:bg-pink-300 selection:text-ink;
+    background-color: var(--canvas-bg);
+    color: var(--ink);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Edge/IE add a native reveal/clear button to password inputs; we render our own Eye toggle */
   input::-ms-reveal,
   input::-ms-clear {
     display: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight;
+    @apply font-heading tracking-tight text-ink;
   }
 
   .font-fraunces {
@@ -83,37 +90,13 @@
   }
 }
 
-/* Iridescent Radiant Orb (Blush Pink & Sage Green Harmonious Gradient) */
-.iridescent-orb {
-  background: radial-gradient(circle at 35% 35%, #EAD4D2 0%, #CE9893 45%, #819266 75%, #687750 100%);
-  box-shadow: 0 10px 30px -5px rgba(206, 152, 147, 0.35);
-}
-
-/* Elevated Minimalist Floating Card */
-.schoolai-card {
-  background: #FFFFFF;
-  border: 1px solid rgba(218, 223, 211, 0.85);
-  box-shadow: 0 20px 45px -10px rgba(31, 31, 29, 0.07), 0 4px 12px -2px rgba(31, 31, 29, 0.03);
-}
-
-/* Subtle academic canvas dot grid */
+/* Subtle academic canvas dot grid with soft rose tone */
 .canvas-dot-grid {
-  background-image: radial-gradient(rgba(129, 146, 102, 0.22) 1.25px, transparent 1.25px);
+  background-image: radial-gradient(rgba(206, 152, 147, 0.22) 1.25px, transparent 1.25px);
   background-size: 20px 20px;
 }
 
-/* Sage & Blush Deep Grid Mesh Background for Auth/Live Portals */
-.dark-tech-grid {
-  background-color: #1a1e16;
-  background-image:
-    radial-gradient(circle at 20% 25%, rgba(206, 152, 147, 0.22) 0%, transparent 50%),
-    radial-gradient(circle at 80% 60%, rgba(129, 146, 102, 0.24) 0%, transparent 55%),
-    linear-gradient(to right, rgba(129, 146, 102, 0.12) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(129, 146, 102, 0.12) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
-}
-
-/* Custom Academic Scrollbar */
+/* Academic Clean Scrollbar in blush tone */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -122,42 +105,26 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #DADFD3;
+  background: #EAD4D2;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #C4CCB7;
+  background: #DEB9B5;
 }
 
-/* Accessible Interactive Button Physics (Impeccable & GSAP micro-interactions) */
+/* Accessible Interactive Button Physics */
 .pill-btn {
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.pill-btn:hover {
-  transform: translateY(-1px);
-}
 .pill-btn:active {
-  transform: translateY(0);
+  transform: scale(0.97);
 }
 
-/* Toast Progress Countdown */
-@keyframes progressCountdown {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0%;
-  }
-}
-.animate-progress-bar {
-  animation: progressCountdown linear forwards;
-}
-
-/* Modal Entry Easing */
+/* Micro animations */
 @keyframes modalEntry {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(4px);
+    transform: scale(0.97) translateY(4px);
   }
   to {
     opacity: 1;
