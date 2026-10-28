@@ -7,6 +7,8 @@ import { CreateUserModal } from '../components/users/CreateUserModal';
 import { EditUserModal } from '../components/users/EditUserModal';
 import { UserDetailModal } from '../components/users/UserDetailModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
+import { BatchUserImportModal } from '../components/users/BatchUserImportModal';
+import { FileSpreadsheet } from 'lucide-react';
 import { 
   Users, 
   ShieldCheck, 
@@ -39,6 +41,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
 
   // Modal Action States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
@@ -219,6 +222,15 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
             aria-label="Làm mới danh sách"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsBatchImportOpen(true)}
+            className="h-9 px-3.5 flex items-center gap-2 rounded-xl bg-white border border-pink-200 hover:bg-pink-50/60 text-pink-900 text-xs font-bold shadow-2xs transition active:scale-[0.98] cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-pink-700" />
+            <span>Nhập Hàng Loạt</span>
           </button>
 
           <button
@@ -421,6 +433,17 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         isLoading={isResetting}
         onConfirm={handleConfirmResetPassword}
         onCancel={() => setResettingUser(null)}
+      />
+
+      {/* BATCH USER IMPORT MODAL (CSV / EXCEL) */}
+      <BatchUserImportModal
+        isOpen={isBatchImportOpen}
+        onClose={() => setIsBatchImportOpen(false)}
+        onSuccess={() => {
+          setIsBatchImportOpen(false);
+          fetchUsers();
+        }}
+        showToast={showToast}
       />
 
     </div>
