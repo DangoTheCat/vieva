@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { adminAnalyticsApi } from '../api/adminAnalyticsApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { gradeLabel } from '../utils/activeExam';
@@ -9,7 +9,7 @@ const fmt = (n) => (n != null ? Number(n).toFixed(2).replace(/\.00$/, '') : '—
 
 function StatTile({ icon: Icon, label, value, hint }) {
   return (
-    <div className="bg-white border-2 border-green-400 rounded-2xl p-4 shadow-[3px_3px_0_#DEB9B5]">
+    <div className="bg-white border border-pink-200 rounded-xl p-4 shadow-2xs">
       <div className="flex items-center gap-2 text-[11px] font-bold text-green-700 uppercase tracking-wide"><Icon className="w-4 h-4" /> {label}</div>
       <p className="font-heading font-black text-2xl mt-1">{value ?? '—'}</p>
       {hint && <p className="text-[11px] text-green-800 mt-0.5">{hint}</p>}
@@ -64,7 +64,7 @@ export function AdminOperationsPage({ showToast }) {
           <p className="text-xs text-green-800 mt-1">Số liệu người dùng, kỳ thi, lượt thi và kết quả trên toàn hệ thống.</p>
         </div>
         <button type="button" onClick={() => { loadStats(); loadPerformance(); }}
-          className="px-3 py-1.5 rounded-xl bg-white border-2 border-green-500 text-xs font-bold flex items-center gap-1.5 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-600">
+          className="px-3.5 py-1.5 rounded-xl bg-white border border-pink-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50 shadow-2xs cursor-pointer">
           <RotateCcw className="w-3.5 h-3.5" /> Làm mới
         </button>
       </header>
@@ -82,13 +82,13 @@ export function AdminOperationsPage({ showToast }) {
         <StatTile icon={Activity} label="Gián đoạn" value={stats?.interruptedAttempts} />
       </section>
 
-      <section className="bg-white border-2 border-green-500 rounded-2xl shadow-[4px_4px_0_#DEB9B5] overflow-hidden">
-        <div className="p-4 border-b-2 border-green-100">
+      <section className="bg-white border border-pink-200 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="p-4 border-b border-pink-200">
           <h2 className="font-heading font-bold text-sm">Kết quả thi gần đây</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-green-500 text-green-900 font-bold uppercase text-[10px] tracking-wider">
+            <thead className="bg-slate-50 border-b border-pink-200 text-slate-700 font-semibold uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Thí sinh</th>
                 <th className="py-3 px-4">Môn học</th>
@@ -116,7 +116,7 @@ export function AdminOperationsPage({ showToast }) {
             </tbody>
           </table>
         </div>
-        <div className="p-3 border-t-2 border-green-100">
+        <div className="p-3 border-t border-pink-200">
           <Pagination
             page={perf.page}
             size={perf.size}

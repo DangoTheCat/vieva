@@ -16,29 +16,29 @@ export function RbacMatrixModal({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-pink-600/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-2xl bg-surface-container-lowest rounded-2xl border-2 border-green-700 shadow-[6px_6px_0px_#819266] p-6 overflow-hidden flex flex-col max-h-[90vh] animate-modal-entry">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl border border-pink-200 shadow-xl p-6 overflow-hidden flex flex-col max-h-[90vh] animate-modal-entry text-ink">
         
         {/* Header */}
-        <div className="flex items-start justify-between border-b-2 border-green-200 pb-4 mb-4">
+        <div className="flex items-start justify-between border-b border-pink-200 pb-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-100 border-2 border-green-600 flex items-center justify-center text-green-900 shadow-[2px_2px_0px_#DEB9B5] shrink-0">
-              <Table2 className="w-5 h-5 text-green-700" />
+            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
+              <Table2 className="w-5 h-5 text-slate-700" />
             </div>
             <div>
               <h3 className="font-heading text-lg font-bold text-ink">
-                Ma Trận Quyền Hạn Course-Scoped (RBAC Matrix)
+                Bảng Phân Quyền Vai Trò Hệ Thống
               </h3>
-              <p className="text-xs text-on-surface-variant font-sans">PostgreSQL Row-Level Security Rules (SWD392) • Onion Core</p>
+              <p className="text-xs text-slate-500 font-sans">Quy định quyền truy cập theo từng vai trò người dùng trong hệ thống AIVES</p>
             </div>
           </div>
           <button 
             type="button" 
             onClick={onClose} 
-            className="w-8 h-8 rounded-lg border-2 border-green-500 flex items-center justify-center text-ink hover:bg-pink-100 transition cursor-pointer"
+            className="w-8 h-8 rounded-lg border border-pink-200 flex items-center justify-center text-slate-500 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
             aria-label="Đóng"
           >
             <X className="w-4 h-4" />
@@ -47,70 +47,64 @@ export function RbacMatrixModal({ isOpen, onClose }) {
 
         {/* Matrix Table */}
         <div className="overflow-y-auto text-xs space-y-4 mb-4">
-          <div className="overflow-x-auto rounded-xl border-2 border-green-300">
+          <div className="overflow-x-auto rounded-xl border border-pink-200">
             <table className="w-full text-left border-collapse min-w-[500px]">
               <thead>
-                <tr className="bg-green-100 border-b-2 border-green-300 text-green-900 font-sans font-bold uppercase tracking-wider text-[11px]">
-                  <th className="p-3">Tính Năng / Hành Động</th>
-                  <th className="p-3 text-center">Student</th>
-                  <th className="p-3 text-center">Lecturer</th>
-                  <th className="p-3 text-center">Auditor</th>
-                  <th className="p-3 text-center">Admin</th>
+                <tr className="bg-slate-50 border-b border-pink-200 text-slate-700 font-semibold uppercase tracking-wider text-[11px]">
+                  <th className="p-3">Tính Năng / Thao Tác</th>
+                  <th className="p-3 text-center">Sinh Viên</th>
+                  <th className="p-3 text-center">Giảng Viên</th>
+                  <th className="p-3 text-center">Quản Trị Viên</th>
                 </tr>
               </thead>
-              <tbody className="divide-y-2 divide-green-200 text-ink font-sans">
-                <tr className="hover:bg-green-50/50 transition-colors">
-                  <td className="p-3 font-semibold text-ink">Vào phòng thi vấn đáp STOMP (Module 3)</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓ (Chỉ ca thi)</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓ (Giám sát)</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓ (Thanh tra)</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓</td>
+              <tbody className="divide-y divide-slate-100 text-slate-800">
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="p-3 font-medium text-ink">Tham gia phòng thi vấn đáp trực tuyến</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓ (Ca thi được phân công)</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓ (Giám sát)</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓</td>
                 </tr>
-                <tr className="bg-paper hover:bg-green-50/50 transition-colors">
-                  <td className="p-3 font-semibold text-ink">Quản lý Tài khoản & Phân quyền User (Module 7)</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓ (Toàn quyền)</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="p-3 font-medium text-ink">Quản lý tài khoản & người dùng</td>
+                  <td className="p-3 text-center text-slate-400 font-normal">—</td>
+                  <td className="p-3 text-center text-slate-400 font-normal">—</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓ (Toàn quyền)</td>
                 </tr>
-                <tr className="hover:bg-green-50/50 transition-colors">
-                  <td className="p-3 font-semibold text-ink">Tạo & Sửa Ngân hàng Câu hỏi RAG (Module 1)</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-pink-700 font-bold">✓ (Trong môn)</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="p-3 font-medium text-ink">Tạo & quản lý ngân hàng câu hỏi</td>
+                  <td className="p-3 text-center text-slate-400 font-normal">—</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓ (Môn phụ trách)</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓</td>
                 </tr>
-                <tr className="bg-paper hover:bg-green-50/50 transition-colors">
-                  <td className="p-3 font-semibold text-ink">Hậu kiểm & Chốt điểm FAP (Module 4)</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-pink-700 font-bold">✓ (Trong môn)</td>
-                  <td className="p-3 text-center text-on-surface-variant font-semibold">✗ (Chỉ xem)</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="p-3 font-medium text-ink">Chấm điểm & duyệt kết quả thi</td>
+                  <td className="p-3 text-center text-slate-400 font-normal">—</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓ (Môn phụ trách)</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓</td>
                 </tr>
-                <tr className="hover:bg-green-50/50 transition-colors">
-                  <td className="p-3 font-semibold text-ink">Cấu hình mô hình Neural STT / TTS Locale</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-pink-700 font-semibold">✗</td>
-                  <td className="p-3 text-center text-green-700 font-bold">✓ (Toàn quyền)</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="p-3 font-medium text-ink">Cấu hình nhận diện giọng nói (STT/TTS)</td>
+                  <td className="p-3 text-center text-slate-400 font-normal">—</td>
+                  <td className="p-3 text-center text-slate-400 font-normal">—</td>
+                  <td className="p-3 text-center text-emerald-600 font-semibold">✓ (Toàn quyền)</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div className="p-3.5 bg-green-50 rounded-xl border-2 border-green-500 text-green-900 text-xs leading-relaxed shadow-[2px_2px_0px_#DEB9B5]">
-            <strong className="font-bold text-ink">Nguyên tắc Course-Scoped RBAC:</strong> Giảng viên được phân quyền phụ trách theo từng môn học cụ thể (bảng <code className="font-mono bg-paper px-1 py-0.5 rounded border border-green-400">lecturer_subjects</code>). Giảng viên môn SWD392 không có quyền truy cập ngân hàng đề của PRN231.
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-pink-200 text-slate-600 text-xs leading-relaxed">
+            <strong className="font-semibold text-slate-800">Quy định phân quyền môn học:</strong> Giảng viên chỉ có quyền quản trị ngân hàng đề và chấm điểm cho các môn học được Ban Khảo thí phân công chính thức.
           </div>
         </div>
 
         {/* Footer */}
-        <div className="pt-3 border-t-2 border-green-200 flex items-center justify-end">
+        <div className="pt-3 border-t border-pink-200 flex items-center justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-pink-500 border-2 border-ink text-ink font-bold text-xs shadow-[2px_2px_0px_#819266] hover:bg-pink-400 transition active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-pink-600 text-white font-semibold text-xs shadow-xs hover:bg-pink-700 transition active:scale-[0.98] cursor-pointer"
           >
-            Đã Hiểu Ma Trận
+            Đóng
           </button>
         </div>
 

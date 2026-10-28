@@ -8,7 +8,7 @@ const LOCALES = [
   { value: 'en-US', label: 'English (en-US)' }
 ];
 
-const inputClass = 'w-full bg-white border-2 border-green-300 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600';
+const inputClass = 'w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs text-ink focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs';
 
 const toForm = (s) => ({
   sttLanguage: s?.sttLanguage || 'vi-VN',
@@ -97,37 +97,41 @@ export function AdminVoiceLabPage({ showToast }) {
     <div className="max-w-3xl mx-auto w-full space-y-6 pb-10 text-ink animate-modal-entry">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl tracking-tight">Cấu Hình Giọng Nói</h1>
-          <p className="text-xs text-green-800 mt-1">Ngôn ngữ nhận diện (STT), giọng đọc (TTS), tốc độ và cao độ dùng trong phòng thi vấn đáp.</p>
+          <h1 className="font-heading font-bold text-2xl tracking-tight text-ink">Cấu Hình Giọng Nói</h1>
+          <p className="text-xs text-slate-500 mt-1">Ngôn ngữ nhận diện (STT), giọng đọc (TTS), tốc độ và cao độ dùng trong phòng thi vấn đáp.</p>
         </div>
-        <button type="button" onClick={load} disabled={isLoading}
-          className="px-3 py-1.5 rounded-xl bg-white border-2 border-green-500 text-xs font-bold flex items-center gap-1.5 hover:bg-green-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600">
-          <RotateCcw className="w-3.5 h-3.5" /> Tải lại
+        <button 
+          type="button" 
+          onClick={load} 
+          disabled={isLoading}
+          className="px-3.5 py-1.5 rounded-xl bg-white border border-pink-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50 shadow-2xs transition disabled:opacity-50 cursor-pointer"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-slate-500" /> Tải lại
         </button>
       </header>
 
       {isLoading ? (
-        <div className="h-72 rounded-2xl animate-pulse bg-slate-200/80" />
+        <div className="h-72 rounded-2xl animate-pulse bg-slate-100 border border-pink-200" />
       ) : (
-        <form onSubmit={handleSave} className="bg-white border-2 border-green-500 rounded-2xl p-6 shadow-[4px_4px_0_#DEB9B5] space-y-5 text-xs">
+        <form onSubmit={handleSave} className="bg-white border border-pink-200 rounded-2xl p-6 shadow-2xs space-y-5 text-xs">
           <div className="grid sm:grid-cols-2 gap-4">
-            <label className="block font-bold space-y-1">
-              <span className="flex items-center gap-1.5"><Mic className="w-3.5 h-3.5" /> Ngôn ngữ nhận diện (STT)</span>
+            <label className="block font-semibold text-slate-700 space-y-1">
+              <span className="flex items-center gap-1.5"><Mic className="w-3.5 h-3.5 text-pink-600" /> Ngôn ngữ nhận diện (STT)</span>
               <select value={form.sttLanguage} onChange={e => setForm({ ...form, sttLanguage: e.target.value })} className={inputClass}>
                 {LOCALES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </label>
-            <label className="block font-bold space-y-1">
-              <span className="flex items-center gap-1.5"><Volume2 className="w-3.5 h-3.5" /> Ngôn ngữ đọc (TTS)</span>
+            <label className="block font-semibold text-slate-700 space-y-1">
+              <span className="flex items-center gap-1.5"><Volume2 className="w-3.5 h-3.5 text-pink-600" /> Ngôn ngữ đọc (TTS)</span>
               <select value={form.ttsLanguage} onChange={e => setForm({ ...form, ttsLanguage: e.target.value })} className={inputClass}>
                 {LOCALES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </label>
-            <label className="block font-bold space-y-1">
+            <label className="block font-semibold text-slate-700 space-y-1">
               <span>Giọng tiếng Việt</span>
               <input value={form.vietnameseVoice} onChange={e => setForm({ ...form, vietnameseVoice: e.target.value })} className={inputClass} placeholder="Mã giọng của dịch vụ TTS" />
             </label>
-            <label className="block font-bold space-y-1">
+            <label className="block font-semibold text-slate-700 space-y-1">
               <span>Giọng tiếng Anh (tuỳ chọn)</span>
               <input value={form.englishVoice} onChange={e => setForm({ ...form, englishVoice: e.target.value })} className={inputClass} placeholder="Để trống nếu không dùng" />
             </label>
@@ -138,35 +142,41 @@ export function AdminVoiceLabPage({ showToast }) {
               { key: 'speed', label: 'Tốc độ đọc' },
               { key: 'pitch', label: 'Cao độ' }
             ].map(({ key, label }) => (
-              <label key={key} className="block font-bold space-y-1">
-                <span className="flex justify-between"><span>{label}</span><span className="font-mono">{Number(form[key]).toFixed(2)}×</span></span>
+              <label key={key} className="block font-semibold text-slate-700 space-y-1">
+                <span className="flex justify-between"><span>{label}</span><span className="font-mono text-slate-500">{Number(form[key]).toFixed(2)}×</span></span>
                 <input type="range" min="0.25" max="4" step="0.05" value={form[key]}
-                  onChange={e => setForm({ ...form, [key]: e.target.value })} className="w-full accent-green-600" />
+                  onChange={e => setForm({ ...form, [key]: e.target.value })} className="w-full accent-pink-600" />
               </label>
             ))}
           </div>
-          <p className="text-[11px] text-green-800">
-            Dịch vụ TTS có thể không hỗ trợ đổi tốc độ/cao độ — khi đó hệ thống sẽ báo lỗi và chỉ chấp nhận giá trị 1.00×.
+          <p className="text-[11px] text-slate-500">
+            Dịch vụ TTS có thể không hỗ trợ đổi tốc độ/cao độ — khi đó hệ thống sẽ thông báo và chỉ áp dụng giá trị mặc định 1.00×.
           </p>
 
-          <div className="space-y-2 pt-3 border-t-2 border-green-100">
-            <span className="font-bold block">Nghe thử (giọng của trình duyệt, chỉ mô phỏng tốc độ/cao độ)</span>
+          <div className="space-y-2 pt-3 border-t border-pink-200">
+            <span className="font-semibold text-slate-700 block">Nghe thử (giọng trình duyệt, mô phỏng tốc độ/cao độ)</span>
             <div className="flex gap-2">
               <input value={previewText} onChange={e => setPreviewText(e.target.value)} className={inputClass} />
-              <button type="button" onClick={isPreviewing ? stopPreview : handlePreview}
-                className="px-3 py-2 rounded-xl bg-white border-2 border-green-400 font-bold flex items-center gap-1.5 hover:bg-green-50 shrink-0 focus:outline-none focus:ring-2 focus:ring-green-600">
-                {isPreviewing ? <Square className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />} {isPreviewing ? 'Dừng' : 'Nghe'}
+              <button 
+                type="button" 
+                onClick={isPreviewing ? stopPreview : handlePreview}
+                className="px-3.5 py-2 rounded-xl bg-white border border-pink-200 font-semibold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50 shrink-0 shadow-2xs transition cursor-pointer"
+              >
+                {isPreviewing ? <Square className="w-4 h-4 text-rose-600" /> : <Volume2 className="w-4 h-4 text-pink-600" />} {isPreviewing ? 'Dừng' : 'Nghe thử'}
               </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-3 border-t-2 border-green-100">
-            <p className="text-[11px] text-green-800">
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-pink-200">
+            <p className="text-[11px] text-slate-400 font-mono">
               {settings?.updatedAt ? `Cập nhật lần cuối: ${new Date(settings.updatedAt).toLocaleString('vi-VN')}` : 'Đang dùng cấu hình mặc định'}
             </p>
-            <button type="submit" disabled={isSaving}
-              className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Lưu cấu hình
+            <button 
+              type="submit" 
+              disabled={isSaving}
+              className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Lưu Cấu Hình
             </button>
           </div>
         </form>

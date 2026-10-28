@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, 
   Plus, 
@@ -264,90 +264,68 @@ export function AdminSubjectPage({ showToast }) {
   return (
     <div className="space-y-6 animate-modal-entry pb-12">
       
-      {/* ========================================================================= */}
-      {/* 1. SOLITARY POETIC BRAND MOTIF & EDITORIAL BANNER                        */}
-      {/* ========================================================================= */}
-      <div className="relative overflow-hidden rounded-xl border-2 border-green-500 bg-pink-50 p-6 md:p-8 shadow-[5px_5px_0_#D5A6A2]">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-3xl">
-            {/* Badge Phân Hệ */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-paper border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] text-green-800">
-              <BookOpen className="w-4 h-4 text-green-800" />
-              <span className="font-bold text-xs uppercase tracking-wide">
-                Phân Hệ Quản Trị Học Thuật (Group 7 &amp; Admin)
-              </span>
-            </div>
-            
-            <h1 className="font-heading font-black text-2xl md:text-3xl text-ink tracking-tight pt-1">
-              Quản Lý Môn Học &amp; Phân Công Giảng Viên
-            </h1>
-            
-            <p className="text-xs sm:text-sm text-green-900 leading-relaxed font-normal">
-              Thiết lập danh mục môn học, tín chỉ và chỉ định quyền phụ trách câu hỏi theo chuẩn Course-scoped RLS (Row-Level Security) bảo mật đa tầng.
-            </p>
-          </div>
-
-          {/* Action Button */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-pink-500 text-ink font-bold text-xs border-2 border-ink shadow-[3px_3px_0_#DEB9B5] transition-all hover:bg-pink-600 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
-            >
-              <Plus className="w-4 h-4 text-ink stroke-[2.5]" />
-              <span>+ Thêm Môn Học Mới</span>
-            </button>
-          </div>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-ink tracking-tight">
+            Quản Lý Môn Học &amp; Phân Công Giảng Viên
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Thiết lập danh mục môn học, tín chỉ và chỉ định quyền phụ trách môn cho giảng viên.
+          </p>
         </div>
 
-        {/* Papercraft decorative background aesthetic accents */}
-        <div className="absolute -right-8 -bottom-10 opacity-15 pointer-events-none select-none text-pink-700">
-          <GraduationCap className="w-48 h-48" />
-        </div>
-      </div>
+        <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-pink-600 text-white font-semibold text-xs shadow-xs transition-all hover:bg-pink-700 active:scale-[0.98] cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Thêm Môn Học Mới</span>
+        </button>
+      </header>
 
       {/* ========================================================================= */}
       {/* 2. METRIC CARDS (3 THẺ THỐNG KÊ)                                          */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Thẻ 1: Tổng môn học */}
-        <div className="relative rounded-xl border-2 border-green-500 bg-paper p-5 shadow-[3px_3px_0_#DEB9B5] flex items-center justify-between transition-transform hover:-translate-y-0.5">
+        <div className="relative rounded-xl border border-pink-200 bg-white p-5 shadow-2xs flex items-center justify-between transition-transform hover:-translate-y-0.5">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-green-800 font-bold">Tổng Môn Học</p>
+            <p className="text-xs uppercase tracking-wider text-slate-600 font-semibold">Tổng Môn Học</p>
             <p className="font-heading font-black text-3xl text-ink">{subjects.length}</p>
-            <span className="inline-block text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded border border-green-400">
+            <span className="inline-block text-[11px] font-bold text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-pink-200">
               Niên giám 2024-2025
             </span>
           </div>
-          <div className="w-14 h-14 rounded-xl border-2 border-green-500 bg-green-50 flex items-center justify-center text-green-800 shadow-[2px_2px_0_#DEB9B5]">
+          <div className="w-14 h-14 rounded-xl border border-pink-200 bg-green-50 flex items-center justify-center text-green-800 shadow-sm">
             <BookOpen className="w-7 h-7" />
           </div>
         </div>
 
         {/* Thẻ 2: Đang giảng dạy */}
-        <div className="relative rounded-xl border-2 border-green-500 bg-paper p-5 shadow-[3px_3px_0_#DEB9B5] flex items-center justify-between transition-transform hover:-translate-y-0.5">
+        <div className="relative rounded-xl border border-pink-200 bg-white p-5 shadow-2xs flex items-center justify-between transition-transform hover:-translate-y-0.5">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-green-800 font-bold">Đang Giảng Dạy (Active)</p>
+            <p className="text-xs uppercase tracking-wider text-slate-600 font-semibold">Đang Giảng Dạy (Active)</p>
             <p className="font-heading font-black text-3xl text-green-700">{activeSubjectsCount}</p>
-            <span className="inline-block text-[11px] font-bold text-green-800 bg-green-100 px-2 py-0.5 rounded border border-green-500">
+            <span className="inline-block text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
               {activePercentage}% Đang Kích Hoạt
             </span>
           </div>
-          <div className="w-14 h-14 rounded-xl border-2 border-green-500 bg-green-100 flex items-center justify-center text-green-700 shadow-[2px_2px_0_#DEB9B5]">
+          <div className="w-14 h-14 rounded-xl border border-pink-200 bg-green-100 flex items-center justify-center text-green-700 shadow-sm">
             <CheckCircle2 className="w-7 h-7" />
           </div>
         </div>
 
         {/* Thẻ 3: Phân công phụ trách */}
-        <div className="relative rounded-xl border-2 border-green-500 bg-pink-100 p-5 shadow-[3px_3px_0_#DEB9B5] flex items-center justify-between transition-transform hover:-translate-y-0.5">
+        <div className="relative rounded-xl border border-pink-200 bg-white p-5 shadow-2xs flex items-center justify-between transition-transform hover:-translate-y-0.5">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-pink-900 font-bold">Lượt Phân Công Phụ Trách</p>
-            <p className="font-heading font-black text-3xl text-pink-700">{assignments.length}</p>
-            <span className="inline-block text-[11px] font-bold text-pink-900 bg-paper px-2 py-0.5 rounded border border-pink-400">
+            <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Lượt Phân Công Phụ Trách</p>
+            <p className="font-heading font-bold text-3xl text-ink">{assignments.length}</p>
+            <span className="inline-block text-[11px] font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-pink-200">
               {distinctLecturersCount} Giảng viên đã giao môn
             </span>
           </div>
-          <div className="w-14 h-14 rounded-xl border-2 border-green-500 bg-paper flex items-center justify-center text-pink-700 shadow-[2px_2px_0_#DEB9B5]">
+          <div className="w-14 h-14 rounded-xl border border-pink-200 bg-slate-50 flex items-center justify-center text-slate-700 shadow-2xs">
             <GraduationCap className="w-7 h-7" />
           </div>
         </div>
@@ -356,7 +334,7 @@ export function AdminSubjectPage({ showToast }) {
       {/* ========================================================================= */}
       {/* 3. FILTER & SEARCH BAR                                                    */}
       {/* ========================================================================= */}
-      <div className="rounded-xl border-2 border-green-500 bg-paper p-4 shadow-[3px_3px_0_#DEB9B5] flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="rounded-xl border border-pink-200 bg-white p-4 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Ô tìm kiếm */}
         <div className="relative w-full md:w-2/3">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-green-700">
@@ -367,13 +345,13 @@ export function AdminSubjectPage({ showToast }) {
             placeholder="Tìm theo mã môn (VD: SWD392) hoặc tên môn học..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-green-500 bg-paper font-medium text-xs sm:text-sm text-ink placeholder:text-green-800/60 focus:outline-none focus:border-green-700 focus:shadow-[3px_3px_0_#DEB9B5] transition-all"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-pink-200 bg-paper font-medium text-xs sm:text-sm text-ink placeholder:text-green-800/60 focus:outline-none focus:border-pink-500 focus:shadow-sm transition-all"
           />
         </div>
 
         {/* Bộ lọc trạng thái */}
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-green-500 bg-green-50 text-green-800 shrink-0">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pink-200 bg-green-50 text-green-800 shrink-0">
             <Filter className="w-3.5 h-3.5 text-green-800" />
             <span className="font-bold text-xs uppercase">Trạng Thái:</span>
           </div>
@@ -381,7 +359,7 @@ export function AdminSubjectPage({ showToast }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-3 pr-8 py-2 rounded-lg border-2 border-green-500 bg-paper font-bold text-xs text-ink focus:outline-none focus:border-green-700 focus:shadow-[3px_3px_0_#DEB9B5] cursor-pointer"
+              className="w-full pl-3 pr-8 py-2 rounded-lg border border-pink-200 bg-paper font-bold text-xs text-ink focus:outline-none focus:border-pink-500 focus:shadow-sm cursor-pointer"
             >
               <option value="ALL">Tất cả trạng thái</option>
               <option value="ACTIVE">Hoạt động (Active)</option>
@@ -394,14 +372,14 @@ export function AdminSubjectPage({ showToast }) {
       {/* ========================================================================= */}
       {/* 4. SUBJECTS TABLE (BẢNG DANH SÁCH MÔN HỌC)                                */}
       {/* ========================================================================= */}
-      <div className="rounded-xl border-2 border-green-500 bg-paper shadow-[5px_5px_0_#D5A6A2] overflow-hidden">
+      <div className="rounded-xl border border-pink-200 bg-paper shadow-md overflow-hidden">
         {isLoading ? (
           <div className="p-6">
             <SkeletonTable rows={4} columns={6} />
           </div>
         ) : filteredSubjects.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-pink-100 border-2 border-green-500 flex items-center justify-center text-pink-700 mx-auto shadow-[2px_2px_0_#DEB9B5]">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 mx-auto shadow-sm">
               <BookOpen className="w-7 h-7" />
             </div>
             <h3 className="font-heading font-black text-ink text-base">Chưa có môn học nào</h3>
@@ -413,7 +391,7 @@ export function AdminSubjectPage({ showToast }) {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b-2 border-green-500 bg-green-100 font-bold text-xs text-green-900">
+                <tr className="border-b border-pink-200 bg-slate-50 font-semibold text-xs text-slate-700">
                   <th className="py-3 px-4 w-28">Mã Môn</th>
                   <th className="py-3 px-4">Tên Môn Học</th>
                   <th className="py-3 px-4 text-center w-28">Tín Chỉ</th>
@@ -422,14 +400,14 @@ export function AdminSubjectPage({ showToast }) {
                   <th className="py-3 px-4 text-right w-32">Thao Tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y-2 divide-green-200 text-xs sm:text-sm text-ink">
+              <tbody className="divide-y divide-slate-200 text-xs text-slate-800">
                 {filteredSubjects.map((sub) => {
                   const subAssignments = assignments.filter(a => a.subjectId === sub.subjectId && !a.revokedAt);
                   return (
-                    <tr key={sub.subjectId} className="hover:bg-pink-50/50 transition-colors">
+                    <tr key={sub.subjectId} className="hover:bg-slate-50/70 transition-colors">
                       {/* Mã môn */}
                       <td className="py-4 px-4 align-top font-bold text-ink">
-                        <span className="inline-block px-2.5 py-1 rounded bg-pink-100 border-2 border-green-500 font-mono font-bold text-xs text-pink-900 shadow-[2px_2px_0_#DEB9B5]">
+                        <span className="inline-block px-2.5 py-1 rounded bg-slate-100 border border-pink-200 font-mono font-semibold text-xs text-slate-800">
                           {sub.subjectCode}
                         </span>
                       </td>
@@ -450,7 +428,7 @@ export function AdminSubjectPage({ showToast }) {
 
                       {/* Tín chỉ */}
                       <td className="py-4 px-4 align-top text-center">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-50 border border-green-500 text-green-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 border border-pink-200 text-slate-700">
                           {sub.credits} tín chỉ
                         </span>
                       </td>
@@ -458,13 +436,13 @@ export function AdminSubjectPage({ showToast }) {
                       {/* Trạng thái */}
                       <td className="py-4 px-4 align-top text-center">
                         {sub.status === 'ACTIVE' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 border-2 border-green-500 text-green-800 shadow-[1px_1px_0_#DEB9B5]">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
                             <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span>
                             ACTIVE
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-100 border-2 border-pink-400 text-pink-900 shadow-[1px_1px_0_#DEB9B5]">
-                            <span className="w-2 h-2 rounded-full bg-pink-600"></span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 border border-pink-200 text-slate-600">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                             INACTIVE
                           </span>
                         )}
@@ -482,7 +460,7 @@ export function AdminSubjectPage({ showToast }) {
                               <button
                                 type="button"
                                 onClick={() => openAssignModal(sub)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-paper border-2 border-dashed border-green-500 font-bold text-xs text-on-surface-variant hover:bg-green-50 transition cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-paper border border-dashed border-pink-200 font-semibold text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                               >
                                 <Users className="w-3.5 h-3.5 text-green-700" />
                                 <span>+ Phân công GV</span>
@@ -497,7 +475,7 @@ export function AdminSubjectPage({ showToast }) {
                                   {assignedLecturers.slice(0, 4).map((lec) => (
                                     <div
                                       key={lec.userId}
-                                      className="w-7 h-7 rounded-full border-2 border-green-600 bg-pink-100 flex items-center justify-center font-bold text-[10px] text-pink-900 shadow-xs overflow-hidden shrink-0"
+                                      className="w-7 h-7 rounded-full border border-white bg-slate-200 flex items-center justify-center font-bold text-[10px] text-slate-700 shadow-2xs overflow-hidden shrink-0"
                                       title={`${lec.fullName} (${lec.email})`}
                                     >
                                       {(lec.avatarUrl || lec.avatar) ? (
@@ -516,7 +494,7 @@ export function AdminSubjectPage({ showToast }) {
                                 <button
                                   type="button"
                                   onClick={() => openAssignModal(sub)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-100 hover:bg-green-200 border-2 border-green-500 font-bold text-xs text-green-900 shadow-[1px_1px_0_#DEB9B5] transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-100 hover:bg-green-200 border border-pink-200 font-bold text-xs text-green-900 shadow-sm transition cursor-pointer"
                                   title="Xem và chỉnh sửa danh sách phân công"
                                 >
                                   <span>{subAssignments.length} GV</span>
@@ -534,7 +512,7 @@ export function AdminSubjectPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(sub)}
-                            className="p-1.5 rounded-lg border-2 border-green-500 bg-paper text-ink hover:bg-green-100 shadow-[2px_2px_0_#DEB9B5] transition-all cursor-pointer"
+                            className="p-1.5 rounded-lg border border-pink-200 bg-paper text-ink hover:bg-green-100 shadow-sm transition-all cursor-pointer"
                             title="Chỉnh sửa môn học"
                           >
                             <Edit3 className="w-4 h-4 text-green-900" />
@@ -543,7 +521,7 @@ export function AdminSubjectPage({ showToast }) {
                             <button
                               type="button"
                               onClick={() => setDeactivateTarget(sub)}
-                              className="p-1.5 rounded-lg border-2 border-green-500 bg-paper text-pink-700 hover:bg-pink-100 shadow-[2px_2px_0_#DEB9B5] transition-all cursor-pointer"
+                              className="p-1.5 rounded-lg border border-pink-200 bg-paper text-rose-600 hover:bg-rose-50 shadow-sm transition-all cursor-pointer"
                               title="Ngưng hoạt động môn học"
                             >
                               <PowerOff className="w-4 h-4 text-pink-700" />
@@ -560,14 +538,14 @@ export function AdminSubjectPage({ showToast }) {
         )}
 
         {/* Table Footer with Info & Pagination */}
-        <div className="p-4 border-t-2 border-green-500 bg-paper flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-4 border-t border-pink-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-xs font-medium text-green-800">
             Hiển thị {filteredSubjects.length} / {subjects.length} môn học trong hệ thống
           </span>
           <div className="inline-flex items-center gap-1">
             <button
               type="button"
-              className="px-3 py-1 rounded border-2 border-green-500 bg-green-100 text-green-900 font-bold text-xs shadow-[2px_2px_0_#DEB9B5]"
+              className="px-3 py-1 rounded border border-pink-200 bg-green-100 text-green-900 font-bold text-xs shadow-sm"
             >
               1
             </button>
@@ -583,10 +561,10 @@ export function AdminSubjectPage({ showToast }) {
           className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in"
           role="dialog"
         >
-          <div className="relative w-full max-w-lg rounded-2xl border-2 border-green-700 bg-paper p-6 sm:p-7 shadow-[6px_6px_0_#D5A6A2] flex flex-col animate-modal-entry">
+          <div className="relative w-full max-w-lg rounded-2xl border border-pink-200 bg-paper p-6 sm:p-7 shadow-md flex flex-col animate-modal-entry">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-pink-100 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[1px_1px_0_#DEB9B5]">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 shadow-sm">
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <h3 className="font-heading font-black text-base text-ink">
@@ -596,7 +574,7 @@ export function AdminSubjectPage({ showToast }) {
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(false)}
-                className="p-1 rounded-lg border-2 border-green-500 bg-pink-50 text-ink hover:bg-pink-100 shadow-[1px_1px_0_#DEB9B5] transition cursor-pointer"
+                className="p-1 rounded-lg border border-pink-200 bg-slate-50 text-slate-600 hover:bg-slate-100 shadow-sm transition cursor-pointer"
                 title="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -615,7 +593,7 @@ export function AdminSubjectPage({ showToast }) {
                   placeholder="Ví dụ: SWD392, PRN211..."
                   value={formSubjectCode}
                   onChange={(e) => setFormSubjectCode(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 rounded-xl text-xs font-mono font-bold border-2 border-green-400 bg-paper text-ink focus:outline-none focus:border-green-600 focus:shadow-[2px_2px_0_#DEB9B5] disabled:bg-green-50/70 disabled:text-green-800 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 rounded-xl text-xs font-mono font-bold border border-pink-200 bg-paper text-ink focus:outline-none focus:border-pink-500 focus:shadow-sm disabled:bg-green-50/70 disabled:text-green-800 disabled:cursor-not-allowed"
                 />
                 {editingSubject && (
                   <p className="text-[10px] text-green-700 mt-1">Mã môn học cố định và không được phép sửa đổi sau khi khởi tạo.</p>
@@ -632,7 +610,7 @@ export function AdminSubjectPage({ showToast }) {
                   placeholder="Ví dụ: Software Architecture and Design"
                   value={formSubjectName}
                   onChange={(e) => setFormSubjectName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border-2 border-green-400 bg-paper text-ink font-bold focus:outline-none focus:border-green-600 focus:shadow-[2px_2px_0_#DEB9B5]"
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-pink-200 bg-paper text-ink font-bold focus:outline-none focus:border-pink-500 focus:shadow-sm"
                 />
               </div>
 
@@ -645,7 +623,7 @@ export function AdminSubjectPage({ showToast }) {
                     max="10"
                     value={formCredits}
                     onChange={(e) => setFormCredits(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border-2 border-green-400 bg-paper text-ink font-bold focus:outline-none focus:border-green-600"
+                    className="w-full px-3 py-2 rounded-xl text-xs border border-pink-200 bg-paper text-ink font-bold focus:outline-none focus:border-pink-500"
                   />
                 </div>
                 <div>
@@ -653,7 +631,7 @@ export function AdminSubjectPage({ showToast }) {
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border-2 border-green-400 bg-paper text-ink font-bold focus:outline-none focus:border-green-600 cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl text-xs border border-pink-200 bg-paper text-ink font-bold focus:outline-none focus:border-pink-500 cursor-pointer"
                   >
                     <option value="ACTIVE">ACTIVE (Hoạt động)</option>
                     <option value="INACTIVE">INACTIVE (Ngưng)</option>
@@ -668,7 +646,7 @@ export function AdminSubjectPage({ showToast }) {
                   placeholder="Mô tả nội dung trọng tâm của học phần..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border-2 border-green-400 bg-paper text-ink font-medium focus:outline-none focus:border-green-600"
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-pink-200 bg-paper text-ink font-medium focus:outline-none focus:border-pink-500"
                 />
               </div>
 
@@ -677,14 +655,14 @@ export function AdminSubjectPage({ showToast }) {
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl border-2 border-green-400 bg-paper text-green-900 text-xs font-bold hover:bg-green-50 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-pink-200 bg-paper text-green-900 text-xs font-bold hover:bg-green-50 transition cursor-pointer"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-ink shadow-[3px_3px_0_#DEB9B5] transition active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin text-ink" />}
                   <span>{editingSubject ? 'Lưu Thay Đổi' : 'Tạo Môn Học'}</span>
@@ -703,12 +681,12 @@ export function AdminSubjectPage({ showToast }) {
           className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in"
           role="dialog"
         >
-          <div className="relative w-full max-w-3xl rounded-xl border-2 border-green-700 bg-paper p-6 md:p-8 shadow-[6px_6px_0_#D5A6A2] max-h-[90vh] overflow-y-auto animate-modal-entry">
+          <div className="relative w-full max-w-3xl rounded-xl border border-pink-200 bg-paper p-6 md:p-8 shadow-md max-h-[90vh] overflow-y-auto animate-modal-entry">
             
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b-2 border-cream pb-4">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-pink-100 border-2 border-green-500 font-bold text-xs text-pink-800 shadow-[1px_1px_0_#DEB9B5]">
+                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-pink-100 border border-pink-200 font-bold text-xs text-pink-800 shadow-sm">
                   <GraduationCap className="w-3.5 h-3.5 text-pink-700" />
                   <span>Phân Công Giảng Viên Phụ Trách</span>
                 </div>
@@ -716,13 +694,13 @@ export function AdminSubjectPage({ showToast }) {
                   {activeSubjectForAssign.subjectCode} — {activeSubjectForAssign.subjectName}
                 </h2>
                 <div className="text-xs text-green-900 flex items-center gap-2 flex-wrap">
-                  <span>Quyền Course-scoped RLS cho phép giảng viên biên soạn, phê duyệt và giám sát ngân hàng đề thi môn học.</span>
+                  <span>Giảng viên được phân công sẽ có quyền biên soạn và quản lý ngân hàng câu hỏi của môn học.</span>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAssignModalOpen(false)}
-                className="p-1.5 rounded-lg border-2 border-green-500 bg-pink-50 text-ink hover:bg-pink-100 shadow-[2px_2px_0_#DEB9B5] cursor-pointer"
+                className="p-1.5 rounded-lg border border-pink-200 bg-slate-50 text-slate-600 hover:bg-slate-100 shadow-sm cursor-pointer"
                 title="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -730,14 +708,14 @@ export function AdminSubjectPage({ showToast }) {
             </div>
 
             {/* Khung Thêm Giảng Viên */}
-            <div className="my-5 p-4 rounded-xl border-2 border-green-500 bg-green-50 shadow-[3px_3px_0_#DEB9B5]">
+            <div className="my-5 p-4 rounded-xl border border-pink-200 bg-green-50 shadow-sm">
               <label className="block font-bold text-xs text-green-900 mb-2">Thêm giảng viên vào môn học:</label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <select
                     value={selectedLecturerIdToAdd}
                     onChange={(e) => setSelectedLecturerIdToAdd(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border-2 border-green-500 bg-paper font-bold text-xs text-ink focus:outline-none focus:border-green-700 cursor-pointer"
+                    className="w-full px-3 py-2 rounded-lg border border-pink-200 bg-paper font-bold text-xs text-ink focus:outline-none focus:border-pink-500 cursor-pointer"
                   >
                     <option value="">-- Chọn Giảng Viên (ROLE_LECTURER) --</option>
                     {lecturers.map(lec => (
@@ -751,7 +729,7 @@ export function AdminSubjectPage({ showToast }) {
                   type="button"
                   onClick={handleAssignLecturer}
                   disabled={!selectedLecturerIdToAdd || isAssigning}
-                  className="px-5 py-2 rounded-lg bg-pink-500 text-ink font-bold text-xs border-2 border-ink shadow-[3px_3px_0_#DEB9B5] hover:bg-pink-600 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer shrink-0 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="px-5 py-2 rounded-lg bg-pink-600 text-white font-semibold text-xs shadow-xs hover:bg-pink-700 active:scale-[0.98] cursor-pointer shrink-0 disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   {isAssigning && <Loader2 className="w-3.5 h-3.5 animate-spin text-ink" />}
                   <span>Phân Công</span>
@@ -767,7 +745,7 @@ export function AdminSubjectPage({ showToast }) {
               </h3>
 
               {activeSubjectAssignments.length === 0 ? (
-                <div className="p-6 text-center border-2 border-dashed border-green-300 rounded-xl text-green-800 text-xs bg-paper">
+                <div className="p-6 text-center border border-dashed border-pink-200 rounded-xl text-slate-500 text-xs bg-slate-50">
                   Chưa có giảng viên nào được phân công phụ trách môn này.
                 </div>
               ) : (
@@ -777,10 +755,10 @@ export function AdminSubjectPage({ showToast }) {
                     return (
                       <div
                         key={asg.lecturerSubjectId}
-                        className="p-3.5 rounded-xl border-2 border-green-500 bg-paper flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_#DEB9B5]"
+                        className="p-3.5 rounded-xl border border-pink-200 bg-paper flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg border-2 border-green-500 bg-green-50 flex items-center justify-center text-green-900 font-bold text-sm shadow-[1px_1px_0_#DEB9B5] overflow-hidden shrink-0">
+                          <div className="w-10 h-10 rounded-lg border border-pink-200 bg-green-50 flex items-center justify-center text-green-900 font-bold text-sm shadow-sm overflow-hidden shrink-0">
                             {lecturer?.avatarUrl ? (
                               <img src={lecturer.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                             ) : (
@@ -806,7 +784,7 @@ export function AdminSubjectPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => handleRevokeAssignment(asg.lecturerSubjectId)}
-                            className="p-1.5 rounded-lg border-2 border-green-500 bg-paper text-pink-700 hover:bg-pink-100 shadow-[2px_2px_0_#DEB9B5] transition-all cursor-pointer"
+                            className="p-1.5 rounded-lg border border-pink-200 bg-paper text-rose-600 hover:bg-rose-50 shadow-sm transition-all cursor-pointer"
                             title="Gỡ quyền phụ trách môn"
                           >
                             <Trash2 className="w-4 h-4 text-pink-700" />
@@ -824,7 +802,7 @@ export function AdminSubjectPage({ showToast }) {
               <button
                 type="button"
                 onClick={() => setIsAssignModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl border-2 border-green-500 bg-paper font-bold text-xs text-green-900 shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 active:translate-x-[2px] active:translate-y-[2px] cursor-pointer"
+                className="px-5 py-2.5 rounded-xl border border-pink-200 bg-paper font-bold text-xs text-green-900 shadow-sm hover:bg-green-100 active:scale-[0.98] cursor-pointer"
               >
                 Đóng Cửa Sổ
               </button>

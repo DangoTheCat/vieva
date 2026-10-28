@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { questionBankApi } from '../api/questionBankApi';
 import { rubricApi } from '../api/rubricApi';
@@ -261,13 +261,13 @@ export function RubricStudioPage({ showToast }) {
     <div className="space-y-6 animate-modal-entry text-ink max-w-7xl mx-auto w-full pb-10">
 
       {/* 1. Header Bar */}
-      <div className="bg-paper border-2 border-green-500 rounded-2xl p-5 sm:p-6 md:p-8 shadow-[4px_4px_0_#DEB9B5] relative overflow-hidden">
+      <div className="bg-white border border-pink-200 rounded-2xl p-5 sm:p-6 md:p-8 shadow-2xs relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="flex-1 space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-pink-100 border-2 border-green-500 rounded-full shadow-[2px_2px_0_#DEB9B5]">
-              <Award className="w-4 h-4 text-pink-700" />
-              <span className="text-xs font-semibold text-pink-900 tracking-wide">
-                Phân Hệ Quản Lý Rubric Đánh Giá (Group 1)
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-slate-100 border border-pink-200 rounded-full">
+              <Award className="w-4 h-4 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700 tracking-wide">
+                Quản Lý Ma Trận Rubric Đánh Giá
               </span>
             </div>
             <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-ink tracking-tight">
@@ -283,7 +283,7 @@ export function RubricStudioPage({ showToast }) {
             <select 
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="bg-paper text-ink font-semibold text-xs px-3.5 py-2.5 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] focus:outline-none focus:border-green-700 cursor-pointer transition-all"
+              className="bg-white text-slate-800 font-semibold text-xs px-3.5 py-2 rounded-xl border border-pink-200 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer"
             >
               {subjects.length === 0 && <option value="">Chưa có môn học</option>}
               {subjects.map((s) => (
@@ -304,9 +304,9 @@ export function RubricStudioPage({ showToast }) {
                 setCriteriaMaxScore('2.5');
                 setIsRubricModalOpen(true);
               }} 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-pink-500 hover:bg-pink-400 text-ink font-bold text-xs border-2 border-green-600 shadow-[3px_3px_0_#DEB9B5] hover:shadow-[1px_1px_0_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
-              <Plus className="w-4 h-4 text-pink-900 font-bold" />
+              <Plus className="w-4 h-4 text-slate-700 font-bold" />
               <span>Thêm Tiêu Chí Rubric</span>
             </button>
           </div>
@@ -315,7 +315,7 @@ export function RubricStudioPage({ showToast }) {
 
       {/* 2. Select Version Bar (if questions exist) */}
       {questions.length > 0 && (
-        <div className="bg-paper border-2 border-green-500 rounded-2xl p-4 sm:p-5 shadow-[3px_3px_0_#DEB9B5]">
+        <div className="bg-white border border-pink-200 rounded-2xl p-4 sm:p-5 shadow-2xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <Sliders className="w-4 h-4 text-green-700" />
@@ -326,7 +326,7 @@ export function RubricStudioPage({ showToast }) {
             <select
               value={selectedVersionId}
               onChange={(e) => setSelectedVersionId(e.target.value)}
-              className="w-full md:max-w-3xl bg-green-50 text-ink text-xs px-3.5 py-2.5 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DADFD3] focus:outline-none focus:border-green-700 cursor-pointer transition-all truncate"
+              className="w-full md:max-w-3xl bg-slate-50 text-slate-800 text-xs px-3.5 py-2 rounded-xl border border-pink-200 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer truncate"
             >
               {questions.map((q) => (
                 <option key={q.questionId} value={q.currentVersion.versionId}>
@@ -345,7 +345,7 @@ export function RubricStudioPage({ showToast }) {
 
       {/* 2b. Rubric templates of the subject */}
       {selectedSubjectId && (
-        <div className="bg-paper border-2 border-green-500 rounded-2xl p-4 sm:p-5 shadow-[3px_3px_0_#DEB9B5] space-y-3 text-xs">
+        <div className="bg-white border border-pink-200 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3 text-xs">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-heading font-bold text-sm">Mẫu Rubric của môn học ({templates.length})</h2>
             <form onSubmit={handleSaveAsTemplate} className="flex items-center gap-2">
@@ -354,13 +354,13 @@ export function RubricStudioPage({ showToast }) {
                 onChange={(e) => setTemplateName(e.target.value)}
                 placeholder="Tên mẫu mới"
                 aria-label="Tên mẫu rubric"
-                className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-500"
               />
               <button
                 type="submit"
                 disabled={!templateName.trim() || rubricCriteria.length === 0 || templateBusyId === 'new'}
                 title={rubricCriteria.length === 0 ? 'Rubric hiện tại chưa có tiêu chí' : ''}
-                className="px-3 py-2 rounded-xl bg-white border-2 border-green-500 font-bold hover:bg-green-50 disabled:opacity-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="px-3.5 py-2 rounded-xl bg-white border border-pink-200 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
               >
                 {templateBusyId === 'new' && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Lưu rubric hiện tại thành mẫu
               </button>
@@ -369,7 +369,7 @@ export function RubricStudioPage({ showToast }) {
           {templates.length === 0 ? (
             <p className="text-on-surface-variant">Chưa có mẫu nào. Soạn rubric cho một câu hỏi rồi lưu lại để tái sử dụng.</p>
           ) : (
-            <ul className="divide-y divide-green-100 border-2 border-green-200 rounded-xl bg-white">
+            <ul className="divide-y divide-slate-100 border border-pink-200 rounded-xl bg-white">
               {templates.map(t => (
                 <li key={t.id} className="p-3 flex flex-wrap items-center justify-between gap-2">
                   <span>
@@ -391,7 +391,7 @@ export function RubricStudioPage({ showToast }) {
                       onClick={() => handleDeleteTemplate(t)}
                       disabled={templateBusyId === t.id}
                       aria-label={`Xoá mẫu ${t.name}`}
-                      className="px-2 py-1.5 rounded-xl border-2 border-pink-300 text-pink-800 hover:bg-pink-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="px-2 py-1 rounded-lg border border-pink-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -404,7 +404,7 @@ export function RubricStudioPage({ showToast }) {
       )}
 
       {/* 3. Rubric Budget Tracker (10.0 points meter banner) */}
-      <div className="bg-paper border-2 border-green-500 rounded-2xl p-5 sm:p-6 shadow-[4px_4px_0_#DEB9B5] relative overflow-hidden">
+      <div className="bg-white border border-pink-200 rounded-2xl p-5 sm:p-6 shadow-2xs relative overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-green-500"></div>
         <div className="pl-2 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -412,18 +412,18 @@ export function RubricStudioPage({ showToast }) {
               <span className="text-xs text-green-800 uppercase tracking-widest font-bold">
                 [ RUBRIC BUDGET TRACKER ]
               </span>
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold shadow-[2px_2px_0_#DADFD3] border-2 ${
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold shadow-sm border-2 ${
                 isBudgetValid 
-                  ? 'bg-green-100 border-green-500 text-green-900' 
-                  : 'bg-pink-100 border-pink-400 text-pink-900'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                  : 'bg-pink-100 border-pink-400 text-slate-700'
               }`}>
-                <CheckCircle2 className={`w-3.5 h-3.5 ${isBudgetValid ? 'text-green-700' : 'text-pink-700'}`} />
+                <CheckCircle2 className={`w-3.5 h-3.5 ${isBudgetValid ? 'text-green-700' : 'text-slate-600'}`} />
                 <span>{isBudgetValid ? '[ ĐẠT CHUẨN 10.0 ]' : `[ CHƯA ĐẠT: ${currentTotalScore.toFixed(1)}/10.0 ]`}</span>
               </span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-xs text-on-surface-variant uppercase">Tổng điểm:</span>
-              <span className={`font-heading text-xl sm:text-2xl font-bold tracking-tight ${isBudgetValid ? 'text-green-800' : 'text-pink-700'}`}>
+              <span className={`font-heading text-xl sm:text-2xl font-bold tracking-tight ${isBudgetValid ? 'text-green-800' : 'text-slate-600'}`}>
                 {currentTotalScore.toFixed(1)}
               </span>
               <span className="text-sm text-on-surface-variant font-normal">/ 10.0</span>
@@ -432,10 +432,10 @@ export function RubricStudioPage({ showToast }) {
 
           {/* Linear Segmented Paper Progress Meter */}
           <div className="space-y-1.5">
-            <div className="w-full h-3.5 bg-green-100 rounded-full border-2 border-green-500 overflow-hidden p-0.5 shadow-inner">
+            <div className="w-full h-3 bg-slate-100 rounded-full border border-pink-200 overflow-hidden p-0.5">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-1 ${
-                  isBudgetValid ? 'bg-green-500' : 'bg-pink-500'
+                  isBudgetValid ? 'bg-emerald-600' : 'bg-rose-500'
                 }`} 
                 style={{ width: `${progressPercent}%` }}
               >
@@ -451,8 +451,8 @@ export function RubricStudioPage({ showToast }) {
 
           <p className={`text-xs rounded-lg p-2.5 flex items-center gap-2 border ${
             isBudgetValid 
-              ? 'text-green-900 bg-green-50 border-green-300' 
-              : 'text-pink-900 bg-pink-50 border-pink-300'
+              ? 'text-emerald-800 bg-emerald-50 border-emerald-200' 
+              : 'text-slate-700 bg-pink-50 border-pink-300'
           }`}>
             <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0" />
             <span>
@@ -466,15 +466,15 @@ export function RubricStudioPage({ showToast }) {
       </div>
 
       {/* 4. Rubric Table Card */}
-      <div className="bg-paper border-2 border-green-500 rounded-2xl p-4 sm:p-6 shadow-[6px_6px_0_#D5A6A2] space-y-4">
+      <div className="bg-white border border-pink-200 rounded-2xl p-4 sm:p-6 shadow-2xs space-y-4">
         <div className="flex items-center justify-between border-b-2 border-cream pb-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-pink-700" />
+            <Sparkles className="w-5 h-5 text-slate-600" />
             <h2 className="font-heading font-semibold text-base sm:text-lg text-ink">
               Danh Sách Tiêu Chí Đánh Giá Chi Tiết
             </h2>
           </div>
-          <span className="text-xs text-on-surface-variant bg-green-100 border border-green-500 rounded-full px-2.5 py-0.5 shadow-[1px_1px_0_#DEB9B5]">
+          <span className="text-xs text-slate-600 bg-slate-100 border border-pink-200 rounded-full px-2.5 py-0.5">
             Phiên bản ban hành v1.0
           </span>
         </div>
@@ -496,7 +496,7 @@ export function RubricStudioPage({ showToast }) {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-ink border-collapse">
               <thead>
-                <tr className="border-b-2 border-green-500 bg-green-50 text-ink font-semibold text-xs">
+                <tr className="border-b border-pink-200 bg-slate-50 text-slate-700 font-semibold text-xs">
                   <th className="py-2.5 px-3 w-16 text-center">STT</th>
                   <th className="py-2.5 px-3 w-1/4">Tên Tiêu Chí</th>
                   <th className="py-2.5 px-3">Mô Tả Tiêu Chí</th>
@@ -506,7 +506,7 @@ export function RubricStudioPage({ showToast }) {
               </thead>
               <tbody className="divide-y-2 divide-cream">
                 {rubricCriteria.map((item, idx) => (
-                  <tr key={item.criterionId || item.id || idx} className="hover:bg-pink-50/60 transition-colors">
+                  <tr key={item.criterionId || item.id || idx} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3 px-3 text-center font-bold text-green-800 font-mono">
                       {String(idx + 1).padStart(2, '0')}
                     </td>
@@ -517,7 +517,7 @@ export function RubricStudioPage({ showToast }) {
                       {item.description || 'Nội dung chấm điểm'}
                     </td>
                     <td className="py-3 px-3 align-top text-right whitespace-nowrap">
-                      <span className="inline-block px-2.5 py-1 bg-green-100 border-2 border-green-500 rounded-lg font-bold text-green-900 shadow-[2px_2px_0_#DADFD3]">
+                      <span className="inline-block px-2.5 py-1 bg-slate-100 border border-pink-200 rounded-lg font-mono font-bold text-slate-800">
                         {Number(item.maxScore).toFixed(1)} điểm
                       </span>
                     </td>
@@ -532,14 +532,14 @@ export function RubricStudioPage({ showToast }) {
                             setCriteriaMaxScore(String(item.maxScore || '2.5'));
                             setIsRubricModalOpen(true);
                           }} 
-                          className="px-2.5 py-1 text-xs font-semibold text-green-800 bg-paper hover:bg-green-100 rounded-lg border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-pink-200 shadow-2xs active:scale-[0.98] cursor-pointer transition-all"
                         >
                           Chỉnh sửa
                         </button>
                         <button 
                           type="button"
                           onClick={() => handleDeleteCriterion(item.criterionId || item.id)} 
-                          className="px-2.5 py-1 text-xs font-semibold text-pink-700 bg-pink-50 hover:bg-pink-100 rounded-lg border-2 border-pink-400 shadow-[1px_1px_0_#DEB9B5] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-pink-50 hover:bg-pink-100 rounded-lg border-2 border-pink-400 shadow-sm active:scale-[0.98] cursor-pointer transition-all"
                         >
                           Xóa
                         </button>
@@ -553,16 +553,16 @@ export function RubricStudioPage({ showToast }) {
         )}
 
         {/* Table Footer Summary */}
-        <div className="pt-3 border-t-2 border-green-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-paper">
+        <div className="pt-3 border-t border-pink-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
           <div className="flex items-center gap-2">
             <span className="text-xs text-on-surface-variant">Tổng số tiêu chí:</span>
-            <span className="px-2.5 py-0.5 bg-paper border-2 border-green-500 rounded-md text-xs font-bold text-ink shadow-[2px_2px_0_#DADFD3]">
+            <span className="px-2.5 py-0.5 bg-slate-50 border border-pink-200 rounded-md text-xs font-mono font-bold text-slate-800">
               {rubricCriteria.length}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-ink">Tổng điểm Rubric:</span>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 border-2 border-green-500 rounded-full shadow-[2px_2px_0_#DEB9B5]">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-pink-200 rounded-full">
               <span className="w-2.5 h-2.5 rounded-full bg-green-600"></span>
               <span className="text-xs font-bold text-green-900">
                 {currentTotalScore.toFixed(1)} / 10.0 điểm
@@ -578,11 +578,11 @@ export function RubricStudioPage({ showToast }) {
       {/* 5. Rubric Modal (Thêm / Chỉnh Sửa Tiêu Chí Rubric) */}
       {isRubricModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
-          <div className="bg-paper border-2 border-green-500 rounded-2xl max-w-md w-full p-6 shadow-[6px_6px_0_#DEB9B5] space-y-4 animate-modal-entry text-ink">
+          <div className="bg-white border border-pink-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 animate-modal-entry text-ink">
             <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-pink-100 border-2 border-green-500 text-pink-700 flex items-center justify-center font-bold text-sm shadow-[2px_2px_0_#DEB9B5]">
-                  <Award className="w-4 h-4 text-pink-700" />
+                <div className="w-8 h-8 rounded-lg bg-slate-100 border border-pink-200 text-slate-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                  <Award className="w-4 h-4 text-slate-600" />
                 </div>
                 <h3 className="font-heading font-bold text-base text-ink">
                   {editingCriterion ? 'Chỉnh Sửa Tiêu Chí Rubric' : 'Thêm Tiêu Chí Rubric Mới'}
@@ -591,7 +591,7 @@ export function RubricStudioPage({ showToast }) {
               <button 
                 type="button"
                 onClick={() => setIsRubricModalOpen(false)} 
-                className="text-pink-700 hover:text-pink-900 p-1 cursor-pointer transition-colors"
+                className="text-slate-600 hover:text-slate-700 p-1 cursor-pointer transition-colors"
                 aria-label="Đóng"
               >
                 <X className="w-5 h-5" />
@@ -607,7 +607,7 @@ export function RubricStudioPage({ showToast }) {
                   value={criteriaName}
                   onChange={(e) => setCriteriaName(e.target.value)}
                   placeholder="Ví dụ: Hiểu cơ chế Event-Driven Architecture..." 
-                  className="w-full bg-surface-container-lowest border-2 border-green-500 rounded-xl p-2.5 text-xs text-ink placeholder:text-outline focus:outline-none focus:border-green-700 shadow-[1px_1px_0_#DEB9B5]" 
+                  className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs text-ink placeholder:text-slate-400 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs" 
                 />
               </div>
 
@@ -618,7 +618,7 @@ export function RubricStudioPage({ showToast }) {
                   value={criteriaDescription}
                   onChange={(e) => setCriteriaDescription(e.target.value)}
                   placeholder="Mô tả tiêu chuẩn đạt điểm của câu trả lời..." 
-                  className="w-full bg-surface-container-lowest border-2 border-green-500 rounded-xl p-2.5 text-xs text-ink placeholder:text-outline focus:outline-none focus:border-green-700 shadow-[1px_1px_0_#DEB9B5]"
+                  className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs text-ink placeholder:text-slate-400 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs"
                 />
               </div>
 
@@ -631,7 +631,7 @@ export function RubricStudioPage({ showToast }) {
                   required
                   value={criteriaMaxScore}
                   onChange={(e) => setCriteriaMaxScore(e.target.value)}
-                  className="w-full bg-surface-container-lowest border-2 border-green-500 rounded-xl p-2.5 text-xs text-ink placeholder:text-outline focus:outline-none focus:border-green-700 shadow-[1px_1px_0_#DEB9B5]" 
+                  className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs text-ink placeholder:text-slate-400 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs" 
                 />
               </div>
 
@@ -639,14 +639,14 @@ export function RubricStudioPage({ showToast }) {
                 <button 
                   type="button" 
                   onClick={() => setIsRubricModalOpen(false)} 
-                  className="px-4 py-2 rounded-full border-2 border-outline-variant text-xs font-semibold text-on-surface-variant bg-paper shadow-[2px_2px_0_#DEB9B5] hover:bg-green-50 cursor-pointer transition-all"
+                  className="px-4 py-2 rounded-xl border border-pink-200 text-xs font-semibold text-slate-700 bg-white shadow-2xs hover:bg-slate-50 cursor-pointer transition-all"
                 >
                   Hủy
                 </button>
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-full bg-pink-500 hover:bg-pink-400 text-ink text-xs font-bold border-2 border-green-600 shadow-[3px_3px_0_#DEB9B5] hover:shadow-[1px_1px_0_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Lưu Tiêu Chí ↗</span>

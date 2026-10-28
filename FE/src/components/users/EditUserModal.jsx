@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
 import { ROLE_OPTIONS, getUserRole } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
@@ -109,10 +109,10 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-modal-entry max-h-[92vh]">
+      <div className="bg-white rounded-2xl max-w-xl w-full border border-pink-200 shadow-2xl overflow-hidden flex flex-col animate-modal-entry max-h-[92vh]">
         
         {/* Header */}
-        <div className="p-4 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between">
+        <div className="p-4 bg-pink-600 text-white border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-400/30">
               <Edit3 className="w-4 h-4" />
@@ -149,8 +149,8 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
           )}
 
           {/* User Hero Preview */}
-          <div className="p-3.5 bg-paper border-2 border-green-500 rounded-xl flex items-center gap-3 shadow-[2px_2px_0px_#DEB9B5]">
-            <div className="w-12 h-12 rounded-xl border-2 border-green-600 shadow-[2px_2px_0px_#DEB9B5] overflow-hidden shrink-0 bg-pink-100 flex items-center justify-center font-heading font-black text-sm text-pink-900">
+          <div className="p-3.5 bg-slate-50 border border-pink-200 rounded-xl flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl border border-pink-200 overflow-hidden shrink-0 bg-slate-200 flex items-center justify-center font-heading font-bold text-sm text-slate-700">
               {(user.avatarUrl || user.avatar || user.avatar_url) ? (
                 <img
                   src={(user.avatarUrl || user.avatar || user.avatar_url).trim()}
@@ -181,7 +181,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                 type="email"
                 disabled
                 value={user.email || ''}
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-mono text-xs cursor-not-allowed font-medium"
+                className="w-full p-2.5 rounded-xl border border-pink-200 bg-slate-100 text-slate-500 font-mono text-xs cursor-not-allowed font-medium"
               />
             </div>
             <div>
@@ -190,7 +190,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                 type="text"
                 disabled
                 value={user.userCode || ''}
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-mono text-xs cursor-not-allowed font-medium"
+                className="w-full p-2.5 rounded-xl border border-pink-200 bg-slate-100 text-slate-500 font-mono text-xs cursor-not-allowed font-medium"
               />
             </div>
           </div>
@@ -204,7 +204,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
               maxLength={150}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition font-medium"
+              className="w-full p-2.5 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition font-medium"
             />
           </div>
 
@@ -217,7 +217,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="0912345678"
-                className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition font-medium"
+                className="w-full p-2.5 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition font-medium"
               />
             </div>
             <div>
@@ -226,7 +226,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 disabled={isEditingSelf}
-                className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 text-slate-800 text-xs bg-white disabled:bg-slate-100 disabled:cursor-not-allowed transition cursor-pointer font-medium"
+                className="w-full p-2.5 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 text-slate-800 text-xs bg-white disabled:bg-slate-100 disabled:cursor-not-allowed transition cursor-pointer font-medium"
               >
                 <option value="ACTIVE">Hoạt động (ACTIVE)</option>
                 <option value="INACTIVE">Vô hiệu hóa (INACTIVE)</option>
@@ -257,14 +257,14 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                     onKeyDown={(e) => !isDisabled && (e.key === ' ' || e.key === 'Enter') && selectRole(code)}
                     className={`p-3 rounded-xl border select-none transition-all flex flex-col justify-between ${
                       isDisabled
-                        ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200'
+                        ? 'opacity-40 cursor-not-allowed bg-slate-50 border-pink-200'
                         : isChecked
                         ? isAdmin
                           ? 'border-purple-600 bg-purple-50/70 text-purple-950 ring-2 ring-purple-500/20 cursor-pointer'
                           : isLecturer
                           ? 'border-sky-600 bg-sky-50/70 text-sky-950 ring-2 ring-sky-500/20 cursor-pointer'
-                          : 'border-slate-800 bg-slate-50 text-slate-900 ring-2 ring-slate-400/20 cursor-pointer'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 text-slate-600 cursor-pointer'
+                          : 'border-slate-800 bg-slate-50 text-ink ring-2 ring-slate-400/20 cursor-pointer'
+                        : 'border-pink-200 hover:border-pink-200 hover:bg-slate-50/50 text-slate-600 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -273,8 +273,8 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                       </span>
                       <div className={`w-4 h-4 rounded-full flex items-center justify-center border transition ${
                         isChecked 
-                          ? isAdmin ? 'bg-purple-600 border-purple-600 text-white' : isLecturer ? 'bg-sky-600 border-sky-600 text-white' : 'bg-slate-900 border-slate-900 text-white'
-                          : 'border-slate-300 bg-white'
+                          ? isAdmin ? 'bg-purple-600 border-purple-600 text-white' : isLecturer ? 'bg-sky-600 border-sky-600 text-white' : 'bg-pink-600 border-slate-900 text-white'
+                          : 'border-pink-200 bg-white'
                       }`}>
                         {isChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                       </div>
@@ -292,19 +292,19 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
           </div>
 
           {/* Footer Actions */}
-          <div className="p-4 bg-slate-50 border-t border-slate-200/80 flex items-center justify-end gap-2.5 -mx-5 -mb-5 mt-5">
+          <div className="p-4 bg-slate-50 border-t border-pink-200/80 flex items-center justify-end gap-2.5 -mx-5 -mb-5 mt-5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-pink-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
             >
               {isSubmitting && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
               <span>Lưu Cập Nhật</span>

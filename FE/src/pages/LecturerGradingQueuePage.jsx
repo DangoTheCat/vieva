@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { Users, CheckCircle2, Clock, Search, X, Loader2, BarChart3, Save, ClipboardCheck } from 'lucide-react';
@@ -13,11 +13,11 @@ const ATTEMPT_LABEL = {
 };
 
 const fmt = (n) => (n != null ? Number(n).toFixed(2).replace(/\.00$/, '') : '—');
-const ghostBtn = 'px-3 py-1.5 rounded-xl bg-white border-2 border-green-300 hover:bg-green-50 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-green-600';
+const ghostBtn = 'px-3 py-1.5 rounded-lg bg-white border border-pink-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer';
 
 function StatTile({ icon: Icon, label, value }) {
   return (
-    <div className="bg-white border-2 border-green-400 rounded-2xl p-4 shadow-[3px_3px_0_#DEB9B5]">
+    <div className="bg-white border border-pink-200 rounded-xl p-4 shadow-2xs">
       <div className="flex items-center gap-2 text-[11px] font-bold text-green-700 uppercase tracking-wide"><Icon className="w-4 h-4" /> {label}</div>
       <p className="font-heading font-black text-2xl mt-1">{value}</p>
     </div>
@@ -161,12 +161,12 @@ export function LecturerGradingQueuePage({ showToast }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select value={courseId} onChange={e => setCourseId(e.target.value)} aria-label="Môn học"
-            className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-green-600">
+            className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs">
             {courses.length === 0 && <option value="">Chưa được phân công môn học</option>}
             {courses.map(c => <option key={c.subjectId} value={c.subjectId}>{c.subjectCode} — {c.subjectName}</option>)}
           </select>
           <select value={examId} onChange={e => setExamId(e.target.value)} aria-label="Kỳ thi" disabled={exams.length === 0}
-            className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-green-600 disabled:opacity-50">
+            className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs disabled:opacity-50">
             {exams.length === 0 && <option value="">Chưa có kỳ thi</option>}
             {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
           </select>
@@ -182,17 +182,17 @@ export function LecturerGradingQueuePage({ showToast }) {
         </section>
       )}
 
-      <section className="bg-white border-2 border-green-500 rounded-2xl shadow-[4px_4px_0_#DEB9B5] overflow-hidden">
-        <div className="p-4 border-b-2 border-green-100">
+      <section className="bg-white border border-pink-200 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="p-4 border-b border-pink-200">
           <div className="relative max-w-sm">
             <Search className="w-4 h-4 text-green-700 absolute left-3 top-2.5" />
             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Tìm theo tên, MSSV, email..."
-              className="w-full bg-white border-2 border-green-300 rounded-xl p-2 pl-9 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+              className="w-full bg-white border border-pink-200 rounded-xl p-2 pl-9 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-pink-500 shadow-2xs" />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-green-500 text-green-900 font-bold uppercase text-[10px] tracking-wider">
+            <thead className="bg-slate-50 border-b border-pink-200 text-slate-700 font-semibold uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Thí sinh</th>
                 <th className="py-3 px-4">Trạng thái</th>
@@ -235,8 +235,8 @@ export function LecturerGradingQueuePage({ showToast }) {
 
       {attempt && (
         <div className="fixed inset-0 z-50 bg-ink/50 flex justify-end" role="dialog" aria-modal="true">
-          <div className="bg-paper w-full max-w-2xl h-full overflow-y-auto border-l-2 border-green-500">
-            <div className="sticky top-0 bg-paper z-10 p-5 border-b-2 border-green-200 flex items-start justify-between gap-3">
+          <div className="bg-white w-full max-w-2xl h-full overflow-y-auto border-l border-pink-200 shadow-2xl">
+            <div className="sticky top-0 bg-white z-10 p-5 border-b border-pink-200 flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-heading font-black text-lg">{attempt.studentName}</h2>
                 <p className="text-[11px] text-green-800">
@@ -250,10 +250,10 @@ export function LecturerGradingQueuePage({ showToast }) {
               {isLoadingAttempt ? (
                 <div className="flex items-center gap-2 text-green-800"><Loader2 className="w-4 h-4 animate-spin" /> Đang tải bài làm...</div>
               ) : (attempt.questions || []).map(qn => (
-                <article key={qn.questionId} className="bg-white border-2 border-green-300 rounded-2xl p-4 space-y-3">
+                <article key={qn.questionId} className="bg-white border border-pink-200 rounded-xl p-4 space-y-3 shadow-2xs">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-bold">Câu {qn.orderIndex}. {qn.questionText}</p>
-                    <span className="shrink-0 font-mono font-black bg-green-100 border border-green-400 rounded-lg px-2 py-0.5">{fmt(qn.effectiveScore)} / 10</span>
+                    <span className="shrink-0 font-mono font-bold bg-slate-100 border border-pink-200 text-slate-800 rounded-lg px-2 py-0.5">{fmt(qn.effectiveScore)} / 10</span>
                   </div>
                   {qn.expectedAnswer && (
                     <p className="text-green-900 bg-green-50 rounded-lg p-2"><strong>Đáp án tham khảo:</strong> {qn.expectedAnswer}</p>
@@ -268,15 +268,15 @@ export function LecturerGradingQueuePage({ showToast }) {
                       </li>
                     ))}
                   </ol>
-                  <div className="grid sm:grid-cols-[100px_1fr_auto] gap-2 items-start pt-2 border-t-2 border-green-100">
+                  <div className="grid sm:grid-cols-[100px_1fr_auto] gap-2 items-start pt-2 border-t border-pink-100">
                     <input type="number" min="0" max="10" step="0.25" aria-label="Điểm giảng viên" placeholder="Điểm"
                       value={drafts[qn.questionId]?.score ?? ''}
                       onChange={e => setDrafts(d => ({ ...d, [qn.questionId]: { ...d[qn.questionId], score: e.target.value } }))}
-                      className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+                      className="bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs" />
                     <textarea rows={2} aria-label="Nhận xét giảng viên" placeholder="Nhận xét của giảng viên (tuỳ chọn)"
                       value={drafts[qn.questionId]?.feedback ?? ''}
                       onChange={e => setDrafts(d => ({ ...d, [qn.questionId]: { ...d[qn.questionId], feedback: e.target.value } }))}
-                      className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+                      className="bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs" />
                     <button type="button" onClick={() => saveGrade(qn.questionId)} disabled={savingQuestionId === qn.questionId}
                       className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
                       {savingQuestionId === qn.questionId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Lưu

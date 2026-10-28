@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { lecturerExamApi } from '../api/lecturerExamApi';
 import { questionBankApi } from '../api/questionBankApi';
@@ -21,13 +21,13 @@ import {
 
 const STATUS_META = {
   DRAFT: { label: 'Bản nháp', tone: 'bg-amber-50 text-amber-800 border-amber-300' },
-  IN_PROGRESS: { label: 'Đang mở thi', tone: 'bg-green-100 text-green-900 border-green-400' },
-  COMPLETED: { label: 'Đã đóng', tone: 'bg-slate-100 text-slate-700 border-slate-300' }
+  IN_PROGRESS: { label: 'Đang mở thi', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+  COMPLETED: { label: 'Đã đóng', tone: 'bg-slate-100 text-slate-700 border-pink-200' }
 };
 
-const inputClass = 'w-full bg-white border-2 border-green-300 focus:border-green-600 rounded-xl p-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-green-600';
+const inputClass = 'w-full bg-white border border-pink-200 focus:border-pink-500 rounded-xl p-2.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-2xs';
 const primaryBtn = 'px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
-const ghostBtn = 'px-3 py-1.5 rounded-xl bg-white border-2 border-green-300 hover:bg-green-50 text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600';
+const ghostBtn = 'px-3 py-1.5 rounded-lg bg-white border border-pink-200 hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition disabled:opacity-50 shadow-2xs cursor-pointer';
 
 /**
  * Lecturer exam management: create exams per subject, pick approved question versions,
@@ -221,7 +221,7 @@ export function LecturerExamsPage({ showToast }) {
           <select
             value={subjectId}
             onChange={(e) => setSubjectId(e.target.value)}
-            className="bg-white border-2 border-green-300 rounded-xl p-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-green-600"
+            className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs"
             aria-label="Môn học"
           >
             {subjects.length === 0 && <option value="">Chưa được phân công môn học</option>}
@@ -235,7 +235,7 @@ export function LecturerExamsPage({ showToast }) {
         </div>
       </header>
 
-      <section className="bg-white border-2 border-green-500 rounded-2xl shadow-[4px_4px_0_#DEB9B5] overflow-hidden">
+      <section className="bg-white border border-pink-200 rounded-2xl shadow-2xs overflow-hidden">
         {isLoading ? (
           <div className="p-4 space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-16 rounded-xl animate-pulse bg-slate-200/80" />)}</div>
         ) : exams.length === 0 ? (
@@ -245,7 +245,7 @@ export function LecturerExamsPage({ showToast }) {
             <p className="text-xs text-green-800">{subjectId ? 'Bấm "Tạo kỳ thi" để bắt đầu.' : 'Bạn cần được Admin phân công môn học.'}</p>
           </div>
         ) : (
-          <ul className="divide-y-2 divide-green-100">
+          <ul className="divide-y divide-slate-100">
             {exams.map(exam => {
               const meta = STATUS_META[exam.status] || STATUS_META.DRAFT;
               const isDraft = exam.status === 'DRAFT';
@@ -279,7 +279,7 @@ export function LecturerExamsPage({ showToast }) {
                         >
                           <Play className="w-3.5 h-3.5" /> Mở thi
                         </button>
-                        <button type="button" onClick={() => setConfirm({ exam, action: 'delete' })} className={`${ghostBtn} text-pink-800 border-pink-300 hover:bg-pink-50`}>
+                        <button type="button" onClick={() => setConfirm({ exam, action: 'delete' })} className={`${ghostBtn} text-rose-600 border-rose-200 hover:bg-rose-50`}>
                           <Trash2 className="w-3.5 h-3.5" /> Xoá
                         </button>
                       </>
@@ -300,7 +300,7 @@ export function LecturerExamsPage({ showToast }) {
       {/* CREATE / RENAME */}
       {form && (
         <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <form onSubmit={handleSaveExam} className="bg-paper border-2 border-green-500 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-[8px_8px_0_#DEB9B5]">
+          <form onSubmit={handleSaveExam} className="bg-white border border-pink-200 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-md">
             <div className="flex items-center justify-between">
               <h2 className="font-heading font-black text-lg">{form.examId ? 'Đổi tên kỳ thi' : 'Tạo kỳ thi mới'}</h2>
               <button type="button" onClick={() => setForm(null)} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100"><X className="w-5 h-5" /></button>
@@ -328,8 +328,8 @@ export function LecturerExamsPage({ showToast }) {
       {/* QUESTION PICKER */}
       {questionEditor && (
         <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div className="bg-paper border-2 border-green-500 rounded-3xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-[8px_8px_0_#DEB9B5]">
-            <div className="p-5 border-b-2 border-green-200 flex items-center justify-between">
+          <div className="bg-white border border-pink-200 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-md">
+            <div className="p-5 border-b border-pink-200 flex items-center justify-between">
               <div>
                 <h2 className="font-heading font-black text-lg">Câu hỏi cho "{questionEditor.exam.title}"</h2>
                 <p className="text-[11px] text-green-800">Chỉ hiển thị phiên bản câu hỏi đã được duyệt (APPROVED) của môn học.</p>
@@ -349,7 +349,7 @@ export function LecturerExamsPage({ showToast }) {
                   {questionEditor.approved.map(v => {
                     const checked = questionEditor.selected.some(s => s.questionVersionId === v.versionId);
                     return (
-                      <label key={v.versionId} className={`flex gap-2 p-3 rounded-xl border-2 cursor-pointer ${checked ? 'border-green-500 bg-green-50' : 'border-green-200 bg-white hover:bg-green-50/50'}`}>
+                      <label key={v.versionId} className={`flex gap-2 p-3 rounded-xl border-2 cursor-pointer ${checked ? 'border-slate-900 bg-slate-50' : 'border-pink-200 bg-white hover:bg-slate-50'}`}>
                         <input type="checkbox" checked={checked} onChange={() => toggleQuestion(v)} className="mt-0.5 accent-green-600" />
                         <span className="space-y-0.5">
                           <span className="block font-medium">{v.content}</span>
@@ -364,7 +364,7 @@ export function LecturerExamsPage({ showToast }) {
                   {questionEditor.selected.length === 0 && <p className="text-green-800">Chưa chọn câu hỏi nào.</p>}
                   <ol className="space-y-2">
                     {questionEditor.selected.map((s, i) => (
-                      <li key={s.questionVersionId} className="flex items-start gap-2 p-3 rounded-xl border-2 border-green-300 bg-white">
+                      <li key={s.questionVersionId} className="flex items-start gap-2 p-3 rounded-xl border border-pink-200 bg-white">
                         <span className="font-mono font-black text-green-700">{i + 1}.</span>
                         <span className="flex-1">{s.content}</span>
                         <span className="flex flex-col gap-1">
@@ -378,7 +378,7 @@ export function LecturerExamsPage({ showToast }) {
               </div>
             )}
 
-            <div className="p-5 border-t-2 border-green-200 flex justify-end gap-2">
+            <div className="p-5 border-t border-pink-200 flex justify-end gap-2">
               <button type="button" onClick={() => setQuestionEditor(null)} className={ghostBtn}>Huỷ</button>
               <button type="button" onClick={saveQuestions} disabled={isSaving || isLoadingQuestions} className={primaryBtn}>
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />} Lưu danh sách câu hỏi

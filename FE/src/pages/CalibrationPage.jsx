@@ -252,12 +252,12 @@ export function CalibrationPage({ onNavigate, showToast }) {
     <div className="max-w-4xl w-full mx-auto space-y-6 animate-modal-entry py-4 text-slate-800 pb-12">
       
       {/* Top Header Card */}
-      <div className="bg-white border border-slate-200/90 p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+      <div className="bg-white border border-pink-200/90 p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-2xs">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-sky-600 block">
             Hiệu Chuẩn Thiết Bị Khảo Thí (AIVES Device Calibration)
           </span>
-          <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900 mt-0.5">
+          <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-ink mt-0.5">
             Kiểm Tra Microphone, Loa &amp; Camera Thi Vấn Đáp
           </h1>
           <p className="text-xs text-slate-500 mt-1">
@@ -289,7 +289,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
               ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold shadow-xs ring-2 ring-sky-500/20'
               : micTestedSuccessfully
                 ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-semibold'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                : 'bg-white border-pink-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -314,7 +314,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
               ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold shadow-xs ring-2 ring-sky-500/20'
               : hasPlayedSound
                 ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-semibold'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                : 'bg-white border-pink-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -339,7 +339,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
               ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold shadow-xs ring-2 ring-sky-500/20'
               : camTestedSuccessfully
                 ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-semibold'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                : 'bg-white border-pink-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -359,12 +359,12 @@ export function CalibrationPage({ onNavigate, showToast }) {
 
       {/* STEP 1: MICROPHONE INTERACTIVE TEST */}
       {currentStep === 1 && (
-        <div className="bg-white border border-slate-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
+        <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
               Bước 1 / 3: Kiểm Tra Microphone
             </span>
-            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900">
+            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
               Kiểm Tra Tín Hiệu Thu Âm Giọng Nói
             </h2>
             <p className="text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
@@ -373,14 +373,14 @@ export function CalibrationPage({ onNavigate, showToast }) {
           </div>
 
           {/* Interactive Mic Box */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-5">
+          <div className="bg-slate-50 border border-pink-200 rounded-2xl p-6 text-center space-y-5">
             <div className="flex items-center justify-center gap-3">
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl transition border ${
                 isMicListening 
                   ? 'bg-rose-50 border-rose-300 text-rose-600 animate-pulse ring-4 ring-rose-100'
                   : micTestedSuccessfully
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-600 ring-4 ring-emerald-100'
-                    : 'bg-white border-slate-200 text-slate-600'
+                    : 'bg-white border-pink-200 text-slate-600'
               }`}>
                 {isMicListening ? <Mic className="w-8 h-8" /> : <MicOff className="w-8 h-8 text-slate-400" />}
               </div>
@@ -391,7 +391,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
                 <button
                   type="button"
                   onClick={startMicTest}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  className="bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Mic className="w-4 h-4 text-sky-400" />
                   <span>🎙️ Bắt Đầu Nói Thử (Test Microphone)</span>
@@ -412,7 +412,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
             <div className="max-w-md mx-auto space-y-2">
               <div className="flex justify-between text-[11px] font-bold text-slate-600">
                 <span>Mức Âm Lượng Thu (VU Meter):</span>
-                <span className="font-mono text-slate-900">
+                <span className="font-mono text-ink">
                   {isMicListening ? `${micVolumeLevel}% (-${Math.max(0, 48 - Math.round(micVolumeLevel * 0.48))} dB)` : 'Chưa bật mic'}
                 </span>
               </div>
@@ -425,7 +425,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
             </div>
 
             {/* Speech Recognition Transcript Box */}
-            <div className="bg-white border border-slate-200/90 rounded-xl p-4 text-left max-w-lg mx-auto space-y-1.5 shadow-2xs">
+            <div className="bg-white border border-pink-200/90 rounded-xl p-4 text-left max-w-lg mx-auto space-y-1.5 shadow-2xs">
               <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-sky-600" />
                 Văn Bản Bóc Băng Nhận Diện Được (Live STT Preview):
@@ -450,7 +450,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="pt-4 border-t border-pink-100 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => onNavigate && onNavigate('discover')}
@@ -482,12 +482,12 @@ export function CalibrationPage({ onNavigate, showToast }) {
 
       {/* STEP 2: SPEAKER TEST */}
       {currentStep === 2 && (
-        <div className="bg-white border border-slate-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
+        <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
               Bước 2 / 3: Kiểm Tra Loa / Tai Nghe
             </span>
-            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900">
+            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
               Bạn Có Nghe Rõ Giọng Đọc Của Giám Thị Ảo?
             </h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
@@ -495,15 +495,15 @@ export function CalibrationPage({ onNavigate, showToast }) {
             </p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 mx-auto flex items-center justify-center text-3xl shadow-xs">
+          <div className="bg-slate-50 border border-pink-200 rounded-2xl p-6 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-pink-200 mx-auto flex items-center justify-center text-3xl shadow-xs">
               🔊
             </div>
             
             <button 
               type="button"
               onClick={playSampleVoice} 
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition inline-flex items-center gap-2 cursor-pointer active:scale-95"
+              className="bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition inline-flex items-center gap-2 cursor-pointer active:scale-95"
             >
               <Volume2 className="w-4 h-4 text-sky-400" />
               <span>{isPlayingTest ? '▶ Đang Phát Giọng Mẫu (1.0x)...' : '▶ Phát Giọng Đọc Mẫu (1.0x)'}</span>
@@ -525,7 +525,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
             <span className="font-mono text-emerald-700 font-bold">-12 dB (Optimal)</span>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="pt-4 border-t border-pink-100 flex flex-wrap items-center justify-between gap-3">
             <button 
               type="button"
               onClick={() => setCurrentStep(1)}
@@ -557,12 +557,12 @@ export function CalibrationPage({ onNavigate, showToast }) {
 
       {/* STEP 3: CAMERA PROCTORING TEST */}
       {currentStep === 3 && (
-        <div className="bg-white border border-slate-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
+        <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
               Bước 3 / 3: Kiểm Tra Camera AI Giám Sát
             </span>
-            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900">
+            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
               Kiểm Tra Góc Nhìn Trực Diện Của Thí Sinh
             </h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
@@ -570,7 +570,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
             </p>
           </div>
 
-          <div className="bg-slate-900 rounded-2xl overflow-hidden aspect-video max-w-lg mx-auto relative flex items-center justify-center border border-slate-800 shadow-inner">
+          <div className="bg-pink-600 rounded-2xl overflow-hidden aspect-video max-w-lg mx-auto relative flex items-center justify-center border border-slate-800 shadow-inner">
             {isCamActive ? (
               isUsingSimulatedCam ? (
                 /* Simulated Candidate Proctoring Feed */
@@ -592,7 +592,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
                   </div>
 
                   {/* Watermark badge */}
-                  <div className="absolute bottom-2.5 right-2.5 bg-slate-900/85 backdrop-blur-xs text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/40">
+                  <div className="absolute bottom-2.5 right-2.5 bg-pink-600/85 backdrop-blur-xs text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/40">
                     Nguồn Camera Mô Phỏng AI
                   </div>
                 </div>
@@ -633,7 +633,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
                 <button
                   type="button"
                   onClick={() => startCamera(false)}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  className="bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Video className="w-4 h-4 text-sky-400" />
                   <span>Bật Webcam Trực Tiếp</span>
@@ -695,7 +695,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
           </div>
 
           {/* Final Enter Exam Room Button */}
-          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="pt-4 border-t border-pink-100 flex flex-wrap items-center justify-between gap-3">
             <button 
               type="button"
               onClick={() => setCurrentStep(2)}

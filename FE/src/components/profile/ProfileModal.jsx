@@ -124,7 +124,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-modal-entry max-h-[90vh]">
+      <div className="bg-white rounded-2xl max-w-lg w-full border border-pink-200 shadow-2xl overflow-hidden flex flex-col animate-modal-entry max-h-[90vh]">
         
         {/* Header */}
         <div className="p-4 bg-sidebarBg text-white border-b border-slate-700 flex items-center justify-between">
@@ -148,7 +148,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold px-4 pt-2 gap-2">
+        <div className="flex border-b border-pink-200 bg-slate-50 text-xs font-semibold px-4 pt-2 gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('info')}
@@ -185,12 +185,12 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                   type="text"
                   disabled
                   value={currentUser?.userCode || ''}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-mono cursor-not-allowed text-xs"
+                  className="w-full p-2.5 rounded-xl border border-pink-200 bg-slate-100 text-slate-500 font-mono cursor-not-allowed text-xs"
                 />
               </div>
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Trạng Thái Tài Khoản:</label>
-                <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs flex items-center gap-1.5">
+                <div className="p-2.5 rounded-xl border border-pink-200 bg-slate-50 text-xs flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   <span className="font-bold text-slate-700">{currentUser?.status || 'ACTIVE'}</span>
                 </div>
@@ -203,7 +203,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                 type="email"
                 disabled
                 value={currentUser?.email || ''}
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-mono cursor-not-allowed text-xs"
+                className="w-full p-2.5 rounded-xl border border-pink-200 bg-slate-100 text-slate-500 font-mono cursor-not-allowed text-xs"
               />
               <p className="text-[10px] text-slate-400 mt-1">Email đăng ký do Admin hoặc hệ thống cấp không thể tự thay đổi.</p>
             </div>
@@ -218,7 +218,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nguyễn Văn A"
-                className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
+                className="w-full p-2.5 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
               />
             </div>
 
@@ -230,7 +230,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="0912345678"
-                className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
+                className="w-full p-2.5 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
               />
             </div>
 
@@ -248,11 +248,11 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2.5 -mx-5 -mb-5 mt-5">
+            <div className="p-4 bg-slate-50/80 border-t border-pink-100 flex items-center justify-end gap-2.5 -mx-5 -mb-5 mt-5">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold transition"
+                className="px-4 py-2 rounded-xl border border-pink-200 hover:bg-slate-100 text-slate-700 font-semibold transition"
               >
                 Hủy
               </button>
@@ -287,7 +287,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   placeholder="Nhập mật khẩu đang dùng..."
-                  className="w-full p-2.5 pr-8 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
+                  className="w-full p-2.5 pr-8 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
                 />
                 <button
                   type="button"
@@ -310,7 +310,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự..."
-                  className="w-full p-2.5 pr-8 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
+                  className="w-full p-2.5 pr-8 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
                 />
                 <button
                   type="button"
@@ -332,15 +332,15 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Nhập lại mật khẩu mới..."
-                className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
+                className="w-full p-2.5 rounded-xl border border-pink-200 focus:ring-2 focus:ring-sky-500 focus:bg-white text-slate-800 text-xs transition"
               />
             </div>
 
-            <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2.5 -mx-5 -mb-5 mt-5">
+            <div className="p-4 bg-slate-50/80 border-t border-pink-100 flex items-center justify-end gap-2.5 -mx-5 -mb-5 mt-5">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold transition"
+                className="px-4 py-2 rounded-xl border border-pink-200 hover:bg-slate-100 text-slate-700 font-semibold transition"
               >
                 Hủy
               </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Eye,
   X,
@@ -112,12 +112,12 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-pink-600/60 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-user-detail-title"
     >
-      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-modal-entry max-h-[92vh]">
+      <div className="bg-white rounded-2xl max-w-lg w-full border border-pink-200 shadow-2xl overflow-hidden flex flex-col animate-modal-entry max-h-[92vh]">
         
         {/* Header */}
         <div className="p-4 bg-[#0B132B] text-white border-b border-slate-800 flex items-center justify-between">
@@ -147,8 +147,8 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
         <div className="p-5 space-y-4 text-xs overflow-y-auto">
           
           {/* User Hero Banner */}
-          <div className="p-4 bg-paper border-2 border-green-500 rounded-2xl flex items-center gap-3.5 shadow-[2px_2px_0px_#DEB9B5]">
-            <div className={`w-14 h-14 rounded-2xl font-heading font-black text-base flex items-center justify-center shadow-[2px_2px_0px_#DEB9B5] overflow-hidden shrink-0 border-2 border-green-600 ${
+          <div className="p-4 bg-slate-50 border border-pink-200 rounded-xl flex items-center gap-3.5 shadow-2xs">
+            <div className={`w-14 h-14 rounded-2xl font-heading font-black text-base flex items-center justify-center shadow-sm overflow-hidden shrink-0 border border-pink-200 ${
               isAdmin
                 ? 'bg-cream text-ink'
                 : isLecturer
@@ -201,7 +201,7 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
 
           {/* Details Grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+            <div className="p-3 rounded-xl border border-pink-200/80 bg-slate-50/50 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-slate-500 font-medium">Mã Người Dùng</span>
                 <button
@@ -213,17 +213,17 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
                   {copiedField === 'userCode' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
-              <p className="font-mono font-bold text-slate-900 text-sm">{user.userCode || 'Chưa cấp'}</p>
+              <p className="font-mono font-bold text-ink text-sm">{user.userCode || 'Chưa cấp'}</p>
             </div>
 
-            <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+            <div className="p-3 rounded-xl border border-pink-200/80 bg-slate-50/50 space-y-1">
               <span className="text-[11px] text-slate-500 font-medium">Số Điện Thoại</span>
-              <p className="font-mono font-bold text-slate-900 text-sm">{user.phoneNumber || 'Chưa cập nhật'}</p>
+              <p className="font-mono font-bold text-ink text-sm">{user.phoneNumber || 'Chưa cập nhật'}</p>
             </div>
           </div>
 
           {/* Primary Key UUID */}
-          <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+          <div className="p-3 rounded-xl border border-pink-200/80 bg-slate-50/50 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-slate-500 font-medium">Mã Định Danh UUID (Database Primary Key)</span>
               <button
@@ -240,7 +240,7 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
 
           {/* Single Role & Password Policy */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1.5">
+            <div className="p-3 rounded-xl border border-pink-200/80 bg-slate-50/50 space-y-1.5">
               <span className="text-[11px] text-slate-500 font-medium block">Vai Trò Hệ Thống:</span>
               <div>
                 {isAdmin ? (
@@ -253,14 +253,14 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
                     GIẢNG VIÊN / GIÁM THỊ
                   </span>
                 ) : (
-                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px]">
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-pink-200 font-bold text-[10px]">
                     SINH VIÊN / THÍ SINH
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1.5">
+            <div className="p-3 rounded-xl border border-pink-200/80 bg-slate-50/50 space-y-1.5">
               <span className="text-[11px] text-slate-500 font-medium block">Bảo Mật Mật Khẩu:</span>
               <div>
                 {user.mustChangePassword ? (
@@ -320,7 +320,7 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
           )}
 
           {/* Timestamps */}
-          <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-500 pt-2 border-t border-pink-100">
             <div className="flex items-center gap-2">
               <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <div>
@@ -340,11 +340,11 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between">
+        <div className="p-4 bg-slate-50/80 border-t border-pink-200 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition"
+            className="px-4 py-2 rounded-xl border border-pink-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition"
           >
             Đóng
           </button>

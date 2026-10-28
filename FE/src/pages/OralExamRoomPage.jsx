@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { userApi } from '../api/userApi';
 import { oralExamApi } from '../api/oralExamApi';
@@ -33,7 +33,8 @@ import {
   ExternalLink,
   HelpCircle,
   FileCheck2,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
 
@@ -813,14 +814,14 @@ export function OralExamRoomPage({
   if (!attemptId) {
     return (
       <div className="max-w-md mx-auto py-12 px-4">
-        <div className="bg-paper border-2 border-green-500 rounded-3xl p-8 shadow-[8px_8px_0_#DEB9B5] text-center space-y-4">
+        <div className="bg-white border border-pink-200 rounded-3xl p-8 shadow-md text-center space-y-4">
           <BookOpen className="w-10 h-10 text-green-700 mx-auto" />
           <h2 className="font-heading font-black text-xl text-ink">Chưa chọn ca thi</h2>
           <p className="text-xs text-green-800">Hãy chọn một ca thi đang mở tại Cổng Thi để vào phòng thi vấn đáp.</p>
           <button
             type="button"
             onClick={() => onNavigate?.('discover')}
-            className="px-6 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-green-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
+            className="px-6 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs border border-pink-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
           >
             Về Cổng Thi
           </button>
@@ -832,11 +833,11 @@ export function OralExamRoomPage({
   if (examStage === 'READY') {
     return (
       <div className="max-w-3xl mx-auto py-8 px-4 animate-in fade-in duration-300">
-        <div className="bg-paper border-2 border-green-500 rounded-3xl p-6 sm:p-10 shadow-[8px_8px_0_#DEB9B5] space-y-8">
+        <div className="bg-white border border-pink-200 rounded-3xl p-6 sm:p-10 shadow-md space-y-8">
           
           {/* Header */}
-          <div className="flex items-center gap-4 pb-6 border-b-2 border-green-200">
-            <div className="w-14 h-14 rounded-2xl bg-pink-100 border-2 border-green-500 text-pink-700 flex items-center justify-center text-2xl shadow-[3px_3px_0_#DEB9B5] shrink-0">
+          <div className="flex items-center gap-4 pb-6 border-b border-pink-200">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-pink-200 text-slate-700 flex items-center justify-center text-2xl shadow-sm shrink-0">
               🎙️
             </div>
             <div>
@@ -844,7 +845,7 @@ export function OralExamRoomPage({
                 <span className="text-[11px] font-bold uppercase tracking-wider text-green-700 block">
                   Khảo Thí Vấn Đáp AI • Trạng Thái: READY
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border border-green-300">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Chuẩn bị thiết bị
                 </span>
               </div>
@@ -861,7 +862,7 @@ export function OralExamRoomPage({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* 1. Test Mic & Waveform */}
-            <div className="bg-white border-2 border-green-400 rounded-2xl p-5 shadow-[4px_4px_0_#DADFD3] flex flex-col justify-between space-y-4">
+            <div className="bg-white border border-pink-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -885,9 +886,9 @@ export function OralExamRoomPage({
 
               {/* Volume bar & waveform */}
               <div className="space-y-2">
-                <div className="h-6 bg-green-50 border border-green-300 rounded-xl overflow-hidden p-1 flex items-center">
+                <div className="h-5 bg-slate-100 border border-pink-200 rounded-lg overflow-hidden p-0.5 flex items-center">
                   <div 
-                    className="h-full bg-pink-500 rounded-lg transition-all duration-75"
+                    className="h-full bg-pink-600 rounded-md transition-all duration-75"
                     style={{ width: `${preflightMicVolume}%` }}
                   />
                 </div>
@@ -901,7 +902,7 @@ export function OralExamRoomPage({
                 <button
                   type="button"
                   onClick={preflightTestingMic ? stopPreflightMic : startPreflightMicTest}
-                  className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-1.5 ${
                     preflightTestingMic 
                       ? 'bg-rose-100 text-rose-800 hover:bg-rose-200' 
                       : 'bg-pink-100 hover:bg-pink-200 text-pink-900'
@@ -914,7 +915,7 @@ export function OralExamRoomPage({
                 <button
                   type="button"
                   onClick={() => setPreflightMicOk(true)}
-                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-emerald-400 shadow-[2px_2px_0_#DADFD3] cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-emerald-400 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>{preflightMicOk ? 'Micro Đạt ✓' : 'Xác Nhận Mic'}</span>
@@ -923,7 +924,7 @@ export function OralExamRoomPage({
             </div>
 
             {/* 2. Test Speaker */}
-            <div className="bg-white border-2 border-green-400 rounded-2xl p-5 shadow-[4px_4px_0_#DADFD3] flex flex-col justify-between space-y-4">
+            <div className="bg-white border border-pink-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -945,7 +946,7 @@ export function OralExamRoomPage({
                 </p>
               </div>
 
-              <div className="p-3 bg-pink-50/70 border border-pink-200 rounded-xl text-xs text-pink-900 flex items-center gap-2">
+              <div className="p-3 bg-slate-50 border border-pink-200 rounded-xl text-xs text-slate-700 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-pink-600 shrink-0" />
                 <span>ZeroTTS &amp; Web Audio Engine: Sẵn sàng phát âm.</span>
               </div>
@@ -953,7 +954,7 @@ export function OralExamRoomPage({
               <button
                 type="button"
                 onClick={handleTestSpeaker}
-                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-green-100 hover:bg-green-200 text-green-900 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-green-100 hover:bg-green-200 text-green-900 border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Volume2 className="w-4 h-4" />
                 <span>{isAiSpeaking ? 'Đang Phát Âm Thử...' : 'Phát Thử Giọng Giám Thị AI'}</span>
@@ -963,14 +964,14 @@ export function OralExamRoomPage({
           </div>
 
           {/* Action Footer: "Bắt đầu thi" */}
-          <div className="pt-4 border-t-2 border-green-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="pt-4 border-t border-pink-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-green-800">
               * Khuyến nghị dùng tai nghe và micro rời để đạt chất lượng nhận diện giọng nói cao nhất.
             </div>
             <button
               type="button"
               onClick={handleStartExam}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-sm border-2 border-green-700 shadow-[4px_4px_0_#DEB9B5] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-sm border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
             >
               <span>Bắt Đầu Thi (Vào Phòng Thi)</span>
               <ArrowRight className="w-4 h-4" />
@@ -988,10 +989,10 @@ export function OralExamRoomPage({
   if (examStage === 'RECONNECTING') {
     return (
       <div className="max-w-3xl mx-auto py-10 px-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-amber-100 border-4 border-amber-600 rounded-3xl p-6 sm:p-10 shadow-[8px_8px_0_#D97706] text-amber-950 space-y-6">
+        <div className="bg-amber-50 border border-amber-300 rounded-3xl p-6 sm:p-10 shadow-xl text-amber-950 space-y-6">
           
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-amber-300 border-2 border-amber-700 text-amber-900 flex items-center justify-center text-3xl shadow-[3px_3px_0_#B45309] shrink-0 animate-bounce">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center text-2xl shadow-xs shrink-0">
               <AlertTriangle className="w-8 h-8 text-amber-900" />
             </div>
             <div>
@@ -1004,7 +1005,7 @@ export function OralExamRoomPage({
             </div>
           </div>
 
-          <div className="bg-white/80 border-2 border-amber-500 rounded-2xl p-5 shadow-[3px_3px_0_#D97706] space-y-4">
+          <div className="bg-white/80 border-2 border-amber-500 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-amber-900">
               <span className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-700" />
@@ -1035,7 +1036,7 @@ export function OralExamRoomPage({
               type="button"
               onClick={handleReconnect}
               disabled={isReconnecting}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-black text-xs sm:text-sm border-2 border-amber-800 shadow-[4px_4px_0_#92400E] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-black text-xs sm:text-sm border-2 border-amber-800 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isReconnecting ? 'animate-spin' : ''}`} />
               <span>{isReconnecting ? 'Đang Kiểm Tra Kết Nối...' : 'Thử Kết Nối Lại Ngay'}</span>
@@ -1044,7 +1045,7 @@ export function OralExamRoomPage({
             <button
               type="button"
               onClick={() => onNavigate ? onNavigate('discover') : window.location.reload()}
-              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-amber-50 text-amber-900 font-bold text-xs border-2 border-amber-600 shadow-[2px_2px_0_#D97706] cursor-pointer"
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-amber-50 text-amber-900 font-bold text-xs border-2 border-amber-600 shadow-sm cursor-pointer"
             >
               Quay lại danh sách ca thi
             </button>
@@ -1061,10 +1062,10 @@ export function OralExamRoomPage({
   if (examStage === 'FINALIZING') {
     return (
       <div className="fixed inset-0 z-50 bg-ink/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-        <div className="bg-paper border-4 border-green-700 rounded-3xl p-8 sm:p-10 max-w-xl w-full shadow-[10px_10px_0_#DEB9B5] space-y-6 text-center text-ink">
+        <div className="bg-white border border-pink-200 rounded-3xl p-8 sm:p-10 max-w-xl w-full shadow-lg space-y-6 text-center text-ink">
           
-          <div className="w-20 h-20 rounded-3xl bg-pink-100 border-2 border-green-700 text-pink-700 mx-auto flex items-center justify-center text-3xl shadow-[4px_4px_0_#DEB9B5] animate-pulse">
-            <Sparkles className="w-10 h-10 text-pink-600 animate-spin" style={{ animationDuration: '6s' }} />
+          <div className="w-20 h-20 rounded-3xl bg-slate-100 border border-pink-200 text-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm animate-pulse">
+            <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
           </div>
 
           <div className="space-y-2">
@@ -1082,13 +1083,13 @@ export function OralExamRoomPage({
           {/* Synchronizing 3 Steps Progress */}
           <div className="space-y-3 text-left">
             <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
-              finalizingStep >= 1 ? 'bg-white border-green-500 font-bold shadow-[2px_2px_0_#DADFD3]' : 'bg-gray-100 border-gray-300 text-gray-500'
+              finalizingStep >= 1 ? 'bg-white border-slate-900 text-ink font-semibold shadow-2xs' : 'bg-slate-50 border-pink-200 text-slate-400'
             }`}>
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  finalizingStep > 1 ? 'bg-emerald-600 text-white' : 'bg-pink-600 text-white animate-spin'
+                  finalizingStep > 1 ? 'bg-emerald-600 text-white' : 'bg-pink-600 text-white'
                 }`}>
-                  {finalizingStep > 1 ? '✓' : '1'}
+                  {finalizingStep > 1 ? '✓' : <Loader2 className="w-3 h-3 animate-spin" />}
                 </span>
                 <span>1. Đóng gói transcript &amp; bản ghi âm các lượt vấn đáp</span>
               </div>
@@ -1098,13 +1099,13 @@ export function OralExamRoomPage({
             </div>
 
             <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
-              finalizingStep >= 2 ? 'bg-white border-green-500 font-bold shadow-[2px_2px_0_#DADFD3]' : 'bg-gray-100 border-gray-300 text-gray-500'
+              finalizingStep >= 2 ? 'bg-white border-slate-900 font-semibold shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-500'
             }`}>
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  finalizingStep > 2 ? 'bg-emerald-600 text-white' : finalizingStep === 2 ? 'bg-pink-600 text-white animate-spin' : 'bg-gray-300 text-gray-600'
+                  finalizingStep > 2 ? 'bg-emerald-600 text-white' : finalizingStep === 2 ? 'bg-pink-600 text-white' : 'bg-slate-200 text-slate-600'
                 }`}>
-                  {finalizingStep > 2 ? '✓' : '2'}
+                  {finalizingStep > 2 ? '✓' : finalizingStep === 2 ? <Loader2 className="w-3 h-3 animate-spin" /> : '2'}
                 </span>
                 <span>2. Đồng bộ hóa dữ liệu với máy chủ khảo thí trung tâm</span>
               </div>
@@ -1114,13 +1115,13 @@ export function OralExamRoomPage({
             </div>
 
             <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
-              finalizingStep >= 3 ? 'bg-white border-green-500 font-bold shadow-[2px_2px_0_#DADFD3]' : 'bg-gray-100 border-gray-300 text-gray-500'
+              finalizingStep >= 3 ? 'bg-white border-slate-900 font-semibold shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-500'
             }`}>
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  finalizingStep === 3 ? 'bg-pink-600 text-white animate-spin' : 'bg-gray-300 text-gray-600'
+                  finalizingStep === 3 ? 'bg-pink-600 text-white' : 'bg-slate-200 text-slate-600'
                 }`}>
-                  3
+                  {finalizingStep === 3 ? <Loader2 className="w-3 h-3 animate-spin" /> : '3'}
                 </span>
                 <span>3. Hội đồng Giám thị AI chấm điểm đa tầng &amp; lập biên bản Rubric</span>
               </div>
@@ -1145,10 +1146,10 @@ export function OralExamRoomPage({
   if (examStage === 'INTERRUPTED') {
     return (
       <div className="max-w-3xl mx-auto py-10 px-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-rose-50 border-4 border-rose-600 rounded-3xl p-6 sm:p-10 shadow-[8px_8px_0_#984F48] text-rose-950 space-y-6">
+        <div className="bg-rose-50 border-4 border-rose-600 rounded-3xl p-6 sm:p-10 shadow-md text-rose-950 space-y-6">
           
           <div className="flex items-center gap-4 pb-4 border-b-2 border-rose-200">
-            <div className="w-16 h-16 rounded-2xl bg-rose-200 border-2 border-rose-700 text-rose-800 flex items-center justify-center text-3xl shadow-[3px_3px_0_#984F48] shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-rose-200 border-2 border-rose-700 text-rose-800 flex items-center justify-center text-3xl shadow-sm shrink-0">
               <ShieldAlert className="w-8 h-8 text-rose-700" />
             </div>
             <div>
@@ -1161,7 +1162,7 @@ export function OralExamRoomPage({
             </div>
           </div>
 
-          <div className="bg-white border-2 border-rose-400 rounded-2xl p-5 shadow-[3px_3px_0_#DADFD3] space-y-3">
+          <div className="bg-white border-2 border-rose-400 rounded-2xl p-5 shadow-sm space-y-3">
             <h3 className="font-bold text-sm text-rose-900">Chi tiết lý do gián đoạn:</h3>
             <p className="text-xs sm:text-sm text-rose-950 leading-relaxed font-medium">
               {interruptedReason || 'Ca thi bị gián đoạn do mất kết nối mạng quá thời hạn ân hạn (120s) hoặc máy chủ không thể hoàn tất chu trình đồng bộ.'}
@@ -1189,7 +1190,7 @@ export function OralExamRoomPage({
             <button
               type="button"
               onClick={() => setShowSupportModal(true)}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm border-2 border-rose-900 shadow-[4px_4px_0_#492A27] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm border-2 border-rose-900 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
             >
               <PhoneCall className="w-4 h-4" />
               <span>Liên Hệ Giám Thị / Hỗ Trợ Kỹ Thuật</span>
@@ -1198,7 +1199,7 @@ export function OralExamRoomPage({
             <button
               type="button"
               onClick={() => onNavigate ? onNavigate('discover') : window.location.reload()}
-              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white hover:bg-rose-50 text-rose-900 font-bold text-xs border-2 border-rose-500 shadow-[3px_3px_0_#984F48] cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white hover:bg-rose-50 text-rose-900 font-bold text-xs border-2 border-rose-500 shadow-sm cursor-pointer"
             >
               ← Quay Lại Danh Sách Ca Thi
             </button>
@@ -1209,7 +1210,7 @@ export function OralExamRoomPage({
         {/* Support Modal dialog */}
         {showSupportModal && (
           <div className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-paper border-4 border-rose-600 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-[8px_8px_0_#984F48] space-y-5 text-ink">
+            <div className="bg-paper border-4 border-rose-600 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-md space-y-5 text-ink">
               <div className="flex items-center justify-between pb-3 border-b-2 border-rose-200">
                 <div className="flex items-center gap-2 font-heading font-black text-lg text-rose-950">
                   <PhoneCall className="w-5 h-5 text-rose-600" />
@@ -1244,7 +1245,7 @@ export function OralExamRoomPage({
               <button
                 type="button"
                 onClick={() => setShowSupportModal(false)}
-                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs border-2 border-rose-900 shadow-[2px_2px_0_#492A27] cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs border-2 border-rose-900 shadow-sm cursor-pointer"
               >
                 Đã hiểu &amp; Đóng
               </button>
@@ -1263,11 +1264,11 @@ export function OralExamRoomPage({
 
     return (
       <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-300">
-        <div className="bg-paper border-2 border-green-500 rounded-3xl p-6 sm:p-10 shadow-[8px_8px_0_#DEB9B5] space-y-8">
+        <div className="bg-white border border-pink-200 rounded-3xl p-6 sm:p-10 shadow-md space-y-8">
           
           {/* Header */}
-          <div className="text-center space-y-3 pb-6 border-b-2 border-green-200">
-            <div className="w-20 h-20 rounded-3xl bg-pink-100 border-2 border-green-500 text-pink-700 mx-auto flex items-center justify-center text-3xl shadow-[4px_4px_0_#DEB9B5]">
+          <div className="text-center space-y-3 pb-6 border-b border-pink-200">
+            <div className="w-20 h-20 rounded-3xl bg-slate-100 border border-pink-200 text-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm">
               🎓
             </div>
             <div className="flex items-center justify-center gap-2">
@@ -1288,7 +1289,7 @@ export function OralExamRoomPage({
 
           {/* Overall Score Box */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border-2 border-green-500 p-5 rounded-2xl shadow-[4px_4px_0_#DEB9B5] text-center">
+            <div className="bg-white border border-pink-200 p-5 rounded-2xl shadow-sm text-center">
               <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">
                 Điểm Tổng Kết
               </span>
@@ -1297,7 +1298,7 @@ export function OralExamRoomPage({
               </div>
             </div>
 
-            <div className="bg-white border-2 border-green-500 p-5 rounded-2xl shadow-[4px_4px_0_#DEB9B5] text-center">
+            <div className="bg-white border border-pink-200 p-5 rounded-2xl shadow-sm text-center">
               <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">
                 Xếp Loại Đạt Được
               </span>
@@ -1306,7 +1307,7 @@ export function OralExamRoomPage({
               </div>
             </div>
 
-            <div className="bg-white border-2 border-green-500 p-5 rounded-2xl shadow-[4px_4px_0_#DEB9B5] text-center">
+            <div className="bg-white border border-pink-200 p-5 rounded-2xl shadow-sm text-center">
               <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">
                 Số Lượt Câu Hỏi
               </span>
@@ -1324,7 +1325,7 @@ export function OralExamRoomPage({
 
           {/* AI Comprehensive Feedback */}
           {displayResult.feedback && (
-            <div className="bg-pink-50/70 border-2 border-pink-300 p-5 sm:p-6 rounded-2xl shadow-[4px_4px_0_#DADFD3] space-y-2">
+            <div className="bg-white border border-pink-200 p-5 sm:p-6 rounded-2xl shadow-2xs space-y-2">
               <div className="flex items-center gap-2 text-pink-900 font-bold text-sm">
                 <Sparkles className="w-5 h-5 text-pink-600" />
                 <span>Nhận Xét Chuyên Môn Từ Giám Thị AI</span>
@@ -1346,13 +1347,13 @@ export function OralExamRoomPage({
               {displayResult.rubrics.map((r, i) => (
                 <div 
                   key={i} 
-                  className="bg-white border-2 border-green-400 p-4 rounded-2xl shadow-[3px_3px_0_#DADFD3] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="bg-white border border-pink-200 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div className="space-y-1">
                     <span className="font-bold text-xs text-ink block">{r.name}</span>
                     <p className="text-xs text-green-800">{r.comment}</p>
                   </div>
-                  <div className="shrink-0 font-mono font-black text-sm bg-green-100 text-green-900 border border-green-400 px-3 py-1 rounded-xl self-start sm:self-center">
+                  <div className="shrink-0 font-mono font-bold text-sm bg-slate-100 text-slate-800 border border-pink-200 px-3 py-1 rounded-xl self-start sm:self-center">
                     {r.score != null ? r.score : '—'} / {r.max}
                   </div>
                 </div>
@@ -1361,11 +1362,11 @@ export function OralExamRoomPage({
           </div>
 
           {/* Actions */}
-          <div className="pt-6 border-t-2 border-green-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="pt-6 border-t border-pink-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <button
               type="button"
               onClick={() => onNavigate ? onNavigate('discover') : window.location.reload()}
-              className="px-6 py-3 rounded-2xl bg-white hover:bg-green-50 text-green-900 font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] cursor-pointer"
+              className="px-6 py-3 rounded-2xl bg-white hover:bg-green-50 text-green-900 font-bold text-xs border border-pink-200 shadow-sm cursor-pointer"
             >
               ← Trở Về Danh Sách Học Phần
             </button>
@@ -1385,9 +1386,9 @@ export function OralExamRoomPage({
     <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-in fade-in duration-200 text-ink">
       
       {/* 1. Header: Exam Title, Question counter, Timer, Reconnect Test Trigger */}
-      <div className="bg-paper border-2 border-green-500 rounded-3xl p-5 shadow-[6px_6px_0_#DEB9B5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white border border-pink-200 rounded-3xl p-5 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-pink-100 border-2 border-green-500 text-pink-700 flex items-center justify-center text-xl shadow-[3px_3px_0_#DEB9B5] shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-pink-200 text-slate-700 flex items-center justify-center text-xl shadow-sm shrink-0">
             🎙️
           </div>
           <div>
@@ -1412,14 +1413,14 @@ export function OralExamRoomPage({
 
         {/* Question Counter & Countdown Timer */}
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
-          <div className="text-right font-mono bg-white border-2 border-green-400 px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#DADFD3]">
+          <div className="text-right font-mono bg-white border border-pink-200 px-3.5 py-1.5 rounded-xl shadow-sm">
             <span className="text-[9px] font-bold text-green-700 uppercase tracking-wider block">Tiến độ câu hỏi</span>
             <p className="text-xs sm:text-sm font-extrabold text-ink">
               Lượt {activeQuestionIndex + 1}{totalQuestions ? ` • ${totalQuestions} câu chính` : ''}
             </p>
           </div>
 
-          <div className="text-right font-mono bg-pink-50 border-2 border-pink-400 px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#DEB9B5]">
+          <div className="text-right font-mono bg-slate-100 border border-pink-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
             <span className="text-[9px] font-bold text-pink-700 uppercase tracking-wider block">Thời Gian Ca Thi</span>
             <p className="text-xs sm:text-sm font-extrabold text-pink-900">{formatTime(secondsLeft)}</p>
           </div>
@@ -1429,7 +1430,7 @@ export function OralExamRoomPage({
             type="button"
             onClick={() => handleDisconnect('Mô phỏng ngắt kết nối mạng thí sinh.')}
             title="Mô phỏng mất kết nối mạng để kiểm tra trạng thái RECONNECTING"
-            className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold border border-amber-400 shadow-[1px_1px_0_#D97706] cursor-pointer flex items-center gap-1"
+            className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold border border-amber-400 shadow-sm cursor-pointer flex items-center gap-1"
           >
             <WifiOff className="w-3.5 h-3.5 text-amber-700" />
             <span className="hidden md:inline">Test Rớt Mạng</span>
@@ -1438,7 +1439,7 @@ export function OralExamRoomPage({
           <button
             type="button"
             onClick={() => handleFinishExam('USER_EARLY_SUBMIT')}
-            className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs border-2 border-green-700 shadow-[3px_3px_0_#DEB9B5] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] cursor-pointer"
           >
             Nộp Bài Thi ↗
           </button>
@@ -1452,10 +1453,10 @@ export function OralExamRoomPage({
         <div className="lg:col-span-7 space-y-6">
           
           {/* Center Stage: AI Examiner Avatar with pulsing soundwave animation */}
-          <div className="bg-paper border-2 border-green-500 rounded-3xl p-6 shadow-[6px_6px_0_#DEB9B5] flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden">
+          <div className="bg-white border border-pink-200 rounded-3xl p-6 shadow-md flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden">
             {/* AI Avatar */}
             <div className="relative shrink-0">
-              <div className={`w-28 h-28 rounded-3xl bg-pink-100 border-2 border-green-500 flex items-center justify-center text-5xl shadow-[4px_4px_0_#DEB9B5] relative transition-transform ${
+              <div className={`w-28 h-28 rounded-3xl bg-pink-100 border border-pink-200 flex items-center justify-center text-5xl shadow-sm relative transition-transform ${
                 isAiSpeaking ? 'scale-105 ring-4 ring-pink-400' : ''
               }`}>
                 👩‍🏫
@@ -1463,8 +1464,8 @@ export function OralExamRoomPage({
               {/* Pulsing indicator */}
               <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
                 isAiSpeaking 
-                  ? 'bg-pink-500 text-white border-green-700 animate-bounce' 
-                  : 'bg-white text-green-800 border-green-400'
+                  ? 'bg-pink-600 text-white border-blue-700 animate-pulse' 
+                  : 'bg-white text-slate-700 border-pink-200 shadow-2xs'
               }`}>
                 {isAiSpeaking ? 'Đang đọc...' : 'Chờ phản hồi'}
               </div>
@@ -1484,9 +1485,9 @@ export function OralExamRoomPage({
               {/* Pulsing soundwave animation when TTS is speaking */}
               <div className="h-10 flex items-center justify-center sm:justify-start">
                 {isAiSpeaking ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-100 border-2 border-green-500 rounded-xl shadow-[2px_2px_0_#DEB9B5]">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-100 border border-pink-200 rounded-xl shadow-sm">
                     <VoiceWaveform isSpeaking={true} volume={0.8} barCount={10} height={20} colorClass="bg-pink-600" />
-                    <span className="text-xs font-bold text-pink-900 ml-1">Đang phát âm câu hỏi...</span>
+                    <span className="text-xs font-bold text-blue-900 ml-1">Đang phát âm câu hỏi...</span>
                   </div>
                 ) : (
                   <span className="text-xs text-green-800 italic">
@@ -1499,7 +1500,7 @@ export function OralExamRoomPage({
                 <button
                   type="button"
                   onClick={() => playTTS(currentQuestion.content)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-green-50 text-ink font-bold text-xs border-2 border-green-500 shadow-[2px_2px_0_#DADFD3] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-green-50 text-ink font-bold text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Volume2 className="w-3.5 h-3.5 text-pink-600" />
                   <span>Nghe Lại Câu Hỏi</span>
@@ -1508,7 +1509,7 @@ export function OralExamRoomPage({
                   <button
                     type="button"
                     onClick={stopTTS}
-                    className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs border-2 border-green-500 shadow-[2px_2px_0_#DADFD3] cursor-pointer flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs border border-pink-200 shadow-sm cursor-pointer flex items-center gap-1"
                   >
                     <Square className="w-3 h-3 text-rose-600" />
                     <span>Dừng Đọc</span>
@@ -1519,13 +1520,13 @@ export function OralExamRoomPage({
           </div>
 
           {/* Question Card: Question content, badge "Câu hỏi chính" hoặc "Câu hỏi xoáy" */}
-          <div className="bg-paper border-2 border-green-500 rounded-3xl p-6 shadow-[6px_6px_0_#DEB9B5] space-y-4">
-            <div className="flex items-start justify-between gap-3 pb-3 border-b-2 border-green-200">
+          <div className="bg-white border border-pink-200 rounded-3xl p-6 shadow-md space-y-4">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-pink-200">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${
                     currentQuestion.type === 'PROBING'
-                      ? 'bg-pink-100 text-pink-900 border-pink-400'
+                      ? 'bg-rose-50 text-rose-800 border-rose-200'
                       : 'bg-green-100 text-green-900 border-green-400'
                   }`}>
                     {currentQuestion.badge || (currentQuestion.type === 'PROBING' ? 'Câu hỏi xoáy thích ứng' : 'Câu hỏi chính')}
@@ -1540,14 +1541,14 @@ export function OralExamRoomPage({
               </div>
             </div>
 
-            <div className="bg-white border-2 border-green-400 rounded-2xl p-4 shadow-[3px_3px_0_#DADFD3]">
+            <div className="bg-white border border-pink-200 rounded-2xl p-4 shadow-sm">
               <p className="text-sm sm:text-base text-ink leading-relaxed font-medium">
                 {currentQuestion.content}
               </p>
             </div>
 
             {currentQuestion.hint && (
-              <div className="p-3 bg-pink-50/70 border border-pink-200 rounded-xl text-xs text-pink-900 flex items-center gap-2">
+              <div className="p-3 bg-slate-50 border border-pink-200 rounded-xl text-xs text-slate-700 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-pink-600 shrink-0" />
                 <span><strong>Gợi ý sư phạm:</strong> {currentQuestion.hint}</span>
               </div>
@@ -1559,12 +1560,12 @@ export function OralExamRoomPage({
         {/* Right Column (5 cols): Answer Section & Action Controls */}
         <div className="lg:col-span-5 space-y-6">
           
-          <div className="bg-paper border-2 border-green-500 rounded-3xl p-6 shadow-[6px_6px_0_#DEB9B5] space-y-4">
+          <div className="bg-white border border-pink-200 rounded-3xl p-6 shadow-md space-y-4">
             
-            <div className="flex items-center justify-between pb-3 border-b-2 border-green-200">
+            <div className="flex items-center justify-between pb-3 border-b border-pink-200">
               <div className="flex items-center gap-2">
-                <span className={`w-3 h-3 rounded-full border-2 border-green-700 ${
-                  isRecording ? 'bg-pink-500 animate-ping' : 'bg-green-500'
+                <span className={`w-3 h-3 rounded-full border border-pink-200 ${
+                  isRecording ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'
                 }`} />
                 <h3 className="font-heading font-black text-sm text-ink uppercase tracking-wider">
                   Khu Vực Trả Lời Vấn Đáp
@@ -1577,9 +1578,9 @@ export function OralExamRoomPage({
 
             {/* Waveform visualizer when student speaks */}
             {isRecording && (
-              <div className="p-3 bg-green-900 text-white rounded-2xl border-2 border-green-700 flex items-center justify-between shadow-[3px_3px_0_#DEB9B5] animate-in fade-in">
+              <div className="p-3 bg-green-900 text-white rounded-2xl border border-pink-200 flex items-center justify-between shadow-sm animate-in fade-in">
                 <div className="flex items-center gap-2">
-                  <VoiceWaveform isSpeaking={true} volume={0.85} barCount={12} height={20} colorClass="bg-pink-400" />
+                  <VoiceWaveform isSpeaking={true} volume={0.85} barCount={12} height={20} colorClass="bg-pink-600" />
                   <span className="text-xs font-mono text-pink-200 font-bold">Đang nhận diện giọng nói...</span>
                 </div>
                 <span className="text-[10px] font-mono text-green-300">250ms Slices</span>
@@ -1598,13 +1599,13 @@ export function OralExamRoomPage({
                   value={manualText}
                   onChange={(e) => setManualText(e.target.value)}
                   placeholder="Nhấn 'Bắt đầu nói' bên dưới để trả lời bằng micro, hoặc gõ văn bản bổ sung tại đây..."
-                  className="w-full p-4 rounded-2xl bg-white border-2 border-green-400 focus:border-pink-500 focus:ring-0 text-ink text-xs sm:text-sm leading-relaxed placeholder:text-green-600/60 font-medium shadow-[3px_3px_0_#DADFD3]"
+                  className="w-full p-4 rounded-2xl bg-white border border-pink-200 focus:border-pink-500 focus:ring-0 text-ink text-xs sm:text-sm leading-relaxed placeholder:text-slate-400 font-medium shadow-sm"
                 />
               </div>
 
               {/* Live transcript preview if recording */}
               {(transcript || partialTranscript) && (
-                <div className="p-3 bg-pink-50 border-2 border-pink-300 rounded-xl text-xs text-pink-950 font-medium animate-in fade-in">
+                <div className="p-3 bg-slate-50 border border-pink-200 rounded-xl text-xs text-slate-800 font-medium animate-in fade-in">
                   <span className="font-bold text-pink-800 block text-[10px] uppercase tracking-wider mb-0.5">
                     Live STT Stream:
                   </span>
@@ -1620,9 +1621,9 @@ export function OralExamRoomPage({
                 <button
                   type="button"
                   onClick={handleToggleSpeak}
-                  className={`py-3 px-4 rounded-2xl font-black text-xs border-2 border-green-700 shadow-[3px_3px_0_#DEB9B5] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`py-3 px-4 rounded-2xl font-black text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 ${
                     isRecording
-                      ? 'bg-pink-500 hover:bg-pink-600 text-white animate-pulse'
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
                       : 'bg-white hover:bg-green-50 text-ink'
                   }`}
                 >
@@ -1634,7 +1635,7 @@ export function OralExamRoomPage({
                   type="button"
                   onClick={handleSubmitTurn}
                   disabled={isSubmittingTurn}
-                  className="py-3 px-4 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-xs border-2 border-green-700 shadow-[3px_3px_0_#DEB9B5] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="py-3 px-4 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
                   <span>{isSubmittingTurn ? 'Đang Nộp...' : 'Dừng & Nộp Câu Trả Lời'}</span>
@@ -1649,7 +1650,7 @@ export function OralExamRoomPage({
           </div>
 
           {/* Question Stepper / Overview */}
-          <div className="bg-paper border-2 border-green-500 rounded-3xl p-5 shadow-[6px_6px_0_#DEB9B5] space-y-3">
+          <div className="bg-white border border-pink-200 rounded-3xl p-5 shadow-md space-y-3">
             <h4 className="font-heading font-black text-xs uppercase tracking-wider text-green-800">
               Danh Sách Lượt Vấn Đáp
             </h4>
@@ -1662,7 +1663,7 @@ export function OralExamRoomPage({
                     key={q.id || idx}
                     className={`p-2.5 rounded-xl border-2 transition flex items-center justify-between text-xs ${
                       isCurrent
-                        ? 'bg-pink-100 border-green-600 font-bold shadow-[2px_2px_0_#DEB9B5]'
+                        ? 'bg-pink-600 text-white border-slate-900 font-semibold shadow-xs'
                         : isAnswered
                         ? 'bg-emerald-50 border-emerald-400 text-emerald-900'
                         : 'bg-white border-green-300 text-green-900'
@@ -1670,7 +1671,7 @@ export function OralExamRoomPage({
                   >
                     <div className="flex items-center gap-2 truncate">
                       <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
-                        isCurrent ? 'bg-pink-600 text-white' : isAnswered ? 'bg-emerald-600 text-white' : 'bg-green-200 text-green-800'
+                        isCurrent ? 'bg-white text-ink font-bold' : isAnswered ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
                       }`}>
                         {idx + 1}
                       </span>

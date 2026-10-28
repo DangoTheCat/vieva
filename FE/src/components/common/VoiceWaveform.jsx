@@ -46,7 +46,7 @@ export function VoiceWaveform({
 
   return (
     <div 
-      className={`flex items-center ${barGap} px-2.5 py-1.5 bg-slate-900/80 rounded-xl border border-slate-700/80 shadow-inner select-none`}
+      className={`flex items-center ${barGap} px-2.5 py-1.5 bg-pink-600/80 rounded-xl border border-slate-700/80 shadow-inner select-none`}
       style={{ height: `${height + 12}px` }}
       aria-label="Voice Activity Waveform"
     >

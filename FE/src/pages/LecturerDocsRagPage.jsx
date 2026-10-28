@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { courseDocumentApi } from '../api/courseDocumentApi';
 import { knowledgeApi } from '../api/knowledgeApi';
@@ -259,9 +259,9 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
     <div className="space-y-6 animate-modal-entry text-ink pb-10">
 
       {/* HEADER BAR */}
-      <div className="bg-paper border-2 border-green-500 p-5 sm:p-6 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[3px_3px_0_#DEB9B5]">
+      <div className="bg-white border border-pink-200 p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-100 border border-green-500 text-green-800 text-[11px] font-semibold shadow-[1px_1px_0_#DEB9B5] mb-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 border border-pink-200 text-slate-700 text-[11px] font-medium mb-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
             <span>Kho Tài Liệu RAG Giáo Trình (Group 1)</span>
           </div>
@@ -278,7 +278,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="bg-paper border-2 border-green-500 rounded-lg px-3 py-2 text-xs font-bold text-ink shadow-[2px_2px_0_#DEB9B5] focus:outline-none focus:border-green-600 cursor-pointer"
+            className="bg-white border border-pink-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer"
           >
             {subjects.length === 0 && <option value="">Chưa có môn học phân công</option>}
             {subjects.map((s) => (
@@ -292,7 +292,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
             type="button"
             disabled={!selectedSubjectId}
             onClick={() => setIsUploadModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-400 text-ink font-bold text-xs px-4 py-2 rounded-lg border-2 border-green-600 shadow-[3px_3px_0_#DEB9B5] hover:shadow-[1px_1px_0_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             <UploadCloud className="w-4 h-4 text-pink-900 font-bold" />
             <span>+ Tải Tài Liệu Mới</span>
@@ -301,17 +301,17 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       </div>
 
       {/* DOCUMENTS TABLE FROM BE */}
-      <div className="bg-surface-container-lowest border-2 border-green-500 rounded-xl shadow-[6px_6px_0_#D5A6A2] overflow-hidden">
+      <div className="bg-white border border-pink-200 rounded-2xl shadow-2xs overflow-hidden">
         {/* Table Header Toolbar */}
-        <div className="p-4 sm:px-6 bg-pink-50/50 border-b-2 border-cream flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 sm:px-6 bg-slate-50/70 border-b border-pink-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-green-700" />
             <span className="font-heading font-semibold text-sm text-ink">Danh Mục Tài Liệu Huấn Luyện Ngữ Cảnh</span>
-            <span className="px-2.5 py-0.5 rounded-full bg-pink-200 text-pink-900 border border-pink-400 text-[11px] font-semibold font-mono">
+            <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 border border-pink-200 text-[11px] font-semibold font-mono">
               Tổng số: {documents.length}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant bg-paper px-3 py-1 rounded-lg border border-green-300 shadow-[1px_1px_0_#DEB9B5]">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-white px-3 py-1 rounded-lg border border-pink-200 shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
             <span>Chỉ tài liệu <span className="font-semibold text-green-800 underline decoration-green-400">READY</span> mới được trích xuất ngữ cảnh RAG</span>
           </div>
@@ -333,7 +333,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-ink border-collapse">
-              <thead className="bg-paper border-b-2 border-green-500 text-green-900 font-bold uppercase text-[10px] tracking-wider">
+              <thead className="bg-slate-50 border-b border-pink-200 text-slate-700 font-semibold uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="py-3 px-4 sm:px-6">Tên Tệp Giáo Trình</th>
                   <th className="py-3 px-4">Trạng Thái RAG</th>
@@ -355,13 +355,13 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                     <tr key={docId} className="hover:bg-green-50/40 transition-colors">
                       <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-pink-100 border-2 border-green-500 flex items-center justify-center text-primary shadow-[2px_2px_0_#DEB9B5] shrink-0">
+                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                             <FileText className="w-4 h-4 text-pink-700" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-ink truncate max-w-xs sm:max-w-md">{doc.fileName || doc.title || 'Tai_lieu_giao_trinh.pdf'}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-200 font-medium">
+                              <span className="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-pink-200 font-medium">
                                 {doc.mimeType || doc.fileType || 'PDF Document'}
                               </span>
                               {doc.fileSizeBytes && (
@@ -370,7 +370,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                                 </span>
                               )}
                               {doc.errorMessage && (
-                                <span className="text-[10px] text-pink-800 bg-pink-100 px-1.5 py-0.2 rounded border border-pink-300 font-medium truncate max-w-xs" title={doc.errorMessage}>
+                                <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 font-medium truncate max-w-xs" title={doc.errorMessage}>
                                   Lỗi: {doc.errorMessage}
                                 </span>
                               )}
@@ -379,21 +379,21 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 inline-flex items-center gap-1.5 shadow-[1px_1px_0_#DEB9B5] ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 inline-flex items-center gap-1.5 shadow-sm ${
                           isReady
-                            ? 'bg-green-100 border-green-400 text-green-900'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                             : isFailed
-                            ? 'bg-pink-100 border-pink-400 text-pink-900'
+                            ? 'bg-rose-50 border-rose-200 text-rose-800'
                             : 'bg-amber-100 border-amber-300 text-amber-900'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                            isReady ? 'bg-green-600' : isFailed ? 'bg-pink-700' : 'bg-amber-500 animate-pulse'
+                            isReady ? 'bg-emerald-600' : isFailed ? 'bg-rose-600' : 'bg-amber-500 animate-pulse'
                           }`}></span>
                           {status}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-mono font-bold text-green-800 bg-green-50 px-2 py-0.5 rounded border border-green-300">
+                        <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-pink-200">
                           {chunkCount} chunks
                         </span>
                       </td>
@@ -403,7 +403,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                           disabled={updatingDocId === docId}
                           onChange={(e) => handleAssignTopic(docId, e.target.value)}
                           aria-label="Chủ đề của tài liệu"
-                          className="max-w-[180px] bg-white border-2 border-green-300 rounded-lg p-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-green-600 disabled:opacity-50"
+                          className="max-w-[180px] bg-white border border-pink-200 rounded-lg p-1.5 text-[11px] text-slate-800 focus:outline-none focus:border-pink-500 disabled:opacity-50"
                         >
                           <option value="">— Chưa gán —</option>
                           {topics.map(t => <option key={t.topicId} value={t.topicId}>{t.name}</option>)}
@@ -413,7 +413,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                         <button
                           type="button"
                           onClick={() => handleOpenChunksModal(doc)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-paper hover:bg-green-100 text-green-700 border-2 border-green-500 font-semibold text-xs shadow-[2px_2px_0_#DEB9B5] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-pink-200 font-medium text-xs shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
                           title="Xem phân đoạn Vector"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -423,7 +423,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                           <button
                             type="button"
                             onClick={() => handleRetryIndexing(docId)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pink-500 hover:bg-pink-400 text-ink border-2 border-green-600 font-semibold text-xs shadow-[2px_2px_0_#DEB9B5] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pink-600 hover:bg-pink-700 text-white font-medium text-xs shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                             title="Thử lại bóc tách chỉ mục"
                           >
                             <RotateCcw className="w-3.5 h-3.5 text-pink-900" />
@@ -433,7 +433,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                         <button
                           type="button"
                           onClick={() => handleDeleteDocument(docId)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-700 border-2 border-pink-400 font-semibold text-xs shadow-[2px_2px_0_#DEB9B5] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-medium text-xs shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
                           title="Xóa tài liệu"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-pink-700" />
@@ -458,7 +458,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
 
       {/* KNOWLEDGE SEARCH (GET/POST /knowledge) */}
       {selectedSubjectId && (
-        <div className="bg-surface-container-lowest border-2 border-green-500 rounded-xl shadow-[6px_6px_0_#D5A6A2] p-4 sm:p-6 space-y-4 text-xs">
+        <div className="bg-white border border-pink-200 rounded-2xl shadow-2xs p-4 sm:p-6 space-y-4 text-xs">
           <div>
             <h2 className="font-heading font-bold text-sm text-ink">Tra Cứu Kho Kiến Thức</h2>
             <p className="text-on-surface-variant mt-0.5">Tìm các đoạn giáo trình đã lập chỉ mục mà AI dùng để sinh câu hỏi. Để trống để xem các đoạn mới nhất.</p>
@@ -469,7 +469,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
               onChange={(e) => setKnowledgeQuery(e.target.value)}
               placeholder="VD: dependency inversion"
               aria-label="Từ khoá tìm kiếm"
-              className="flex-1 bg-white border-2 border-green-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="flex-1 bg-white border border-pink-200 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs"
             />
             <button type="submit" disabled={isSearchingKnowledge}
               className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
@@ -483,7 +483,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
             ) : (
               <ul className="space-y-2">
                 {knowledgeResults.map(k => (
-                  <li key={k.chunkId} className="bg-white border-2 border-green-200 rounded-xl p-3 space-y-1">
+                  <li key={k.chunkId} className="bg-slate-50 border border-pink-200 rounded-xl p-3 space-y-1">
                     <p className="text-[11px] font-bold text-green-800">
                       {k.documentName || 'Kiến thức thủ công'}{k.pageStart != null ? ` • trang ${k.pageStart}` : ''}{knowledgeQuery.trim() ? ` • độ tương đồng ${(k.similarity * 100).toFixed(0)}%` : ''}
                     </p>
@@ -501,11 +501,11 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
               value={manualKnowledge}
               onChange={(e) => setManualKnowledge(e.target.value)}
               placeholder="Dán định nghĩa, ví dụ hoặc ghi chú bài giảng cần đưa vào kho kiến thức..."
-              className="w-full bg-white border-2 border-green-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs"
             />
             <div className="flex justify-end">
               <button type="submit" disabled={isAddingKnowledge || !manualKnowledge.trim()}
-                className="px-4 py-2 rounded-xl bg-white border-2 border-green-500 font-bold hover:bg-green-50 flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600">
+                className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 shadow-xs cursor-pointer">
                 {isAddingKnowledge && <Loader2 className="w-4 h-4 animate-spin" />} Thêm vào kho
               </button>
             </div>
@@ -516,10 +516,10 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       {/* UPLOAD MODAL WITH MATERIAL DROPZONE */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
-          <div className="bg-paper border-2 border-green-500 rounded-2xl max-w-lg w-full p-6 shadow-[6px_6px_0_#DEB9B5] space-y-4 animate-modal-entry text-ink">
+          <div className="bg-white border border-pink-200 rounded-2xl max-w-lg w-full p-6 shadow-md space-y-4 animate-modal-entry text-ink">
             <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-pink-100 border-2 border-green-500 flex items-center justify-center text-primary shadow-[2px_2px_0_#DEB9B5]">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 shadow-2xs">
                   <UploadCloud className="w-4 h-4 text-pink-700" />
                 </div>
                 <h3 className="font-heading font-bold text-base text-ink">Tải Lên Tài Liệu Giáo Trình</h3>
@@ -555,14 +555,14 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                     setIsUploadModalOpen(false);
                     setFileToUpload(null);
                   }}
-                  className="px-4 py-2 rounded-full border-2 border-outline-variant text-xs sm:text-sm font-semibold text-on-surface-variant bg-paper shadow-[2px_2px_0_#DEB9B5] hover:bg-green-50 cursor-pointer transition-all disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl border border-pink-200 text-xs font-semibold text-slate-700 bg-white shadow-2xs hover:bg-slate-50 cursor-pointer transition-all disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading || !fileToUpload}
-                  className="px-5 py-2 rounded-full bg-pink-500 hover:bg-pink-400 text-ink text-xs sm:text-sm font-bold border-2 border-green-600 shadow-[3px_3px_0_#DEB9B5] hover:shadow-[1px_1px_0_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   {isUploading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Tải Lên &amp; Lập Chỉ Mục ↗</span>
@@ -576,10 +576,10 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       {/* VIEW CHUNKS MODAL WITH REAL PREVIEW DATA */}
       {isChunksModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
-          <div className="bg-paper border-2 border-green-500 rounded-2xl max-w-2xl w-full p-6 shadow-[6px_6px_0_#DEB9B5] space-y-4 animate-modal-entry text-ink max-h-[85vh] flex flex-col">
+          <div className="bg-white border border-pink-200 rounded-2xl max-w-2xl w-full p-6 shadow-md space-y-4 animate-modal-entry text-ink max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b-2 border-cream shrink-0">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-pink-100 border-2 border-green-500 flex items-center justify-center text-primary shadow-[2px_2px_0_#DEB9B5] shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                   <Layers className="w-4 h-4 text-pink-700" />
                 </div>
                 <div className="min-w-0">
@@ -607,12 +607,12 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {isPreviewLoading ? (
-                <div className="p-8 text-center bg-surface-container-lowest border-2 border-green-400 rounded-xl space-y-3 shadow-[2px_2px_0_#DEB9B5]">
+                <div className="p-8 text-center bg-slate-50 border border-pink-200 rounded-xl space-y-3 shadow-sm">
                   <Loader2 className="w-6 h-6 text-green-700 animate-spin mx-auto" />
                   <p className="text-xs text-on-surface-variant font-medium">Đang trích xuất các phân đoạn Vector từ cơ sở dữ liệu...</p>
                 </div>
               ) : previewError ? (
-                <div className="bg-pink-100/90 border-2 border-pink-400 rounded-xl p-4 flex items-start gap-3 text-xs text-pink-900 shadow-[2px_2px_0_#DEB9B5]">
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 text-xs text-rose-800 shadow-2xs">
                   <AlertCircle className="w-5 h-5 text-pink-700 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold">Không thể tải trước phân đoạn:</p>
@@ -621,9 +621,9 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                 </div>
               ) : previewData?.chunks && previewData.chunks.length > 0 ? (
                 previewData.chunks.map((chunk, idx) => (
-                  <div key={idx} className="bg-surface-container-lowest border-2 border-green-500 rounded-xl p-3.5 shadow-[2px_2px_0_#DEB9B5] space-y-1.5">
+                  <div key={idx} className="bg-white border border-pink-200 rounded-xl p-3.5 shadow-2xs space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[11px] text-green-800 font-mono bg-green-100 px-2 py-0.5 rounded border border-green-300">
+                      <span className="font-semibold text-[11px] text-slate-700 font-mono bg-slate-100 px-2 py-0.5 rounded border border-pink-200">
                         // {chunk.label || `Đoạn ${idx + 1}`}
                       </span>
                       {chunk.truncated && (
@@ -638,7 +638,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center bg-surface-container-lowest border-2 border-green-400 rounded-xl space-y-2 shadow-[2px_2px_0_#DEB9B5]">
+                <div className="p-8 text-center bg-surface-container-lowest border border-pink-200 rounded-xl space-y-2 shadow-sm">
                   <BookOpen className="w-8 h-8 text-outline mx-auto" />
                   <p className="text-xs font-bold text-ink">Chưa có phân đoạn Vector nào</p>
                   <p className="text-[11px] text-on-surface-variant max-w-sm mx-auto">
@@ -652,7 +652,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
               <button
                 type="button"
                 onClick={() => setIsChunksModalOpen(false)}
-                className="px-5 py-2 rounded-full bg-paper border-2 border-green-500 text-ink font-semibold text-xs sm:text-sm shadow-[2px_2px_0_#DEB9B5] hover:bg-green-50 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all"
+                className="px-5 py-2 rounded-xl bg-pink-600 text-white font-semibold text-xs shadow-xs hover:bg-pink-700 active:scale-[0.98] cursor-pointer transition-all"
               >
                 Đóng
               </button>

@@ -53,10 +53,10 @@ export function ResetPasswordModal({ user, onClose, showToast }) {
     >
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-5 space-y-4 animate-modal-entry"
+        className="bg-white rounded-2xl max-w-md w-full border border-pink-200 shadow-2xl p-5 space-y-4 animate-modal-entry"
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-900">
+          <div className="flex items-center gap-2 text-ink">
             <KeyRound className="w-4 h-4 text-amber-500" />
             <h3 className="font-heading font-extrabold text-sm">Đặt Lại Mật Khẩu</h3>
           </div>
@@ -85,7 +85,7 @@ export function ResetPasswordModal({ user, onClose, showToast }) {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder={`Mật khẩu mới (tối thiểu ${MIN_PASSWORD_LENGTH} ký tự)`}
-            className="w-full pl-3 pr-10 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full pl-3 pr-10 py-2 rounded-xl text-xs border border-pink-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
           <button
             type="button"
@@ -102,7 +102,7 @@ export function ResetPasswordModal({ user, onClose, showToast }) {
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+            className="px-4 py-2 rounded-xl border border-pink-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
           >
             Hủy Bỏ
           </button>

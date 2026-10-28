@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { oralExamApi } from '../api/oralExamApi';
 import { getErrorMessage } from '../utils/errorCodes';
@@ -19,8 +19,8 @@ const ATTEMPT_STATE = {
   IN_PROGRESS: { label: 'Đang thi', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200', action: 'resume' },
   RECONNECTING: { label: 'Đang chờ kết nối lại', tone: 'bg-amber-50 text-amber-800 border-amber-200', action: 'resume' },
   FINALIZING: { label: 'Đang chấm điểm', tone: 'bg-violet-50 text-violet-800 border-violet-200', action: 'results' },
-  COMPLETED: { label: 'Đã hoàn thành', tone: 'bg-green-100 text-green-900 border-green-300', action: 'results' },
-  INTERRUPTED: { label: 'Bị gián đoạn', tone: 'bg-pink-100 text-pink-900 border-pink-300', action: null }
+  COMPLETED: { label: 'Đã hoàn thành', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200', action: 'results' },
+  INTERRUPTED: { label: 'Bị gián đoạn', tone: 'bg-rose-50 text-rose-800 border-rose-200', action: null }
 };
 
 const ACTION_LABEL = {
@@ -101,14 +101,14 @@ export function DiscoverPage({ onNavigate, showToast }) {
           type="button"
           onClick={loadData}
           disabled={isLoading}
-          className="px-3 py-1.5 rounded-xl bg-white border-2 border-green-500 text-xs font-bold flex items-center gap-1.5 hover:bg-green-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="px-3.5 py-1.5 rounded-xl bg-white border border-pink-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50 disabled:opacity-50 shadow-2xs cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" /> Làm mới
         </button>
       </header>
 
       {loadError && (
-        <div className="p-4 bg-pink-50 border-2 border-pink-300 rounded-2xl text-xs text-pink-900">{loadError}</div>
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800">{loadError}</div>
       )}
 
       {/* OPEN EXAMS */}
@@ -117,7 +117,7 @@ export function DiscoverPage({ onNavigate, showToast }) {
         {isLoading ? (
           [0, 1].map(i => <div key={i} className="h-32 rounded-3xl animate-pulse bg-slate-200/80" />)
         ) : exams.length === 0 ? (
-          <div className="bg-white border-2 border-green-300 rounded-3xl p-10 text-center space-y-2">
+          <div className="bg-white border border-pink-200 rounded-2xl p-10 text-center space-y-2 shadow-2xs">
             <CalendarX2 className="w-8 h-8 text-green-600 mx-auto" />
             <p className="font-bold text-sm">Hiện chưa có ca thi nào đang mở</p>
             <p className="text-xs text-green-800">Ca thi sẽ xuất hiện khi giảng viên mở kỳ thi cho môn học của bạn.</p>
@@ -126,7 +126,7 @@ export function DiscoverPage({ onNavigate, showToast }) {
           exams.map((exam) => {
             const state = ATTEMPT_STATE[exam.studentAttemptStatus ?? 'null'] || ATTEMPT_STATE.null;
             return (
-              <article key={exam.id} className="bg-white border-2 border-green-500 rounded-3xl p-6 shadow-[4px_4px_0_#DEB9B5] space-y-4">
+              <article key={exam.id} className="bg-white border border-pink-200 rounded-2xl p-6 shadow-2xs space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h3 className="font-heading font-extrabold text-xl tracking-tight">{exam.title}</h3>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold border ${state.tone}`}>{state.label}</span>
@@ -135,7 +135,7 @@ export function DiscoverPage({ onNavigate, showToast }) {
                   <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {Math.round((exam.durationSeconds || 0) / 60)} phút</span>
                   <span className="flex items-center gap-1.5"><ListChecks className="w-4 h-4" /> {exam.questionCount} câu hỏi chính</span>
                 </div>
-                <div className="pt-3 border-t-2 border-green-100 flex justify-end">
+                <div className="pt-3 border-t border-pink-100 flex justify-end">
                   {state.action ? (
                     <button
                       type="button"
@@ -158,8 +158,8 @@ export function DiscoverPage({ onNavigate, showToast }) {
       </section>
 
       {/* RECENT SCORES */}
-      <section className="bg-white border-2 border-green-300 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b-2 border-green-100 flex items-center justify-between">
+      <section className="bg-white border border-pink-200 rounded-2xl overflow-hidden shadow-2xs">
+        <div className="p-4 border-b border-pink-200 flex items-center justify-between">
           <h2 className="font-heading font-bold text-sm">Kết quả gần đây</h2>
           <button
             type="button"

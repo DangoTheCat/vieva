@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 
 export class ErrorBoundary extends React.Component {
@@ -29,8 +29,8 @@ export class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="min-h-[400px] flex items-center justify-center p-6">
-          <div className="max-w-md w-full bg-paper border-2 border-ink rounded-2xl p-6 shadow-[4px_4px_0_#1F1F1D] text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-error-container border-2 border-error text-error flex items-center justify-center shadow-[2px_2px_0_#ba1a1a]">
+          <div className="max-w-md w-full bg-paper border-2 border-ink rounded-2xl p-6 shadow-sm text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-error-container border-2 border-error text-error flex items-center justify-center shadow-sm">
               <AlertTriangle className="w-8 h-8" />
             </div>
             <div>
@@ -48,7 +48,7 @@ export class ErrorBoundary extends React.Component {
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-ink text-xs font-bold border-2 border-ink shadow-[2px_2px_0_#1F1F1D] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-ink text-xs font-bold border-2 border-ink shadow-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Tải lại</span>
@@ -56,7 +56,7 @@ export class ErrorBoundary extends React.Component {
               <button
                 type="button"
                 onClick={this.handleGoHome}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-variant text-ink text-xs font-bold border-2 border-ink shadow-[2px_2px_0_#1F1F1D] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-variant text-ink text-xs font-bold border-2 border-ink shadow-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
               >
                 <Home className="w-4 h-4" />
                 <span>Về trang chủ</span>

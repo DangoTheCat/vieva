@@ -42,8 +42,8 @@ export function Toast({ toast, onClose }) {
       bar: 'bg-sky-500'
     }
   }[type] || {
-    card: 'bg-white border-slate-200 text-slate-800 shadow-slate-500/10',
-    badge: 'bg-slate-100 text-slate-800 border-slate-200',
+    card: 'bg-white border-pink-200 text-slate-800 shadow-slate-500/10',
+    badge: 'bg-slate-100 text-slate-800 border-pink-200',
     icon: <Info className="w-4 h-4 text-slate-600 shrink-0" />,
     bar: 'bg-slate-500'
   };
@@ -59,7 +59,7 @@ export function Toast({ toast, onClose }) {
         
         <div className="flex-1 min-w-0 pr-2">
           {title && (
-            <h4 className="font-heading font-extrabold text-xs text-slate-900 mb-0.5 tracking-tight">
+            <h4 className="font-heading font-extrabold text-xs text-ink mb-0.5 tracking-tight">
               {title}
             </h4>
           )}

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { adminUserApi } from '../api/adminUserApi';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { userApi } from '../api/userApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { UserTable } from '../components/users/UserTable';
 import { UserFilterBar } from '../components/users/UserFilterBar';
@@ -8,112 +7,113 @@ import { CreateUserModal } from '../components/users/CreateUserModal';
 import { EditUserModal } from '../components/users/EditUserModal';
 import { UserDetailModal } from '../components/users/UserDetailModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
-import { ResetPasswordModal } from '../components/users/ResetPasswordModal';
 import { 
-  ShieldCheck, 
   Users, 
+  ShieldCheck, 
   UserCheck, 
   GraduationCap, 
-  Table2, 
   UserPlus, 
-  RefreshCw,
-  AlertCircle,
+  RefreshCw, 
+  Table2,
   WifiOff,
   RotateCcw
 } from 'lucide-react';
 
 export function AdminUserPage({ onOpenMatrix, showToast }) {
-  const { currentUser } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
+  const [pageData, setPageData] = useState({
+    totalElements: 0,
+    totalPages: 0,
+    number: 0
+  });
 
-  // Search & Filter state
+  // Filter States
   const [keyword, setKeyword] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('DESC');
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
 
-  // Data state
-  const [users, setUsers] = useState([]);
-  const [pageData, setPageData] = useState({
-    page: 0,
-    size: 10,
-    totalElements: 0,
-    totalPages: 1,
-    isFirst: true,
-    isLast: true
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [fetchError, setFetchError] = useState('');
-
-  // Resilience: 60s Reconnect Countdown
-  const [reconnectCountdown, setReconnectCountdown] = useState(60);
-
-  // Modals state
+  // Modal Action States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [resettingUser, setResettingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
-  // Fetch users function
-  const fetchUsers = useCallback(async () => {
+  // Resilience & Auto-reconnect
+  const [fetchError, setFetchError] = useState(null);
+  const [reconnectCountdown, setReconnectCountdown] = useState(60);
+
+  // Fetch Users from Backend
+  const fetchUsers = async () => {
     setIsLoading(true);
-    setFetchError('');
+    setFetchError(null);
     try {
-      const result = await adminUserApi.getUsers({
+      const params = {
+        page,
+        size,
         keyword: keyword.trim() || undefined,
         role: role || undefined,
         status: status || undefined,
-        page,
-        size,
         sortBy,
         sortDirection
-      });
+      };
 
-      setUsers(result.content || []);
-      setPageData({
-        page: result.page || 0,
-        size: result.size || size,
-        totalElements: result.totalElements || 0,
-        totalPages: result.totalPages || 1,
-        isFirst: result.first ?? (page === 0),
-        isLast: result.last ?? true
-      });
-      setReconnectCountdown(60);
+      const data = await userApi.getUsers(params);
+      
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setPageData({
+          totalElements: data.length,
+          totalPages: 1,
+          number: 0
+        });
+      } else if (data && Array.isArray(data.content)) {
+        setUsers(data.content);
+        setPageData({
+          totalElements: data.totalElements || 0,
+          totalPages: data.totalPages || 0,
+          number: data.number || 0
+        });
+      } else {
+        setUsers([]);
+      }
     } catch (err) {
-      const msg = getErrorMessage(err);
-      setFetchError(msg);
+      const errMsg = getErrorMessage(err);
+      setFetchError(errMsg);
       setUsers([]);
-      setPageData({
-        page: 0,
-        size,
-        totalElements: 0,
-        totalPages: 1,
-        isFirst: true,
-        isLast: true
-      });
+      if (showToast) {
+        showToast({
+          type: 'error',
+          title: 'Lỗi Truy Vấn Tài Khoản',
+          message: errMsg
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [keyword, role, status, page, size, sortBy, sortDirection]);
+  };
 
-  // Debounced fetch on filter/search change
+  // Debounced search & filter sync
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchUsers();
-    }, 220);
+    }, 250);
     return () => clearTimeout(timer);
-  }, [fetchUsers]);
+  }, [keyword, role, status, sortBy, sortDirection, page]);
 
-  // Reconnect countdown timer while the user list cannot be fetched
+  // Reconnect Countdown Timer
   useEffect(() => {
     if (!fetchError) return;
 
     const interval = setInterval(() => {
-      setReconnectCountdown((prev) => {
+      setReconnectCountdown(prev => {
         if (prev <= 1) {
           fetchUsers();
           return 60;
@@ -123,7 +123,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [fetchError, fetchUsers]);
+  }, [fetchError]);
 
   const handleResetFilters = () => {
     setKeyword('');
@@ -135,27 +135,53 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
   };
 
   const handleCreateSuccess = () => {
+    setIsCreateOpen(false);
+    showToast({
+      type: 'success',
+      title: 'Tạo Tài Khoản Thành Công',
+      message: 'Người dùng mới đã được thêm vào hệ thống.'
+    });
     fetchUsers();
   };
 
-  const handleUpdateSuccess = (updatedUser) => {
-    setUsers(prev => prev.map(u => u.userId === updatedUser.userId ? updatedUser : u));
+  const handleUpdateSuccess = () => {
+    setEditingUser(null);
+    showToast({
+      type: 'success',
+      title: 'Cập Nhật Thành Công',
+      message: 'Thông tin tài khoản đã được lưu.'
+    });
     fetchUsers();
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deletingUser) return;
-
-    if (deletingUser.userId === currentUser?.userId) {
-      showToast({ type: 'error', message: 'Bạn không thể tự xóa tài khoản của chính mình (Error 1011).' });
-      setDeletingUser(null);
-      return;
+  const handleConfirmResetPassword = async () => {
+    if (!resettingUser) return;
+    setIsResetting(true);
+    try {
+      await userApi.resetPassword(resettingUser.userId);
+      showToast({
+        type: 'success',
+        title: 'Đặt Lại Mật Khẩu Thành Công',
+        message: `Mật khẩu tạm thời đã được gửi tới email ${resettingUser.email}`
+      });
+      setResettingUser(null);
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsResetting(false);
     }
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
     setIsDeleting(true);
     try {
-      await adminUserApi.deleteUser(deletingUser.userId);
-      showToast({ type: 'success', message: `Xóa thành công người dùng ${deletingUser.fullName}!` });
+      await userApi.deleteUser(deletingUser.userId);
+      showToast({
+        type: 'success',
+        title: 'Khóa Tài Khoản Thành Công',
+        message: `Tài khoản ${deletingUser.email} đã được vô hiệu hóa.`
+      });
       setDeletingUser(null);
       fetchUsers();
     } catch (err) {
@@ -171,88 +197,52 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
 
   return (
     <div className="space-y-6">
-      
-      {/* Solitary Expressionist Heart Motif (Pastel Stagebox Papercraft Cutout) */}
-      <div className="relative w-full mb-3 flex items-center justify-between pointer-events-none select-none">
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-12 bg-green-500 rounded-full"></div>
-          <div className="h-2 w-4 bg-pink-400 rounded-full"></div>
-          <div className="h-2 w-2 bg-cream rounded-full"></div>
-        </div>
-        <div className="flex items-center gap-1.5 text-pink-700/80 pr-2">
-          <svg className="inline-block transform -rotate-6" fill="none" height="22" viewBox="0 0 24 24" width="22">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#DEB9B5" stroke="#819266" strokeDasharray="2 1" strokeWidth="1.5" />
-            <path d="M12 4v16" stroke="#819266" strokeLinecap="round" strokeWidth="1.5" />
-          </svg>
-          <span className="font-heading text-xs tracking-widest uppercase text-green-700 font-semibold">STAGE 07 • ACCESS CONTROL MATRIX</span>
-        </div>
-      </div>
 
       {/* HEADER SECTION */}
-      <header className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-6">
-        <div className="flex flex-col max-w-3xl">
-          {/* Top Meta Pills */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-green-100 border-2 border-green-500 text-ink font-sans text-xs font-semibold shadow-[2px_2px_0px_#DEB9B5]">
-              <ShieldCheck className="w-4 h-4 text-green-700" />
-              Bảo Mật Hệ Thống &amp; Quản Trị Phân Quyền
-            </span>
-            <span className="text-xs text-on-surface-variant font-medium tracking-wide">
-              Module 7 • Admin User Management
-            </span>
-          </div>
-          {/* Headline in Serif */}
-          <h1 className="font-heading text-2xl md:text-3xl font-bold text-ink leading-tight tracking-tight mt-1 mb-2">
-            Quản Lý Người Dùng &amp; Phân Quyền Theo Môn (Course RBAC)
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-ink tracking-tight">
+            Quản Lý Người Dùng &amp; Phân Quyền (RBAC)
           </h1>
-          {/* Subtitle */}
-          <p className="font-sans text-xs md:text-sm text-on-surface-variant leading-relaxed">
-            Giảng viên chỉ có quyền truy cập, chỉnh sửa ngân hàng câu hỏi và chấm thi trong phạm vi môn học được phân công (Course-Scoped Access Control theo chuẩn Onion Architecture).
+          <p className="text-xs text-slate-500 mt-1">
+            Quản lý danh sách tài khoản, phân công giảng viên và kiểm soát trạng thái truy cập hệ thống.
           </p>
         </div>
 
         {/* Header Actions Panel */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => fetchUsers()}
             disabled={isLoading}
-            className="h-11 w-11 flex items-center justify-center rounded-xl bg-surface-container-lowest border-2 border-green-500 text-ink shadow-[3px_3px_0px_#DEB9B5] hover:shadow-[1px_1px_0px_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all duration-150 cursor-pointer disabled:opacity-50"
+            className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-pink-200 text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
             title="Làm mới danh sách dữ liệu"
             aria-label="Làm mới danh sách"
           >
-            <RefreshCw className={`w-5 h-5 text-green-800 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            onClick={onOpenMatrix}
-            className="h-11 px-4 flex items-center gap-2 rounded-xl bg-surface-container-lowest border-2 border-green-500 text-ink font-sans text-xs font-bold shadow-[3px_3px_0px_#DEB9B5] hover:bg-green-50 hover:shadow-[1px_1px_0px_#DEB9B5] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all duration-150 cursor-pointer"
-          >
-            <Table2 className="w-4 h-4 text-green-700" />
-            <span>Ma Trận Phân Quyền</span>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="h-11 px-5 flex items-center gap-2 rounded-xl bg-pink-500 border-2 border-ink text-ink font-sans text-xs font-bold shadow-[3px_3px_0px_#819266] hover:bg-pink-400 hover:shadow-[1px_1px_0px_#819266] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all duration-150 cursor-pointer"
+            className="h-9 px-4 flex items-center gap-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs transition active:scale-[0.98] cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 font-bold" />
-            <span>+ Thêm Người Dùng</span>
+            <UserPlus className="w-4 h-4" />
+            <span>Thêm Người Dùng</span>
           </button>
         </div>
       </header>
 
-      {/* HARDENED RECONNECT & OFFLINE BANNER (fe-resilience-hardening) */}
+      {/* OFFLINE / RECONNECT BANNER */}
       {fetchError && (
-        <div className="p-4 bg-pink-50 border-2 border-pink-700 rounded-2xl text-pink-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0px_#713D38] animate-modal-entry mb-6">
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs animate-modal-entry mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-pink-100 border-2 border-pink-700 flex items-center justify-center text-pink-800 shrink-0 shadow-[2px_2px_0px_#DEB9B5]">
+            <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
               <WifiOff className="w-4 h-4" />
             </div>
             <div>
-              <p className="font-bold text-pink-950">
-                Không thể kết nối đến Máy chủ Backend Spring Boot (Cổng 8080)
+              <p className="font-semibold text-rose-950">
+                Không thể kết nối đến Máy chủ Backend API (Cổng 8080)
               </p>
-              <p className="text-[11px] text-pink-800 mt-0.5">
+              <p className="text-[11px] text-rose-700 mt-0.5">
                 Hệ thống tự động thử kết nối lại sau: <strong className="font-mono">{reconnectCountdown}s</strong>
               </p>
             </div>
@@ -263,7 +253,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
                 setReconnectCountdown(60);
                 fetchUsers();
               }}
-              className="px-3 py-1.5 rounded-xl bg-white border-2 border-green-500 hover:bg-green-50 text-ink text-xs font-bold transition flex items-center gap-1.5 shadow-[2px_2px_0px_#DEB9B5]"
+              className="px-3 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-800 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Thử Lại Ngay</span>
@@ -274,84 +264,81 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
 
       {/* METRIC OVERVIEW CARDS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
         {/* Card 1: Total Users */}
-        <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-green-500 p-5 shadow-[3px_3px_0px_#DEB9B5] flex flex-col justify-between overflow-hidden group">
+        <div className="bg-white rounded-xl border border-pink-200/90 p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
-            <span className="font-sans text-xs font-semibold text-on-surface-variant">Tổng Số Người Dùng</span>
-            <div className="w-10 h-10 rounded-xl bg-green-50 border-2 border-green-500 flex items-center justify-center text-green-800 shadow-[2px_2px_0px_#DEB9B5]">
-              <Users className="w-5 h-5" />
+            <span className="text-xs font-semibold text-slate-500">Tổng Số Người Dùng</span>
+            <div className="w-9 h-9 rounded-lg bg-pink-50 border border-blue-100 flex items-center justify-center text-pink-600">
+              <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-4">
             <div className="font-heading text-3xl font-bold text-ink leading-tight">
               {pageData.totalElements || users.length}
             </div>
-            <p className="font-sans text-xs text-green-700 mt-1 flex items-center gap-1.5 font-medium">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
               Đã ghi danh trong hệ thống
             </p>
           </div>
-          <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-pink-100/40 pointer-events-none"></div>
         </div>
 
         {/* Card 2: Admin Count */}
-        <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-green-500 p-5 shadow-[3px_3px_0px_#DEB9B5] flex flex-col justify-between overflow-hidden group">
+        <div className="bg-white rounded-xl border border-pink-200/90 p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
-            <span className="font-sans text-xs font-semibold text-on-surface-variant">Quản Trị Viên (Admin)</span>
-            <div className="w-10 h-10 rounded-xl bg-pink-100 border-2 border-pink-700 flex items-center justify-center text-pink-800 shadow-[2px_2px_0px_#DEB9B5]">
-              <ShieldCheck className="w-5 h-5" />
+            <span className="text-xs font-semibold text-slate-500">Quản Trị Viên (Admin)</span>
+            <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="font-heading text-3xl font-bold text-pink-700 leading-tight">
+            <div className="font-heading text-3xl font-bold text-ink leading-tight">
               {adminCount.toString().padStart(2, '0')}
             </div>
-            <p className="font-sans text-xs text-pink-800 mt-1 flex items-center gap-1.5 font-medium">
-              <span className="inline-block w-2 h-2 rounded-full bg-pink-600"></span>
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+              <span className="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
               Quyền quản trị toàn hệ thống
             </p>
           </div>
-          <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-cream/30 pointer-events-none"></div>
         </div>
 
         {/* Card 3: Active Accounts */}
-        <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-green-500 p-5 shadow-[3px_3px_0px_#DEB9B5] flex flex-col justify-between overflow-hidden group">
+        <div className="bg-white rounded-xl border border-pink-200/90 p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
-            <span className="font-sans text-xs font-semibold text-on-surface-variant">Đang Hoạt Động</span>
-            <div className="w-10 h-10 rounded-xl bg-green-100 border-2 border-green-600 flex items-center justify-center text-green-800 shadow-[2px_2px_0px_#DEB9B5]">
-              <UserCheck className="w-5 h-5" />
+            <span className="text-xs font-semibold text-slate-500">Đang Hoạt Động</span>
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+              <UserCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="font-heading text-3xl font-bold text-green-600 leading-tight">
+            <div className="font-heading text-3xl font-bold text-ink leading-tight">
               {activeCount.toString().padStart(2, '0')}
             </div>
-            <p className="font-sans text-xs text-green-800 mt-1 flex items-center gap-1.5 font-medium">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-600"></span>
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
               Trạng thái ACTIVE
             </p>
           </div>
-          <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-green-200/40 pointer-events-none"></div>
         </div>
 
-        {/* Card 4: Exam Scope / RLS */}
-        <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-green-500 p-5 shadow-[3px_3px_0px_#DEB9B5] flex flex-col justify-between overflow-hidden group">
+        {/* Card 4: Exam Scope */}
+        <div className="bg-white rounded-xl border border-pink-200/90 p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
-            <span className="font-sans text-xs font-semibold text-on-surface-variant">Phạm Vi Khảo Thí</span>
-            <div className="w-10 h-10 rounded-xl bg-pink-50 border-2 border-green-500 flex items-center justify-center text-ink shadow-[2px_2px_0px_#DEB9B5]">
-              <GraduationCap className="w-5 h-5" />
+            <span className="text-xs font-semibold text-slate-500">Phạm Vi Khảo Thí</span>
+            <div className="w-9 h-9 rounded-lg bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700">
+              <GraduationCap className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-4">
             <div className="font-heading text-3xl font-bold text-ink leading-tight">
               SWD392
             </div>
-            <p className="font-sans text-xs text-status-info mt-1 flex items-center gap-1.5 font-medium truncate">
-              <span className="inline-block w-2 h-2 rounded-full bg-status-info"></span>
-              Row-Level Security Enforced
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium truncate">
+              <span className="inline-block w-2 h-2 rounded-full bg-slate-500"></span>
+              Môn học phân công
             </p>
           </div>
-          <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-pink-300/30 pointer-events-none"></div>
         </div>
       </section>
 
@@ -383,22 +370,6 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         onResetFilters={handleResetFilters}
       />
 
-      {/* Architectural RBAC Information Panel (Callout Note) */}
-      <aside className="bg-green-50 rounded-2xl border-2 border-green-500 p-5 shadow-[3px_3px_0px_#DEB9B5] flex flex-col md:flex-row items-start gap-4 mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-white border-2 border-green-600 flex items-center justify-center text-green-700 shadow-[2px_2px_0px_#DEB9B5] shrink-0">
-          <ShieldCheck className="w-7 h-7" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h4 className="font-heading text-base md:text-lg font-bold text-ink">Nguyên tắc Phân quyền Course RBAC • FPTU Oral Exam</h4>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-200 text-green-900 border border-green-600">Row-Level Security</span>
-          </div>
-          <p className="font-sans text-xs md:text-sm text-on-surface-variant leading-relaxed">
-            Hệ thống vận hành theo kiến trúc Onion Architecture. Giảng viên phụ trách môn nào chỉ được tải Rubric, xem thống kê ca thi, tạo cấu hình bài thi và chấm điểm sinh viên thuộc môn đó. Các can thiệp chéo môn bị chặn tại tầng Application Core và ghi nhận vào Telemetry Log.
-          </p>
-        </div>
-      </aside>
-
       {/* MODALS */}
       <CreateUserModal
         isOpen={isCreateOpen}
@@ -419,24 +390,37 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
         isOpen={Boolean(viewingUser)}
         user={viewingUser}
         onClose={() => setViewingUser(null)}
-        onEdit={(user) => setEditingUser(user)}
+        onEditUser={(user) => {
+          setViewingUser(null);
+          setEditingUser(user);
+        }}
+        showToast={showToast}
       />
 
+      {/* CONFIRMATION DIALOG: SOFT-DELETE USER */}
       <ConfirmModal
         isOpen={Boolean(deletingUser)}
-        title="Xác Nhận Xóa Mềm Người Dùng"
-        message={`Bạn có chắc chắn muốn xóa mềm người dùng "${deletingUser?.fullName}" (${deletingUser?.email})? Trạng thái tài khoản sẽ chuyển thành DELETED và người dùng sẽ không thể đăng nhập vào hệ thống thi. Dữ liệu lịch sử chấm thi và telemetry sẽ được lưu trữ bảo toàn.`}
-        confirmText="Xác Nhận Xóa"
+        title="Khóa Quyền Người Dùng"
+        message={`Bạn có chắc chắn muốn khóa tài khoản "${deletingUser?.fullName}" (${deletingUser?.email})? Trạng thái tài khoản sẽ chuyển thành DELETED và người dùng sẽ không thể truy cập hệ thống khảo thí.`}
+        confirmText="Xác Nhận Khóa"
+        cancelText="Hủy Bỏ"
         isDanger={true}
         isLoading={isDeleting}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingUser(null)}
       />
 
-      <ResetPasswordModal
-        user={resettingUser}
-        onClose={() => setResettingUser(null)}
-        showToast={showToast}
+      {/* CONFIRMATION DIALOG: RESET PASSWORD */}
+      <ConfirmModal
+        isOpen={Boolean(resettingUser)}
+        title="Đặt Lại Mật Khẩu"
+        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resettingUser?.fullName}" (${resettingUser?.email})? Mật khẩu tạm thời sẽ được tạo và gửi tới email của người dùng.`}
+        confirmText="Đặt Lại Mật Khẩu"
+        cancelText="Hủy Bỏ"
+        isDanger={false}
+        isLoading={isResetting}
+        onConfirm={handleConfirmResetPassword}
+        onCancel={() => setResettingUser(null)}
       />
 
     </div>

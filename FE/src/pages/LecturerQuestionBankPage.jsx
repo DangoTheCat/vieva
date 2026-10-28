@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   Database,
   FileText,
@@ -50,12 +50,12 @@ import { Pagination } from '../components/common/Pagination';
 
 // Bloom Taxonomy Levels & Color Tokens (Pedagogical UI)
 const BLOOM_LEVELS = [
-  { value: 'REMEMBER', label: '1. Nhận Biết (Remember)', short: 'Nhớ', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
-  { value: 'UNDERSTAND', label: '2. Thông Hiểu (Understand)', short: 'Hiểu', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
-  { value: 'APPLY', label: '3. Vận Dụng (Apply)', short: 'Vận dụng', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
-  { value: 'ANALYZE', label: '4. Phân Tích (Analyze)', short: 'Phân tích', color: 'bg-green-100 text-green-800 border-2 border-green-500' },
-  { value: 'EVALUATE', label: '5. Đánh Giá (Evaluate)', short: 'Đánh giá', color: 'bg-pink-100 text-pink-900 border-2 border-pink-400' },
-  { value: 'CREATE', label: '6. Sáng Tạo (Create)', short: 'Sáng tạo', color: 'bg-pink-200 text-pink-900 border-2 border-green-500' }
+  { value: 'REMEMBER', label: '1. Nhận Biết (Remember)', short: 'Nhớ', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'UNDERSTAND', label: '2. Thông Hiểu (Understand)', short: 'Hiểu', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'APPLY', label: '3. Vận Dụng (Apply)', short: 'Vận dụng', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'ANALYZE', label: '4. Phân Tích (Analyze)', short: 'Phân tích', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'EVALUATE', label: '5. Đánh Giá (Evaluate)', short: 'Đánh giá', color: 'bg-amber-50 text-amber-800 border border-amber-200' },
+  { value: 'CREATE', label: '6. Sáng Tạo (Create)', short: 'Sáng tạo', color: 'bg-indigo-50 text-indigo-800 border border-indigo-200' }
 ];
 
 // Presets for RAG Bloom Taxonomy distribution
@@ -153,14 +153,14 @@ function RubricCriteriaEditor({ criteria, onChange }) {
     <>
       <div className="space-y-2">
         {criteria.map((crit, idx) => (
-          <div key={idx} className="bg-paper p-3 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] space-y-2">
+          <div key={idx} className="bg-paper p-3 rounded-xl border border-pink-200 shadow-sm space-y-2">
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Tên tiêu chí (VD: Tính đúng đắn)"
                 value={crit.name}
                 onChange={(e) => updateAt(idx, { name: e.target.value })}
-                className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border-2 border-green-500 font-medium text-ink focus:outline-none focus:border-green-600 shadow-[1px_1px_0_#DEB9B5]"
+                className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border border-pink-200 font-medium text-ink focus:outline-none focus:border-pink-500 shadow-sm"
               />
               <input
                 type="number"
@@ -169,7 +169,7 @@ function RubricCriteriaEditor({ criteria, onChange }) {
                 max="999.99"
                 value={crit.maxScore}
                 onChange={(e) => updateAt(idx, { maxScore: e.target.value })}
-                className="w-16 px-2 py-1.5 rounded-lg text-xs bg-surface-container-lowest border-2 border-green-500 font-mono font-bold text-center text-ink focus:outline-none focus:border-green-600 shadow-[1px_1px_0_#DEB9B5]"
+                className="w-16 px-2 py-1.5 rounded-lg text-xs bg-surface-container-lowest border border-pink-200 font-mono font-bold text-center text-ink focus:outline-none focus:border-pink-500 shadow-sm"
               />
               <button
                 type="button"
@@ -185,7 +185,7 @@ function RubricCriteriaEditor({ criteria, onChange }) {
               placeholder="Mô tả tiêu chí (bắt buộc)"
               value={crit.description}
               onChange={(e) => updateAt(idx, { description: e.target.value })}
-              className="w-full px-3 py-1.5 rounded-lg text-[11px] bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[1px_1px_0_#DEB9B5]"
+              className="w-full px-3 py-1.5 rounded-lg text-[11px] bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm"
             />
           </div>
         ))}
@@ -996,25 +996,18 @@ export function LecturerQuestionBankPage({ showToast }) {
     <div className="space-y-6 animate-modal-entry bg-paper text-ink min-h-screen">
 
       {/* HEADER SECTION & SUBJECT PICKER */}
-      <div className="bg-paper p-6 rounded-2xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-xl border border-pink-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 border-2 border-green-500 text-xs font-semibold shadow-[2px_2px_0_#DEB9B5] mb-2">
-            <Database className="w-3.5 h-3.5 text-green-700" />
-            <span>Module 1 &amp; Group 1 — Question Bank &amp; RAG Pipeline</span>
-          </div>
-          <h1 className="text-xl font-heading font-extrabold text-ink tracking-tight">
+          <h1 className="text-xl font-heading font-bold text-ink tracking-tight">
             Ngân Hàng Câu Hỏi &amp; Quản Lý RAG Giáo Trình
           </h1>
-          <p className="text-sm italic text-pink-700 mt-0.5 font-normal">
-            Thẩm định năng lực tư duy kiến trúc • Đối soát học liệu đa tầng
-          </p>
-          <p className="text-xs text-on-surface-variant mt-1 max-w-3xl">
-            Quản trị kho học liệu, bóc tách vector hóa giáo trình, kích hoạt AI RAG và thẩm định ma trận Rubric đa tiêu chí theo chuẩn Bloom.
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            Quản trị kho câu hỏi thi vấn đáp, liên kết giáo trình RAG và cấu hình tiêu chí đánh giá chuẩn Bloom.
           </p>
         </div>
 
         {/* SUBJECT SWITCHER BOX */}
-        <div className="w-full md:w-80 bg-paper border-2 border-green-500 rounded-xl p-3.5 shadow-[3px_3px_0_#DEB9B5] transition-all">
+        <div className="w-full md:w-80 bg-paper border border-pink-200 rounded-xl p-3.5 shadow-sm transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] text-green-700 uppercase tracking-wider font-bold">MÔN HỌC PHỤ TRÁCH</span>
             <span className="px-2 py-0.5 rounded-full bg-green-500 text-paper font-bold text-[10px] tracking-wide">ACTIVE</span>
@@ -1023,7 +1016,7 @@ export function LecturerQuestionBankPage({ showToast }) {
             <select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="w-full appearance-none bg-surface-container-lowest border-2 border-green-500 rounded-lg py-1.5 pl-3 pr-8 text-xs font-bold text-ink cursor-pointer focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5]"
+              className="w-full appearance-none bg-surface-container-lowest border border-pink-200 rounded-lg py-1.5 pl-3 pr-8 text-xs font-bold text-ink cursor-pointer focus:outline-none focus:border-pink-500 shadow-sm"
             >
               {subjects.map(s => (
                 <option key={s.subjectId} value={s.subjectId}>
@@ -1041,9 +1034,9 @@ export function LecturerQuestionBankPage({ showToast }) {
       </div>
 
       {/* TOPIC BANNER & SHORTCUT BAR */}
-      <div className="bg-paper border-2 border-green-500 rounded-xl p-4 shadow-[3px_3px_0_#DEB9B5] flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-paper border border-pink-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-lg bg-green-100 border-2 border-green-500 flex items-center justify-center shrink-0 text-green-700 shadow-[2px_2px_0_#DEB9B5]">
+          <div className="w-10 h-10 rounded-lg bg-green-100 border border-pink-200 flex items-center justify-center shrink-0 text-green-700 shadow-sm">
             <FolderPlus className="w-5 h-5 text-green-700" />
           </div>
           <div className="min-w-0">
@@ -1059,7 +1052,7 @@ export function LecturerQuestionBankPage({ showToast }) {
         <button
           type="button"
           onClick={() => setIsCreateTopicModalOpen(true)}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border border-pink-200 rounded-xl font-bold text-xs shadow-sm hover:bg-green-100 hover:text-green-900 active:scale-[0.98] transition-all"
         >
           <Plus className="w-4 h-4 text-green-700" />
           <span>+ Thêm Chủ Đề Mới</span>
@@ -1073,16 +1066,15 @@ export function LecturerQuestionBankPage({ showToast }) {
           onClick={() => setActiveTab('bank')}
           className={`inline-flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
             activeTab === 'bank'
-              ? 'bg-pink-200 border-green-500 text-pink-900 shadow-[3px_3px_0_#DEB9B5]'
-              : 'bg-paper border-transparent hover:border-green-500 text-on-surface-variant hover:text-ink'
+              ? 'bg-pink-600 border-slate-900 text-white shadow-xs' : 'bg-white border-pink-200 hover:bg-slate-50 text-slate-600 hover:text-ink'
           }`}
         >
           <Database className="w-4 h-4" />
           <span>Ngân Hàng Chính Thức</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
             activeTab === 'bank'
-              ? 'bg-pink-100 text-pink-900 border-green-500'
-              : 'bg-green-100 text-green-800 border-transparent'
+              ? 'bg-slate-800 text-slate-100 border-slate-700'
+              : 'bg-emerald-50 text-emerald-800 border-transparent'
           }`}>
             {bankQuestions.length}
           </span>
@@ -1093,16 +1085,15 @@ export function LecturerQuestionBankPage({ showToast }) {
           onClick={() => setActiveTab('documents')}
           className={`inline-flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
             activeTab === 'documents'
-              ? 'bg-pink-200 border-green-500 text-pink-900 shadow-[3px_3px_0_#DEB9B5]'
-              : 'bg-paper border-transparent hover:border-green-500 text-on-surface-variant hover:text-ink'
+              ? 'bg-pink-600 border-slate-900 text-white shadow-xs' : 'bg-white border-pink-200 hover:bg-slate-50 text-slate-600 hover:text-ink'
           }`}
         >
           <FileText className="w-4 h-4" />
           <span>Kho Giáo Trình RAG</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
             activeTab === 'documents'
-              ? 'bg-pink-100 text-pink-900 border-green-500'
-              : 'bg-green-100 text-green-800 border-transparent'
+              ? 'bg-slate-800 text-slate-100 border-slate-700'
+              : 'bg-emerald-50 text-emerald-800 border-transparent'
           }`}>
             {documents.length}
           </span>
@@ -1113,16 +1104,15 @@ export function LecturerQuestionBankPage({ showToast }) {
           onClick={() => setActiveTab('review')}
           className={`inline-flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
             activeTab === 'review'
-              ? 'bg-pink-200 border-green-500 text-pink-900 shadow-[3px_3px_0_#DEB9B5]'
-              : 'bg-paper border-transparent hover:border-green-500 text-on-surface-variant hover:text-ink'
+              ? 'bg-pink-600 border-slate-900 text-white shadow-xs' : 'bg-white border-pink-200 hover:bg-slate-50 text-slate-600 hover:text-ink'
           }`}
         >
           <Sparkles className="w-4 h-4 text-pink-600" />
           <span>Hàng Đợi Thẩm Định &amp; AI</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
             activeTab === 'review'
-              ? 'bg-pink-100 text-pink-900 border-green-500'
-              : 'bg-pink-100 text-pink-800 border-pink-400'
+              ? 'bg-slate-800 text-slate-100 border-slate-700'
+              : 'bg-slate-100 text-slate-600 border-pink-200'
           }`}>
             {reviewVersions.length}
           </span>
@@ -1135,8 +1125,8 @@ export function LecturerQuestionBankPage({ showToast }) {
       {activeTab === 'documents' && (
         <div className="space-y-6">
           {/* UPLOAD DROPZONE */}
-          <div className="bg-paper p-6 rounded-2xl border-2 border-dashed border-green-500 shadow-[3px_3px_0_#DEB9B5] flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-2xl bg-green-100 border-2 border-green-500 text-green-700 flex items-center justify-center mb-3 shadow-[2px_2px_0_#DEB9B5]">
+          <div className="bg-paper p-6 rounded-2xl border border-dashed border-pink-200 shadow-sm flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 rounded-2xl bg-green-100 border border-pink-200 text-green-700 flex items-center justify-center mb-3 shadow-sm">
               <Upload className="w-6 h-6" />
             </div>
             <h3 className="font-heading font-extrabold text-ink text-sm">
@@ -1159,7 +1149,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               />
               <label
                 htmlFor="doc-upload-input"
-                className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 hover:bg-green-100 text-green-900 font-bold text-xs cursor-pointer shadow-[2px_2px_0_#DEB9B5] transition active:scale-95"
+                className="px-4 py-2 rounded-xl bg-paper border border-pink-200 hover:bg-emerald-50 text-emerald-800 font-bold text-xs cursor-pointer shadow-sm transition active:scale-95"
               >
                 {docFileToUpload ? docFileToUpload.name : 'Chọn Tệp Tin Từ Máy...'}
               </label>
@@ -1168,7 +1158,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 type="button"
                 onClick={handleUploadDocument}
                 disabled={!docFileToUpload || isUploadingDoc}
-                className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
               >
                 {isUploadingDoc && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                 <span>Bắt Đầu Tải Lên &amp; Lập Chỉ Mục</span>
@@ -1177,8 +1167,8 @@ export function LecturerQuestionBankPage({ showToast }) {
           </div>
 
           {/* DOCUMENTS LIST */}
-          <div className="bg-paper rounded-2xl border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] overflow-hidden">
-            <div className="p-4 bg-green-50 border-b-2 border-green-500 flex items-center justify-between">
+          <div className="bg-paper rounded-2xl border border-pink-200 shadow-md overflow-hidden">
+            <div className="p-4 bg-green-50 border-b border-pink-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-green-700" />
                 <h3 className="font-heading font-extrabold text-xs text-ink uppercase tracking-wider">
@@ -1230,25 +1220,25 @@ export function LecturerQuestionBankPage({ showToast }) {
                         </td>
                         <td className="py-3.5 px-4">
                           {doc.indexingStatus === 'READY' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-green-100 text-green-800 border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-pink-200 shadow-sm">
                               <CheckCircle2 className="w-3.5 h-3.5 text-green-700" />
                               READY (Đã Lập Chỉ Mục)
                             </span>
                           )}
                           {doc.indexingStatus === 'INDEXING' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-pink-100 text-pink-900 border-2 border-pink-400">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-800 border border-rose-200">
                               <span className="w-3 h-3 border-2 border-pink-700 border-t-transparent rounded-full animate-spin"></span>
                               INDEXING...
                             </span>
                           )}
                           {doc.indexingStatus === 'UPLOADED' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-paper text-ink border-2 border-green-500">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-paper text-ink border border-pink-200">
                               <Clock className="w-3.5 h-3.5 text-green-700" />
                               UPLOADED
                             </span>
                           )}
                           {doc.indexingStatus === 'FAILED' && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-pink-50 text-error border-2 border-error">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
                               <AlertCircle className="w-3.5 h-3.5 text-error" />
                               FAILED
                             </span>
@@ -1267,7 +1257,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                             <button
                               type="button"
                               onClick={() => handleRetryIndexing(doc.documentId)}
-                              className="p-1.5 rounded-lg bg-paper border-2 border-green-500 text-green-800 hover:bg-green-100 transition shadow-[1px_1px_0_#DEB9B5]"
+                              className="p-1.5 rounded-lg bg-paper border border-pink-200 text-green-800 hover:bg-green-100 transition shadow-sm"
                               title="Thử lập chỉ mục lại"
                             >
                               <RotateCcw className="w-4 h-4" />
@@ -1276,7 +1266,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => setDeleteDocTarget(doc)}
-                            className="p-1.5 rounded-lg bg-paper border-2 border-green-500 text-on-surface-variant hover:text-error hover:border-error hover:bg-pink-50 transition shadow-[1px_1px_0_#DEB9B5]"
+                            className="p-1.5 rounded-lg bg-paper border border-pink-200 text-on-surface-variant hover:text-error hover:border-error hover:bg-pink-50 transition shadow-sm"
                             title="Xóa tài liệu giáo trình"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1298,7 +1288,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {activeTab === 'bank' && (
         <div className="space-y-6">
           {/* ACTION TOOLBAR & FILTERS */}
-          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-paper p-4 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5]">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-paper p-4 rounded-xl border border-pink-200 shadow-sm">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 flex-1">
               {/* Search */}
               <div className="relative min-w-[220px] flex-1">
@@ -1314,7 +1304,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       loadBank(0);
                     }
                   }}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border-2 border-green-500 text-ink placeholder:text-on-surface-variant focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border border-pink-200 text-ink placeholder:text-on-surface-variant focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
@@ -1328,7 +1318,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                     setBankPage(0);
                     loadBank(0, undefined, next, undefined, undefined);
                   }}
-                  className="w-full md:w-48 appearance-none bg-surface-container-lowest border-2 border-green-500 rounded-lg py-1.5 pl-3 pr-8 text-xs font-semibold text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] cursor-pointer"
+                  className="w-full md:w-48 appearance-none bg-surface-container-lowest border border-pink-200 rounded-lg py-1.5 pl-3 pr-8 text-xs font-semibold text-ink focus:outline-none focus:border-pink-500 shadow-sm cursor-pointer"
                 >
                   <option value="ALL">Tất cả chủ đề</option>
                   {topics.map(t => (
@@ -1348,7 +1338,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                     setBankPage(0);
                     loadBank(0, undefined, undefined, next, undefined);
                   }}
-                  className="w-full md:w-52 appearance-none bg-surface-container-lowest border-2 border-green-500 rounded-lg py-1.5 pl-3 pr-8 text-xs font-semibold text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] cursor-pointer"
+                  className="w-full md:w-52 appearance-none bg-surface-container-lowest border border-pink-200 rounded-lg py-1.5 pl-3 pr-8 text-xs font-semibold text-ink focus:outline-none focus:border-pink-500 shadow-sm cursor-pointer"
                 >
                   <option value="ALL">Tất cả cấp độ Bloom</option>
                   {BLOOM_LEVELS.map(b => (
@@ -1364,7 +1354,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   setBankPage(0);
                   loadBank(0);
                 }}
-                className="p-2 rounded-lg bg-paper text-green-700 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition shrink-0"
+                className="p-2 rounded-lg bg-paper text-green-700 border border-pink-200 shadow-sm hover:bg-green-100 transition shrink-0"
                 title="Lọc kết quả"
               >
                 <Filter className="w-4 h-4" />
@@ -1376,7 +1366,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border border-pink-200 rounded-xl font-bold text-xs shadow-sm hover:bg-green-100 hover:text-green-900 active:scale-[0.98] transition-all"
               >
                 <FileSpreadsheet className="w-4 h-4 text-green-700" />
                 <span>Nhập Excel/CSV</span>
@@ -1386,7 +1376,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 type="button"
                 onClick={openTextImport}
                 disabled={!selectedSubjectId}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-paper text-green-700 border border-pink-200 rounded-xl font-bold text-xs shadow-sm hover:bg-green-100 hover:text-green-900 active:scale-[0.98] transition-all disabled:opacity-50"
               >
                 <FileText className="w-4 h-4 text-green-700" />
                 <span>Nhập Từ Văn Bản</span>
@@ -1395,7 +1385,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               <button
                 type="button"
                 onClick={() => setIsManualQuestionModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-pink-500 text-ink border-2 border-green-500 rounded-xl font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-pink-600 hover:text-paper active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-pink-600 text-white rounded-xl font-semibold text-xs shadow-xs hover:bg-pink-700 active:scale-[0.98] transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>Soạn Câu Hỏi Thủ Công</span>
@@ -1410,7 +1400,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               <SkeletonCard />
             </div>
           ) : bankQuestions.length === 0 ? (
-            <div className="bg-paper p-12 rounded-2xl border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] text-center">
+            <div className="bg-paper p-12 rounded-2xl border border-pink-200 shadow-md text-center">
               <Database className="w-12 h-12 text-green-700 mx-auto mb-3 opacity-60" />
               <h3 className="font-heading font-bold text-ink text-sm">Chưa có câu hỏi chính thức</h3>
               <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
@@ -1425,10 +1415,10 @@ export function LecturerQuestionBankPage({ showToast }) {
                 const isExpanded = !!expandedExpectedAnswers[q.questionId];
 
                 return (
-                  <article key={q.questionId} className="bg-paper border-2 border-green-500 rounded-2xl p-5 shadow-[6px_6px_0_#D5A6A2] transition-all space-y-3">
+                  <article key={q.questionId} className="bg-paper border border-pink-200 rounded-2xl p-5 shadow-md transition-all space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-cream pb-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
+                        <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border border-pink-200 shadow-sm">
                           {q.questionCode}
                         </span>
                         <span className="text-xs font-semibold text-green-800">
@@ -1442,17 +1432,17 @@ export function LecturerQuestionBankPage({ showToast }) {
                         </span>
 
                         {q.status === 'ARCHIVED' ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant border-2 border-green-500/50">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant border border-pink-200/50">
                             ARCHIVED
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-500 text-paper text-[10px] font-bold shadow-[1px_1px_0_#DEB9B5]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-500 text-paper text-[10px] font-bold shadow-sm">
                             <CheckCircle2 className="w-3 h-3 text-paper" />
                             APPROVED
                           </span>
                         )}
                         {q.hasPendingDraft && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-700 border-2 border-pink-400">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-700 border border-rose-200">
                             CÓ BẢN NHÁP
                           </span>
                         )}
@@ -1476,7 +1466,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-2.5 p-4 bg-pink-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] text-xs text-ink space-y-3 animate-modal-entry">
+                        <div className="mt-2.5 p-4 bg-pink-50 rounded-xl border border-pink-200 shadow-sm text-xs text-ink space-y-3 animate-modal-entry">
                           <div>
                             <div className="flex items-center gap-1.5 text-pink-900 font-bold text-xs mb-1">
                               <Lightbulb className="w-4 h-4 text-pink-600 shrink-0" />
@@ -1492,13 +1482,13 @@ export function LecturerQuestionBankPage({ showToast }) {
                                   <Sliders className="w-4 h-4 text-green-700 shrink-0" />
                                   Ma Trận Rubric Đính Kèm ({cv.rubric.criteria.length} Tiêu Chí):
                                 </span>
-                                <span className="text-pink-900 font-bold text-xs bg-pink-200 border border-green-500 px-2 py-0.5 rounded-md shadow-[1px_1px_0_#DEB9B5]">
+                                <span className="text-pink-900 font-bold text-xs bg-slate-100 border border-pink-200 text-slate-800 px-2 py-0.5 rounded-md shadow-sm">
                                   Tổng điểm: {cv.rubric.totalScore || 10}đ
                                 </span>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
                                 {cv.rubric.criteria.map((crit, idx) => (
-                                  <div key={crit.criterionId || idx} className="bg-surface-container-lowest border-2 border-green-500/70 rounded-lg p-2.5">
+                                  <div key={crit.criterionId || idx} className="bg-surface-container-lowest border border-pink-200/70 rounded-lg p-2.5">
                                     <div className="flex items-center justify-between text-xs font-bold text-pink-800 mb-1">
                                       <span>{crit.name}</span>
                                       <span className="font-mono text-green-800 shrink-0 ml-1.5">{crit.maxScore}đ</span>
@@ -1526,7 +1516,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                         <button
                           type="button"
                           onClick={() => handleOpenQuestionDetail(q.questionId)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-paper text-green-700 border-2 border-green-500 rounded-xl font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 hover:text-green-900 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-paper text-green-700 border border-pink-200 rounded-xl font-bold text-xs shadow-sm hover:bg-green-100 hover:text-green-900 active:scale-[0.98] transition-all"
                         >
                           <Layers className="w-3.5 h-3.5 text-green-700" />
                           <span>Chi Tiết &amp; Lịch Sử</span>
@@ -1537,7 +1527,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                               type="button"
                               onClick={() => handleCreateDraftFromApproved(q.questionId)}
                               disabled={q.hasPendingDraft}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-500 text-ink border-2 border-green-500 rounded-xl font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-pink-600 hover:text-paper active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-600 text-white rounded-xl font-semibold text-xs shadow-xs hover:bg-pink-700 active:scale-[0.98] transition-all disabled:opacity-50"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                               <span>Tạo Bản Nháp Mới (Copy-on-Write)</span>
@@ -1545,7 +1535,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                             <button
                               type="button"
                               onClick={() => setArchiveQuestionTarget(q)}
-                              className="p-1.5 rounded-lg bg-paper border-2 border-green-500 text-on-surface-variant hover:text-error hover:border-error hover:bg-pink-50 shadow-[2px_2px_0_#DEB9B5] transition"
+                              className="p-1.5 rounded-lg bg-paper border border-pink-200 text-on-surface-variant hover:text-error hover:border-error hover:bg-pink-50 shadow-sm transition"
                               title="Lưu trữ câu hỏi (Archive)"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1581,9 +1571,9 @@ export function LecturerQuestionBankPage({ showToast }) {
       {activeTab === 'review' && (
         <div className="space-y-6">
           {/* AI RAG GENERATION TRIGGER BANNER */}
-          <div className="relative overflow-hidden bg-pink-100 border-2 border-green-500 rounded-2xl p-6 shadow-[6px_6px_0_#D5A6A2] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="relative overflow-hidden bg-pink-100 border border-pink-200 rounded-2xl p-6 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="relative z-10 space-y-1.5 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-paper border-2 border-green-500 text-pink-800 text-[10px] font-bold uppercase tracking-wider shadow-[2px_2px_0_#DEB9B5]">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-paper border border-pink-200 text-pink-800 text-[10px] font-bold uppercase tracking-wider shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-pink-600" />
                 <span>Trình Khởi Tạo Câu Hỏi Tự Động (AI RAG Engine)</span>
               </div>
@@ -1598,7 +1588,7 @@ export function LecturerQuestionBankPage({ showToast }) {
             <button
               type="button"
               onClick={() => setIsAiGenModalOpen(true)}
-              className="relative z-10 px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink hover:text-paper font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-2 shrink-0"
+              className="relative z-10 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] flex items-center gap-2 shrink-0"
             >
               <Sparkles className="w-4 h-4 text-ink" />
               <span>Thiết Lập &amp; Kích Hoạt RAG</span>
@@ -1606,7 +1596,7 @@ export function LecturerQuestionBankPage({ showToast }) {
           </div>
 
           {/* STATUS FILTER FOR QUEUE */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-paper p-3.5 rounded-2xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-paper p-3.5 rounded-2xl border border-pink-200 shadow-sm">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold text-ink">Lọc Theo Trạng Thái:</span>
               <div className="flex items-center gap-1.5">
@@ -1621,8 +1611,8 @@ export function LecturerQuestionBankPage({ showToast }) {
                     }}
                     className={`px-3 py-1 rounded-xl text-xs font-bold border-2 transition ${
                       reviewStatusFilter === st
-                        ? 'bg-pink-500 text-ink border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                        : 'bg-paper text-green-800 border-transparent hover:border-green-500'
+                        ? 'bg-pink-600 text-white border-slate-900 shadow-xs'
+                        : 'bg-white text-slate-600 border-transparent hover:border-pink-200'
                     }`}
                   >
                     {st}
@@ -1633,7 +1623,7 @@ export function LecturerQuestionBankPage({ showToast }) {
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
               {reviewVersions.filter(v => v.status === 'DRAFT').length > 0 && (
-                <label className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-green-50 border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] cursor-pointer select-none text-xs font-bold text-ink">
+                <label className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-green-50 border border-pink-200 shadow-sm cursor-pointer select-none text-xs font-bold text-ink">
                   <input
                     type="checkbox"
                     checked={
@@ -1650,7 +1640,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                         setSelectedVersionIds(prev => prev.filter(id => !approvableIds.has(id)));
                       }
                     }}
-                    className="w-4 h-4 rounded border-2 border-green-600 text-pink-600 focus:ring-green-400 accent-pink-600 cursor-pointer"
+                    className="w-4 h-4 rounded border border-pink-200 text-pink-600 focus:ring-green-400 accent-pink-600 cursor-pointer"
                   />
                   <span>Chọn tất cả ({reviewVersions.filter(v => v.status === 'DRAFT').length})</span>
                 </label>
@@ -1674,7 +1664,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               <SkeletonCard />
             </div>
           ) : reviewVersions.length === 0 ? (
-            <div className="bg-paper p-12 rounded-2xl border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] text-center">
+            <div className="bg-paper p-12 rounded-2xl border border-pink-200 shadow-md text-center">
               <Sparkles className="w-12 h-12 text-pink-600 mx-auto mb-3 opacity-60" />
               <h3 className="font-heading font-bold text-ink text-sm">Hàng đợi đang trống</h3>
               <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
@@ -1687,7 +1677,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 const bloomMeta = BLOOM_LEVELS.find(b => b.value === v.bloomLevel) || BLOOM_LEVELS[0];
 
                 return (
-                  <article key={v.versionId} className="bg-paper border-2 border-green-500 rounded-2xl p-5 shadow-[6px_6px_0_#D5A6A2] space-y-4">
+                  <article key={v.versionId} className="bg-paper border border-pink-200 rounded-2xl p-5 shadow-md space-y-4">
 
                     {/* Header Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-cream pb-3">
@@ -1703,17 +1693,17 @@ export function LecturerQuestionBankPage({ showToast }) {
                                 setSelectedVersionIds(prev => prev.filter(id => id !== v.versionId));
                               }
                             }}
-                            className="w-4 h-4 rounded border-2 border-green-600 text-pink-600 focus:ring-green-400 accent-pink-600 cursor-pointer"
+                            className="w-4 h-4 rounded border border-pink-200 text-pink-600 focus:ring-green-400 accent-pink-600 cursor-pointer"
                             title="Chọn câu hỏi này để duyệt hàng loạt"
                           />
                         )}
-                        <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
+                        <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border border-pink-200 shadow-sm">
                           {v.questionCode || 'DRAFT-VER'}
                         </span>
                         <span className="text-xs font-semibold text-green-800">
                           {v.topicName || 'Chủ đề học phần'}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-md font-mono font-bold bg-green-100 text-green-900 border border-green-500">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                           Origin: {v.origin || 'MANUAL'}
                         </span>
                       </div>
@@ -1721,7 +1711,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Bloom Confirmation Badge */}
                         {v.bloomConfirmed ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-pink-200 shadow-sm">
                             <Check className="w-3 h-3 text-green-700" />
                             Đã Xác Nhận Bloom
                           </span>
@@ -1729,7 +1719,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => handleConfirmBloom(v)}
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border-2 border-pink-400 hover:bg-pink-200 transition active:scale-95 shadow-[1px_1px_0_#DEB9B5]"
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border border-rose-200 hover:bg-pink-200 transition active:scale-95 shadow-sm"
                             title="Bấm để xác nhận cấp độ nhận thức Bloom này hợp lệ"
                           >
                             <AlertCircle className="w-3 h-3 text-pink-600" />
@@ -1743,10 +1733,10 @@ export function LecturerQuestionBankPage({ showToast }) {
 
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${
                           v.status === 'APPROVED'
-                            ? 'bg-green-100 text-green-800 border-green-500'
+                            ? 'bg-emerald-50 text-emerald-800 border-pink-200'
                             : v.status === 'REJECTED'
-                              ? 'bg-pink-50 text-error border-error'
-                              : 'bg-pink-100 text-pink-900 border-pink-400'
+                              ? 'bg-rose-50 text-rose-700 border-error'
+                              : 'bg-slate-100 text-slate-800 border-pink-400'
                         }`}>
                           {v.status}
                         </span>
@@ -1760,19 +1750,19 @@ export function LecturerQuestionBankPage({ showToast }) {
                     </div>
 
                     {/* Expected Answer */}
-                    <div className="p-3.5 bg-pink-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5]">
+                    <div className="p-3.5 bg-pink-50 rounded-xl border border-pink-200 shadow-sm">
                       <p className="text-[10px] font-bold text-pink-900 uppercase tracking-wider mb-1">Đáp Án Tiêu Chuẩn:</p>
                       <p className="text-xs text-ink leading-relaxed font-normal">{v.expectedAnswer}</p>
                     </div>
 
                     {/* Source Citations (Grounding Evidence) */}
                     {v.sources && v.sources.length > 0 && (
-                      <div className="p-3.5 bg-green-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-1.5">
+                      <div className="p-3.5 bg-green-50 rounded-xl border border-pink-200 shadow-sm space-y-1.5">
                         <div className="flex items-center gap-1.5 text-green-900 font-bold text-[11px]">
                           <BookOpen className="w-3.5 h-3.5 text-green-700" />
                           <span>Cơ Sở Đối Chiếu Giáo Trình (Grounding Evidence Chunk #{v.sources[0].order}):</span>
                         </div>
-                        <p className="text-[11px] text-ink italic bg-surface-container-lowest p-2.5 rounded-lg border-2 border-green-500/50 leading-relaxed">
+                        <p className="text-[11px] text-ink italic bg-surface-container-lowest p-2.5 rounded-lg border border-pink-200/50 leading-relaxed">
                           "{v.sources[0].citationQuote}"
                         </p>
                       </div>
@@ -1785,13 +1775,13 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <span className="text-[10px] font-bold text-green-800 uppercase tracking-wider">
                             Ma Trận Tiêu Chí Rubric ({v.rubric.criteria.length} tiêu chí):
                           </span>
-                          <span className="text-pink-900 font-bold text-xs bg-pink-200 border border-green-500 px-2 py-0.5 rounded-md shadow-[1px_1px_0_#DEB9B5]">
+                          <span className="text-pink-900 font-bold text-xs bg-slate-100 border border-pink-200 text-slate-800 px-2 py-0.5 rounded-md shadow-sm">
                             Tổng điểm: {v.rubric.totalScore || 10}đ
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {v.rubric.criteria.map((c, idx) => (
-                            <div key={idx} className="p-2.5 bg-surface-container-lowest rounded-lg border-2 border-green-500/70 flex items-center justify-between text-xs">
+                            <div key={idx} className="p-2.5 bg-surface-container-lowest rounded-lg border border-pink-200/70 flex items-center justify-between text-xs">
                               <div>
                                 <span className="font-bold text-pink-800">{c.name}</span>
                                 {c.description && <p className="text-[10px] text-on-surface-variant line-clamp-1">{c.description}</p>}
@@ -1810,7 +1800,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => { setRegenVersionTarget(v); setRegenFeedback(''); }}
-                            className="px-3 py-1.5 rounded-xl bg-paper text-green-700 border-2 border-green-500 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition active:scale-95 flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-xl bg-paper text-green-700 border border-pink-200 font-bold text-xs shadow-sm hover:bg-green-100 transition active:scale-95 flex items-center gap-1.5"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-pink-600" />
                             <span>Tạo Lại Với AI (Regenerate)</span>
@@ -1821,7 +1811,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => handleOpenEditDraft(v)}
-                            className="px-3 py-1.5 rounded-xl bg-paper text-ink border-2 border-green-500 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] hover:bg-green-50 transition active:scale-95 flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-xl bg-paper text-ink border border-pink-200 font-bold text-xs shadow-sm hover:bg-green-50 transition active:scale-95 flex items-center gap-1.5"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-green-700" />
                             <span>Chỉnh Sửa</span>
@@ -1832,7 +1822,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => setDeleteDraftTarget(v)}
-                            className="p-1.5 rounded-xl bg-paper border-2 border-error text-error hover:bg-pink-50 transition shadow-[2px_2px_0_#DEB9B5]"
+                            className="p-1.5 rounded-xl bg-paper border border-rose-200 text-error hover:bg-pink-50 transition shadow-sm"
                             title="Xóa vĩnh viễn bản nháp"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1845,7 +1835,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => { setRejectVersionTarget(v); setRejectReason(''); }}
-                            className="px-3.5 py-1.5 rounded-xl bg-paper text-error border-2 border-error font-bold text-xs hover:bg-pink-50 transition active:scale-95"
+                            className="px-3.5 py-1.5 rounded-xl bg-paper text-error border border-rose-200 font-bold text-xs hover:bg-pink-50 transition active:scale-95"
                           >
                             Từ Chối
                           </button>
@@ -1853,7 +1843,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           <button
                             type="button"
                             onClick={() => handleApproveVersion(v)}
-                            className="px-4 py-1.5 rounded-xl bg-pink-500 text-ink border-2 border-green-500 font-bold text-xs shadow-[3px_3px_0_#DEB9B5] hover:bg-pink-600 hover:text-paper transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-1.5"
+                            className="px-3.5 py-1.5 rounded-xl bg-pink-600 text-white font-semibold text-xs shadow-xs hover:bg-pink-700 transition active:scale-[0.98] flex items-center gap-1.5"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Phê Duyệt (Approve)</span>
@@ -1883,9 +1873,9 @@ export function LecturerQuestionBankPage({ showToast }) {
 
           {/* FLOATING BATCH ACTION BAR */}
           {selectedVersionIds.length > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-paper border-2 border-green-600 rounded-2xl shadow-[6px_6px_0_#819266] px-6 py-3.5 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-paper border border-pink-200 rounded-2xl shadow-md px-6 py-3.5 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-pulse" />
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
                 <span className="text-xs sm:text-sm font-bold text-ink">
                   Đã chọn <span className="font-heading text-pink-900 bg-pink-100 px-2 py-0.5 rounded-lg border border-pink-400 font-extrabold">{selectedVersionIds.length}</span> câu hỏi
                 </span>
@@ -1898,7 +1888,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="button"
                   disabled={isBatchApproving}
                   onClick={handleBatchApprove}
-                  className="px-4 py-2 rounded-xl bg-green-400 hover:bg-green-500 text-ink font-heading font-bold text-xs border-2 border-green-700 shadow-[3px_3px_0_#43542B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-green-400 hover:bg-green-500 text-ink font-heading font-bold text-xs border border-pink-200 shadow-sm active:scale-[0.98] transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4 text-green-900" />
                   <span>{isBatchApproving ? 'Đang duyệt...' : `Duyệt ${selectedVersionIds.length} câu đã chọn`}</span>
@@ -1907,7 +1897,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 <button
                   type="button"
                   onClick={() => setSelectedVersionIds([])}
-                  className="px-3 py-2 rounded-xl bg-cream hover:bg-pink-100 text-ink font-bold text-xs border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-cream hover:bg-pink-100 text-ink font-bold text-xs border border-pink-200 shadow-sm transition active:scale-[0.98] cursor-pointer"
                 >
                   Bỏ chọn
                 </button>
@@ -1922,7 +1912,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {isCreateTopicModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-md w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 space-y-4 animate-modal-entry">
+          <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <h3 className="font-heading font-extrabold text-sm text-ink">Thêm Chủ Đề Đề Cương</h3>
               <button onClick={() => setIsCreateTopicModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
@@ -1939,7 +1929,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   placeholder="Ví dụ: Chương 4: Clean Architecture & SOLID"
                   value={newTopicName}
                   onChange={(e) => setNewTopicName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
@@ -1950,7 +1940,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   placeholder="Mô tả chuẩn đầu ra học phần cho chủ đề này..."
                   value={newTopicDesc}
                   onChange={(e) => setNewTopicDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
@@ -1958,13 +1948,13 @@ export function LecturerQuestionBankPage({ showToast }) {
                 <button
                   type="button"
                   onClick={() => setIsCreateTopicModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98]"
                 >
                   Lưu Chủ Đề
                 </button>
@@ -1979,7 +1969,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {isAiGenModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 sm:p-6 space-y-4 animate-modal-entry">
+          <div className="bg-paper rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto border border-pink-200 shadow-md p-5 sm:p-6 space-y-4 animate-modal-entry">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <div className="flex items-center gap-2 text-pink-900 font-bold text-xs">
                 <Sparkles className="w-4 h-4 text-pink-600" />
@@ -1996,7 +1986,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 <select
                   value={genTopicId}
                   onChange={(e) => setGenTopicId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
                 >
                   <option value="">-- Mặc định (Toàn bộ học phần) --</option>
                   {topics.map(t => (
@@ -2044,10 +2034,10 @@ export function LecturerQuestionBankPage({ showToast }) {
                   </div>
                 </div>
 
-                <div className="space-y-1.5 max-h-36 overflow-y-auto border-2 border-green-500 p-2.5 rounded-xl bg-surface-container-lowest shadow-[2px_2px_0_#DEB9B5]">
+                <div className="space-y-1.5 max-h-36 overflow-y-auto border border-pink-200 p-2.5 rounded-xl bg-surface-container-lowest shadow-sm">
                   {isLoadingDocs ? (
                     <div className="flex items-center justify-center py-4 gap-2 text-xs text-on-surface-variant">
-                      <span className="w-3.5 h-3.5 border-2 border-green-700 border-t-transparent rounded-full animate-spin"></span>
+                      <span className="w-3.5 h-3.5 border border-pink-200 border-t-transparent rounded-full animate-spin"></span>
                       <span>Đang kiểm tra tài liệu giáo trình...</span>
                     </div>
                   ) : documents.length === 0 ? (
@@ -2092,14 +2082,14 @@ export function LecturerQuestionBankPage({ showToast }) {
                                   setGenDocumentIds(prev => prev.filter(id => id !== d.documentId));
                                 }
                               }}
-                              className="rounded text-green-700 focus:ring-green-600 disabled:opacity-40"
+                              className="rounded text-green-700 focus:ring-pink-500 disabled:opacity-40"
                             />
                             <span className="truncate">{d.fileName}</span>
                           </div>
 
                           <div className="shrink-0">
                             {isReady && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-green-800 bg-green-100 border border-green-500 px-2 py-0.5 rounded-full">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-green-800 bg-green-100 border border-emerald-200 px-2 py-0.5 rounded-full">
                                 <CheckCircle2 className="w-2.5 h-2.5 text-green-700" />
                                 READY ({d.totalChunks || d.chunkCount || 0} chunks)
                               </span>
@@ -2138,7 +2128,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                         onClick={() => handleTotalQuestionsChange(cnt)}
                         className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border transition ${
                           Number(genTotalQuestions) === cnt
-                            ? 'bg-pink-200 text-pink-900 border-green-500 shadow-[1px_1px_0_#DEB9B5]'
+                            ? 'bg-slate-200 text-slate-800 border-pink-200 shadow-sm'
                             : 'bg-paper text-ink border-green-300 hover:bg-green-100'
                         }`}
                       >
@@ -2153,7 +2143,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   max="20"
                   value={genTotalQuestions}
                   onChange={(e) => handleTotalQuestionsChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
@@ -2176,7 +2166,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                         onClick={() => handleSelectBloomPreset(p.id)}
                         className={`p-2 rounded-xl text-left border-2 transition text-xs ${
                           isSelected
-                            ? 'bg-pink-100 border-green-500 text-pink-900 shadow-[2px_2px_0_#DEB9B5] font-bold'
+                            ? 'bg-slate-100 border border-pink-200 text-slate-800 shadow-sm font-bold'
                             : 'bg-paper border-green-300 text-ink hover:bg-green-50'
                         }`}
                       >
@@ -2200,8 +2190,8 @@ export function LecturerQuestionBankPage({ showToast }) {
                   <div className="flex items-center gap-2">
                     <span className={`text-[11px] font-mono px-2 py-0.5 rounded-lg border font-bold ${
                       isBloomBalanced
-                        ? 'bg-green-100 text-green-900 border-green-500'
-                        : 'bg-pink-100 text-pink-900 border-pink-400'
+                        ? 'bg-emerald-50 text-emerald-800 border-pink-200'
+                        : 'bg-slate-100 text-slate-800 border-pink-400'
                     }`}>
                       {totalAllocatedBloom} / {genTotalQuestions} câu ({Number(genTotalQuestions) > 0 ? Math.round((totalAllocatedBloom / Number(genTotalQuestions)) * 100) : 0}%)
                     </span>
@@ -2209,7 +2199,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       <button
                         type="button"
                         onClick={handleAutoBalanceBloom}
-                        className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cream text-ink border border-green-500 hover:bg-pink-100 transition shadow-[1px_1px_0_#DEB9B5]"
+                        className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cream text-ink border border-emerald-200 hover:bg-pink-100 transition shadow-sm"
                         title="Tự động chia đều theo tổng số câu hỏi"
                       >
                         Tự động cân bằng
@@ -2226,7 +2216,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                       <div
                         key={level.value}
                         className={`p-2.5 rounded-xl border-2 transition ${
-                          count > 0 ? 'bg-paper border-green-500 shadow-[2px_2px_0_#DEB9B5]' : 'bg-surface-container-lowest border-green-200 opacity-70 hover:opacity-100'
+                          count > 0 ? 'bg-paper border-pink-200 shadow-sm' : 'bg-surface-container-lowest border-green-200 opacity-70 hover:opacity-100'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
@@ -2252,7 +2242,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                             max="20"
                             value={count}
                             onChange={(e) => handleBloomCountChange(level.value, e.target.value, true)}
-                            className="w-12 text-center py-1 text-xs font-bold bg-white rounded-lg border border-green-400 text-ink focus:outline-none focus:border-green-600"
+                            className="w-12 text-center py-1 text-xs font-bold bg-white rounded-lg border border-green-400 text-ink focus:outline-none focus:border-pink-500"
                           />
                           <button
                             type="button"
@@ -2276,12 +2266,12 @@ export function LecturerQuestionBankPage({ showToast }) {
                   placeholder="Ví dụ: Đặt câu hỏi xoáy sâu vào các bẫy thường gặp trong xử lý đa luồng..."
                   value={genLecturerNote}
                   onChange={(e) => setGenLecturerNote(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
               {failedGenRequest && (
-                <div className="p-3 rounded-xl border-2 border-pink-400 bg-pink-50 text-xs text-pink-900 space-y-1 shadow-[2px_2px_0_#DEB9B5]">
+                <div className="p-3 rounded-xl border border-rose-200 bg-pink-50 text-xs text-pink-900 space-y-1 shadow-sm">
                   <p className="font-bold">
                     Lần sinh gần nhất: {failedGenRequest.status} ({failedGenRequest.generatedCount}/{failedGenRequest.totalQuestions} câu)
                   </p>
@@ -2296,7 +2286,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   <button
                     type="button"
                     onClick={handleAutoBalanceBloom}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-200 text-pink-950 border border-pink-500 hover:bg-pink-300 transition"
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 transition"
                   >
                     Khớp tự động
                   </button>
@@ -2309,7 +2299,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                     type="button"
                     onClick={handleRetryGeneration}
                     disabled={isGeneratingAi}
-                    className="px-4 py-2 rounded-xl border-2 border-pink-400 text-pink-900 bg-pink-100 text-xs font-bold hover:bg-pink-200 transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-[2px_2px_0_#DEB9B5]"
+                    className="px-4 py-2 rounded-xl border border-rose-200 text-pink-900 bg-pink-100 text-xs font-bold hover:bg-pink-200 transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Thử Lại Phần Thiếu</span>
@@ -2319,7 +2309,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="button"
                   onClick={() => { setIsAiGenModalOpen(false); setFailedGenRequest(null); }}
                   disabled={isGeneratingAi}
-                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
@@ -2327,7 +2317,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="button"
                   onClick={handleTriggerAiGeneration}
                   disabled={isGeneratingAi || genDocumentIds.length === 0 || !isBloomBalanced}
-                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
                 >
                   {isGeneratingAi && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>Bắt Đầu Sinh Câu Hỏi</span>
@@ -2343,7 +2333,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {isManualQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+          <div className="bg-paper rounded-2xl max-w-xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <h3 className="font-heading font-extrabold text-sm text-ink">Soạn Câu Hỏi Mới Kèm Ma Trận Rubric</h3>
               <button onClick={() => setIsManualQuestionModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
@@ -2358,7 +2348,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   <select
                     value={manualTopicId}
                     onChange={(e) => setManualTopicId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
                   >
                     <option value="">-- Chủ đề chung --</option>
                     {topics.map(t => (
@@ -2372,7 +2362,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   <select
                     value={manualBloom}
                     onChange={(e) => setManualBloom(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
                   >
                     {BLOOM_LEVELS.map(b => (
                       <option key={b.value} value={b.value}>{b.label}</option>
@@ -2389,7 +2379,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   placeholder="Nhập nội dung câu hỏi vấn đáp chi tiết..."
                   value={manualContent}
                   onChange={(e) => setManualContent(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
@@ -2401,18 +2391,18 @@ export function LecturerQuestionBankPage({ showToast }) {
                   placeholder="Đáp án hoặc các ý chính thí sinh cần nêu bật được..."
                   value={manualExpectedAnswer}
                   onChange={(e) => setManualExpectedAnswer(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
               {/* DYNAMIC RUBRIC BUILDER */}
-              <div className="p-3.5 bg-paper rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-3">
+              <div className="p-3.5 bg-paper rounded-xl border border-pink-200 shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b-2 border-cream pb-2">
                   <div>
                     <h4 className="text-xs font-bold text-ink">Tiêu Chí Chấm Điểm Rubric</h4>
                     <p className="text-[10px] text-on-surface-variant">Thiết lập các tiêu chí con chấm điểm tự động</p>
                   </div>
-                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border border-pink-200 shadow-sm">
                     Tổng: {manualCriteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
                   </span>
                 </div>
@@ -2425,14 +2415,14 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="button"
                   onClick={() => setIsManualQuestionModalOpen(false)}
                   disabled={isSubmittingQuestion}
-                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingQuestion}
-                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSubmittingQuestion && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>Lưu &amp; Gửi Hàng Đợi Duyệt</span>
@@ -2446,7 +2436,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* MODAL: NHẬP CÂU HỎI TỪ VĂN BẢN (mỗi dòng một câu) */}
       {textImport && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <form onSubmit={handleImportText} className="bg-paper rounded-2xl max-w-2xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 text-xs">
+          <form onSubmit={handleImportText} className="bg-paper rounded-2xl max-w-2xl w-full border border-pink-200 shadow-md p-6 space-y-4 text-xs">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <span className="font-heading uppercase tracking-wider font-bold text-green-800">Nhập Câu Hỏi Từ Văn Bản</span>
               <button type="button" onClick={() => setTextImport(null)} aria-label="Đóng" className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
@@ -2462,7 +2452,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 value={textImport.text}
                 onChange={(e) => setTextImport({ ...textImport, text: e.target.value })}
                 placeholder={'Trình bày nguyên lý Dependency Inversion.\nSo sánh Layered Architecture và Clean Architecture.'}
-                className="w-full bg-white border-2 border-green-300 rounded-xl p-3 font-normal focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="w-full bg-white border border-pink-200 rounded-xl p-3 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
             </label>
             <p className="text-on-surface-variant">
@@ -2472,7 +2462,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               <label className="block font-bold space-y-1">
                 <span>Chủ đề (tuỳ chọn)</span>
                 <select value={textImport.topicId} onChange={(e) => setTextImport({ ...textImport, topicId: e.target.value })}
-                  className="w-full bg-white border-2 border-green-300 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-green-600">
+                  className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500">
                   <option value="">— Không gán —</option>
                   {topics.map(t => <option key={t.topicId} value={t.topicId}>{t.name}</option>)}
                 </select>
@@ -2480,7 +2470,7 @@ export function LecturerQuestionBankPage({ showToast }) {
               <label className="block font-bold space-y-1">
                 <span>Mức Bloom (tuỳ chọn)</span>
                 <select value={textImport.bloomLevel} onChange={(e) => setTextImport({ ...textImport, bloomLevel: e.target.value })}
-                  className="w-full bg-white border-2 border-green-300 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-green-600">
+                  className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500">
                   <option value="">— Không gán —</option>
                   {BLOOM_LEVELS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
                 </select>
@@ -2488,16 +2478,16 @@ export function LecturerQuestionBankPage({ showToast }) {
               <label className="block font-bold space-y-1">
                 <span>Mẫu rubric (tuỳ chọn)</span>
                 <select value={textImport.rubricTemplateId} onChange={(e) => setTextImport({ ...textImport, rubricTemplateId: e.target.value })}
-                  className="w-full bg-white border-2 border-green-300 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-green-600">
+                  className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500">
                   <option value="">— Không áp dụng —</option>
                   {rubricTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </label>
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t-2 border-cream">
-              <button type="button" onClick={() => setTextImport(null)} className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 font-bold hover:bg-green-100">Hủy Bỏ</button>
+              <button type="button" onClick={() => setTextImport(null)} className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 font-bold hover:bg-green-100">Hủy Bỏ</button>
               <button type="submit" disabled={isImportingText || !textImport.text.trim()}
-                className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] disabled:opacity-50 flex items-center gap-2">
+                className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold shadow-xs disabled:opacity-50 flex items-center gap-2">
                 {isImportingText && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                 Nhập câu hỏi
               </button>
@@ -2511,7 +2501,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-lg w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry">
+          <div className="bg-paper rounded-2xl max-w-lg w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <div className="flex items-center gap-2 text-green-800 font-bold text-xs">
                 <FileSpreadsheet className="w-4 h-4 text-green-700" />
@@ -2523,13 +2513,13 @@ export function LecturerQuestionBankPage({ showToast }) {
             </div>
 
             <form onSubmit={handleImportQuestions} className="space-y-4">
-              <div className="flex items-center justify-between bg-green-50 p-3 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
+              <div className="flex items-center justify-between bg-green-50 p-3 rounded-xl border border-pink-200 shadow-sm">
                 <span className="text-xs font-semibold text-green-900">Tải tệp mẫu quy chuẩn:</span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => handleDownloadTemplate('xlsx')}
-                    className="px-2.5 py-1 bg-paper border-2 border-green-500 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-[1px_1px_0_#DEB9B5]"
+                    className="px-2.5 py-1 bg-paper border border-pink-200 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-sm"
                   >
                     <Download className="w-3 h-3 text-green-700" />
                     <span>Excel (.xlsx)</span>
@@ -2537,7 +2527,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   <button
                     type="button"
                     onClick={() => handleDownloadTemplate('csv')}
-                    className="px-2.5 py-1 bg-paper border-2 border-green-500 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-[1px_1px_0_#DEB9B5]"
+                    className="px-2.5 py-1 bg-paper border border-pink-200 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-sm"
                   >
                     <Download className="w-3 h-3 text-pink-600" />
                     <span>CSV</span>
@@ -2552,11 +2542,11 @@ export function LecturerQuestionBankPage({ showToast }) {
                   required
                   accept=".xlsx,.csv"
                   onChange={(e) => setImportFile(e.target.files[0] || null)}
-                  className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-2 file:border-green-500 file:text-xs file:font-bold file:bg-paper file:text-green-800 hover:file:bg-green-100 cursor-pointer"
+                  className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-2 file:border-pink-200 file:text-xs file:font-bold file:bg-paper file:text-green-800 hover:file:bg-green-100 cursor-pointer"
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-paper rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5]">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-xl border border-pink-200 shadow-sm">
                 <div>
                   <p className="text-xs font-bold text-ink">Chế Độ Thẩm Định Thử Nghiệm (Dry Run)</p>
                   <p className="text-[10px] text-on-surface-variant">Chỉ kiểm tra tính hợp lệ dữ liệu, chưa ghi vào cơ sở dữ liệu</p>
@@ -2565,13 +2555,13 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="checkbox"
                   checked={isDryRun}
                   onChange={(e) => setIsDryRun(e.target.checked)}
-                  className="w-4 h-4 text-green-700 rounded focus:ring-green-600 cursor-pointer"
+                  className="w-4 h-4 text-green-700 rounded focus:ring-pink-500 cursor-pointer"
                 />
               </div>
 
               {/* Import Report Result Box */}
               {importReport && (
-                <div className="p-3 bg-green-50 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] text-xs space-y-1 animate-modal-entry">
+                <div className="p-3 bg-green-50 rounded-xl border border-pink-200 shadow-sm text-xs space-y-1 animate-modal-entry">
                   <p className="font-bold text-green-900">Báo Cáo Kết Quả Nhập:</p>
                   <p className="text-green-800">Tổng dòng đọc được: {importReport.totalRows || 0} ({importReport.totalQuestions || 0} câu hỏi)</p>
                   <p className="text-green-800">Câu hỏi hợp lệ: {importReport.validQuestions || 0}</p>
@@ -2598,14 +2588,14 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="button"
                   onClick={() => setIsImportModalOpen(false)}
                   disabled={isImporting}
-                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
                 >
                   Đóng
                 </button>
                 <button
                   type="submit"
                   disabled={isImporting || !importFile}
-                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
                 >
                   {isImporting && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>{isDryRun ? 'Thẩm Định File (Dry Run)' : 'Nhập Dữ Liệu Ngay'}</span>
@@ -2621,7 +2611,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {rejectVersionTarget && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-md w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 space-y-4 animate-modal-entry">
+          <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
             <h3 className="font-heading font-extrabold text-sm text-ink">Từ Chối Phê Duyệt Câu Hỏi</h3>
             <p className="text-xs text-on-surface-variant">
               Vui lòng nêu rõ lý do từ chối để hỗ trợ giảng viên soạn thảo hoặc định hướng lại prompt cho AI.
@@ -2633,14 +2623,14 @@ export function LecturerQuestionBankPage({ showToast }) {
               placeholder="Ví dụ: Câu hỏi chưa gắn đúng trích dẫn giáo trình hoặc đáp án chưa đủ độ sâu..."
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
             />
 
             <div className="flex justify-end gap-2 pt-2 border-t-2 border-cream">
               <button
                 type="button"
                 onClick={() => setRejectVersionTarget(null)}
-                className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
               >
                 Hủy Bỏ
               </button>
@@ -2648,7 +2638,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 type="button"
                 onClick={handleConfirmReject}
                 disabled={!rejectReason.trim()}
-                className="px-5 py-2 rounded-xl bg-paper border-2 border-error text-error hover:bg-pink-50 font-bold text-xs shadow-[2px_2px_0_#DEB9B5] disabled:opacity-50 transition"
+                className="px-5 py-2 rounded-xl bg-paper border border-rose-200 text-error hover:bg-pink-50 font-bold text-xs shadow-sm disabled:opacity-50 transition"
               >
                 Xác Nhận Từ Chối
               </button>
@@ -2662,7 +2652,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {regenVersionTarget && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-md w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-5 space-y-4 animate-modal-entry">
+          <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
             <div className="flex items-center gap-2 text-pink-900 font-bold text-xs">
               <Sparkles className="w-4 h-4 text-pink-600" />
               <span>Yêu Cầu AI Tạo Lại Câu Hỏi Này</span>
@@ -2676,21 +2666,21 @@ export function LecturerQuestionBankPage({ showToast }) {
               placeholder="Ví dụ: Hãy chuyển câu hỏi thành dạng bài toán tình huống thực tế..."
               value={regenFeedback}
               onChange={(e) => setRegenFeedback(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
             />
 
             <div className="flex justify-end gap-2 pt-2 border-t-2 border-cream">
               <button
                 type="button"
                 onClick={() => setRegenVersionTarget(null)}
-                className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
               >
                 Hủy Bỏ
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRegenerate}
-                className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center gap-1.5"
+                className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Sinh Lại Câu Hỏi</span>
@@ -2741,7 +2731,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {editDraft && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
-          <div className="bg-paper rounded-2xl max-w-xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+          <div className="bg-paper rounded-2xl max-w-xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <h3 className="font-heading font-extrabold text-sm text-ink">
                 Chỉnh Sửa Bản Nháp {editDraft.version.questionCode}
@@ -2757,7 +2747,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                 <select
                   value={editDraft.bloomLevel}
                   onChange={(e) => setEditDraft(d => ({ ...d, bloomLevel: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium cursor-pointer"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
                 >
                   {BLOOM_LEVELS.map(b => (
                     <option key={b.value} value={b.value}>{b.label}</option>
@@ -2773,7 +2763,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   maxLength={4000}
                   value={editDraft.content}
                   onChange={(e) => setEditDraft(d => ({ ...d, content: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
@@ -2785,14 +2775,14 @@ export function LecturerQuestionBankPage({ showToast }) {
                   maxLength={8000}
                   value={editDraft.expectedAnswer}
                   onChange={(e) => setEditDraft(d => ({ ...d, expectedAnswer: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border-2 border-green-500 text-ink focus:outline-none focus:border-green-600 shadow-[2px_2px_0_#DEB9B5] font-medium"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
                 />
               </div>
 
-              <div className="p-3.5 bg-paper rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-3">
+              <div className="p-3.5 bg-paper rounded-xl border border-pink-200 shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b-2 border-cream pb-2">
                   <h4 className="text-xs font-bold text-ink">Tiêu Chí Chấm Điểm Rubric</h4>
-                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border border-pink-200 shadow-sm">
                     Tổng: {editDraft.criteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
                   </span>
                 </div>
@@ -2807,14 +2797,14 @@ export function LecturerQuestionBankPage({ showToast }) {
                   type="button"
                   onClick={() => setEditDraft(null)}
                   disabled={isSavingDraft}
-                  className="px-4 py-2 rounded-xl bg-paper border-2 border-green-500 text-green-800 text-xs font-bold shadow-[2px_2px_0_#DEB9B5] hover:bg-green-100 transition"
+                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingDraft}
-                  className="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSavingDraft && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
                   <span>Lưu Bản Nháp</span>
@@ -2830,7 +2820,7 @@ export function LecturerQuestionBankPage({ showToast }) {
       {/* ========================================================================= */}
       {questionDetail && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
-          <div className="bg-paper rounded-2xl max-w-2xl w-full border-2 border-green-500 shadow-[6px_6px_0_#D5A6A2] p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
+          <div className="bg-paper rounded-2xl max-w-2xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b-2 border-cream pb-3">
               <h3 className="font-heading font-extrabold text-sm text-ink">
                 Chi Tiết Câu Hỏi {questionDetail.detail?.questionCode || ''}
@@ -2845,18 +2835,18 @@ export function LecturerQuestionBankPage({ showToast }) {
             ) : (
               <div className="space-y-4 text-xs">
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border-2 border-green-500 shadow-[1px_1px_0_#DEB9B5]">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-pink-200 shadow-sm">
                     {questionDetail.detail.status}
                   </span>
                   {questionDetail.detail.pendingDraft && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border-2 border-pink-400">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border border-rose-200">
                       Bản nháp đang chờ: v{questionDetail.detail.pendingDraft.versionNumber}
                     </span>
                   )}
                 </div>
 
                 {questionDetail.detail.currentVersion && (
-                  <div className="p-4 bg-pink-50 rounded-xl border-2 border-green-500 shadow-[3px_3px_0_#DEB9B5] space-y-2">
+                  <div className="p-4 bg-pink-50 rounded-xl border border-pink-200 shadow-sm space-y-2">
                     <p className="text-[10px] font-bold text-pink-900 uppercase tracking-wider">
                       Phiên bản hiện hành v{questionDetail.detail.currentVersion.versionNumber}
                     </p>
@@ -2869,7 +2859,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   <p className="text-[10px] font-bold text-green-800 uppercase tracking-wider mb-2">
                     Lịch Sử Phiên Bản ({questionDetail.history.length})
                   </p>
-                  <div className="divide-y-2 divide-cream border-2 border-green-500 rounded-xl overflow-hidden bg-paper shadow-[3px_3px_0_#DEB9B5]">
+                  <div className="divide-y-2 divide-cream border border-pink-200 rounded-xl overflow-hidden bg-paper shadow-sm">
                     {questionDetail.history.map(h => (
                       <div key={h.versionId} className="p-3.5 flex items-start justify-between gap-3 hover:bg-green-50/50 transition">
                         <div className="space-y-1 min-w-0">
@@ -2880,7 +2870,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                           {h.rejectReason && <p className="text-error font-medium">Lý do từ chối: {h.rejectReason}</p>}
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border border-green-500">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                             {h.status}
                           </span>
                           <p className="text-[10px] text-on-surface-variant mt-1 font-mono">
