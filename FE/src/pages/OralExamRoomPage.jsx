@@ -37,6 +37,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
+import { AudioVisualizerCanvas } from '../components/exam/AudioVisualizerCanvas';
 
 // Placeholder rendered until the attempt's first turn arrives from the BE
 const EMPTY_QUESTION = { content: '', title: 'Đang tải câu hỏi...', badge: '', type: 'MAIN' };
@@ -115,7 +116,7 @@ export function OralExamRoomPage({
   const [examStage, setExamStage] = useState('READY');
 
   // Attempt & Questions state
-  const [attemptId] = useState(initialAttemptId);
+  const [attemptId, setAttemptId] = useState(initialAttemptId);
   const [questions, setQuestions] = useState([]);
   const [totalQuestions, setTotalQuestions] = useState(activeExam?.questionCount || 0);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
@@ -189,7 +190,7 @@ export function OralExamRoomPage({
   // Current Question
   const currentQuestion = questions[activeQuestionIndex] || questions[0] || EMPTY_QUESTION;
 
-  // Sync profile & exam data on mount
+  // Sync profile & exam data on mount with Auto-Resume
   useEffect(() => {
     let isMounted = true;
 
@@ -199,9 +200,37 @@ export function OralExamRoomPage({
         if (isMounted) setProfile(u);
       } catch (e) {}
 
-      if (initialAttemptId) {
+      let targetAttemptId = attemptId || initialAttemptId;
+
+      // Session Auto-Resume: If no active attemptId in state, recover from active student exam session
+      if (!targetAttemptId) {
         try {
-          const detail = await oralExamApi.getAttemptDetail(initialAttemptId);
+          const examsData = await oralExamApi.listExams();
+          const examList = Array.isArray(examsData) ? examsData : examsData?.content || [];
+          const activeItem = examList.find(e => 
+            e.studentAttemptId && ['IN_PROGRESS', 'READY', 'RECONNECTING'].includes(e.studentAttemptStatus)
+          );
+          if (activeItem) {
+            targetAttemptId = activeItem.studentAttemptId;
+            if (isMounted) {
+              setAttemptId(targetAttemptId);
+              if (activeItem.subjectName && showToast) {
+                showToast({
+                  type: 'info',
+                  title: 'Khôi Phục Ca Thi',
+                  message: `Đã tự động kết nối lại ca thi đang diễn ra môn ${activeItem.subjectName}.`
+                });
+              }
+            }
+          }
+        } catch (recoverErr) {
+          console.warn('Auto-resume failed to find active exam attempt:', recoverErr);
+        }
+      }
+
+      if (targetAttemptId) {
+        try {
+          const detail = await oralExamApi.getAttemptDetail(targetAttemptId);
           if (isMounted && detail) {
             if (detail.totalQuestions) setTotalQuestions(detail.totalQuestions);
             const mappedQuestions = mapTurnsToQuestions(detail.turns, detail.totalQuestions);
@@ -1420,9 +1449,17 @@ export function OralExamRoomPage({
             </p>
           </div>
 
-          <div className="text-right font-mono bg-slate-100 border border-pink-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
-            <span className="text-[9px] font-bold text-pink-700 uppercase tracking-wider block">Thời Gian Ca Thi</span>
-            <p className="text-xs sm:text-sm font-extrabold text-pink-900">{formatTime(secondsLeft)}</p>
+          <div className={`text-right font-mono px-3.5 py-1.5 rounded-xl border transition-all duration-300 ${
+            secondsLeft <= 30 && secondsLeft > 0
+              ? 'bg-rose-100 border-rose-300 text-rose-900 animate-pulse shadow-sm ring-2 ring-rose-200' 
+              : 'bg-pink-50 border-pink-200 text-pink-900 shadow-2xs'
+          }`}>
+            <span className={`text-[9px] font-bold uppercase tracking-wider block ${secondsLeft <= 30 && secondsLeft > 0 ? 'text-rose-700 font-extrabold' : 'text-pink-700'}`}>
+              {secondsLeft <= 30 && secondsLeft > 0 ? '⚡ Sắp Hết Giờ!' : 'Thời Gian Ca Thi'}
+            </span>
+            <p className={`text-xs sm:text-sm font-black ${secondsLeft <= 30 && secondsLeft > 0 ? 'text-rose-800' : 'text-pink-900'}`}>
+              {formatTime(secondsLeft)}
+            </p>
           </div>
 
           {/* Disconnect Simulation Trigger (Simulate network drop for state machine testing) */}
@@ -1482,16 +1519,16 @@ export function OralExamRoomPage({
                 </h3>
               </div>
 
-              {/* Pulsing soundwave animation when TTS is speaking */}
+              {/* High-performance Canvas soundwave when TTS is speaking */}
               <div className="h-10 flex items-center justify-center sm:justify-start">
                 {isAiSpeaking ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-100 border border-pink-200 rounded-xl shadow-sm">
-                    <VoiceWaveform isSpeaking={true} volume={0.8} barCount={10} height={20} colorClass="bg-pink-600" />
-                    <span className="text-xs font-bold text-blue-900 ml-1">Đang phát âm câu hỏi...</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-100 border border-pink-200 rounded-xl shadow-2xs">
+                    <AudioVisualizerCanvas isActive={true} volume={0.85} barCount={14} width={130} height={22} primaryColor="#CE9893" accentColor="#819266" />
+                    <span className="text-xs font-bold text-pink-950 ml-1">Đang đọc câu hỏi...</span>
                   </div>
                 ) : (
-                  <span className="text-xs text-green-800 italic">
-                    Nhấn "Nghe Lại Câu Hỏi" nếu bạn muốn nghe lại giám thị đọc đề.
+                  <span className="text-xs text-slate-600 italic">
+                    Nhấn "Nghe Lại Câu Hỏi" nếu bạn muốn giám thị đọc lại đề bài.
                   </span>
                 )}
               </div>
@@ -1576,14 +1613,14 @@ export function OralExamRoomPage({
               </span>
             </div>
 
-            {/* Waveform visualizer when student speaks */}
+            {/* Realtime 60fps Canvas Visualizer when student speaks */}
             {isRecording && (
-              <div className="p-3 bg-green-900 text-white rounded-2xl border border-pink-200 flex items-center justify-between shadow-sm animate-in fade-in">
-                <div className="flex items-center gap-2">
-                  <VoiceWaveform isSpeaking={true} volume={0.85} barCount={12} height={20} colorClass="bg-pink-600" />
-                  <span className="text-xs font-mono text-pink-200 font-bold">Đang nhận diện giọng nói...</span>
+              <div className="p-3 bg-paper rounded-2xl border border-pink-200 flex items-center justify-between shadow-2xs animate-in fade-in">
+                <div className="flex items-center gap-2.5">
+                  <AudioVisualizerCanvas isActive={true} volume={0.9} barCount={18} width={150} height={24} primaryColor="#CE9893" accentColor="#819266" />
+                  <span className="text-xs font-mono text-pink-950 font-bold">Đang nhận diện giọng nói (STT)...</span>
                 </div>
-                <span className="text-[10px] font-mono text-green-300">250ms Slices</span>
+                <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded-md border border-pink-200 font-bold">250ms Slices</span>
               </div>
             )}
 
