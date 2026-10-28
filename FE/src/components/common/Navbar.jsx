@@ -4,16 +4,13 @@ import {
   ShieldCheck,
   UserPlus,
   User,
-  Key,
   LogOut,
   ChevronDown,
-  Mic2,
   Table2,
   GraduationCap,
   HelpCircle,
   X
 } from 'lucide-react';
-import { VoiceWaveform } from './VoiceWaveform';
 import { NotificationBell } from './NotificationBell';
 
 export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate, currentTab }) {
@@ -53,25 +50,25 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
       .toUpperCase();
   };
 
-  // If on calibration view, render the AIVES Calibration Wizard Header (Placed AFTER hooks to respect React Rules of Hooks)
+  // If on calibration view, render the Hiệu Chuẩn Thiết Bị AIVES Header
   if (currentTab === 'calibration') {
     return (
       <>
-        <header className="h-16 bg-paper text-ink px-6 flex items-center justify-between shrink-0 shadow-[0_3px_0_#DEB9B5] border-b-2 border-green-500 sticky top-0 z-40 select-none">
+        <header className="h-16 bg-white text-ink px-6 flex items-center justify-between shrink-0 shadow-2xs border-b border-pink-200 sticky top-0 z-40 select-none">
           <div className="flex items-center gap-3">
             <button 
               type="button"
               onClick={() => onNavigate && onNavigate('discover')}
-              className="w-9 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[2px_2px_0_#DEB9B5] transition cursor-pointer outline-none active:scale-95"
+              className="w-8 h-8 rounded-lg bg-pink-50 hover:bg-pink-100 border border-pink-200 flex items-center justify-center text-pink-700 transition cursor-pointer outline-none active:scale-95"
               aria-label="Về trang chủ"
             >
-              <GraduationCap className="w-5 h-5 text-pink-700" />
+              <GraduationCap className="w-4 h-4 text-ink" />
             </button>
             <div>
-              <h1 className="font-heading font-black text-sm text-ink tracking-tight">
+              <h1 className="font-heading font-bold text-sm text-ink tracking-tight">
                 AIVES Calibration Wizard
               </h1>
-              <p className="text-[11px] text-green-700 font-medium">
+              <p className="text-[11px] text-slate-500 font-medium">
                 Bước chuẩn bị bắt buộc trước khi vào phòng thi chính thức
               </p>
             </div>
@@ -80,36 +77,36 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
           <button
             type="button"
             onClick={() => setIsTroubleshootOpen(true)}
-            className="text-xs font-bold text-ink hover:text-pink-900 bg-pink-100 hover:bg-pink-200 px-3.5 py-1.5 rounded-xl border-2 border-green-500 shadow-[2px_2px_0_#DEB9B5] transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            className="text-xs font-semibold text-pink-800 hover:text-pink-900 bg-pink-50 hover:bg-pink-100 px-3.5 py-1.5 rounded-lg border border-pink-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-pink-700" />
+            <HelpCircle className="w-3.5 h-3.5 text-slate-600" />
             <span>Trợ Giúp Kỹ Thuật</span>
           </button>
         </header>
 
         {/* TROUBLESHOOTING MODAL */}
         {isTroubleshootOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="bg-paper rounded-2xl max-w-md w-full p-6 shadow-[6px_6px_0_#D5A6A2] border-2 border-green-500 space-y-4 text-ink animate-modal-entry">
-              <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
-                <h3 className="font-heading font-black text-base text-ink">Trợ Giúp Xử Lý Thiết Bị</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-pink-600/60 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-pink-200 space-y-4 text-ink animate-modal-entry">
+              <div className="flex items-center justify-between pb-3 border-b border-pink-100">
+                <h3 className="font-heading font-bold text-base text-ink">Trợ Giúp Xử Lý Thiết Bị</h3>
                 <button
                   type="button"
                   onClick={() => setIsTroubleshootOpen(false)}
-                  className="text-green-800 hover:text-pink-700 p-1 rounded-lg transition cursor-pointer focus:outline-none"
+                  className="text-slate-400 hover:text-ink p-1 rounded-lg transition cursor-pointer focus:outline-none"
                   aria-label="Đóng"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-3 text-xs text-green-900 leading-relaxed font-normal">
-                <div className="p-3 bg-pink-50 rounded-xl border-2 border-green-200">
-                  <p className="font-bold text-ink mb-0.5">1. Không nghe thấy tiếng?</p>
+              <div className="space-y-3 text-xs text-slate-600 leading-relaxed font-normal">
+                <div className="p-3 bg-slate-50 rounded-xl border border-pink-200">
+                  <p className="font-semibold text-ink mb-0.5">1. Không nghe thấy tiếng?</p>
                   <p>Kiểm tra nút âm lượng của máy tính hoặc tai nghe đã cắm chặt jack 3.5mm / Bluetooth.</p>
                 </div>
-                <div className="p-3 bg-pink-50 rounded-xl border-2 border-green-200">
-                  <p className="font-bold text-ink mb-0.5">2. Trình duyệt chặn quyền truy cập?</p>
+                <div className="p-3 bg-slate-50 rounded-xl border border-pink-200">
+                  <p className="font-semibold text-ink mb-0.5">2. Trình duyệt chặn quyền truy cập?</p>
                   <p>Nhấp vào biểu tượng ổ khóa bên trái thanh địa chỉ URL để cấp quyền Microphone và Camera.</p>
                 </div>
               </div>
@@ -118,7 +115,7 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                 <button
                   type="button"
                   onClick={() => setIsTroubleshootOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink font-bold text-xs border-2 border-green-600 shadow-[2px_2px_0_#3A422E] transition active:scale-95 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-95 cursor-pointer"
                 >
                   Đã Hiểu
                 </button>
@@ -131,194 +128,68 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
   }
 
   return (
-    <header className="bg-paper text-ink border-b-2 border-green-500 sticky top-0 z-40 shadow-[0_3px_0_#DEB9B5]">
+    <header className="bg-white text-ink border-b border-pink-200 sticky top-0 z-40 shadow-2xs">
       <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
 
-        {/* Left: Brand & Nav Links */}
-        <div className="flex items-center gap-6">
+        {/* Left: Brand & Context Title (No duplicate navigation tabs) */}
+        <div className="flex items-center gap-4">
           <div
             onClick={() => onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
-            className="flex items-center gap-3 cursor-pointer group select-none"
+            className="flex items-center gap-2.5 cursor-pointer group select-none"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onNavigate(isAdmin ? 'admin-users' : isLecturer ? 'lecturer-dashboard' : 'discover')}
           >
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-pink-100 border-2 border-green-500 flex items-center justify-center text-pink-700 shadow-[2px_2px_0_#DEB9B5] group-hover:scale-105 transition-transform">
-                <svg className="w-5 h-5 text-pink-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="font-heading font-black text-2xl tracking-tight text-ink">
-                aives<span className="text-pink-600">.</span>
-              </span>
+            <div className="w-8 h-8 rounded-lg bg-pink-700 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
             </div>
+            <span className="font-heading font-black text-xl tracking-tight text-ink">
+              aives<span className="text-pink-600">.</span>
+            </span>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <nav className="hidden lg:flex items-center gap-1.5 text-xs">
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => onNavigate('admin-users')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'admin-users'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  1. Quản Lý Tài Khoản
-                </button>
-                <button
-                  onClick={() => onNavigate('admin-subjects')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'admin-subjects'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  2. Môn Học &amp; Phân Công
-                </button>
-                <button
-                  onClick={() => onNavigate('admin-voice-lab')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'admin-voice-lab' || currentTab === 'voice-lab'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  3. Cấu Hình STT/TTS
-                </button>
-              </>
-            )}
-            {isLecturer && !isAdmin && (
-              <>
-                <button
-                  onClick={() => onNavigate('lecturer-questions')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-questions'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  1. Ngân Hàng Câu Hỏi
-                </button>
-                <button
-                  onClick={() => onNavigate('lecturer-docs-rag')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-docs-rag'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  2. Tài Liệu RAG
-                </button>
-                <button
-                  onClick={() => onNavigate('rubric-studio')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'rubric-studio'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  3. Ma Trận Rubric
-                </button>
-                <button
-                  onClick={() => onNavigate('lecturer-exams')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-exams'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  4. Kỳ Thi
-                </button>
-                <button
-                  onClick={() => onNavigate('lecturer-grading')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'lecturer-grading'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  5. Chấm Điểm
-                </button>
-              </>
-            )}
-            {!isAdmin && !isLecturer && (
-              <>
-                <button
-                  onClick={() => onNavigate('discover')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'discover' || currentTab === 'home'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  Lịch Thi
-                </button>
-                <button
-                  onClick={() => onNavigate('calibration')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'calibration'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  Kiểm Tra Mic / Cam
-                </button>
-                <button
-                  onClick={() => onNavigate('exam-room')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'exam-room'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  Phòng Thi Vấn Đáp AI
-                </button>
-                <button
-                  onClick={() => onNavigate('my-results')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all border-2 ${currentTab === 'my-results'
-                      ? 'bg-pink-100 text-pink-900 border-green-500 shadow-[2px_2px_0_#DEB9B5]'
-                      : 'text-green-900 hover:text-pink-700 hover:bg-green-100/60 border-transparent'
-                    }`}
-                >
-                  Kết Quả Thi
-                </button>
-              </>
-            )}
-          </nav>
+          <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-pink-200">
+            <span className="text-xs font-medium text-slate-500">
+              Hệ thống Khảo thí Vấn đáp AI • FPT University
+            </span>
+          </div>
         </div>
 
-        {/* Right: Actions, AI Engine Status, Mode Switch, Profile Dropdown */}
+        {/* Right: Actions, AI Engine Status, Profile Dropdown */}
         <div className="flex items-center gap-3">
 
-          {/* Real-time Voice Audio Activity (GSAP 60 FPS) */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-pink-50 border-2 border-green-400 text-ink shadow-[2px_2px_0_#C4CCB7] text-[11px]">
-            <Mic2 className="w-3.5 h-3.5 text-pink-700" />
-            <span className="text-green-800 text-[10px] font-mono font-bold">Speech Engine:</span>
-            <VoiceWaveform isSpeaking={true} volume={0.45} barCount={6} height={14} barWidth="w-0.5" barGap="gap-0.5" colorClass="bg-pink-600" />
-            <span className="text-[10px] text-green-900 font-bold font-mono bg-green-200 px-1.5 py-0.5 rounded border border-green-400">Ready</span>
-          </div>
+
 
           {/* Quick Action: Thêm Người Dùng */}
           {isAdmin && (
             <button
               onClick={onOpenAddUser}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-ink text-xs font-bold border-2 border-green-600 shadow-[2px_2px_0_#3A422E] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs transition active:scale-[0.98] cursor-pointer"
             >
-              <UserPlus className="w-4 h-4 text-ink" />
+              <UserPlus className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline">Thêm Người Dùng</span>
             </button>
           )}
 
           <NotificationBell />
 
-          <div className="h-6 w-0.5 bg-green-300 hidden sm:block"></div>
+          <div className="h-5 w-px bg-pink-200 hidden sm:block"></div>
 
           {/* User Profile Pill & Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className={`flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full border-2 transition-all shadow-[2px_2px_0_#DEB9B5] group cursor-pointer focus:outline-none ${
+              className={`flex items-center gap-2.5 p-1 pl-1.5 pr-3 rounded-full border transition-all cursor-pointer focus:outline-none ${
                 currentTab === 'profile' || currentTab === 'profile-password'
-                  ? 'bg-pink-100 border-green-600 ring-2 ring-pink-300'
-                  : 'bg-paper hover:bg-pink-50 border-green-500 hover:border-green-600'
+                  ? 'bg-slate-100 border-pink-200 ring-2 ring-slate-200'
+                  : 'bg-white hover:bg-pink-50 border-pink-200 hover:border-pink-300 shadow-2xs'
               }`}
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
             >
-              <div className="w-8 h-8 rounded-full bg-pink-300 border-2 border-green-600 text-ink font-heading font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+              <div className="w-7 h-7 rounded-full bg-pink-200 text-pink-900 font-heading font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                 {currentUser?.avatarUrl ? (
                   <img 
                     src={currentUser.avatarUrl} 
@@ -337,21 +208,21 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                 </span>
               </div>
               <div className="text-left leading-tight">
-                <p className="font-heading font-bold text-xs text-ink group-hover:text-pink-700 transition truncate max-w-[140px]">
+                <p className="font-heading font-bold text-xs text-ink transition truncate max-w-[130px]">
                   {currentUser?.fullName || 'Người Dùng AIVES'}
                 </p>
-                <p className="text-[10px] font-bold text-green-700 mt-0.5 tracking-wide">
+                <p className="text-[10px] font-semibold text-pink-700 font-semibold tracking-tight">
                   {isAdmin ? 'Ban Khảo Thí' : isLecturer ? 'Giảng Viên' : 'Sinh Viên'}
                 </p>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-green-700 group-hover:text-pink-700 ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-pink-600 ml-0.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-paper rounded-2xl shadow-[4px_4px_0_#D5A6A2] border-2 border-green-500 text-ink py-2 z-50 animate-modal-entry">
-                <div className="px-4 py-2.5 border-b-2 border-cream bg-pink-50/70 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-pink-300 border-2 border-green-500 text-ink font-heading font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-pink-200 text-slate-800 py-1.5 z-50 animate-modal-entry">
+                <div className="px-3.5 py-2.5 border-b border-pink-100 bg-pink-50/70 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-800 font-heading font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                     {currentUser?.avatarUrl ? (
                       <img 
                         src={currentUser.avatarUrl} 
@@ -370,9 +241,9 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-ink truncate">{currentUser?.fullName}</p>
-                    <p className="text-[11px] text-green-800 font-mono truncate">{currentUser?.email}</p>
-                    <span className="inline-block mt-0.5 text-[10px] font-mono px-2 py-0.5 rounded bg-green-100 text-green-900 font-bold border border-green-300">
+                    <p className="text-xs font-semibold text-ink truncate">{currentUser?.fullName}</p>
+                    <p className="text-[11px] text-slate-500 font-mono truncate">{currentUser?.email}</p>
+                    <span className="inline-block mt-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/80 text-ink font-semibold">
                       {currentUser?.userCode || 'USR-CODE'}
                     </span>
                   </div>
@@ -380,42 +251,34 @@ export function Navbar({ onOpenAddUser, onOpenProfile, onOpenMatrix, onNavigate,
 
                 <div className="py-1 text-xs">
                   <button
+                    type="button"
                     onClick={() => {
                       setDropdownOpen(false);
-                      onOpenProfile('info');
+                      if (onOpenProfile) {
+                        onOpenProfile();
+                      } else if (onNavigate) {
+                        onNavigate('profile');
+                      }
                     }}
-                    className={`w-full px-4 py-2 text-left hover:bg-pink-100 flex items-center gap-2.5 font-medium transition cursor-pointer ${
-                      currentTab === 'profile' ? 'bg-pink-100 text-pink-900 font-bold' : 'text-ink'
+                    className={`w-full px-3.5 py-2 text-left hover:bg-pink-50 flex items-center gap-2.5 font-medium transition cursor-pointer ${
+                      currentTab === 'profile' || currentTab === 'profile-password' ? 'bg-pink-100 text-pink-900 font-semibold' : 'text-ink'
                     }`}
                   >
-                    <User className="w-4 h-4 text-green-700" />
+                    <User className="w-4 h-4 text-slate-500" />
                     <span>Hồ Sơ Của Tôi</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      onOpenProfile('password');
-                    }}
-                    className={`w-full px-4 py-2 text-left hover:bg-pink-100 flex items-center gap-2.5 font-medium transition cursor-pointer ${
-                      currentTab === 'profile-password' ? 'bg-pink-100 text-pink-900 font-bold' : 'text-ink'
-                    }`}
-                  >
-                    <Key className="w-4 h-4 text-green-700" />
-                    <span>Đổi Mật Khẩu</span>
                   </button>
                 </div>
 
-                <div className="border-t-2 border-cream pt-1 text-xs mt-1">
+                <div className="border-t border-pink-100 pt-1 text-xs mt-0.5">
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
                       logout();
                       onNavigate('login');
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-pink-100 flex items-center gap-2.5 text-pink-700 font-bold transition cursor-pointer"
+                    className="w-full px-3.5 py-2 text-left hover:bg-rose-50 flex items-center gap-2.5 text-rose-600 font-semibold transition cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-pink-700" />
+                    <LogOut className="w-4 h-4 text-rose-600" />
                     <span>Đăng Xuất</span>
                   </button>
                 </div>
