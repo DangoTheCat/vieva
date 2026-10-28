@@ -48,160 +48,23 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
 import { Pagination } from '../components/common/Pagination';
 
-// Bloom Taxonomy Levels & Color Tokens (Pedagogical UI)
-const BLOOM_LEVELS = [
-  { value: 'REMEMBER', label: '1. Nhận Biết (Remember)', short: 'Nhớ', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'UNDERSTAND', label: '2. Thông Hiểu (Understand)', short: 'Hiểu', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'APPLY', label: '3. Vận Dụng (Apply)', short: 'Vận dụng', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'ANALYZE', label: '4. Phân Tích (Analyze)', short: 'Phân tích', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'EVALUATE', label: '5. Đánh Giá (Evaluate)', short: 'Đánh giá', color: 'bg-amber-50 text-amber-800 border border-amber-200' },
-  { value: 'CREATE', label: '6. Sáng Tạo (Create)', short: 'Sáng tạo', color: 'bg-indigo-50 text-indigo-800 border border-indigo-200' }
-];
-
-// Presets for RAG Bloom Taxonomy distribution
-const BLOOM_PRESETS = [
-  {
-    id: 'BALANCED',
-    name: 'Cân Bằng Chuẩn',
-    desc: 'Bao quát từ cơ bản đến vận dụng & phân tích',
-    weights: { REMEMBER: 0.2, UNDERSTAND: 0.3, APPLY: 0.3, ANALYZE: 0.2, EVALUATE: 0, CREATE: 0 }
-  },
-  {
-    id: 'VIVA_ORAL',
-    name: 'Vấn Đáp Viva',
-    desc: 'Ưu tiên phản biện, lập luận & đánh giá phương án',
-    weights: { REMEMBER: 0.1, UNDERSTAND: 0.2, APPLY: 0.3, ANALYZE: 0.25, EVALUATE: 0.15, CREATE: 0 }
-  },
-  {
-    id: 'FOUNDATIONAL',
-    name: 'Nền Tảng',
-    desc: 'Tập trung định nghĩa cốt lõi & hiểu nguyên lý',
-    weights: { REMEMBER: 0.4, UNDERSTAND: 0.4, APPLY: 0.2, ANALYZE: 0, EVALUATE: 0, CREATE: 0 }
-  },
-  {
-    id: 'ADVANCED',
-    name: 'Bậc Cao',
-    desc: 'Đào sâu phân tích, đánh giá & đề xuất giải pháp',
-    weights: { REMEMBER: 0, UNDERSTAND: 0.1, APPLY: 0.2, ANALYZE: 0.35, EVALUATE: 0.25, CREATE: 0.1 }
-  },
-  {
-    id: 'CUSTOM',
-    name: 'Tùy Chỉnh',
-    desc: 'Tự điều chỉnh số câu cho từng bậc Bloom',
-    weights: null
-  }
-];
-
-function calculateBloomDistribution(total, weights) {
-  const dist = { REMEMBER: 0, UNDERSTAND: 0, APPLY: 0, ANALYZE: 0, EVALUATE: 0, CREATE: 0 };
-  const n = Math.max(1, Math.min(20, Number(total) || 1));
-  if (!weights) {
-    dist.UNDERSTAND = n;
-    return dist;
-  }
-  let assigned = 0;
-  const entries = Object.entries(weights).filter(([_, w]) => w > 0);
-  if (entries.length === 0) {
-    dist.UNDERSTAND = n;
-    return dist;
-  }
-  entries.forEach(([level, weight]) => {
-    dist[level] = Math.floor(n * weight);
-    assigned += dist[level];
-  });
-  const remainders = entries.map(([level, weight]) => ({
-    level,
-    remainder: (n * weight) - Math.floor(n * weight)
-  })).sort((a, b) => b.remainder - a.remainder);
-
-  for (let i = 0; assigned < n; i = (i + 1) % remainders.length) {
-    dist[remainders[i].level] += 1;
-    assigned += 1;
-  }
-  return dist;
-}
-
-// Rubric criteria rules mirror BE CriterionRequest: name + description required, maxScore > 0
-function validateCriteria(criteria) {
-  if (criteria.length === 0) return 'Rubric cần ít nhất 1 tiêu chí.';
-  if (criteria.some(c => !c.name?.trim() || !c.description?.trim())) {
-    return 'Mỗi tiêu chí rubric cần có tên và mô tả.';
-  }
-  if (criteria.some(c => !(Number(c.maxScore) > 0))) {
-    return 'Điểm tối đa của mỗi tiêu chí phải lớn hơn 0.';
-  }
-  return null;
-}
-
-function toRubricPayload(criteria) {
-  return {
-    totalScore: criteria.reduce((sum, c) => sum + Number(c.maxScore), 0),
-    criteria: criteria.map((c, idx) => ({
-      name: c.name.trim(),
-      description: c.description.trim(),
-      maxScore: Number(c.maxScore),
-      levels: c.levels,
-      orderIndex: idx + 1
-    }))
-  };
-}
-
-function RubricCriteriaEditor({ criteria, onChange }) {
-  const updateAt = (idx, patch) => onChange(criteria.map((c, i) => i === idx ? { ...c, ...patch } : c));
-
-  return (
-    <>
-      <div className="space-y-2">
-        {criteria.map((crit, idx) => (
-          <div key={idx} className="bg-paper p-3 rounded-xl border border-pink-200 shadow-sm space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Tên tiêu chí (VD: Tính đúng đắn)"
-                value={crit.name}
-                onChange={(e) => updateAt(idx, { name: e.target.value })}
-                className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-surface-container-lowest border border-pink-200 font-medium text-ink focus:outline-none focus:border-pink-500 shadow-sm"
-              />
-              <input
-                type="number"
-                min="0.5"
-                step="0.5"
-                max="999.99"
-                value={crit.maxScore}
-                onChange={(e) => updateAt(idx, { maxScore: e.target.value })}
-                className="w-16 px-2 py-1.5 rounded-lg text-xs bg-surface-container-lowest border border-pink-200 font-mono font-bold text-center text-ink focus:outline-none focus:border-pink-500 shadow-sm"
-              />
-              <button
-                type="button"
-                onClick={() => onChange(criteria.filter((_, i) => i !== idx))}
-                disabled={criteria.length <= 1}
-                className="p-1.5 text-on-surface-variant hover:text-error disabled:opacity-30 transition"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <input
-              type="text"
-              placeholder="Mô tả tiêu chí (bắt buộc)"
-              value={crit.description}
-              onChange={(e) => updateAt(idx, { description: e.target.value })}
-              className="w-full px-3 py-1.5 rounded-lg text-[11px] bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm"
-            />
-          </div>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onChange([...criteria, { name: 'Tiêu chí bổ sung', description: '', maxScore: 2 }])}
-        className="text-xs font-bold text-green-700 hover:text-green-900 inline-flex items-center gap-1 transition"
-      >
-        <Plus className="w-3.5 h-3.5" />
-        <span>Thêm tiêu chí chấm</span>
-      </button>
-    </>
-  );
-}
+import {
+  BLOOM_LEVELS,
+  BLOOM_PRESETS,
+  calculateBloomDistribution,
+  validateCriteria,
+  toRubricPayload,
+  RubricCriteriaEditor,
+  CreateTopicModal,
+  AiQuestionGeneratorModal,
+  ManualQuestionModal,
+  TextImportModal,
+  ImportQuestionsModal,
+  RejectVersionModal,
+  RegenerateQuestionModal,
+  EditDraftModal,
+  QuestionDetailModal
+} from '../components/question-bank';
 
 export function LecturerQuestionBankPage({ showToast }) {
   const { currentUser } = useAuth();
@@ -553,14 +416,21 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   // Create Topic
-  const handleCreateTopic = async (e) => {
-    e.preventDefault();
-    if (!newTopicName.trim()) return;
+  const handleCreateTopic = async (topicDataOrEvent) => {
+    let name = newTopicName;
+    let description = newTopicDesc;
+    if (topicDataOrEvent && topicDataOrEvent.name !== undefined) {
+      name = topicDataOrEvent.name;
+      description = topicDataOrEvent.description || '';
+    } else if (topicDataOrEvent?.preventDefault) {
+      topicDataOrEvent.preventDefault();
+    }
+    if (!name?.trim()) return;
 
     try {
       const created = await lecturerCatalogApi.createTopic(selectedSubjectId, {
-        name: newTopicName.trim(),
-        description: newTopicDesc.trim()
+        name: name.trim(),
+        description: (description || '').trim()
       });
       setTopics(prev => [...prev, created]);
       showToast({ type: 'success', message: 'Tạo chủ đề đề cương thành công!' });
@@ -614,14 +484,29 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   // Create Manual Question
-  const handleCreateManualQuestion = async (e) => {
-    e.preventDefault();
-    if (!manualContent.trim() || !manualExpectedAnswer.trim()) {
+  const handleCreateManualQuestion = async (formDataOrEvent) => {
+    let contentVal = manualContent;
+    let expectedVal = manualExpectedAnswer;
+    let topicIdVal = manualTopicId;
+    let bloomVal = manualBloom;
+    let criteriaVal = manualCriteria;
+
+    if (formDataOrEvent && formDataOrEvent.content !== undefined) {
+      contentVal = formDataOrEvent.content;
+      expectedVal = formDataOrEvent.expectedAnswer;
+      topicIdVal = formDataOrEvent.topicId;
+      bloomVal = formDataOrEvent.bloomLevel;
+      criteriaVal = formDataOrEvent.criteria;
+    } else if (formDataOrEvent?.preventDefault) {
+      formDataOrEvent.preventDefault();
+    }
+
+    if (!contentVal?.trim() || !expectedVal?.trim()) {
       showToast({ type: 'error', message: 'Vui lòng nhập nội dung câu hỏi và đáp án mong đợi.' });
       return;
     }
 
-    const rubricError = validateCriteria(manualCriteria);
+    const rubricError = validateCriteria(criteriaVal);
     if (rubricError) {
       showToast({ type: 'error', message: rubricError });
       return;
@@ -630,11 +515,11 @@ export function LecturerQuestionBankPage({ showToast }) {
     setIsSubmittingQuestion(true);
     try {
       const payload = {
-        topicId: manualTopicId || null,
-        content: manualContent.trim(),
-        expectedAnswer: manualExpectedAnswer.trim(),
-        bloomLevel: manualBloom,
-        rubric: toRubricPayload(manualCriteria)
+        topicId: topicIdVal || null,
+        content: contentVal.trim(),
+        expectedAnswer: expectedVal.trim(),
+        bloomLevel: bloomVal,
+        rubric: toRubricPayload(criteriaVal)
       };
 
       await questionBankApi.createManualQuestion(selectedSubjectId, payload);
@@ -695,22 +580,25 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   // Trigger RAG Generation
-  const handleTriggerAiGeneration = async () => {
-    if (genDocumentIds.length === 0) {
+  const handleTriggerAiGeneration = async (customConfig) => {
+    const docIds = customConfig?.documentIds || genDocumentIds;
+    if (docIds.length === 0) {
       showToast({ type: 'error', message: 'Vui lòng chọn ít nhất 1 tài liệu giáo trình READY để sinh câu hỏi.' });
       return;
     }
 
-    const total = Number(genTotalQuestions);
+    const total = Number(customConfig?.totalQuestions ?? genTotalQuestions);
     if (!total || total < 1 || total > 20) {
       showToast({ type: 'error', message: 'Số lượng câu hỏi phải từ 1 đến 20.' });
       return;
     }
 
-    if (totalAllocatedBloom !== total) {
+    const dist = customConfig?.bloomDistribution || bloomCounts;
+    const allocated = Object.values(dist).reduce((sum, n) => sum + (Number(n) || 0), 0);
+    if (allocated !== total) {
       showToast({
         type: 'error',
-        message: `Tổng số câu phân bổ (${totalAllocatedBloom}) chưa khớp với số lượng yêu cầu (${total}). Vui lòng cân bằng lại trước khi sinh câu hỏi.`
+        message: `Tổng số câu phân bổ (${allocated}) chưa khớp với số lượng yêu cầu (${total}). Vui lòng cân bằng lại trước khi sinh câu hỏi.`
       });
       return;
     }
@@ -718,16 +606,16 @@ export function LecturerQuestionBankPage({ showToast }) {
     setIsGeneratingAi(true);
     try {
       const distribution = Object.fromEntries(
-        Object.entries(bloomCounts).filter(([_, count]) => Number(count) > 0)
+        Object.entries(dist).filter(([_, count]) => Number(count) > 0)
       );
 
       const payload = {
         subjectId: selectedSubjectId,
-        topicId: genTopicId || null,
-        documentIds: genDocumentIds,
+        topicId: (customConfig ? customConfig.topicId : genTopicId) || null,
+        documentIds: docIds,
         totalQuestions: total,
         bloomDistribution: distribution,
-        lecturerNote: genLecturerNote.trim()
+        lecturerNote: (customConfig ? customConfig.lecturerNote : genLecturerNote)?.trim() || ''
       };
 
       const res = await questionGenerationApi.generate(payload);
@@ -820,12 +708,14 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   // Reject Draft
-  const handleConfirmReject = async () => {
-    if (!rejectVersionTarget || !rejectReason.trim()) return;
+  const handleConfirmReject = async (targetOverride, reasonOverride) => {
+    const target = targetOverride || rejectVersionTarget;
+    const reason = reasonOverride || rejectReason;
+    if (!target || !reason?.trim()) return;
     try {
-      await questionBankApi.rejectVersion(rejectVersionTarget.versionId, {
-        reason: rejectReason.trim(),
-        expectedVersion: rejectVersionTarget.lockVersion
+      await questionBankApi.rejectVersion(target.versionId, {
+        reason: reason.trim(),
+        expectedVersion: target.lockVersion
       });
       showToast({ type: 'success', message: 'Đã chuyển bản nháp sang trạng thái từ chối (REJECTED).' });
       loadReviewQueue();
@@ -852,12 +742,14 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   // Single Question Regenerate with feedback
-  const handleConfirmRegenerate = async () => {
-    if (!regenVersionTarget) return;
+  const handleConfirmRegenerate = async (targetOverride, feedbackOverride) => {
+    const target = targetOverride || regenVersionTarget;
+    const feedback = feedbackOverride || regenFeedback;
+    if (!target) return;
     try {
-      await questionBankApi.regenerateQuestion(regenVersionTarget.versionId, {
-        feedback: regenFeedback.trim(),
-        expectedVersion: regenVersionTarget.lockVersion
+      await questionBankApi.regenerateQuestion(target.versionId, {
+        feedback: (feedback || '').trim(),
+        expectedVersion: target.lockVersion
       });
       showToast({ type: 'success', message: 'AI đã tạo lại câu hỏi thành công theo yêu cầu của bạn!' });
       loadReviewQueue();
@@ -934,16 +826,23 @@ export function LecturerQuestionBankPage({ showToast }) {
   };
 
   // Import Questions
-  const handleImportQuestions = async (e) => {
-    e.preventDefault();
-    if (!importFile) return;
+  const handleImportQuestions = async (importPayloadOrEvent) => {
+    let file = importFile;
+    let dryRun = isDryRun;
+    if (importPayloadOrEvent && importPayloadOrEvent.file !== undefined) {
+      file = importPayloadOrEvent.file;
+      dryRun = importPayloadOrEvent.isDryRun ?? isDryRun;
+    } else if (importPayloadOrEvent?.preventDefault) {
+      importPayloadOrEvent.preventDefault();
+    }
+    if (!file) return;
 
     setIsImporting(true);
     setImportReport(null);
     try {
-      const report = await questionImportApi.importQuestions(selectedSubjectId, importFile, isDryRun);
+      const report = await questionImportApi.importQuestions(selectedSubjectId, file, dryRun);
       setImportReport(report);
-      if (isDryRun) {
+      if (dryRun) {
         showToast({ type: 'success', message: 'Thẩm định tệp dữ liệu hoàn tất! Xem báo cáo bên dưới.' });
       } else {
         showToast({ type: 'success', message: `Đã nhập thành công ${report.createdQuestions || 0} câu hỏi vào Hàng đợi duyệt!` });
@@ -1908,787 +1807,82 @@ export function LecturerQuestionBankPage({ showToast }) {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: TẠO CHỦ ĐỀ MỚI                                                      */}
+      {/* QUESTION BANK MODALS (MODULARIZED ARCHITECTURE)                          */}
       {/* ========================================================================= */}
-      {isCreateTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-ink">Thêm Chủ Đề Đề Cương</h3>
-              <button onClick={() => setIsCreateTopicModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <CreateTopicModal
+        isOpen={isCreateTopicModalOpen}
+        onClose={() => setIsCreateTopicModalOpen(false)}
+        onSubmit={handleCreateTopic}
+      />
 
-            <form onSubmit={handleCreateTopic} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Tên Chủ Đề / Chương <span className="text-error">*</span></label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ví dụ: Chương 4: Clean Architecture & SOLID"
-                  value={newTopicName}
-                  onChange={(e) => setNewTopicName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
+      <AiQuestionGeneratorModal
+        isOpen={isAiGenModalOpen}
+        onClose={() => { setIsAiGenModalOpen(false); setFailedGenRequest(null); }}
+        topics={topics}
+        documents={documents}
+        isLoadingDocs={isLoadingDocs}
+        loadDocuments={loadDocuments}
+        onTriggerGeneration={handleTriggerAiGeneration}
+        isGeneratingAi={isGeneratingAi}
+        failedGenRequest={failedGenRequest}
+        onRetryGeneration={handleRetryGeneration}
+        onSwitchToDocsTab={() => {
+          setIsAiGenModalOpen(false);
+          setActiveTab('documents');
+        }}
+      />
 
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Mô Tả Nội Dung Chủ Đề</label>
-                <textarea
-                  rows="2"
-                  placeholder="Mô tả chuẩn đầu ra học phần cho chủ đề này..."
-                  value={newTopicDesc}
-                  onChange={(e) => setNewTopicDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
+      <ManualQuestionModal
+        isOpen={isManualQuestionModalOpen}
+        onClose={() => setIsManualQuestionModalOpen(false)}
+        topics={topics}
+        onSubmit={handleCreateManualQuestion}
+        isSubmitting={isSubmittingQuestion}
+      />
 
-              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateTopicModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98]"
-                >
-                  Lưu Chủ Đề
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <TextImportModal
+        isOpen={!!textImport}
+        onClose={() => setTextImport(null)}
+        textImport={textImport}
+        setTextImport={setTextImport}
+        topics={topics}
+        rubricTemplates={rubricTemplates}
+        onSubmit={handleImportText}
+        isImportingText={isImportingText}
+      />
 
-      {/* ========================================================================= */}
-      {/* MODAL: THIẾT LẬP RAG AI SINH CÂU HỎI                                      */}
-      {/* ========================================================================= */}
-      {isAiGenModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto border border-pink-200 shadow-md p-5 sm:p-6 space-y-4 animate-modal-entry">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <div className="flex items-center gap-2 text-pink-900 font-bold text-xs">
-                <Sparkles className="w-4 h-4 text-pink-600" />
-                <span className="font-heading uppercase tracking-wider">Cấu Hình RAG Prompting Engine</span>
-              </div>
-              <button onClick={() => setIsAiGenModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <ImportQuestionsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportQuestions}
+        isImporting={isImporting}
+        onDownloadTemplate={handleDownloadTemplate}
+        importReport={importReport}
+      />
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Chủ Đề Áp Dụng (Topic)</label>
-                <select
-                  value={genTopicId}
-                  onChange={(e) => setGenTopicId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
-                >
-                  <option value="">-- Mặc định (Toàn bộ học phần) --</option>
-                  {topics.map(t => (
-                    <option key={t.topicId} value={t.topicId}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
+      <RejectVersionModal
+        target={rejectVersionTarget}
+        onClose={() => setRejectVersionTarget(null)}
+        onConfirm={handleConfirmReject}
+      />
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-green-800">
-                    Chọn Giáo Trình Làm Nguồn Ngữ Cảnh (RAG Context) <span className="text-error">*</span>
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {documents.some(d => (d.indexingStatus || d.status) === 'READY' || (d.indexingStatus || d.status) === 'SUCCESS') && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const readyIds = documents
-                            .filter(d => (d.indexingStatus || d.status) === 'READY' || (d.indexingStatus || d.status) === 'SUCCESS')
-                            .map(d => d.documentId);
-                          if (genDocumentIds.length === readyIds.length) {
-                            setGenDocumentIds([]);
-                          } else {
-                            setGenDocumentIds(readyIds);
-                          }
-                        }}
-                        className="text-[11px] font-bold text-green-700 hover:text-green-900 hover:underline"
-                      >
-                        {genDocumentIds.length === documents.filter(d => (d.indexingStatus || d.status) === 'READY' || (d.indexingStatus || d.status) === 'SUCCESS').length && genDocumentIds.length > 0
-                          ? 'Bỏ chọn tất cả'
-                          : 'Chọn tất cả'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={loadDocuments}
-                      disabled={isLoadingDocs}
-                      className="text-[11px] font-bold text-green-700 hover:text-green-900 flex items-center gap-1 hover:underline"
-                      title="Làm mới danh sách giáo trình"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${isLoadingDocs ? 'animate-spin' : ''}`} />
-                      <span>Làm mới</span>
-                    </button>
-                  </div>
-                </div>
+      <RegenerateQuestionModal
+        target={regenVersionTarget}
+        onClose={() => setRegenVersionTarget(null)}
+        onConfirm={handleConfirmRegenerate}
+      />
 
-                <div className="space-y-1.5 max-h-36 overflow-y-auto border border-pink-200 p-2.5 rounded-xl bg-surface-container-lowest shadow-sm">
-                  {isLoadingDocs ? (
-                    <div className="flex items-center justify-center py-4 gap-2 text-xs text-on-surface-variant">
-                      <span className="w-3.5 h-3.5 border border-pink-200 border-t-transparent rounded-full animate-spin"></span>
-                      <span>Đang kiểm tra tài liệu giáo trình...</span>
-                    </div>
-                  ) : documents.length === 0 ? (
-                    <div className="text-center py-3 space-y-1">
-                      <p className="text-on-surface-variant text-xs italic">Chưa có tài liệu nào được tải lên cho môn học này.</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAiGenModalOpen(false);
-                          setActiveTab('documents');
-                        }}
-                        className="text-xs font-bold text-pink-700 hover:underline"
-                      >
-                        Chuyển sang tab Kho Giáo Trình để tải lên &rarr;
-                      </button>
-                    </div>
-                  ) : (
-                    documents.map(d => {
-                      const status = d.indexingStatus || d.status;
-                      const isReady = status === 'READY' || status === 'SUCCESS';
-                      const isIndexing = status === 'INDEXING' || status === 'UPLOADED';
-                      const isFailed = status === 'FAILED';
+      <EditDraftModal
+        editDraft={editDraft}
+        setEditDraft={setEditDraft}
+        onSave={handleSaveDraft}
+        isSaving={isSavingDraft}
+      />
 
-                      return (
-                        <label
-                          key={d.documentId}
-                          className={`flex items-center justify-between gap-2 text-xs p-1.5 rounded transition ${
-                            isReady
-                              ? 'font-medium text-ink cursor-pointer hover:bg-green-50'
-                              : 'opacity-70 bg-stone-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate min-w-0">
-                            <input
-                              type="checkbox"
-                              disabled={!isReady}
-                              checked={genDocumentIds.includes(d.documentId)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setGenDocumentIds(prev => [...prev, d.documentId]);
-                                } else {
-                                  setGenDocumentIds(prev => prev.filter(id => id !== d.documentId));
-                                }
-                              }}
-                              className="rounded text-green-700 focus:ring-pink-500 disabled:opacity-40"
-                            />
-                            <span className="truncate">{d.fileName}</span>
-                          </div>
-
-                          <div className="shrink-0">
-                            {isReady && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-green-800 bg-green-100 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                <CheckCircle2 className="w-2.5 h-2.5 text-green-700" />
-                                READY ({d.totalChunks || d.chunkCount || 0} chunks)
-                              </span>
-                            )}
-                            {isIndexing && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-pink-900 bg-pink-100 border border-pink-400 px-2 py-0.5 rounded-full">
-                                <span className="w-2.5 h-2.5 border-2 border-pink-700 border-t-transparent rounded-full animate-spin"></span>
-                                {status === 'INDEXING' ? 'Đang index...' : 'Chờ index...'}
-                              </span>
-                            )}
-                            {isFailed && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-error bg-pink-50 border border-error px-2 py-0.5 rounded-full">
-                                <AlertCircle className="w-2.5 h-2.5 text-error" />
-                                FAILED
-                              </span>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Total Questions & Quick Select */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-green-800">
-                    Số Lượng Câu Hỏi Cần Sinh (1 - 20) <span className="text-error">*</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    {[3, 5, 10, 15].map(cnt => (
-                      <button
-                        key={cnt}
-                        type="button"
-                        onClick={() => handleTotalQuestionsChange(cnt)}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border transition ${
-                          Number(genTotalQuestions) === cnt
-                            ? 'bg-slate-200 text-slate-800 border-pink-200 shadow-sm'
-                            : 'bg-paper text-ink border-green-300 hover:bg-green-100'
-                        }`}
-                      >
-                        {cnt} câu
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={genTotalQuestions}
-                  onChange={(e) => handleTotalQuestionsChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
-
-              {/* Bloom Taxonomy Presets */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-green-800 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-green-700" />
-                    <span>Mẫu Phân Bổ Cấp Độ Bloom (Presets)</span>
-                  </label>
-                  <span className="text-[10px] text-green-700 font-mono">Đủ 6 bậc thang tư duy</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                  {BLOOM_PRESETS.map(p => {
-                    const isSelected = selectedBloomPreset === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => handleSelectBloomPreset(p.id)}
-                        className={`p-2 rounded-xl text-left border-2 transition text-xs ${
-                          isSelected
-                            ? 'bg-slate-100 border border-pink-200 text-slate-800 shadow-sm font-bold'
-                            : 'bg-paper border-green-300 text-ink hover:bg-green-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="truncate">{p.name}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-pink-700 flex-shrink-0" />}
-                        </div>
-                        <p className="text-[10px] text-on-surface-variant font-normal truncate mt-0.5">{p.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 6-Level Bloom Interactive Grid */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-green-800">
-                    Chi Tiết Phân Bổ 6 Cấp Độ Nhận Thức Bloom
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-mono px-2 py-0.5 rounded-lg border font-bold ${
-                      isBloomBalanced
-                        ? 'bg-emerald-50 text-emerald-800 border-pink-200'
-                        : 'bg-slate-100 text-slate-800 border-pink-400'
-                    }`}>
-                      {totalAllocatedBloom} / {genTotalQuestions} câu ({Number(genTotalQuestions) > 0 ? Math.round((totalAllocatedBloom / Number(genTotalQuestions)) * 100) : 0}%)
-                    </span>
-                    {!isBloomBalanced && (
-                      <button
-                        type="button"
-                        onClick={handleAutoBalanceBloom}
-                        className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cream text-ink border border-emerald-200 hover:bg-pink-100 transition shadow-sm"
-                        title="Tự động chia đều theo tổng số câu hỏi"
-                      >
-                        Tự động cân bằng
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {BLOOM_LEVELS.map(level => {
-                    const count = bloomCounts[level.value] || 0;
-                    const percent = totalAllocatedBloom > 0 ? Math.round((count / totalAllocatedBloom) * 100) : 0;
-                    return (
-                      <div
-                        key={level.value}
-                        className={`p-2.5 rounded-xl border-2 transition ${
-                          count > 0 ? 'bg-paper border-pink-200 shadow-sm' : 'bg-surface-container-lowest border-green-200 opacity-70 hover:opacity-100'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[11px] font-bold text-ink truncate" title={level.label}>
-                            {level.label}
-                          </span>
-                          <span className="text-[10px] font-mono text-green-800 bg-green-50 px-1 rounded border border-green-200">
-                            {percent}%
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleBloomCountChange(level.value, -1)}
-                            disabled={count <= 0}
-                            className="w-7 h-7 rounded-lg border border-green-400 bg-paper text-ink font-bold flex items-center justify-center hover:bg-pink-100 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            value={count}
-                            onChange={(e) => handleBloomCountChange(level.value, e.target.value, true)}
-                            className="w-12 text-center py-1 text-xs font-bold bg-white rounded-lg border border-green-400 text-ink focus:outline-none focus:border-pink-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleBloomCountChange(level.value, 1)}
-                            disabled={totalAllocatedBloom >= 20}
-                            className="w-7 h-7 rounded-lg border border-green-400 bg-paper text-ink font-bold flex items-center justify-center hover:bg-green-100 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Ghi Chú Đạo Diễn Cho AI (Lecturer Instruction)</label>
-                <textarea
-                  rows="2"
-                  placeholder="Ví dụ: Đặt câu hỏi xoáy sâu vào các bẫy thường gặp trong xử lý đa luồng..."
-                  value={genLecturerNote}
-                  onChange={(e) => setGenLecturerNote(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
-
-              {failedGenRequest && (
-                <div className="p-3 rounded-xl border border-rose-200 bg-pink-50 text-xs text-pink-900 space-y-1 shadow-sm">
-                  <p className="font-bold">
-                    Lần sinh gần nhất: {failedGenRequest.status} ({failedGenRequest.generatedCount}/{failedGenRequest.totalQuestions} câu)
-                  </p>
-                  {failedGenRequest.errorMessage && <p>{failedGenRequest.errorMessage}</p>}
-                  {failedGenRequest.issues?.map((issue, idx) => <p key={idx}>• {issue}</p>)}
-                </div>
-              )}
-
-              {!isBloomBalanced && (
-                <div className="p-2.5 rounded-xl border border-pink-400 bg-pink-50 text-[11px] text-pink-900 flex items-center justify-between">
-                  <span>⚠ Tổng số câu phân bổ ({totalAllocatedBloom}) chưa khớp với số lượng ({genTotalQuestions}). Bấm nút bên cạnh để tự động cân đối:</span>
-                  <button
-                    type="button"
-                    onClick={handleAutoBalanceBloom}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 transition"
-                  >
-                    Khớp tự động
-                  </button>
-                </div>
-              )}
-
-              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
-                {failedGenRequest && (
-                  <button
-                    type="button"
-                    onClick={handleRetryGeneration}
-                    disabled={isGeneratingAi}
-                    className="px-4 py-2 rounded-xl border border-rose-200 text-pink-900 bg-pink-100 text-xs font-bold hover:bg-pink-200 transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Thử Lại Phần Thiếu</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => { setIsAiGenModalOpen(false); setFailedGenRequest(null); }}
-                  disabled={isGeneratingAi}
-                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="button"
-                  onClick={handleTriggerAiGeneration}
-                  disabled={isGeneratingAi || genDocumentIds.length === 0 || !isBloomBalanced}
-                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isGeneratingAi && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
-                  <span>Bắt Đầu Sinh Câu Hỏi</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: SOẠN CÂU HỎI THỦ CÔNG KÈM RUBRIC BUILDER                          */}
-      {/* ========================================================================= */}
-      {isManualQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-ink">Soạn Câu Hỏi Mới Kèm Ma Trận Rubric</h3>
-              <button onClick={() => setIsManualQuestionModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateManualQuestion} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-green-800 mb-1">Chủ Đề (Topic)</label>
-                  <select
-                    value={manualTopicId}
-                    onChange={(e) => setManualTopicId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
-                  >
-                    <option value="">-- Chủ đề chung --</option>
-                    {topics.map(t => (
-                      <option key={t.topicId} value={t.topicId}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-green-800 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
-                  <select
-                    value={manualBloom}
-                    onChange={(e) => setManualBloom(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
-                  >
-                    {BLOOM_LEVELS.map(b => (
-                      <option key={b.value} value={b.value}>{b.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Nội Dung Câu Hỏi <span className="text-error">*</span></label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="Nhập nội dung câu hỏi vấn đáp chi tiết..."
-                  value={manualContent}
-                  onChange={(e) => setManualContent(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-error">*</span></label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="Đáp án hoặc các ý chính thí sinh cần nêu bật được..."
-                  value={manualExpectedAnswer}
-                  onChange={(e) => setManualExpectedAnswer(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
-
-              {/* DYNAMIC RUBRIC BUILDER */}
-              <div className="p-3.5 bg-paper rounded-xl border border-pink-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b-2 border-cream pb-2">
-                  <div>
-                    <h4 className="text-xs font-bold text-ink">Tiêu Chí Chấm Điểm Rubric</h4>
-                    <p className="text-[10px] text-on-surface-variant">Thiết lập các tiêu chí con chấm điểm tự động</p>
-                  </div>
-                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border border-pink-200 shadow-sm">
-                    Tổng: {manualCriteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
-                  </span>
-                </div>
-
-                <RubricCriteriaEditor criteria={manualCriteria} onChange={setManualCriteria} />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
-                <button
-                  type="button"
-                  onClick={() => setIsManualQuestionModalOpen(false)}
-                  disabled={isSubmittingQuestion}
-                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingQuestion}
-                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSubmittingQuestion && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
-                  <span>Lưu &amp; Gửi Hàng Đợi Duyệt</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: NHẬP CÂU HỎI TỪ VĂN BẢN (mỗi dòng một câu) */}
-      {textImport && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <form onSubmit={handleImportText} className="bg-paper rounded-2xl max-w-2xl w-full border border-pink-200 shadow-md p-6 space-y-4 text-xs">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <span className="font-heading uppercase tracking-wider font-bold text-green-800">Nhập Câu Hỏi Từ Văn Bản</span>
-              <button type="button" onClick={() => setTextImport(null)} aria-label="Đóng" className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <label className="block font-bold space-y-1">
-              <span>Nội dung — mỗi dòng là một câu hỏi (tối đa 2000 dòng, dòng trống được bỏ qua)</span>
-              <textarea
-                rows={10}
-                required
-                autoFocus
-                value={textImport.text}
-                onChange={(e) => setTextImport({ ...textImport, text: e.target.value })}
-                placeholder={'Trình bày nguyên lý Dependency Inversion.\nSo sánh Layered Architecture và Clean Architecture.'}
-                className="w-full bg-white border border-pink-200 rounded-xl p-3 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-            </label>
-            <p className="text-on-surface-variant">
-              {textImport.text.split(/\r?\n/).filter(l => l.trim()).length} câu hỏi sẽ được tạo ở trạng thái nháp.
-            </p>
-            <div className="grid sm:grid-cols-3 gap-3">
-              <label className="block font-bold space-y-1">
-                <span>Chủ đề (tuỳ chọn)</span>
-                <select value={textImport.topicId} onChange={(e) => setTextImport({ ...textImport, topicId: e.target.value })}
-                  className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  <option value="">— Không gán —</option>
-                  {topics.map(t => <option key={t.topicId} value={t.topicId}>{t.name}</option>)}
-                </select>
-              </label>
-              <label className="block font-bold space-y-1">
-                <span>Mức Bloom (tuỳ chọn)</span>
-                <select value={textImport.bloomLevel} onChange={(e) => setTextImport({ ...textImport, bloomLevel: e.target.value })}
-                  className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  <option value="">— Không gán —</option>
-                  {BLOOM_LEVELS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                </select>
-              </label>
-              <label className="block font-bold space-y-1">
-                <span>Mẫu rubric (tuỳ chọn)</span>
-                <select value={textImport.rubricTemplateId} onChange={(e) => setTextImport({ ...textImport, rubricTemplateId: e.target.value })}
-                  className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  <option value="">— Không áp dụng —</option>
-                  {rubricTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-3 border-t-2 border-cream">
-              <button type="button" onClick={() => setTextImport(null)} className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 font-bold hover:bg-green-100">Hủy Bỏ</button>
-              <button type="submit" disabled={isImportingText || !textImport.text.trim()}
-                className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold shadow-xs disabled:opacity-50 flex items-center gap-2">
-                {isImportingText && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
-                Nhập câu hỏi
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: NHẬP CÂU HỎI TỪ EXCEL / CSV (UC1.6)                                */}
-      {/* ========================================================================= */}
-      {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-lg w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <div className="flex items-center gap-2 text-green-800 font-bold text-xs">
-                <FileSpreadsheet className="w-4 h-4 text-green-700" />
-                <span className="font-heading uppercase tracking-wider">Nhập Câu Hỏi Hàng Loạt (UC1.6)</span>
-              </div>
-              <button onClick={() => setIsImportModalOpen(false)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleImportQuestions} className="space-y-4">
-              <div className="flex items-center justify-between bg-green-50 p-3 rounded-xl border border-pink-200 shadow-sm">
-                <span className="text-xs font-semibold text-green-900">Tải tệp mẫu quy chuẩn:</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadTemplate('xlsx')}
-                    className="px-2.5 py-1 bg-paper border border-pink-200 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-sm"
-                  >
-                    <Download className="w-3 h-3 text-green-700" />
-                    <span>Excel (.xlsx)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadTemplate('csv')}
-                    className="px-2.5 py-1 bg-paper border border-pink-200 hover:bg-green-100 rounded-lg text-xs font-bold text-green-800 inline-flex items-center gap-1 shadow-sm"
-                  >
-                    <Download className="w-3 h-3 text-pink-600" />
-                    <span>CSV</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Chọn Tệp Tin Cần Nhập (.xlsx, .csv)</label>
-                <input
-                  type="file"
-                  required
-                  accept=".xlsx,.csv"
-                  onChange={(e) => setImportFile(e.target.files[0] || null)}
-                  className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-2 file:border-pink-200 file:text-xs file:font-bold file:bg-paper file:text-green-800 hover:file:bg-green-100 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-paper rounded-xl border border-pink-200 shadow-sm">
-                <div>
-                  <p className="text-xs font-bold text-ink">Chế Độ Thẩm Định Thử Nghiệm (Dry Run)</p>
-                  <p className="text-[10px] text-on-surface-variant">Chỉ kiểm tra tính hợp lệ dữ liệu, chưa ghi vào cơ sở dữ liệu</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isDryRun}
-                  onChange={(e) => setIsDryRun(e.target.checked)}
-                  className="w-4 h-4 text-green-700 rounded focus:ring-pink-500 cursor-pointer"
-                />
-              </div>
-
-              {/* Import Report Result Box */}
-              {importReport && (
-                <div className="p-3 bg-green-50 rounded-xl border border-pink-200 shadow-sm text-xs space-y-1 animate-modal-entry">
-                  <p className="font-bold text-green-900">Báo Cáo Kết Quả Nhập:</p>
-                  <p className="text-green-800">Tổng dòng đọc được: {importReport.totalRows || 0} ({importReport.totalQuestions || 0} câu hỏi)</p>
-                  <p className="text-green-800">Câu hỏi hợp lệ: {importReport.validQuestions || 0}</p>
-                  {!importReport.dryRun && (
-                    <p className="text-green-800">Đã tạo: {importReport.createdQuestions || 0} câu hỏi</p>
-                  )}
-                  {importReport.invalidQuestions > 0 && (
-                    <p className="text-error font-semibold">Câu hỏi lỗi: {importReport.invalidQuestions}</p>
-                  )}
-                  {importReport.errors?.length > 0 && (
-                    <ul className="mt-1 max-h-32 overflow-y-auto space-y-0.5 text-[11px] text-error">
-                      {importReport.errors.map((er, idx) => (
-                        <li key={idx}>
-                          Dòng {er.row}{er.column ? ` • ${er.column}` : ''}{er.questionRef ? ` • ${er.questionRef}` : ''}: {er.message}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
-                <button
-                  type="button"
-                  onClick={() => setIsImportModalOpen(false)}
-                  disabled={isImporting}
-                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="submit"
-                  disabled={isImporting || !importFile}
-                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isImporting && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
-                  <span>{isDryRun ? 'Thẩm Định File (Dry Run)' : 'Nhập Dữ Liệu Ngay'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: TỪ CHỐI BẢN NHÁP (REJECT MODAL)                                    */}
-      {/* ========================================================================= */}
-      {rejectVersionTarget && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
-            <h3 className="font-heading font-extrabold text-sm text-ink">Từ Chối Phê Duyệt Câu Hỏi</h3>
-            <p className="text-xs text-on-surface-variant">
-              Vui lòng nêu rõ lý do từ chối để hỗ trợ giảng viên soạn thảo hoặc định hướng lại prompt cho AI.
-            </p>
-
-            <textarea
-              rows="3"
-              required
-              placeholder="Ví dụ: Câu hỏi chưa gắn đúng trích dẫn giáo trình hoặc đáp án chưa đủ độ sâu..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-            />
-
-            <div className="flex justify-end gap-2 pt-2 border-t-2 border-cream">
-              <button
-                type="button"
-                onClick={() => setRejectVersionTarget(null)}
-                className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-              >
-                Hủy Bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReject}
-                disabled={!rejectReason.trim()}
-                className="px-5 py-2 rounded-xl bg-paper border border-rose-200 text-error hover:bg-pink-50 font-bold text-xs shadow-sm disabled:opacity-50 transition"
-              >
-                Xác Nhận Từ Chối
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: TẠO LẠI CÂU HỎI AI (REGENERATE WITH FEEDBACK)                       */}
-      {/* ========================================================================= */}
-      {regenVersionTarget && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog">
-          <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
-            <div className="flex items-center gap-2 text-pink-900 font-bold text-xs">
-              <Sparkles className="w-4 h-4 text-pink-600" />
-              <span>Yêu Cầu AI Tạo Lại Câu Hỏi Này</span>
-            </div>
-            <p className="text-xs text-on-surface-variant">
-              Cung cấp thêm chỉ dẫn điều chỉnh (Feedback). AI sẽ giữ nguyên ngữ cảnh trích dẫn ban đầu và viết lại câu hỏi phù hợp hơn.
-            </p>
-
-            <textarea
-              rows="3"
-              placeholder="Ví dụ: Hãy chuyển câu hỏi thành dạng bài toán tình huống thực tế..."
-              value={regenFeedback}
-              onChange={(e) => setRegenFeedback(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-            />
-
-            <div className="flex justify-end gap-2 pt-2 border-t-2 border-cream">
-              <button
-                type="button"
-                onClick={() => setRegenVersionTarget(null)}
-                className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-              >
-                Hủy Bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmRegenerate}
-                className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Sinh Lại Câu Hỏi</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <QuestionDetailModal
+        questionDetail={questionDetail}
+        onClose={() => setQuestionDetail(null)}
+      />
 
       {/* CONFIRM DELETE DOCUMENT */}
       <ConfirmModal
@@ -2725,167 +1919,6 @@ export function LecturerQuestionBankPage({ showToast }) {
         onConfirm={handleConfirmArchive}
         onCancel={() => setArchiveQuestionTarget(null)}
       />
-
-      {/* ========================================================================= */}
-      {/* MODAL: CHỈNH SỬA BẢN NHÁP (CONTENT + RUBRIC)                               */}
-      {/* ========================================================================= */}
-      {editDraft && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
-          <div className="bg-paper rounded-2xl max-w-xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-ink">
-                Chỉnh Sửa Bản Nháp {editDraft.version.questionCode}
-              </h3>
-              <button onClick={() => setEditDraft(null)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveDraft} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Cấp Độ Nhận Thức (Bloom)</label>
-                <select
-                  value={editDraft.bloomLevel}
-                  onChange={(e) => setEditDraft(d => ({ ...d, bloomLevel: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
-                >
-                  {BLOOM_LEVELS.map(b => (
-                    <option key={b.value} value={b.value}>{b.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Nội Dung Câu Hỏi <span className="text-error">*</span></label>
-                <textarea
-                  rows="3"
-                  required
-                  maxLength={4000}
-                  value={editDraft.content}
-                  onChange={(e) => setEditDraft(d => ({ ...d, content: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-green-800 mb-1">Đáp Án Tiêu Chuẩn Mong Đợi <span className="text-error">*</span></label>
-                <textarea
-                  rows="3"
-                  required
-                  maxLength={8000}
-                  value={editDraft.expectedAnswer}
-                  onChange={(e) => setEditDraft(d => ({ ...d, expectedAnswer: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface-container-lowest border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium"
-                />
-              </div>
-
-              <div className="p-3.5 bg-paper rounded-xl border border-pink-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b-2 border-cream pb-2">
-                  <h4 className="text-xs font-bold text-ink">Tiêu Chí Chấm Điểm Rubric</h4>
-                  <span className="font-mono text-xs font-bold text-pink-900 bg-pink-100 px-2.5 py-0.5 rounded-lg border border-pink-200 shadow-sm">
-                    Tổng: {editDraft.criteria.reduce((sum, c) => sum + Number(c.maxScore || 0), 0)}đ
-                  </span>
-                </div>
-                <RubricCriteriaEditor
-                  criteria={editDraft.criteria}
-                  onChange={(criteria) => setEditDraft(d => ({ ...d, criteria }))}
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t-2 border-cream">
-                <button
-                  type="button"
-                  onClick={() => setEditDraft(null)}
-                  disabled={isSavingDraft}
-                  className="px-4 py-2 rounded-xl bg-paper border border-pink-200 text-green-800 text-xs font-bold shadow-sm hover:bg-green-100 transition"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingDraft}
-                  className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSavingDraft && <span className="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin"></span>}
-                  <span>Lưu Bản Nháp</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: CHI TIẾT CÂU HỎI & LỊCH SỬ PHIÊN BẢN                                */}
-      {/* ========================================================================= */}
-      {questionDetail && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
-          <div className="bg-paper rounded-2xl max-w-2xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b-2 border-cream pb-3">
-              <h3 className="font-heading font-extrabold text-sm text-ink">
-                Chi Tiết Câu Hỏi {questionDetail.detail?.questionCode || ''}
-              </h3>
-              <button onClick={() => setQuestionDetail(null)} className="text-on-surface-variant hover:text-ink p-1 rounded-lg hover:bg-green-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {questionDetail.isLoading ? (
-              <SkeletonCard />
-            ) : (
-              <div className="space-y-4 text-xs">
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-pink-200 shadow-sm">
-                    {questionDetail.detail.status}
-                  </span>
-                  {questionDetail.detail.pendingDraft && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border border-rose-200">
-                      Bản nháp đang chờ: v{questionDetail.detail.pendingDraft.versionNumber}
-                    </span>
-                  )}
-                </div>
-
-                {questionDetail.detail.currentVersion && (
-                  <div className="p-4 bg-pink-50 rounded-xl border border-pink-200 shadow-sm space-y-2">
-                    <p className="text-[10px] font-bold text-pink-900 uppercase tracking-wider">
-                      Phiên bản hiện hành v{questionDetail.detail.currentVersion.versionNumber}
-                    </p>
-                    <p className="font-semibold text-ink leading-relaxed font-heading text-sm">{questionDetail.detail.currentVersion.content}</p>
-                    <p className="text-on-surface-variant leading-relaxed">{questionDetail.detail.currentVersion.expectedAnswer}</p>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-[10px] font-bold text-green-800 uppercase tracking-wider mb-2">
-                    Lịch Sử Phiên Bản ({questionDetail.history.length})
-                  </p>
-                  <div className="divide-y-2 divide-cream border border-pink-200 rounded-xl overflow-hidden bg-paper shadow-sm">
-                    {questionDetail.history.map(h => (
-                      <div key={h.versionId} className="p-3.5 flex items-start justify-between gap-3 hover:bg-green-50/50 transition">
-                        <div className="space-y-1 min-w-0">
-                          <p className="font-bold text-ink">
-                            v{h.versionNumber} • {h.origin} • {h.bloomLevel}
-                          </p>
-                          <p className="text-on-surface-variant line-clamp-2">{h.content}</p>
-                          {h.rejectReason && <p className="text-error font-medium">Lý do từ chối: {h.rejectReason}</p>}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            {h.status}
-                          </span>
-                          <p className="text-[10px] text-on-surface-variant mt-1 font-mono">
-                            {h.createdAt ? new Date(h.createdAt).toLocaleString('vi-VN') : ''}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
     </div>
   );
