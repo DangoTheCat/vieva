@@ -5,7 +5,6 @@ import lombok.*;
 import java.time.Instant;
 
 @Getter
-@Setter
 @EqualsAndHashCode
 @ToString
 @Builder(toBuilder = true)

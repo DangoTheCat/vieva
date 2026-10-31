@@ -4,7 +4,6 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
-import com.tngtech.archunit.junit.ArchIgnore;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
@@ -145,7 +144,6 @@ public class ArchitectureTest {
             .should().dependOnClassesThat().resideInAPackage(USE_CASES);
 
     // X3: entities protect their invariants — state changes go through business methods
-    @ArchIgnore(reason = "Plan Đợt 3 (task 3.1): remove @Setter from the 23 entities, then enable")
     @ArchTest
     public static final ArchRule entitiesHaveNoPublicSetters = noMethods()
             .that().arePublic().and().haveNameMatching("set[A-Z].*")

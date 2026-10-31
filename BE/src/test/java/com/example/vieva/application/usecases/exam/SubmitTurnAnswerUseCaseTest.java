@@ -71,8 +71,6 @@ class SubmitTurnAnswerUseCaseTest {
         useCase = new SubmitTurnAnswerUseCaseImpl(
                 examAttemptRepository,
                 examTurnRepository,
-                questionRepository,
-                questionVersionRepository,
                 rubricRepository,
                 fileStoragePort,
                 vivaEvaluationGateway,
@@ -95,10 +93,10 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer rejects submission if attempt is not IN_PROGRESS")
     void submitAnswerRejectsWhenNotInProgress() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 2);
-        attempt.setId(attemptId); // Status is READY
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId); // Status is READY
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Question", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
 
         assertThatThrownBy(() -> useCase.submitAnswer(attemptId, turnId, studentId, "Answer", null, null))
@@ -111,11 +109,11 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer rejects empty transcript and audio")
     void submitAnswerRejectsEmptyTranscriptAndAudio() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 2);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Question", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
 
         assertThatThrownBy(() -> useCase.submitAnswer(attemptId, turnId, studentId, "   ", null, ""))
@@ -128,12 +126,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer returns idempotent view when turn is already EVALUATED")
     void submitAnswerReturnsIdempotentViewWhenTurnAlreadyEvaluated() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 2);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "What is Spring?", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         turn.submitAnswer("Prior answer", null);
         turn.evaluate(new BigDecimal("8.50"), "Great answer", "{\"score\": 8.5}");
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
@@ -153,12 +151,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer with snapshots advances to next snapshot question and never searches bank")
     void submitAnswerWithSnapshotsAdvancesToNextSnapshotQuestion() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 2);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn1 = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "What is Spring?", null);
-        turn1.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn1, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn1));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -194,12 +192,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer passes frozen rubric and expected answer in VivaEvaluationContext")
     void submitAnswerPassesFrozenRubricAndExpectedAnswerInVivaEvaluationContext() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Explain AOP", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -231,12 +229,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer with snapshots finalizes and triggers post-commit finalization worker when done")
     void submitAnswerWithSnapshotsFinalizesWhenAllSnapshotQuestionsDone() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "What is Spring?", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -268,19 +266,19 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer caps follow-up turns at maximum of two")
     void submitAnswerCapsFollowupsAtMaxTwo() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         // Create main turn + 2 existing follow-ups
         ExamTurn mainTurn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Main Q", null);
-        mainTurn.setId(UUID.randomUUID());
+        org.springframework.test.util.ReflectionTestUtils.setField(mainTurn, "id", UUID.randomUUID());
 
         ExamTurn f1 = ExamTurn.createFollowUp(attemptId, questionId, versionId, mainTurn.getId(), 2, "Follow 1", null);
-        f1.setId(UUID.randomUUID());
+        org.springframework.test.util.ReflectionTestUtils.setField(f1, "id", UUID.randomUUID());
 
         ExamTurn f2 = ExamTurn.createFollowUp(attemptId, questionId, versionId, mainTurn.getId(), 3, "Follow 2", null);
-        f2.setId(turnId); // This is the turn being answered now
+        org.springframework.test.util.ReflectionTestUtils.setField(f2, "id", turnId); // This is the turn being answered now
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(f2));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -312,7 +310,7 @@ class SubmitTurnAnswerUseCaseTest {
         boolean[] inTransaction = {false};
         int[] transactions = {0};
         SubmitTurnAnswerUseCaseImpl txAwareUseCase = new SubmitTurnAnswerUseCaseImpl(
-                examAttemptRepository, examTurnRepository, questionRepository, questionVersionRepository,
+                examAttemptRepository, examTurnRepository,
                 rubricRepository, fileStoragePort, vivaEvaluationGateway, attemptGradingService,
                 snapshotRepository, examFinalizationPort, courseDocumentRepository, documentChunkRepository,
                 embeddingModel,
@@ -330,11 +328,11 @@ class SubmitTurnAnswerUseCaseTest {
                 });
 
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Q", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
         when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(List.of(
@@ -355,13 +353,13 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer closes the attempt without grading when the exam clock ran out beyond the grace window")
     void submitAnswerAfterTimeRanOutFinalizesWithoutGrading() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 2, 60);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
-        attempt.setResumedAt(java.time.Instant.now().minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 30));
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "resumedAt", java.time.Instant.now().minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 30));
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Q", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
 
         TurnEvaluationView view = useCase.submitAnswer(attemptId, turnId, studentId, "Late answer", null, null);
@@ -378,14 +376,14 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer respects the follow-up limit frozen from the exam (1 instead of the default 2)")
     void submitAnswerUsesConfiguredFollowUpLimit() {
         ExamAttempt attempt = ExamAttempt.initForExam(UUID.randomUUID(), studentId, subjectId, 1, 900, 120, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn mainTurn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Main Q", null);
-        mainTurn.setId(UUID.randomUUID());
+        org.springframework.test.util.ReflectionTestUtils.setField(mainTurn, "id", UUID.randomUUID());
         ExamTurn f1 = ExamTurn.createFollowUp(attemptId, questionId, versionId, mainTurn.getId(), 2, "Follow 1", null);
-        f1.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(f1, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(f1));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
         when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(List.of(
@@ -404,13 +402,13 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer flags an answer that arrives after the per-answer deadline")
     void submitAnswerFlagsLateAnswer() {
         ExamAttempt attempt = ExamAttempt.initForExam(UUID.randomUUID(), studentId, subjectId, 1, 900, 60, 2);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Q", null);
-        turn.setId(turnId);
-        turn.setAskedAt(java.time.Instant.now().minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 20));
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "askedAt", java.time.Instant.now().minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 20));
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
         when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(List.of(
@@ -429,12 +427,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer builds non-empty RAG context when ready subject documents and similar chunks exist")
     void submitAnswerWithAvailableSubjectEvidenceBuildsNonEmptyRagContext() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "What is polymorphism?", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -486,12 +484,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer queries correct subjectId and ready document IDs only")
     void submitAnswerQueriesCorrectSubjectAndReadyDocumentIdsOnly() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Explain encapsulation", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -563,12 +561,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer falls back to null ragContext when no documents or chunks below similarity")
     void submitAnswerFallsBackToNullRagContextWhenNoDocumentsOrBelowSimilarity() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Explain recursion", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -600,12 +598,12 @@ class SubmitTurnAnswerUseCaseTest {
     @DisplayName("submitAnswer never reads question bank when snapshots exist")
     void submitAnswerNeverReadsQuestionBankWhenSnapshotsExist() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-        attempt.setId(attemptId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
         attempt.start(true);
         when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
         ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Snapshotted Q", null);
-        turn.setId(turnId);
+        org.springframework.test.util.ReflectionTestUtils.setField(turn, "id", turnId);
         when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
         when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
 

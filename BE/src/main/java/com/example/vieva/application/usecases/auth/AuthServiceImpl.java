@@ -33,11 +33,16 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoderPort passwordEncoder;
     private final TokenProviderPort tokenProvider;
+    private final com.example.vieva.application.settings.AuthSettings authSettings;
 
     @Override
     @UseCaseTransaction
     public AuthResult register(RegisterRequest request) {
         String email = new Email(request.getEmail()).getValue();
+
+        if (!authSettings.isRegistrationAllowed(email)) {
+            throw new ApplicationException(ErrorCode.REGISTRATION_DOMAIN_NOT_ALLOWED);
+        }
 
         if (userRepository.existsByEmail(email)) {
             throw new ApplicationException(ErrorCode.USER_EXISTED);

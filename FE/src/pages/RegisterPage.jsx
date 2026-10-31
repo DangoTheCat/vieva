@@ -40,6 +40,12 @@ export function RegisterPage({ onNavigate, showToast }) {
       return;
     }
 
+    // Self-registration is limited to university addresses (BE: vieva.auth.allowed-registration-domains)
+    if (!/@([a-z0-9-]+\.)*fpt\.edu\.vn$/i.test(email.trim())) {
+      setErrorMessage('Chỉ email trường (@fpt.edu.vn) mới tự đăng ký được. Tài khoản khác do quản trị viên cấp.');
+      return;
+    }
+
     if (!password || password.length < 6) {
       setErrorMessage('Mật khẩu bắt buộc có tối thiểu 6 ký tự.');
       return;
@@ -166,7 +172,7 @@ export function RegisterPage({ onNavigate, showToast }) {
 
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                <span>Email Trường Cấp</span>
+                <span>Email Trường Cấp (@fpt.edu.vn)</span>
                 <span className="text-rose-500 font-bold ml-1">*</span>
               </label>
               <input

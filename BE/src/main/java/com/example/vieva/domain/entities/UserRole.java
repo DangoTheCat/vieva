@@ -14,7 +14,6 @@ import java.util.UUID;
  * which would allow the same role to be added twice (violating the composite PK).
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor

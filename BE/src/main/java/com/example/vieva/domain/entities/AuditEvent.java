@@ -9,7 +9,6 @@ import java.util.UUID;
  * Nhật ký kiểm toán bảo mật và hành vi quản trị.
  */
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

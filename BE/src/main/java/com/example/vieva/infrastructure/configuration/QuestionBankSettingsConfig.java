@@ -27,6 +27,12 @@ public class QuestionBankSettingsConfig {
     }
 
     @Bean
+    @ConfigurationProperties(prefix = "vieva.auth")
+    public com.example.vieva.application.settings.AuthSettings authSettings() {
+        return new com.example.vieva.application.settings.AuthSettings();
+    }
+
+    @Bean
     @ConfigurationProperties(prefix = "vieva.import")
     public ImportSettings importSettings() {
         return new ImportSettings();

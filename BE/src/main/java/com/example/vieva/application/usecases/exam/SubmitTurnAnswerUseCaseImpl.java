@@ -2,7 +2,6 @@ package com.example.vieva.application.usecases.exam;
 
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.ports.common.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.exam.SubmitTurnAnswerUseCase;
 import com.example.vieva.application.ports.input.exam.TurnEvaluationView;
 import com.example.vieva.application.ports.output.*;
@@ -17,8 +16,6 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
 
     private final ExamAttemptRepository examAttemptRepository;
     private final ExamTurnRepository examTurnRepository;
-    private final QuestionRepository questionRepository;
-    private final QuestionVersionRepository questionVersionRepository;
     private final RubricRepository rubricRepository;
     private final FileStoragePort fileStoragePort;
     private final VivaEvaluationGateway vivaEvaluationGateway;
@@ -33,8 +30,6 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
     public SubmitTurnAnswerUseCaseImpl(
             ExamAttemptRepository examAttemptRepository,
             ExamTurnRepository examTurnRepository,
-            QuestionRepository questionRepository,
-            QuestionVersionRepository questionVersionRepository,
             RubricRepository rubricRepository,
             FileStoragePort fileStoragePort,
             VivaEvaluationGateway vivaEvaluationGateway,
@@ -48,8 +43,6 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.examTurnRepository = examTurnRepository;
-        this.questionRepository = questionRepository;
-        this.questionVersionRepository = questionVersionRepository;
         this.rubricRepository = rubricRepository;
         this.fileStoragePort = fileStoragePort;
         this.vivaEvaluationGateway = vivaEvaluationGateway;
@@ -386,50 +379,13 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     dispatchFinalization(attemptId, attempt);
                 }
             } else {
-                // Honest compatible legacy fallback for un-snapshotted attempts
-                var searchCriteria = QuestionBankSearchCriteria.builder()
-                        .subjectId(attempt.getSubjectId())
-                        .page(0)
-                        .size(50)
-                        .build();
-                var pagedQuestions = questionRepository != null ? questionRepository.searchBank(searchCriteria) : null;
-                List<Question> bankQuestions = pagedQuestions != null && pagedQuestions.getContent() != null
-                        ? pagedQuestions.getContent()
-                        : Collections.emptyList();
-
-                int nextIndex = attempt.getCurrentQuestionIndex() + 1;
-                if (nextIndex < bankQuestions.size()) {
-                    attempt.nextQuestion();
-                    examAttemptRepository.save(attempt);
-
-                    Question nextQuestion = bankQuestions.get(nextIndex);
-                    UUID nextApprovedVersionId = nextQuestion.getCurrentApprovedVersionId();
-                    QuestionVersion nextVersion = nextApprovedVersionId != null && questionVersionRepository != null
-                            ? questionVersionRepository.findById(nextApprovedVersionId).orElse(null)
-                            : null;
-
-                    String qContent = nextVersion != null ? nextVersion.getQuestionContent() : "";
-                    UUID vId = nextVersion != null ? nextVersion.getQuestionVersionId() : null;
-
-                    ExamTurn nextMainTurn = ExamTurn.createMainQuestion(
-                            attemptId,
-                            nextQuestion.getQuestionId(),
-                            vId,
-                            nextTurnOrder,
-                            qContent,
-                            null
-                    );
-                    ExamTurn savedNextMainTurn = examTurnRepository.save(nextMainTurn);
-                    nextTurnId = savedNextMainTurn.getId();
-                    nextQuestionText = savedNextMainTurn.getQuestionText();
-                    nextTurnType = TurnType.MAIN_QUESTION.name();
-                } else {
-                    // All questions finished, complete attempt
-                    isAttemptFinished = true;
-                    attempt.finish();
-                    examAttemptRepository.save(attempt);
-                    dispatchFinalization(attemptId, attempt);
-                }
+                // Every attempt freezes its questions into snapshots when it starts. Without them there is
+                // no frozen exam to continue, so the interview ends here instead of reading the live bank.
+                log.warn("Attempt {} has no question snapshots; ending the interview", attemptId);
+                isAttemptFinished = true;
+                attempt.finish();
+                examAttemptRepository.save(attempt);
+                dispatchFinalization(attemptId, attempt);
             }
         }
 

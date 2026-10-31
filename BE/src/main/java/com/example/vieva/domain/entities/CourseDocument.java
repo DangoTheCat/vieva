@@ -12,7 +12,6 @@ import java.util.UUID;
  * Lifecycle: UPLOADED → INDEXING → READY | FAILED; FAILED → UPLOADED via a bounded retry.
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,6 +33,12 @@ public class CourseDocument {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;
+
+    /** Moves the document to another topic of the same subject (the use case checks the subject). */
+    public void assignTopic(UUID topicId) {
+        this.topicId = topicId;
+        this.updatedAt = Instant.now();
+    }
 
     public boolean isReady() {
         return indexingStatus == DocumentStatus.READY && deletedAt == null;
