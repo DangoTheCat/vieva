@@ -151,4 +151,23 @@ class UserControllerSecurityTest {
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].email").value("admin@vieva.edu.vn"));
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Admin is read-only on lecturer APIs: writes are forbidden (plan item 3.3)")
+    void adminCannotWriteLecturerData() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/lecturer/exams")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"subjectId\":\"" + UUID.randomUUID() + "\",\"title\":\"x\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Admin may still read lecturer data")
+    void adminCanReadLecturerData() throws Exception {
+        int status = mockMvc.perform(get("/api/v1/lecturer/exams").param("subjectId", UUID.randomUUID().toString()))
+                .andReturn().getResponse().getStatus();
+        org.assertj.core.api.Assertions.assertThat(status).isNotEqualTo(403);
+    }
 }

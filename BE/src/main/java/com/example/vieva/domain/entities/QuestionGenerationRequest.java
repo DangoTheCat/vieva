@@ -17,7 +17,6 @@ import java.util.UUID;
  * single draft can later be regenerated from the same context, and bounds the retries.
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,7 +48,7 @@ public class QuestionGenerationRequest {
         return documentIds != null ? Collections.unmodifiableList(documentIds) : Collections.emptyList();
     }
 
-    public void setDocumentIds(List<UUID> documentIds) {
+    public void replaceDocumentIds(List<UUID> documentIds) {
         this.documentIds = documentIds != null ? new ArrayList<>(documentIds) : new ArrayList<>();
     }
 
@@ -57,7 +56,7 @@ public class QuestionGenerationRequest {
         return bloomDistribution != null ? Collections.unmodifiableMap(bloomDistribution) : Collections.emptyMap();
     }
 
-    public void setBloomDistribution(Map<BloomLevel, Integer> bloomDistribution) {
+    public void replaceBloomDistribution(Map<BloomLevel, Integer> bloomDistribution) {
         this.bloomDistribution = bloomDistribution != null ? new EnumMap<>(bloomDistribution) : new EnumMap<>(BloomLevel.class);
     }
 
@@ -65,7 +64,7 @@ public class QuestionGenerationRequest {
         return retrievedChunkIds != null ? Collections.unmodifiableList(retrievedChunkIds) : Collections.emptyList();
     }
 
-    public void setRetrievedChunkIds(List<UUID> retrievedChunkIds) {
+    public void replaceRetrievedChunkIds(List<UUID> retrievedChunkIds) {
         this.retrievedChunkIds = retrievedChunkIds != null ? new ArrayList<>(retrievedChunkIds) : new ArrayList<>();
     }
 
@@ -73,7 +72,7 @@ public class QuestionGenerationRequest {
         return issues != null ? Collections.unmodifiableList(issues) : Collections.emptyList();
     }
 
-    public void setIssues(List<String> issues) {
+    public void replaceIssues(List<String> issues) {
         this.issues = issues != null ? new ArrayList<>(issues) : new ArrayList<>();
     }
 

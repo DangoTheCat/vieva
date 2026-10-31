@@ -54,7 +54,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health", "/api/v1/health/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/lecturer/**").hasAnyRole("LECTURER", "ADMIN")
+                        // Admins may read lecturer data (question bank, exams, grading) but only the assigned
+                        // lecturer changes it: subject ownership stays with the lecturer (plan item 3.3)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lecturer/**").hasAnyRole("LECTURER", "ADMIN")
+                        .requestMatchers("/api/v1/lecturer/**").hasRole("LECTURER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users", "/api/v1/users/").hasRole("ADMIN")
                         .requestMatchers("/api/v1/users/**").authenticated()
                         .anyRequest().authenticated()

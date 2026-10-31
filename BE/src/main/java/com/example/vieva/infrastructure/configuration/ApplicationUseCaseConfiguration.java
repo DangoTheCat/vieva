@@ -127,8 +127,6 @@ public class ApplicationUseCaseConfiguration {
     public SubmitTurnAnswerUseCaseImpl submitTurnAnswerUseCase(
             ExamAttemptRepository examAttemptRepository,
             ExamTurnRepository examTurnRepository,
-            QuestionRepository questionRepository,
-            QuestionVersionRepository questionVersionRepository,
             RubricRepository rubricRepository,
             FileStoragePort fileStoragePort,
             VivaEvaluationGateway vivaEvaluationGateway,
@@ -143,8 +141,6 @@ public class ApplicationUseCaseConfiguration {
         return new SubmitTurnAnswerUseCaseImpl(
                 examAttemptRepository,
                 examTurnRepository,
-                questionRepository,
-                questionVersionRepository,
                 rubricRepository,
                 fileStoragePort,
                 vivaEvaluationGateway,

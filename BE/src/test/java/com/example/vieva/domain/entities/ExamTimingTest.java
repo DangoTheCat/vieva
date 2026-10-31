@@ -17,7 +17,7 @@ class ExamTimingTest {
         ExamAttempt attempt = ExamAttempt.initForExam(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 3, remainingSeconds, 90, 1);
         attempt.start(true);
-        attempt.setResumedAt(resumedAt);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "resumedAt", resumedAt);
         return attempt;
     }
 
@@ -105,12 +105,12 @@ class ExamTimingTest {
     void turnTimedOutFlag() {
         Instant askedAt = Instant.now().minusSeconds(200);
         ExamTurn onTime = ExamTurn.createMainQuestion(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1, "Q", null);
-        onTime.setAskedAt(askedAt);
+        org.springframework.test.util.ReflectionTestUtils.setField(onTime, "askedAt", askedAt);
         onTime.submitAnswer("A", null, askedAt.plusSeconds(125), 120, 10);
         assertThat(onTime.isTimedOut()).isFalse();
 
         ExamTurn late = ExamTurn.createMainQuestion(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1, "Q", null);
-        late.setAskedAt(askedAt);
+        org.springframework.test.util.ReflectionTestUtils.setField(late, "askedAt", askedAt);
         late.submitAnswer("A", null, askedAt.plusSeconds(131), 120, 10);
         assertThat(late.isTimedOut()).isTrue();
         assertThat(late.answerDeadline(120)).isEqualTo(askedAt.plusSeconds(120));

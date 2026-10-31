@@ -298,7 +298,7 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
             throw new ApplicationException(ErrorCode.TOPIC_NOT_IN_SUBJECT, "Topic does not belong to the document's subject");
         }
 
-        document.setTopicId(topicId);
+        document.assignTopic(topicId);
 
         List<DocumentChunk> chunks = documentChunkRepository.findByDocumentId(documentId);
         if (!chunks.isEmpty()) {
@@ -323,11 +323,10 @@ public class DocumentServiceImpl implements DocumentService, DocumentIndexingUse
                 if (topicId != null) {
                     metaMap.put("topicId", topicId.toString());
                 }
-                chunk.setMetadataJson(jsonSerializer.serialize(metaMap));
+                chunk.updateMetadata(jsonSerializer.serialize(metaMap));
             }
             documentChunkRepository.saveAll(chunks);
         }
-        document.setUpdatedAt(Instant.now());
         CourseDocument saved = courseDocumentRepository.save(document);
         auditor.record(actorId, "DOCUMENT_METADATA_UPDATED", QuestionBankAuditor.DOCUMENT, documentId,
                 Map.of("topicId", topicId != null ? topicId.toString() : "", "metadata", metadataJson != null ? metadataJson : ""));

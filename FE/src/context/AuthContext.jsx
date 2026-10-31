@@ -176,6 +176,14 @@ export function AuthProvider({ children }) {
   const isLecturer = effectiveRole === 'ROLE_LECTURER';
   const mustChangePassword = !!currentUser?.mustChangePassword;
 
+  // Lets the API client explain the admin read-only rule before calling the BE
+  useEffect(() => {
+    try {
+      if (isAdmin) window.sessionStorage.setItem('aives_role', 'ADMIN');
+      else window.sessionStorage.removeItem('aives_role');
+    } catch (e) { /* storage unavailable */ }
+  }, [isAdmin]);
+
   return (
     <AuthContext.Provider
       value={{

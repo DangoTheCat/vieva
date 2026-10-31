@@ -433,8 +433,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
 
         BigDecimal avgScore = sum.divide(BigDecimal.valueOf(totalQuestions), 2, RoundingMode.HALF_UP);
         GradeLevel grade = determineGrade(avgScore);
-        attempt.setTotalScore(avgScore);
-        attempt.setGradeLevel(grade);
+        attempt.recordScore(avgScore, grade);
         examAttemptRepository.save(attempt);
 
         ExamScore score = examScoreRepository.findByAttemptId(attemptId)
@@ -461,11 +460,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
             score.clearOverride(); // Question regrading clears manual total override
         }
 
-        score.setTotalScore(avgScore);
-        score.setGrade(grade);
-        score.setTeacherScore(avgScore);
-        score.setTeacherFeedback(command.feedback());
-        score.setTeacherId(lecturerId);
+        score.recordTeacherGrade(avgScore, grade, command.feedback(), lecturerId);
         examScoreRepository.save(score);
 
         return getAttemptDetail(attemptId, lecturerId);
@@ -550,9 +545,8 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
 
         score.overrideTotal(command.overrideTotalScore(), lecturerId, command.reason());
         GradeLevel grade = determineGrade(command.overrideTotalScore());
-        score.setGrade(grade);
-        attempt.setTotalScore(command.overrideTotalScore());
-        attempt.setGradeLevel(grade);
+        score.applyGrade(grade);
+        attempt.recordScore(command.overrideTotalScore(), grade);
         examAttemptRepository.save(attempt);
         ExamScore saved = examScoreRepository.save(score);
 

@@ -99,7 +99,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("startSession transitions attempt from READY to IN_PROGRESS when device is ready")
         void startSessionSuccess() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
             ExamTurn turn = ExamTurn.createMainQuestion(attemptId, UUID.randomUUID(), UUID.randomUUID(), 1, "Q1", null);
@@ -119,7 +119,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("startSession fails when device check is not passed")
         void startSessionFailsWhenDeviceNotReady() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
             StartExamSessionUseCaseImpl useCase = new StartExamSessionUseCaseImpl(examAttemptRepository, examTurnRepository);
@@ -133,7 +133,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("startSession fails when student does not own attempt")
         void startSessionUnauthorized() {
             ExamAttempt attempt = ExamAttempt.init(UUID.randomUUID(), subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
             StartExamSessionUseCaseImpl useCase = new StartExamSessionUseCaseImpl(examAttemptRepository, examTurnRepository);
@@ -147,7 +147,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("startSession fails when attempt is not in READY state")
         void startSessionFailsIfNotReady() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true); // Now IN_PROGRESS
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
@@ -175,7 +175,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("disconnect transitions IN_PROGRESS -> RECONNECTING and sets pausedAt")
         void disconnectSuccess() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
@@ -192,7 +192,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("disconnect throws if attempt is not IN_PROGRESS")
         void disconnectFailsIfNotInProgress() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId); // READY
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId); // READY
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
             assertThatThrownBy(() -> useCase.disconnect(attemptId, studentId))
@@ -204,7 +204,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("reconnect transitions RECONNECTING -> IN_PROGRESS and clears pausedAt")
         void reconnectSuccess() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             attempt.disconnect();
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
@@ -222,11 +222,11 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("reconnect fails if grace period expired and saves attempt as INTERRUPTED")
         void reconnectFailsIfGraceExpired() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             attempt.disconnect();
             // Force graceDeadline to past
-            attempt.setGraceDeadline(Instant.now().minusSeconds(10));
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "graceDeadline", Instant.now().minusSeconds(10));
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
             assertThatThrownBy(() -> useCase.reconnect(attemptId, studentId))
@@ -240,7 +240,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("finish transitions IN_PROGRESS -> FINALIZING and triggers async grading")
         void finishSuccess() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 5);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 
@@ -282,7 +282,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("gradeAndCompleteAttempt transitions FINALIZING -> COMPLETED on successful grading")
         void gradingSuccessTransitionsToCompleted() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             attempt.finish(); // FINALIZING
 
@@ -308,7 +308,7 @@ class ExamAttemptStateTransitionsTest {
         @DisplayName("gradeAndCompleteAttempt transitions to INTERRUPTED and returns null when unrecoverable error occurs")
         void gradingFailureTransitionsToInterrupted() {
             ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
-            attempt.setId(attemptId);
+            org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             attempt.finish(); // FINALIZING
 

@@ -238,6 +238,12 @@ function AppContent() {
 
         {/* CENTER MAIN CANVAS */}
         <main className="flex-1 canvas-dot-grid py-8 px-4 sm:px-8 overflow-y-auto">
+          {isAdmin && (activeView.startsWith('lecturer-') || activeView === 'rubric-studio') && (
+            <div role="status" className="max-w-6xl mx-auto mb-4 px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+              Chế độ xem của quản trị viên: bạn xem được dữ liệu của giảng viên nhưng không tạo, sửa hay duyệt.
+              Việc này do giảng viên được phân công môn học thực hiện.
+            </div>
+          )}
           <ErrorBoundary key={activeView}>
             <Suspense fallback={<PageSkeleton />}>
             {/* Nhóm 7: Quản Trị Hệ Thống (Admin) */}

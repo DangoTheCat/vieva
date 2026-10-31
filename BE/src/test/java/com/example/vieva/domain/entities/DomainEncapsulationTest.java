@@ -41,12 +41,12 @@ class DomainEncapsulationTest {
     void documentChunkSetEmbeddingEncapsulation() {
         float[] callerArray = new float[]{4.0f, 5.0f, 6.0f};
         DocumentChunk chunk = new DocumentChunk();
-        chunk.setEmbedding(callerArray);
+        chunk.replaceEmbedding(callerArray);
 
         callerArray[0] = 999.0f;
         assertThat(chunk.getEmbedding()[0]).isEqualTo(4.0f);
 
-        chunk.setEmbedding(null);
+        chunk.replaceEmbedding(null);
         assertThat(chunk.getEmbedding()).isNull();
     }
 
@@ -65,7 +65,7 @@ class DomainEncapsulationTest {
                 .isInstanceOf(UnsupportedOperationException.class);
 
         RubricCriterion emptyCriterion = RubricCriterion.builder().build();
-        emptyCriterion.setPerformanceLevels(null);
+        emptyCriterion.replacePerformanceLevels(null);
         assertThat(emptyCriterion.getPerformanceLevels()).isEmpty();
     }
 
@@ -77,7 +77,7 @@ class DomainEncapsulationTest {
         mutableList.add(level);
 
         RubricCriterion criterion = new RubricCriterion();
-        criterion.setPerformanceLevels(mutableList);
+        criterion.replacePerformanceLevels(mutableList);
 
         mutableList.clear();
         assertThat(criterion.getPerformanceLevels()).containsExactly(level);
@@ -117,10 +117,10 @@ class DomainEncapsulationTest {
                 .isInstanceOf(UnsupportedOperationException.class);
 
         QuestionGenerationRequest nullCollectionsRequest = new QuestionGenerationRequest();
-        nullCollectionsRequest.setDocumentIds(null);
-        nullCollectionsRequest.setRetrievedChunkIds(null);
-        nullCollectionsRequest.setIssues(null);
-        nullCollectionsRequest.setBloomDistribution(null);
+        nullCollectionsRequest.replaceDocumentIds(null);
+        nullCollectionsRequest.replaceRetrievedChunkIds(null);
+        nullCollectionsRequest.replaceIssues(null);
+        nullCollectionsRequest.replaceBloomDistribution(null);
 
         assertThat(nullCollectionsRequest.getDocumentIds()).isEmpty();
         assertThat(nullCollectionsRequest.getRetrievedChunkIds()).isEmpty();
@@ -140,10 +140,10 @@ class DomainEncapsulationTest {
         Map<BloomLevel, Integer> bloom = new HashMap<>(Map.of(BloomLevel.APPLY, 1));
 
         QuestionGenerationRequest request = new QuestionGenerationRequest();
-        request.setDocumentIds(docs);
-        request.setRetrievedChunkIds(chunks);
-        request.setIssues(issues);
-        request.setBloomDistribution(bloom);
+        request.replaceDocumentIds(docs);
+        request.replaceRetrievedChunkIds(chunks);
+        request.replaceIssues(issues);
+        request.replaceBloomDistribution(bloom);
 
         docs.clear();
         chunks.clear();

@@ -10,7 +10,6 @@ import java.util.UUID;
  * Minh chứng xuất xứ ngữ cảnh sinh câu hỏi của AI (BR-03): đoạn tài liệu + trích dẫn.
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor

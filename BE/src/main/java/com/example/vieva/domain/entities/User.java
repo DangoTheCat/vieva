@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.UUID;
 
 @Getter
-@Setter
 @EqualsAndHashCode
 @ToString
 @Builder(toBuilder = true)
@@ -107,6 +106,18 @@ public class User {
     public void issueTemporaryPassword(String passwordHash) {
         updatePassword(passwordHash);
         this.mustChangePassword = true;
+    }
+
+    /** The use case checks the address is valid and unused. */
+    public void changeEmail(String email) {
+        this.email = email;
+        this.updatedAt = Instant.now();
+    }
+
+    /** The use case checks the code is unused. */
+    public void changeUserCode(String userCode) {
+        this.userCode = userCode;
+        this.updatedAt = Instant.now();
     }
 
     public void updateAvatar(String avatarUrl) {
