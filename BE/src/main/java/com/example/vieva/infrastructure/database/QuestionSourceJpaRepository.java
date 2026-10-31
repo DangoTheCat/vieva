@@ -21,7 +21,8 @@ public interface QuestionSourceJpaRepository extends JpaRepository<QuestionSourc
 
     List<QuestionSourceJpaEntity> findByQuestionVersion_QuestionVersionIdIn(Collection<UUID> questionVersionIds);
 
-    @Modifying
+    // Bulk JPQL delete bypasses the persistence context: flush first, then evict stale managed rows
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM QuestionSourceJpaEntity s WHERE s.questionVersion.questionVersionId = :versionId")
     void deleteByVersionId(@Param("versionId") UUID versionId);
 }

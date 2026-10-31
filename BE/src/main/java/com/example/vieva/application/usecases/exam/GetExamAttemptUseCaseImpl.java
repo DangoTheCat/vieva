@@ -14,6 +14,7 @@ import com.example.vieva.domain.entities.ExamScore;
 import com.example.vieva.domain.entities.ExamTurn;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 

@@ -13,6 +13,9 @@ public record CreateExamApiRequest(
         @NotBlank(message = "Exam title is required")
         String title,
 
+        // 1 minute to 4 hours
+        @Min(value = 60, message = "Exam duration must be at least 1 minute")
+        @Max(value = 14400, message = "Exam duration must not exceed 240 minutes")
         Integer durationSeconds,
 
         @Min(value = 30, message = "Answer time limit must be at least 30 seconds")

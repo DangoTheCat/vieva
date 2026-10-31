@@ -3,7 +3,7 @@ import { Award, Sparkles } from 'lucide-react';
 import { toExamResult } from '../examRoomModel';
 
 /** Oral exam room — screen shown for this stage. Extracted from OralExamRoomPage (plan item 2.12). */
-export function CompletedStage({ attemptId, examResult, onNavigate, questions, studentCode, studentName }) {
+export function CompletedStage({ activeExam, attemptId, examResult, onNavigate, questions, studentCode, studentName }) {
   const displayResult = examResult || toExamResult(null);
 
   return (
@@ -27,7 +27,7 @@ export function CompletedStage({ attemptId, examResult, onNavigate, questions, s
             Kết Quả Bài Thi Vấn Đáp Trực Tuyến
           </h1>
           <p className="text-xs sm:text-sm text-green-800">
-            Thí sinh: <strong>{studentName}</strong> • Mã SV: <strong>{studentCode}</strong> • Ca thi: <strong>#{attemptId}</strong>
+            Thí sinh: <strong>{studentName}</strong> • Mã SV: <strong>{studentCode}</strong> • Ca thi: <strong>{activeExam?.title || `#${attemptId}`}</strong>
           </p>
         </div>
 

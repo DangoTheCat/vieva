@@ -22,11 +22,17 @@ export function clearActiveExam() {
 
 const GRADE_LABELS = {
   EXCELLENT: 'Xuất sắc',
-  GOOD: 'Giỏi',
-  AVERAGE: 'Khá',
+  // BE bands: EXCELLENT >= 8.5, GOOD 7.0–8.5, AVERAGE 5.0–7.0, POOR < 5.0
+  GOOD: 'Khá',
+  AVERAGE: 'Trung bình',
   POOR: 'Chưa đạt'
 };
 
 export function gradeLabel(gradeLevel) {
   return GRADE_LABELS[gradeLevel] || gradeLevel || '—';
+}
+
+// BE TurnType is MAIN_QUESTION | FOLLOW_UP; 'PROBING' kept for older payloads
+export function isProbeTurn(turnType) {
+  return turnType === 'FOLLOW_UP' || turnType === 'PROBING';
 }

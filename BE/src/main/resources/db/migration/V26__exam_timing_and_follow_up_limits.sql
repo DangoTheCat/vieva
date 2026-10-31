@@ -1,15 +1,17 @@
 -- ============================================================================
--- V25: Server-side exam clock, per-answer time limit and follow-up budget
+-- V26: Server-side exam clock, per-answer time limit and follow-up budget
 --   1. exams: answer_time_limit_seconds, max_follow_ups_per_question (lecturer settings)
---   2. exam_attempts: resumed_at (clock anchor) + both settings frozen per attempt
+--   2. exam_attempts: both settings frozen per attempt (resumed_at already comes from V25)
 --   3. exam_turns: asked_at (answer timer start), timed_out (late answer flag)
 -- Existing rows get the previous behaviour: 120 s per answer, 2 follow-ups.
 -- ============================================================================
 
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS answer_time_limit_seconds INT NOT NULL DEFAULT 120;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS max_follow_ups_per_question INT NOT NULL DEFAULT 2;
+ALTER TABLE exams DROP CONSTRAINT IF EXISTS chk_exams_answer_time_limit;
 ALTER TABLE exams ADD CONSTRAINT chk_exams_answer_time_limit
     CHECK (answer_time_limit_seconds BETWEEN 30 AND 600);
+ALTER TABLE exams DROP CONSTRAINT IF EXISTS chk_exams_max_follow_ups;
 ALTER TABLE exams ADD CONSTRAINT chk_exams_max_follow_ups
     CHECK (max_follow_ups_per_question BETWEEN 0 AND 3);
 

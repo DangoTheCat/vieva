@@ -78,6 +78,9 @@ services:
       context: ./ai-services/stt
       dockerfile: Dockerfile
     container_name: vieva-stt
+    # Needs an NVIDIA GPU: start with `docker compose --profile gpu up`
+    profiles:
+      - gpu
     restart: unless-stopped
     ports:
       - "8002:8002"
@@ -99,6 +102,8 @@ services:
       context: ./ai-services/tts
       dockerfile: Dockerfile
     container_name: vieva-tts
+    profiles:
+      - gpu
     restart: unless-stopped
     ports:
       - "8001:8001"

@@ -25,21 +25,21 @@ const PORTAL_ROLES = [
     label: 'Sinh Viên',
     icon: GraduationCap,
     targetView: 'discover',
-    placeholder: 'sinhvien@fpt.edu.vn hoặc MSSV'
+    placeholder: 'sinhvien@fpt.edu.vn'
   },
   {
     code: 'ROLE_LECTURER',
     label: 'Giảng Viên',
     icon: School,
     targetView: 'lecturer-dashboard',
-    placeholder: 'giangvien@fpt.edu.vn hoặc Mã GV'
+    placeholder: 'giangvien@fpt.edu.vn'
   },
   {
     code: 'ROLE_ADMIN',
     label: 'Ban Khảo Thí',
     icon: Shield,
     targetView: 'admin-users',
-    placeholder: 'admin@fpt.edu.vn hoặc Mã QTV'
+    placeholder: 'admin@fpt.edu.vn'
   }
 ];
 
@@ -101,10 +101,14 @@ export function LoginPage({ onNavigate, showToast }) {
       const targetConfig = PORTAL_ROLES.find(r => r.code === effectiveRole) || activePortal;
       onNavigate(targetConfig.targetView);
     } catch (err) {
-      // Secure authentication failure: never leak account existence or assigned roles (OWASP A01/A07)
-      const msg = (err.code === 'ROLE_MISMATCH' || err.code === '1003')
-        ? 'Thông tin đăng nhập không chính xác.'
-        : getErrorMessage(err);
+      // Wrong email/password stays generic (OWASP A07); a role mismatch is only reached with the
+      // correct password, so pointing at the right portal leaks nothing to a third party
+      const actualPortal = PORTAL_ROLES.find(r => r.code === err.actualRole);
+      const msg = err.code === 'ROLE_MISMATCH'
+        ? `Tài khoản này không thuộc cổng ${activePortal.label}. Vui lòng chọn cổng ${actualPortal?.label || 'phù hợp'} rồi đăng nhập lại.`
+        : err.code === '1003'
+          ? 'Thông tin đăng nhập không chính xác.'
+          : getErrorMessage(err);
       setErrorMsg(msg);
       if (showToast) {
         showToast({ type: 'error', title: 'Lỗi Đăng Nhập', message: msg });
@@ -179,13 +183,15 @@ export function LoginPage({ onNavigate, showToast }) {
                 <label className="block text-xs font-semibold text-ink mb-1.5">
                   Cổng đăng nhập theo vai trò:
                 </label>
-                <div className="p-1 bg-pink-100/70 rounded-xl grid grid-cols-3 gap-1 border border-pink-200/60 p-1">
+                <div role="group" aria-label="Cổng đăng nhập theo vai trò" className="p-1 bg-pink-100/70 rounded-xl grid grid-cols-3 gap-1 border border-pink-200/60 p-1">
                   {PORTAL_ROLES.map(({ code, label, icon: Icon }) => {
                     const isSelected = selectedRole === code;
                     return (
                       <button
                         key={code}
                         type="button"
+                        aria-label={`Cổng ${label}`}
+                        aria-pressed={isSelected}
                         onClick={() => handleRoleChange(code)}
                         className={`py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                           isSelected

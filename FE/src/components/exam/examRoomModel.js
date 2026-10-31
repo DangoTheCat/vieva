@@ -15,19 +15,31 @@ export const NO_ANSWER_TEXT = '[Thí sinh không trả lời trong thời gian q
  */
 export const mapTurnsToQuestions = (turns, totalQuestions) => {
   if (!Array.isArray(turns) || turns.length === 0) return null;
-  return turns.map((t, idx) => ({
-    id: t.questionId || idx + 1,
-    turnId: t.turnId,
-    questionNumber: t.turnOrder || idx + 1,
-    totalQuestions: totalQuestions || turns.length,
-    type: t.turnType || TURN_TYPE.MAIN,
-    badge: turnBadge(t.turnType),
-    title: turnTitle(t.turnType, t.turnOrder || idx + 1),
-    content: t.questionText || '',
-    ttsAudioUrl: t.ttsAudioUrl,
-    hint: isFollowUp(t.turnType) ? 'Giải thích rõ hơn ý bạn vừa trả lời.' : '',
-    rubricCriteria: t.rubricEvaluations || 'Đánh giá năng lực chuyên môn và phản xạ kiến trúc.'
-  }));
+  // Number main questions on their own; a follow-up belongs to the main question before it
+  let mainNumber = 0;
+  return turns.map((t, idx) => {
+    if (!isFollowUp(t.turnType)) mainNumber += 1;
+    const number = Math.max(mainNumber, 1);
+    return {
+      id: t.questionId || idx + 1,
+      turnId: t.turnId,
+      questionNumber: number,
+      totalQuestions: totalQuestions || turns.length,
+      type: t.turnType || TURN_TYPE.MAIN,
+      badge: turnBadge(t.turnType),
+      title: turnTitle(t.turnType, number),
+      content: t.questionText || '',
+      ttsAudioUrl: t.ttsAudioUrl,
+      hint: isFollowUp(t.turnType) ? 'Giải thích rõ hơn ý bạn vừa trả lời.' : '',
+      rubricCriteria: t.rubricEvaluations || 'Đánh giá năng lực chuyên môn và phản xạ kiến trúc.'
+    };
+  });
+};
+
+/** Main-question number for a turn added at {@code index}: a follow-up keeps its main question's number. */
+export const mainNumberFor = (questions, index, followUp) => {
+  const mainsBefore = questions.slice(0, index).filter((q) => !isFollowUp(q.type)).length;
+  return followUp ? Math.max(mainsBefore, 1) : mainsBefore + 1;
 };
 
 /**

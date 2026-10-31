@@ -12,7 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -120,6 +122,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException exception) {
         log.warn("Invalid argument: {}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(body(ErrorCode.INVALID_REQUEST, exception.getMessage(), null));
+    }
+
+    // Unknown path (e.g. a trailing slash) or wrong HTTP method: a client error, not a 500
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(body(ErrorCode.INVALID_REQUEST, "Endpoint not found: /" + exception.getResourcePath(), null));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException exception) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
                 .body(body(ErrorCode.INVALID_REQUEST, exception.getMessage(), null));
     }
 

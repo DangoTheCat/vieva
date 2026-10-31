@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { oralExamApi } from '../api/oralExamApi';
 import { speechApi } from '../api/speechApi';
 import { userApi } from '../api/userApi';
-import { EMPTY_QUESTION, NO_ANSWER_TEXT, mapTurnsToQuestions, toExamResult } from '../components/exam/examRoomModel';
+import { EMPTY_QUESTION, NO_ANSWER_TEXT, mapTurnsToQuestions, mainNumberFor, toExamResult } from '../components/exam/examRoomModel';
 import { useAuth } from '../context/AuthContext';
 import { useVoiceSTT } from './useVoiceSTT';
 import { useZeroTTS } from './useZeroTTS';
@@ -651,14 +651,15 @@ export function useExamSession({ onNavigate, showToast }) {
       const nextIndex = activeQuestionIndex + 1;
       setQuestions((prevQuestions) => {
         const updated = [...prevQuestions];
+        const mainNumber = mainNumberFor(updated, nextIndex, isProbing);
         const nextQData = {
           id: nextIndex + 1,
           turnId: evalRes.nextTurnId,
-          questionNumber: nextIndex + 1,
+          questionNumber: mainNumber,
           totalQuestions: Math.max(updated.length, nextIndex + 1),
           type: evalRes.nextTurnType || (isProbing ? TURN_TYPE.FOLLOW_UP : TURN_TYPE.MAIN),
           badge: turnBadge(evalRes.nextTurnType),
-          title: turnTitle(evalRes.nextTurnType, nextIndex + 1),
+          title: turnTitle(evalRes.nextTurnType, mainNumber),
           content: evalRes.nextQuestionText,
           rubricCriteria: isProbing ? 'Làm rõ và đào sâu nội dung câu trả lời trước đó.' : 'Nắm vững kiến trúc và nguyên lý hệ thống.'
         };

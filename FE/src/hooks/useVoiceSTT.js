@@ -14,6 +14,8 @@ const FINAL_TIMEOUT_MS = 5000;
  * stopRecording() resolves with { transcript, audioBlob } once the server's "final" arrives
  * (or after 5 s, with what is known), so the answer is never submitted half-transcribed.
  * An STT failure is reported through onError; it never ends the exam session by itself.
+ * When the STT server can't be reached, the browser's Web Speech API (Chrome/Edge) transcribes
+ * instead, so the student still sees text; the audio is recorded and uploaded either way.
  */
 export function useVoiceSTT({
   wsUrl,
@@ -38,6 +40,8 @@ export function useVoiceSTT({
   const stopPromiseRef = useRef(null);
   const callbacksRef = useRef({ onFinalTranscript, onPartialTranscript, onError });
   callbacksRef.current = { onFinalTranscript, onPartialTranscript, onError };
+  // Browser Web Speech fallback, used only when the STT server can't be reached
+  const speechRecRef = useRef(null);
 
   const baseWsUrl = wsUrl || getSttWsUrl();
   const token = getAuthToken();
@@ -109,6 +113,53 @@ export function useVoiceSTT({
     };
   }), [url, closeSocket, settleFinal]);
 
+  const startBrowserRecognition = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return false;
+    const rec = new SpeechRecognition();
+    rec.lang = language;
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript.trim();
+        if (event.results[i].isFinal) {
+          const updated = [transcriptRef.current, text].filter(Boolean).join(' ').trim();
+          transcriptRef.current = updated;
+          setTranscript(updated);
+          callbacksRef.current.onFinalTranscript?.(updated);
+        } else {
+          interim += text;
+        }
+      }
+      setPartialTranscript(interim);
+      if (interim) callbacksRef.current.onPartialTranscript?.(interim);
+    };
+    rec.onerror = (e) => console.warn('[useVoiceSTT] Browser speech recognition error:', e.error);
+    // Chrome ends a continuous session after a pause; keep listening while recording
+    rec.onend = () => {
+      if (speechRecRef.current === rec) {
+        try { rec.start(); } catch (_) { /* already started */ }
+      }
+    };
+    try {
+      rec.start();
+      speechRecRef.current = rec;
+      return true;
+    } catch (e) {
+      console.warn('[useVoiceSTT] Cannot start browser speech recognition:', e);
+      return false;
+    }
+  }, [language]);
+
+  const stopBrowserRecognition = useCallback(() => {
+    const rec = speechRecRef.current;
+    if (!rec) return;
+    speechRecRef.current = null; // clear first so onend doesn't restart it
+    try { rec.stop(); } catch (_) { /* already stopped */ }
+  }, []);
+
   const resetTranscript = useCallback(() => {
     transcriptRef.current = '';
     setTranscript('');
@@ -130,7 +181,8 @@ export function useVoiceSTT({
         await connectSocket();
       } catch (wsErr) {
         // Recording still works; the audio is uploaded with the answer and the lecturer can review it.
-        console.warn('[useVoiceSTT] STT service unreachable, recording audio only:', wsErr);
+        console.warn('[useVoiceSTT] STT service unreachable, falling back to browser speech recognition:', wsErr);
+        startBrowserRecognition();
       }
 
       const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
@@ -178,7 +230,7 @@ export function useVoiceSTT({
       callbacksRef.current.onError?.(err);
       throw err;
     }
-  }, [connectSocket, settleFinal]);
+  }, [connectSocket, settleFinal, startBrowserRecognition]);
 
   /** Stops recording; resolves with { transcript, audioBlob } for the answer so far. */
   const stopRecording = useCallback(() => {
@@ -189,6 +241,7 @@ export function useVoiceSTT({
         ? new Blob(recordedChunksRef.current, { type: recorder?.mimeType || 'audio/webm' })
         : null
     });
+    stopBrowserRecognition();
     const promise = new Promise((resolve) => {
       if (recorder && recorder.state !== 'inactive') {
         stopPromiseRef.current = resolve;
@@ -202,7 +255,7 @@ export function useVoiceSTT({
       streamRef.current = null;
     }
     return promise;
-  }, []);
+  }, [stopBrowserRecognition]);
 
   useEffect(() => () => {
     const recorder = mediaRecorderRef.current;
@@ -210,8 +263,9 @@ export function useVoiceSTT({
       try { recorder.stop(); } catch (e) { /* ignore */ }
     }
     streamRef.current?.getTracks().forEach((track) => track.stop());
+    stopBrowserRecognition();
     closeSocket();
-  }, [closeSocket]);
+  }, [closeSocket, stopBrowserRecognition]);
 
   return {
     isRecording,
