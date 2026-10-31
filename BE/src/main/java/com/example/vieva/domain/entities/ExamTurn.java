@@ -80,16 +80,25 @@ public class ExamTurn {
     }
 
     /**
-     * Restarts the answer timer once the question has been read aloud (TTS finished), so reading
-     * time is not counted against the student. Only a pending turn can be marked.
+     * Starts the answer timer once the question has been read aloud (TTS finished), so reading
+     * time is not counted against the student. Only the first call counts: reloading the page
+     * and reading the question again does not give the student a fresh timer.
      */
     public void markAsked(Instant now) {
         if (this.status != TurnStatus.PENDING) {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Turn is not pending an answer (current status: " + status + ")");
         }
+        if (isAskedMarked()) {
+            return;
+        }
         this.askedAt = now;
         this.updatedAt = now;
+    }
+
+    /** True once markAsked has moved askedAt away from the creation time. */
+    public boolean isAskedMarked() {
+        return this.askedAt != null && this.createdAt != null && this.askedAt.isAfter(this.createdAt);
     }
 
     /** Deadline for the answer: askedAt + limit (the submit grace is applied by the caller). */

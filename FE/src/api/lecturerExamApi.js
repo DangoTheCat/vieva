@@ -16,13 +16,23 @@ export const lecturerExamApi = {
   },
 
   /** POST /api/v1/lecturer/exams */
-  createExam({ subjectId, title, durationSeconds }) {
-    return apiClient.post('/lecturer/exams', { subjectId, title, durationSeconds });
+  createExam({ subjectId, title, durationSeconds, answerTimeLimitSeconds, maxFollowUpsPerQuestion }) {
+    return apiClient.post('/lecturer/exams', {
+      subjectId, title, durationSeconds, answerTimeLimitSeconds, maxFollowUpsPerQuestion
+    });
   },
 
   /** PATCH /api/v1/lecturer/exams/{id} */
   updateTitle(examId, title) {
     return apiClient.patch(`/lecturer/exams/${examId}`, { title });
+  },
+
+  /**
+   * PATCH /api/v1/lecturer/exams/{id} — DRAFT only; omitted fields keep their value
+   * @param {{ title?: string, answerTimeLimitSeconds?: number, maxFollowUpsPerQuestion?: number }} changes
+   */
+  updateExam(examId, changes) {
+    return apiClient.patch(`/lecturer/exams/${examId}`, changes);
   },
 
   /** PATCH /api/v1/lecturer/exams/{id}/status — status: 'IN_PROGRESS' | 'COMPLETED' */
