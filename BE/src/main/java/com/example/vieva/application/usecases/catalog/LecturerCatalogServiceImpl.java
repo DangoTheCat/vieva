@@ -14,6 +14,7 @@ import com.example.vieva.application.usecases.access.QuestionBankAuditor;
 import com.example.vieva.application.usecases.access.SubjectAccessGuard;
 import com.example.vieva.domain.entities.LecturerSubject;
 import com.example.vieva.domain.entities.Subject;
+import com.example.vieva.domain.entities.SubjectStatus;
 import com.example.vieva.domain.entities.Topic;
 import lombok.RequiredArgsConstructor;
 
@@ -37,11 +38,18 @@ public class LecturerCatalogServiceImpl implements LecturerCatalogService {
     @Override
     @UseCaseTransaction(readOnly = true)
     public List<SubjectResult> listAssignedSubjects(UUID lecturerId) {
-        List<UUID> subjectIds = lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
-                .map(LecturerSubject::getSubjectId)
-                .distinct()
-                .toList();
-        return subjectRepository.findAllByIds(subjectIds).stream()
+        // Admins manage every subject (SubjectAccessGuard), so they see all active ones
+        List<Subject> subjects;
+        if (subjectAccessGuard.isActiveAdmin(lecturerId)) {
+            subjects = subjectRepository.findByStatus(SubjectStatus.ACTIVE);
+        } else {
+            List<UUID> subjectIds = lecturerSubjectRepository.findActiveByLecturerId(lecturerId).stream()
+                    .map(LecturerSubject::getSubjectId)
+                    .distinct()
+                    .toList();
+            subjects = subjectRepository.findAllByIds(subjectIds);
+        }
+        return subjects.stream()
                 .sorted(Comparator.comparing(Subject::getSubjectCode, Comparator.nullsLast(String::compareTo)))
                 .map(com.example.vieva.application.usecases.subject.SubjectResults::from)
                 .toList();

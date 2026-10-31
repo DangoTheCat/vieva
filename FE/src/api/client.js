@@ -71,9 +71,9 @@ class ApiClient {
     }
 
     const config = {
+      ...options,
       method: options.method || 'GET',
       headers,
-      ...options,
     };
 
     if (options.body && typeof options.body === 'object' && !isFormData) {

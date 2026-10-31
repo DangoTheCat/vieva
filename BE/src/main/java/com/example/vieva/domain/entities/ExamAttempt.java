@@ -5,6 +5,7 @@ import com.example.vieva.domain.exception.DomainException;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -101,7 +102,7 @@ public class ExamAttempt {
         if (anchor == null) {
             return Math.max(0, frozen);
         }
-        long elapsed = Math.max(0, java.time.Duration.between(anchor, now).getSeconds());
+        long elapsed = Math.max(0, Duration.between(anchor, now).getSeconds());
         return (int) Math.max(0, frozen - elapsed);
     }
 
@@ -255,6 +256,24 @@ public class ExamAttempt {
         freezeClock(now);
         this.status = AttemptStatus.FINALIZING;
         this.updatedAt = now;
+    }
+
+    /** Same as {@link #remainingAt(Instant)}; kept for callers merged from main. */
+    public int remainingSecondsAt(Instant now) {
+        return remainingAt(now);
+    }
+
+    /**
+     * True when the attempt should be closed by the timeout scheduler: the clock ran out and the
+     * submit grace window has passed too, so an answer still uploading is not cut off.
+     */
+    public boolean isTimeUp(Instant now) {
+        return isPastSubmitGrace(now);
+    }
+
+    public boolean isGraceExpired(Instant now) {
+        return this.status == AttemptStatus.RECONNECTING
+                && this.graceDeadline != null && now.isAfter(this.graceDeadline);
     }
 
     public void timeoutSession() {

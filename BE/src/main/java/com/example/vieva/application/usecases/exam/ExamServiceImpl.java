@@ -115,9 +115,17 @@ public class ExamServiceImpl implements ExamService {
         ExamStatus targetStatus = EnumValues.parse(ExamStatus.class, command.status(),
                 "Invalid exam status: " + command.status());
         if (targetStatus == ExamStatus.IN_PROGRESS) {
-            int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
-            if (count == 0) {
+            var examQuestions = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId);
+            if (examQuestions.isEmpty()) {
                 throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Cannot publish exam with zero questions");
+            }
+            // A question archived after it was picked must be swapped out before students can sit the exam
+            for (var eq : examQuestions) {
+                boolean archived = questionRepository.findById(eq.getQuestionId()).map(Question::isArchived).orElse(true);
+                if (archived) {
+                    throw new ApplicationException(ErrorCode.EXAM_QUESTION_MISMATCH,
+                            "Exam contains an archived question; replace it before opening the exam");
+                }
             }
         }
         exam.transitionTo(targetStatus);
@@ -175,6 +183,9 @@ public class ExamServiceImpl implements ExamService {
                     .orElseThrow(() -> new ApplicationException(ErrorCode.QUESTION_NOT_FOUND));
             if (!q.getSubjectId().equals(exam.getSubjectId())) {
                 throw new ApplicationException(ErrorCode.EXAM_QUESTION_MISMATCH, "Question does not belong to exam subject");
+            }
+            if (q.isArchived()) {
+                throw new ApplicationException(ErrorCode.EXAM_QUESTION_MISMATCH, "Archived questions cannot be used in an exam");
             }
 
             QuestionVersion ver = questionVersionRepository.findById(item.questionVersionId())

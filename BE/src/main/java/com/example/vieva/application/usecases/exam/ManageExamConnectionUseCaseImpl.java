@@ -14,6 +14,7 @@ import com.example.vieva.domain.entities.ExamTurn;
 import com.example.vieva.domain.exception.DomainException;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 

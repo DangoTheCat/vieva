@@ -51,6 +51,11 @@ export const questionBankApi = {
     return apiClient.post('/lecturer/question-versions/batch-approve', { versionIds });
   },
 
+  /** DRAFT → UNDER_REVIEW; notifies the subject's other lecturers */
+  submitForReview(questionId, versionId, expectedVersion) {
+    return apiClient.post(`/lecturer/studio/questions/${questionId}/submit-for-review`, { versionId, expectedVersion });
+  },
+
   rejectVersion(versionId, payload) {
     return apiClient.post(`/lecturer/question-versions/${versionId}/reject`, payload);
   },

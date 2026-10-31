@@ -12,8 +12,9 @@ export function NotificationBell() {
 
   const refreshCount = async () => {
     try {
-      const data = await notificationApi.getUnreadCount();
-      setUnread(Number(data?.unreadCount || 0));
+      const data = await notificationApi.unreadCount();
+      // BE answers { count }
+      setUnread(Number(data?.count ?? data?.unreadCount ?? 0));
     } catch {
       // Background count errors fail silently to not interrupt workflow
     }
@@ -23,10 +24,11 @@ export function NotificationBell() {
     setIsLoading(true);
     setLoadError('');
     try {
-      const data = await notificationApi.getMyNotifications(0, 20);
+      const data = await notificationApi.list(0, 20);
       const list = data?.content || [];
       setItems(list);
-      setUnread(list.filter(n => !n.readAt).length);
+      // Only the first page is listed; keep the server-wide unread count
+      refreshCount();
     } catch (err) {
       setLoadError('Không thể tải thông báo.');
     } finally {
@@ -59,7 +61,7 @@ export function NotificationBell() {
   const markRead = async (item) => {
     if (item.readAt) return;
     try {
-      await notificationApi.markAsRead(item.notificationId);
+      await notificationApi.markRead(item.notificationId);
       setItems(prev => prev.map(n => n.notificationId === item.notificationId ? { ...n, readAt: new Date().toISOString() } : n));
       setUnread(u => Math.max(0, u - 1));
     } catch {

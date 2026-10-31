@@ -31,6 +31,19 @@ class ExamTimingTest {
     }
 
     @Test
+    @DisplayName("Timeout scheduler waits for the submit grace window before closing the attempt")
+    void timeUpOnlyAfterSubmitGrace() {
+        Instant now = Instant.now();
+        ExamAttempt justExpired = runningAttempt(60, now.minusSeconds(65));
+        assertThat(justExpired.isTimeExpired(now)).isTrue();
+        assertThat(justExpired.isTimeUp(now)).isFalse();
+
+        ExamAttempt longExpired = runningAttempt(60, now.minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 1));
+        assertThat(longExpired.isTimeUp(now)).isTrue();
+        assertThat(longExpired.remainingSecondsAt(now)).isZero();
+    }
+
+    @Test
     @DisplayName("Reloading the page cannot reset the clock: disconnect freezes the server value")
     void disconnectFreezesServerValue() {
         Instant now = Instant.now();

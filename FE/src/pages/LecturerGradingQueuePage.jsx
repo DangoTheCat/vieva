@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
+import { isProbeTurn } from '../utils/activeExam';
 import { Users, CheckCircle2, Clock, Search, X, Loader2, BarChart3, Save, ClipboardCheck } from 'lucide-react';
 
 const ATTEMPT_LABEL = {
@@ -261,8 +262,8 @@ export function LecturerGradingQueuePage({ showToast }) {
                   <ol className="space-y-2">
                     {(qn.turns || []).map(t => (
                       <li key={t.turnId} className="border-l-4 border-pink-300 pl-3 space-y-1">
-                        <p className="text-[11px] font-bold text-pink-800">{t.turnType === 'PROBING' ? 'Câu hỏi xoáy' : 'Câu hỏi chính'} • AI: {fmt(t.score)}</p>
-                        {t.turnType === 'PROBING' && <p className="italic">{t.questionText}</p>}
+                        <p className="text-[11px] font-bold text-pink-800">{isProbeTurn(t.turnType) ? 'Câu hỏi xoáy' : 'Câu hỏi chính'} • AI: {fmt(t.score)}</p>
+                        {isProbeTurn(t.turnType) && <p className="italic">{t.questionText}</p>}
                         <p><strong>Trả lời:</strong> {t.transcriptText || <span className="text-green-700">(chưa trả lời)</span>}</p>
                         {t.feedback && <p className="text-green-800"><strong>Nhận xét AI:</strong> {t.feedback}</p>}
                       </li>

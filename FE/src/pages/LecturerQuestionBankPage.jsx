@@ -634,11 +634,14 @@ export function LecturerQuestionBankPage({ showToast }) {
   // Confirm Bloom Level (Strict Rule for AI RAG questions)
   const handleConfirmBloom = async (version) => {
     try {
-      await questionBankApi.confirmBloom(version.versionId, {
+      const updated = await questionBankApi.confirmBloom(version.versionId, {
         bloomLevel: version.bloomLevel,
         expectedVersion: version.lockVersion
       });
-      setReviewVersions(prev => prev.map(v => v.versionId === version.versionId ? { ...v, bloomConfirmed: true } : v));
+      // Confirming bumps the lock token; keep it so the next approve/submit isn't rejected as stale
+      setReviewVersions(prev => prev.map(v => v.versionId === version.versionId
+        ? { ...v, bloomConfirmed: true, lockVersion: updated?.lockVersion ?? v.lockVersion }
+        : v));
       showToast({ type: 'success', message: 'Đã thẩm định và xác nhận cấp độ nhận thức Bloom.' });
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
@@ -654,6 +657,17 @@ export function LecturerQuestionBankPage({ showToast }) {
       showToast({ type: 'success', message: 'Phê duyệt thành công! Câu hỏi đã được đưa vào Ngân Hàng Đề Thi.' });
       loadReviewQueue();
       loadBank();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    }
+  };
+
+  // Submit Draft for peer review (DRAFT → UNDER_REVIEW)
+  const handleSubmitForReview = async (version) => {
+    try {
+      await questionBankApi.submitForReview(version.questionId, version.versionId, version.lockVersion);
+      showToast({ type: 'success', message: 'Đã gửi duyệt. Câu hỏi chuyển sang trạng thái chờ duyệt (UNDER_REVIEW).' });
+      loadReviewQueue();
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     }
@@ -1050,6 +1064,7 @@ export function LecturerQuestionBankPage({ showToast }) {
           handleBatchApprove={handleBatchApprove}
           handleConfirmBloom={handleConfirmBloom}
           handleOpenEditDraft={handleOpenEditDraft}
+          handleSubmitForReview={handleSubmitForReview}
           handleReviewPageChange={handleReviewPageChange}
           handleReviewPageSizeChange={handleReviewPageSizeChange}
           isBatchApproving={isBatchApproving}
@@ -1137,7 +1152,10 @@ export function LecturerQuestionBankPage({ showToast }) {
       <RegenerateQuestionModal
         target={regenVersionTarget}
         onClose={() => setRegenVersionTarget(null)}
-        onConfirm={handleConfirmRegenerate}
+        feedback={regenFeedback}
+        setFeedback={setRegenFeedback}
+        // Called with the click event: don't let it pass as targetOverride
+        onConfirm={() => handleConfirmRegenerate()}
       />
 
       <EditDraftModal

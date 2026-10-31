@@ -5,7 +5,7 @@ import { SkeletonCard } from '../../common/Skeleton';
 import { AlertCircle, BookOpen, Check, CheckCircle2, Edit3, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 
 /** Question bank page — "review" tab. Extracted from LecturerQuestionBankPage (plan item 3.7). */
-export function ReviewTab({ handleApproveVersion, handleBatchApprove, handleConfirmBloom, handleOpenEditDraft, handleReviewPageChange, handleReviewPageSizeChange, isBatchApproving, isLoadingReview, loadReviewQueue, reviewPage, reviewPageSize, reviewStatusFilter, reviewTotalElements, reviewTotalPages, reviewVersions, selectedVersionIds, setDeleteDraftTarget, setIsAiGenModalOpen, setRegenFeedback, setRegenVersionTarget, setRejectReason, setRejectVersionTarget, setReviewPage, setReviewStatusFilter, setSelectedVersionIds }) {
+export function ReviewTab({ handleApproveVersion, handleBatchApprove, handleConfirmBloom, handleOpenEditDraft, handleSubmitForReview, handleReviewPageChange, handleReviewPageSizeChange, isBatchApproving, isLoadingReview, loadReviewQueue, reviewPage, reviewPageSize, reviewStatusFilter, reviewTotalElements, reviewTotalPages, reviewVersions, selectedVersionIds, setDeleteDraftTarget, setIsAiGenModalOpen, setRegenFeedback, setRegenVersionTarget, setRejectReason, setRejectVersionTarget, setReviewPage, setReviewStatusFilter, setSelectedVersionIds }) {
   return (
     <div className="space-y-6">
       {/* AI RAG GENERATION TRIGGER BANNER */}
@@ -38,7 +38,7 @@ export function ReviewTab({ handleApproveVersion, handleBatchApprove, handleConf
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-ink">Lọc Theo Trạng Thái:</span>
           <div className="flex items-center gap-1.5">
-            {['DRAFT', 'APPROVED', 'REJECTED', 'ALL'].map(st => (
+            {['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ALL'].map(st => (
               <button
                 key={st}
                 type="button"
@@ -268,8 +268,18 @@ export function ReviewTab({ handleApproveVersion, handleBatchApprove, handleConf
                     )}
                   </div>
 
-                  {v.status === 'DRAFT' && (
+                  {(v.status === 'DRAFT' || v.status === 'UNDER_REVIEW') && (
                     <div className="flex items-center gap-2">
+                      {v.status === 'DRAFT' && (
+                        <button
+                          type="button"
+                          onClick={() => handleSubmitForReview(v)}
+                          className="px-3.5 py-1.5 rounded-xl bg-paper text-pink-700 border border-pink-200 font-bold text-xs hover:bg-pink-50 transition active:scale-95"
+                        >
+                          Gửi Duyệt
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => { setRejectVersionTarget(v); setRejectReason(''); }}

@@ -23,6 +23,17 @@ public class SubjectAccessGuard {
     private final LecturerSubjectRepository lecturerSubjectRepository;
     private final UserRepository userRepository;
 
+    /** Active administrator: may manage every subject without an assignment. */
+    public boolean isActiveAdmin(UUID actorId) {
+        if (actorId == null) {
+            return false;
+        }
+        return userRepository.findById(actorId)
+                .filter(u -> !u.isDeleted() && u.getStatus() == UserStatus.ACTIVE)
+                .map(User::isAdmin)
+                .orElse(false);
+    }
+
     public boolean canManage(UUID actorId, UUID subjectId) {
         if (actorId == null || subjectId == null) {
             return false;
