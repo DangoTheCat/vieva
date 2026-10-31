@@ -53,6 +53,9 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       APP_LOGIN_URL: ${APP_LOGIN_URL:-http://localhost:5173/login}
+      # Inside Docker the speech services are reached by service name (the .env values are for local runs)
+      TTS_BASE_URL: http://tts-service:8001
+      STT_BASE_URL: http://stt-service:8002
     depends_on:
       postgres:
         condition: service_healthy

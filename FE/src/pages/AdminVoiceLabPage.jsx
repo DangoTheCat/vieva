@@ -30,6 +30,13 @@ export function AdminVoiceLabPage({ showToast }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewText, setPreviewText] = useState('Xin chào, em hãy trình bày ngắn gọn ý tưởng chính của câu trả lời.');
+  // WF07: a configuration is saved only after a successful test of exactly these values
+  const [testResult, setTestResult] = useState(null);
+  const [testedKey, setTestedKey] = useState(null);
+  const audioRef = React.useRef(null);
+  const formKey = JSON.stringify(form);
+  const testPassed = testResult && testedKey === formKey && testResult.sttAvailable
+    && (testResult.audioBase64 || testResult.browserVoice);
 
   const load = async () => {
     setIsLoading(true);
@@ -51,6 +58,10 @@ export function AdminVoiceLabPage({ showToast }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!testPassed) {
+      showToast({ type: 'warning', message: 'Hãy bấm "Thử nghiệm" với cấu hình hiện tại và đảm bảo thử nghiệm thành công trước khi lưu.' });
+      return;
+    }
     setIsSaving(true);
     try {
       const updated = await speechApi.updateSettings({
@@ -71,14 +82,42 @@ export function AdminVoiceLabPage({ showToast }) {
     }
   };
 
-  // Browser preview only approximates speed/pitch; the exam room uses the configured TTS service voice
-  const handlePreview = () => {
+  /** Tests the current values on the real services (POST /admin/speech/test) and plays the sample. */
+  const handlePreview = async () => {
+    setIsPreviewing(true);
+    let result;
+    try {
+      const english = form.ttsLanguage.startsWith('en');
+      result = await speechApi.testSettings({
+        ttsLanguage: form.ttsLanguage,
+        sttLanguage: form.sttLanguage,
+        voice: (english ? form.englishVoice : form.vietnameseVoice).trim() || null,
+        sampleText: previewText
+      });
+      setTestResult(result);
+      setTestedKey(formKey);
+    } catch (err) {
+      setIsPreviewing(false);
+      setTestResult(null);
+      showToast({ type: 'error', message: getErrorMessage(err) });
+      return;
+    }
+
+    if (result.audioBase64) {
+      const audio = new Audio(`data:audio/wav;base64,${result.audioBase64}`);
+      audioRef.current = audio;
+      audio.onended = () => setIsPreviewing(false);
+      audio.onerror = () => setIsPreviewing(false);
+      audio.play().catch(() => setIsPreviewing(false));
+      return;
+    }
+    // Language read by the student's browser (or engine offline): preview with the browser voice
     if (!('speechSynthesis' in window)) {
-      showToast({ type: 'warning', message: 'Trình duyệt không hỗ trợ đọc thử.' });
+      setIsPreviewing(false);
       return;
     }
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(previewText);
+    const utter = new SpeechSynthesisUtterance(result.sampleText || previewText);
     utter.lang = form.ttsLanguage;
     utter.rate = Math.min(Number(form.speed) || 1, 10);
     utter.pitch = Math.min(Number(form.pitch) || 1, 2);
@@ -90,6 +129,7 @@ export function AdminVoiceLabPage({ showToast }) {
 
   const stopPreview = () => {
     window.speechSynthesis?.cancel();
+    audioRef.current?.pause();
     setIsPreviewing(false);
   };
 
@@ -154,7 +194,7 @@ export function AdminVoiceLabPage({ showToast }) {
           </p>
 
           <div className="space-y-2 pt-3 border-t border-pink-200">
-            <span className="font-semibold text-slate-700 block">Nghe thử (giọng trình duyệt, mô phỏng tốc độ/cao độ)</span>
+            <span className="font-semibold text-slate-700 block">Thử nghiệm trước khi lưu (gọi dịch vụ TTS/STT thật)</span>
             <div className="flex gap-2">
               <input value={previewText} onChange={e => setPreviewText(e.target.value)} className={inputClass} />
               <button 
@@ -162,9 +202,16 @@ export function AdminVoiceLabPage({ showToast }) {
                 onClick={isPreviewing ? stopPreview : handlePreview}
                 className="px-3.5 py-2 rounded-xl bg-white border border-pink-200 font-semibold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50 shrink-0 shadow-2xs transition cursor-pointer"
               >
-                {isPreviewing ? <Square className="w-4 h-4 text-rose-600" /> : <Volume2 className="w-4 h-4 text-pink-600" />} {isPreviewing ? 'Dừng' : 'Nghe thử'}
+                {isPreviewing ? <Square className="w-4 h-4 text-rose-600" /> : <Volume2 className="w-4 h-4 text-pink-600" />} {isPreviewing ? 'Dừng' : 'Thử nghiệm'}
               </button>
             </div>
+            {testResult && (
+              <div aria-live="polite" className={`rounded-xl border p-3 text-xs space-y-1 ${testPassed ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                <p>TTS: {testResult.ttsAvailable ? 'đang hoạt động' : 'không phản hồi'}{testResult.browserVoice ? ' (ngôn ngữ này dùng giọng trình duyệt)' : ''}</p>
+                <p>STT: {testResult.sttAvailable ? 'đang hoạt động' : 'không phản hồi'}</p>
+                <p className="font-semibold">{testedKey === formKey ? testResult.message : 'Cấu hình đã thay đổi sau lần thử, hãy thử nghiệm lại.'}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-3 pt-3 border-t border-pink-200">
@@ -173,7 +220,8 @@ export function AdminVoiceLabPage({ showToast }) {
             </p>
             <button 
               type="submit" 
-              disabled={isSaving}
+              disabled={isSaving || !testPassed}
+              title={testPassed ? undefined : 'Cần thử nghiệm thành công trước khi lưu'}
               className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Lưu Cấu Hình

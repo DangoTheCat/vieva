@@ -1,5 +1,7 @@
 package com.example.vieva.adapters.controllers;
 
+import com.example.vieva.application.ports.input.speech.SpeechTestResult;
+
 import com.example.vieva.application.ports.input.common.ActorView;
 import com.example.vieva.application.ports.input.speech.SpeechSettingsResult;
 import com.example.vieva.application.ports.input.speech.SpeechSettingsService;
@@ -56,6 +58,21 @@ public class SpeechController {
                 .pitch(request.pitch())
                 .build();
         return ResponseEntity.ok(speechSettingsService.updateSettings(useCaseRequest, adminId));
+    }
+
+    public record TestSpeechApiRequest(
+            String ttsLanguage,
+            String sttLanguage,
+            String voice,
+            String sampleText
+    ) {}
+
+    /** Tries a configuration (speaks a sample, checks STT) without saving it. */
+    @PostMapping("/admin/speech/test")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SpeechTestResult> testSpeechSettings(@RequestBody(required = false) TestSpeechApiRequest request) {
+        TestSpeechApiRequest r = request != null ? request : new TestSpeechApiRequest(null, null, null, null);
+        return ResponseEntity.ok(speechSettingsService.testSettings(r.ttsLanguage(), r.sttLanguage(), r.voice(), r.sampleText()));
     }
 
     @GetMapping("/student/speech")
