@@ -1,6 +1,5 @@
 package com.example.vieva.application.ports.input.admin;
 
-import com.example.vieva.domain.entities.GradeLevel;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -13,6 +12,6 @@ public record AdminPerformanceItemView(
         String examTitle,
         String subjectName,
         BigDecimal totalScore,
-        GradeLevel gradeLevel,
+        String gradeLevel,
         Instant completedAt
 ) {}

@@ -32,7 +32,8 @@ public class LecturerExamController {
             @Valid @RequestBody CreateExamApiRequest request
     ) {
         UUID actorId = CurrentUser.id(currentUser);
-        CreateExamCommand command = new CreateExamCommand(request.subjectId(), request.title(), request.durationSeconds());
+        CreateExamCommand command = new CreateExamCommand(request.subjectId(), request.title(), request.durationSeconds(),
+                request.answerTimeLimitSeconds(), request.maxFollowUpsPerQuestion());
         ExamView view = examService.createExam(command, actorId);
         return ResponseEntity.status(HttpStatus.CREATED).body(view);
     }
@@ -62,7 +63,8 @@ public class LecturerExamController {
             @Valid @RequestBody UpdateExamTitleApiRequest request
     ) {
         UUID actorId = CurrentUser.id(currentUser);
-        UpdateExamCommand command = new UpdateExamCommand(request.title());
+        UpdateExamCommand command = new UpdateExamCommand(request.title(), request.answerTimeLimitSeconds(),
+                request.maxFollowUpsPerQuestion());
         return ResponseEntity.ok(examService.updateExamTitle(id, command, actorId));
     }
 

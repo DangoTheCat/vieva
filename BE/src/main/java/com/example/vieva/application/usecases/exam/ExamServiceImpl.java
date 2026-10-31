@@ -1,5 +1,7 @@
 package com.example.vieva.application.usecases.exam;
 
+import com.example.vieva.application.usecases.common.EnumValues;
+
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.exam.*;
@@ -30,7 +32,8 @@ public class ExamServiceImpl implements ExamService {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Subject ID is required");
         }
         accessGuard.requireManage(actorId, command.subjectId());
-        Exam exam = Exam.create(command.subjectId(), actorId, command.title(), command.durationSeconds());
+        Exam exam = Exam.create(command.subjectId(), actorId, command.title(), command.durationSeconds(),
+                command.answerTimeLimitSeconds(), command.maxFollowUpsPerQuestion());
         Exam saved = examRepository.save(exam);
         return toView(saved, 0);
     }
@@ -86,10 +89,16 @@ public class ExamServiceImpl implements ExamService {
         if (!exam.isDraft()) {
             throw new ApplicationException(ErrorCode.EXAM_NOT_DRAFT);
         }
-        if (command == null || command.title() == null || command.title().isBlank()) {
+        if (command == null || command.isEmpty()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam title is required");
         }
-        exam.updateTitle(command.title());
+        if (command.title() != null) {
+            if (command.title().isBlank()) {
+                throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam title is required");
+            }
+            exam.updateTitle(command.title());
+        }
+        exam.applyInterviewSettings(command.answerTimeLimitSeconds(), command.maxFollowUpsPerQuestion());
         Exam saved = examRepository.save(exam);
         int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
         return toView(saved, count);
@@ -103,7 +112,9 @@ public class ExamServiceImpl implements ExamService {
         if (command == null || command.status() == null) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam status is required");
         }
-        if (command.status() == ExamStatus.IN_PROGRESS) {
+        ExamStatus targetStatus = EnumValues.parse(ExamStatus.class, command.status(),
+                "Invalid exam status: " + command.status());
+        if (targetStatus == ExamStatus.IN_PROGRESS) {
             var examQuestions = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId);
             if (examQuestions.isEmpty()) {
                 throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Cannot publish exam with zero questions");
@@ -117,7 +128,7 @@ public class ExamServiceImpl implements ExamService {
                 }
             }
         }
-        exam.transitionTo(command.status());
+        exam.transitionTo(targetStatus);
         Exam saved = examRepository.save(exam);
         int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
         return toView(saved, count);
@@ -233,10 +244,12 @@ public class ExamServiceImpl implements ExamService {
                 exam.getCreatorId(),
                 exam.getTitle(),
                 exam.getDurationSeconds(),
-                exam.getStatus(),
+                exam.getStatus().name(),
                 questionCount,
                 exam.getCreatedAt(),
-                exam.getUpdatedAt()
+                exam.getUpdatedAt(),
+                exam.getAnswerTimeLimitSeconds(),
+                exam.getMaxFollowUpsPerQuestion()
         );
     }
 }

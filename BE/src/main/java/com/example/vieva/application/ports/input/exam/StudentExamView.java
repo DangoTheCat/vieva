@@ -1,6 +1,5 @@
 package com.example.vieva.application.ports.input.exam;
 
-import com.example.vieva.domain.entities.AttemptStatus;
 
 import java.util.UUID;
 
@@ -10,6 +9,6 @@ public record StudentExamView(
         String title,
         int durationSeconds,
         int questionCount,
-        AttemptStatus studentAttemptStatus,
+        String studentAttemptStatus,
         UUID studentAttemptId
 ) {}

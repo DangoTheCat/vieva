@@ -4,7 +4,7 @@
 
 [![Course](https://img.shields.io/badge/Course-SWD392-blue.svg?style=for-the-badge)](https://fpt.edu.vn)
 [![Milestone](https://img.shields.io/badge/Milestone-2%20APPROVED-success.svg?style=for-the-badge)]()
-[![Architecture](https://img.shields.io/badge/Architecture-Modular%20Monolith-orange.svg?style=for-the-badge)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-orange.svg?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)]()
 
 ---
@@ -16,12 +16,10 @@
 4. [3 Quy Trình Nghiệp Vụ Cốt Lõi (Core Workflows)](#-3-quy-trình-nghiệp-vụ-cốt-lõi-core-workflows)
 5. [Danh Mục Use Cases Chi Tiết](#-danh-mục-use-cases-chi-tiết)
 6. [Kiến Trúc Phần Mềm & Công Nghệ](#-kiến-trúc-phần-mềm--công-nghệ)
-7. [Mô Hình Dữ Liệu Khái Niệm (ERD)](#-mô-hình-dữ-liệu-khái-niệm-erd)
-8. [Cấu Trúc Thư Mục Repository](#-cấu-trúc-thư-mục-repository)
-9. [Hướng Dẫn Cài Đặt & Khởi Chạy Local](#-hướng-dẫn-cài-đặt--khởi-chạy-local)
-10. [Cấu Hình Biến Môi Trường (.env)](#-cấu-hình-biến-môi-trường-env)
-11. [Danh Sách API & WebSocket Endpoints](#-danh-sách-api--websocket-endpoints)
-12. [Đóng Góp & Lịch Trình Dự Án (Roadmap)](#-đóng-góp--lịch-trình-dự-án-roadmap)
+7. [Cấu Trúc Thư Mục Repository](#️-cấu-trúc-thư-mục-repository)
+8. [Hướng Dẫn Cài Đặt & Khởi Chạy Local](#-hướng-dẫn-cài-đặt--khởi-chạy-local)
+9. [Cấu Hình Biến Môi Trường (.env)](#️-cấu-hình-biến-môi-trường-env)
+10. [Danh Sách API & WebSocket Endpoints](#-danh-sách-api--websocket-endpoints-phòng-thi)
 
 ---
 
@@ -103,44 +101,82 @@ AIVES kết hợp các công nghệ tiên tiến nhất:
 
 ## 🏗️ Kiến Trúc Phần Mềm & Công Nghệ
 
-Hệ thống được thiết kế theo mô hình **Modular Monolith** nhằm tối ưu chi phí vận hành, đảm bảo tính toàn vẹn giao dịch (ACID) nhưng vẫn phân tách ranh giới các module độc lập.
+Kiến trúc theo tài liệu SAD (`VIEVA_Software_Architecture_Design.docx`, mục 3.1): **Client-Server SPA** + backend Spring Boot tổ chức theo **Clean Architecture (Ports & Adapters)** + **pipeline bất đồng bộ** cho RAG. Backend được triển khai thành một ứng dụng; bên trong chia 4 tầng và phụ thuộc chỉ hướng vào trong, được kiểm tra tự động bằng `BE/src/test/java/com/example/vieva/architecture/ArchitectureTest.java`.
 
 ```text
-+-----------------------------------------------------------------------+
-|                           WEB CLIENT APP                              |
-|                   (React.js / Next.js SPA / Tailwind)                 |
-+-----------------------------------+-----------------------------------+
-                                    |
-                    REST API (HTTP) | WebSocket (Real-time Audio Stream)
-                                    |
-+-----------------------------------v-----------------------------------+
-|                        AIVES BACKEND CORE                             |
-|                     (Modular Monolith Framework)                      |
-|                                                                       |
-|  +---------------------+  +--------------------+  +----------------+  |
-|  | QuestionBank Module |  | Interview Module   |  | Admin Module   |  |
-|  | (RAG, Question,     |  | (State Machine,    |  | (User, Auth,   |  |
-|  |  Rubric, Document)  |  |  WebSocket, Engine)|  |  Speech Config)|  |
-|  +----------+----------+  +---------+----------+  +-------+--------+  |
-|             |                       |                     |           |
-|             +-----------------------+---------------------+           |
-|                                     |                                 |
-+-------------------------------------+---------------------------------+
-                                      |
-         +----------------------------+----------------------------+
-         |                                                         |
-         v Async Tasks                                             v External API Calls
-+-----------------------------------+                     +-----------------------------------+
-|        BACKGROUND WORKER          |                     |          EXTERNAL AI SERVICES     |
-| (Document Processing, OCR,        |                     | (OpenAI LLM, Embedding API,       |
-|  Chunking, Vector Computation)    |                     |  Speech-to-Text, Text-to-Speech)  |
-+----------------+------------------+                     +-----------------------------------+
-                 |
-                 v
-+-----------------------------------------------------------------------+
-|                           DATA STORAGE TIER                           |
-|  +------------------------+ +---------------------+ +--------------+  |
-|  | Relational DB          | | Vector Database     | | Object Store |  |
-|  | (PostgreSQL / MySQL)   | | (pgvector / Qdrant) | | (S3 / MinIO) |  |
-|  +------------------------+ +---------------------+ +--------------+  |
-+-----------------------------------------------------------------------+
++--------------------------------------------------------------------------+
+|  WEB CLIENT  React 18 SPA + Tailwind (Vite)          nginx (FE container) |
+|    REST /api/v1/**   ·   WS /ws/stt (STT)   ·   /tts/** (TTS)  [JWT]      |
++--------------------------------------------------------------------------+
+        | REST                                   | WebSocket / HTTP (proxied)
+        v                                        v
++------------------------------------------+  +-----------------------------+
+| AIVES BACKEND (Spring Boot, Java 21)     |  | AI SPEECH SERVICES (FastAPI)|
+|                                          |  |  stt-service: faster-whisper|
+|  adapters        controllers, presenters |  |  tts-service: ZeroTTS       |
+|      |  (input ports)                    |  +-----------------------------+
+|      v                                   |
+|  application     use cases, ports        |  +-----------------------------+
+|      |                                   |  | LLM / Embedding (Gemini via |
+|      v                                   |  |  OpenAI-compatible API)     |
+|  domain          entities, rules         |  +-----------------------------+
+|      ^                                   |               ^
+|      | (output ports, implemented by)    |               |
+|  infrastructure  JPA, AI gateways,       |---------------+
+|                  workers, storage, mail  |
++------------------------------------------+
+        |
+        v
++--------------------------------------------------------------------------+
+|  PostgreSQL 16 + pgvector (relational + vector)   ·   Cloudinary / local  |
++--------------------------------------------------------------------------+
+```
+
+| Tầng | Gói | Nội dung |
+| :--- | :--- | :--- |
+| Domain | `domain` | Entity và luật nghiệp vụ (`ExamAttempt` đồng hồ thi, `ExamTurn`, `GradeLevel.fromScore`, ...) |
+| Application | `application` | Use case, input port (`ports/input`), output port (`ports/output`) |
+| Interface Adapters | `adapters` | REST controller, presenter, xử lý lỗi |
+| Infrastructure | `infrastructure` | JPA, gateway AI (Gemini), STT/TTS, worker bất đồng bộ, cấu hình Spring |
+
+---
+
+## 🗂️ Cấu Trúc Thư Mục Repository
+
+```text
+vieva/
+├── BE/                 Spring Boot backend (Clean Architecture), Flyway migrations, tests
+├── FE/                 React 18 SPA (Vite + Tailwind), nginx.conf cho bản build
+├── ai-services/
+│   ├── stt/            faster-whisper, WebSocket /ws/transcribe (+ test_ws.py)
+│   └── tts/            ZeroTTS, POST /synthesize
+├── docs/               Handoff, acceptance, verification, onboarding
+└── docker-compose.yml  postgres, backend, frontend, stt-service, tts-service
+```
+
+## 🚀 Hướng Dẫn Cài Đặt & Khởi Chạy Local
+
+1. Sao chép `.env.example` thành `.env` (gốc repo) và `FE/.env.example` thành `FE/.env.local`, điền khóa thật.
+2. Toàn bộ hệ thống: `docker compose up --build` → FE tại `http://localhost:3000` (STT/TTS cần GPU).
+3. Chạy riêng khi phát triển:
+   - BE: `cd BE && ./mvnw spring-boot:run`
+   - FE: `cd FE && npm install && npm run dev`
+   - STT/TTS: `cd ai-services/stt && uvicorn main:app --port 8002` (tương tự TTS ở cổng 8001)
+4. Kiểm thử: `cd BE && ./mvnw test` (gồm `ArchitectureTest`; test tích hợp cần Docker) và `cd ai-services/stt && pytest test_ws.py`.
+
+## ⚙️ Cấu Hình Biến Môi Trường (.env)
+
+Xem `.env.example`. Nhóm biến chính: cơ sở dữ liệu (`DB_*`), JWT (`JWT_*`), AI (`OPENAI_*`, `VIEVA_AI_PROVIDER`), lưu trữ (`CLOUDINARY_*`, `VIEVA_STORAGE_*`), email (`MAIL_*`), giọng nói (`TTS_BASE_URL`, `STT_BASE_URL`). FE dùng `VITE_API_BASE_URL`, `VITE_STT_WS_URL`, `VITE_TTS_URL` (xem `FE/.env.example`).
+
+## 🔌 Danh Sách API & WebSocket Endpoints (phòng thi)
+
+| Phương thức | Đường dẫn | Mục đích |
+| :--- | :--- | :--- |
+| POST | `/api/v1/student/exams/{examId}/enter` | Vào ca thi, tạo lượt thi và snapshot đề |
+| POST | `/api/v1/student/attempts/{id}/start` | Bắt đầu tính giờ (sau kiểm tra thiết bị) |
+| POST | `/api/v1/student/attempts/{id}/turns/{turnId}/ready` | Câu hỏi đã đọc xong, bắt đầu giờ trả lời |
+| POST | `/api/v1/student/attempts/{id}/turns/{turnId}/submit` | Nộp câu trả lời (transcript + audio), nhận câu hỏi xoáy hoặc câu tiếp |
+| POST | `/api/v1/student/attempts/{id}/disconnect` · `/reconnect` · `/finish` | Mất kết nối, kết nối lại, kết thúc |
+| GET | `/api/v1/student/speech` | Cấu hình ngôn ngữ/giọng cho phòng thi |
+| POST | `/api/v1/admin/speech/test` | Thử cấu hình giọng nói trước khi lưu |
+| WS | `/ws/stt?lang=vi\|en&token=...` | Nhận dạng giọng nói (qua nginx) |

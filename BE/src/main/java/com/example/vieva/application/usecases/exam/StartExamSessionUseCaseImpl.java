@@ -49,11 +49,13 @@ public class StartExamSessionUseCaseImpl implements StartExamSessionUseCase {
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
                 savedAttempt.getPausedAt(),
-                savedAttempt.remainingSecondsAt(Instant.now()),
+                savedAttempt.remainingAt(java.time.Instant.now()),
                 savedAttempt.getGraceDeadline(),
                 currentTurn != null ? currentTurn.getId() : null,
                 currentTurn != null ? currentTurn.getQuestionText() : null,
-                currentTurn != null ? currentTurn.getTtsAudioUrl() : null
+                currentTurn != null ? currentTurn.getTtsAudioUrl() : null,
+                savedAttempt.effectiveAnswerTimeLimitSeconds(),
+                savedAttempt.effectiveMaxFollowUps()
         );
     }
 }

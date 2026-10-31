@@ -124,7 +124,8 @@ class GlobalExceptionHandlerTest {
             Map.entry(ErrorCode.DOCUMENT_ALREADY_EXISTS, HttpStatus.BAD_REQUEST),
             Map.entry(ErrorCode.INVALID_SPEECH_VOICE, HttpStatus.BAD_REQUEST),
             Map.entry(ErrorCode.INVALID_SPEECH_LOCALE, HttpStatus.BAD_REQUEST),
-            Map.entry(ErrorCode.INVALID_SCORE, HttpStatus.BAD_REQUEST)
+            Map.entry(ErrorCode.INVALID_SCORE, HttpStatus.BAD_REQUEST),
+            Map.entry(ErrorCode.REGISTRATION_DOMAIN_NOT_ALLOWED, HttpStatus.FORBIDDEN)
     );
 
     @Test

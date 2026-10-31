@@ -21,8 +21,33 @@ public record ExamAttemptDetailView(
         Instant graceDeadline,
         String detailedFeedback,
         String scoringMode,
-        List<ExamTurnDetailView> turns
+        List<ExamTurnDetailView> turns,
+        Integer answerTimeLimitSeconds,
+        Integer maxFollowUpsPerQuestion
 ) {
+    public ExamAttemptDetailView(
+            UUID attemptId,
+            UUID studentId,
+            UUID subjectId,
+            String status,
+            int currentQuestionIndex,
+            int totalQuestions,
+            BigDecimal totalScore,
+            String gradeLevel,
+            Instant startedAt,
+            Instant completedAt,
+            Instant pausedAt,
+            Integer remainingSeconds,
+            Instant graceDeadline,
+            String detailedFeedback,
+            String scoringMode,
+            List<ExamTurnDetailView> turns
+    ) {
+        this(attemptId, studentId, subjectId, status, currentQuestionIndex, totalQuestions, totalScore, gradeLevel,
+                startedAt, completedAt, pausedAt, remainingSeconds, graceDeadline, detailedFeedback, scoringMode,
+                turns, null, null);
+    }
+
     public ExamAttemptDetailView(
             UUID attemptId,
             UUID studentId,

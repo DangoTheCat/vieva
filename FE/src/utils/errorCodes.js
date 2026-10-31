@@ -2,6 +2,7 @@ export const ERROR_MESSAGES = {
   '9999': 'Lỗi hệ thống không xác định. Vui lòng thử lại sau.',
   '1001': 'Không tìm thấy người dùng trong hệ thống.',
   '1002': 'Email này đã tồn tại trên hệ thống. Vui lòng dùng email khác.',
+  '1085': 'Chỉ email trường (@fpt.edu.vn) mới tự đăng ký được. Tài khoản khác do quản trị viên cấp.',
   '1003': 'Phiên đăng nhập đã hết hạn hoặc chưa xác thực. Vui lòng đăng nhập lại.',
   '1004': 'Bạn không có quyền thực hiện thao tác này.',
   '1005': 'Mã thông điệp không hợp lệ.',

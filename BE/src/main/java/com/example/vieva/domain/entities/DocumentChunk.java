@@ -9,7 +9,6 @@ import java.util.UUID;
  * Các đoạn chunk văn bản phục vụ truy hồi ngữ cảnh semantic search.
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,11 +23,15 @@ public class DocumentChunk {
     private String metadataJson;
     private Instant createdAt;
 
+    public void updateMetadata(String metadataJson) {
+        this.metadataJson = metadataJson;
+    }
+
     public float[] getEmbedding() {
         return embedding != null ? embedding.clone() : null;
     }
 
-    public void setEmbedding(float[] embedding) {
+    public void replaceEmbedding(float[] embedding) {
         this.embedding = embedding != null ? embedding.clone() : null;
     }
 }

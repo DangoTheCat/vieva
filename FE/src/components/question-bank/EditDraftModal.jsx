@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { BLOOM_LEVELS } from './bloomConstants';
+import { bloomOptionsFor } from './bloomConstants';
 import { RubricCriteriaEditor } from './RubricCriteriaEditor';
 
 export function EditDraftModal({
@@ -39,7 +39,7 @@ export function EditDraftModal({
               onChange={(e) => setEditDraft((d) => ({ ...d, bloomLevel: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl text-xs bg-white border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-2xs font-medium cursor-pointer"
             >
-              {BLOOM_LEVELS.map((b) => (
+              {bloomOptionsFor(editDraft.bloomLevel).map((b) => (
                 <option key={b.value} value={b.value}>
                   {b.label}
                 </option>

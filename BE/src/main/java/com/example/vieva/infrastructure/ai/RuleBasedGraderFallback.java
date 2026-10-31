@@ -2,14 +2,12 @@ package com.example.vieva.infrastructure.ai;
 
 import com.example.vieva.application.ports.output.AttemptGradingResult;
 import com.example.vieva.application.ports.output.RuleBasedGraderPort;
+import com.example.vieva.application.ports.output.EvaluationTurn;
+import com.example.vieva.application.ports.output.RubricSummary;
 import com.example.vieva.application.ports.output.VivaEvaluationContext;
 import com.example.vieva.application.ports.output.VivaEvaluationGateway;
 import com.example.vieva.application.ports.output.VivaEvaluationResult;
-import com.example.vieva.domain.entities.ExamAttempt;
-import com.example.vieva.domain.entities.ExamTurn;
 import com.example.vieva.domain.entities.GradeLevel;
-import com.example.vieva.domain.entities.Rubric;
-import com.example.vieva.domain.entities.RubricCriterion;
 import com.example.vieva.domain.entities.ScoringMode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -45,13 +43,8 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
             .collect(Collectors.toUnmodifiableSet());
 
     @Override
-    public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric) {
-        return evaluateTurn(turn, rubric, VivaEvaluationContext.empty());
-    }
-
-    @Override
-    public VivaEvaluationResult evaluateTurn(ExamTurn turn, Rubric rubric, VivaEvaluationContext context) {
-        String answer = turn.getTranscriptText();
+    public VivaEvaluationResult evaluateTurn(EvaluationTurn turn, RubricSummary rubric, VivaEvaluationContext context) {
+        String answer = turn.transcriptText();
         if (answer == null || answer.trim().isEmpty()) {
             return new VivaEvaluationResult(
                     false,
@@ -63,12 +56,12 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
             );
         }
 
-        String questionText = turn.getQuestionText() != null ? turn.getQuestionText() : "";
+        String questionText = turn.questionText() != null ? turn.questionText() : "";
         Set<String> questionKeywords = extractKeywords(questionText);
 
         Set<String> rubricKeywords = new HashSet<>();
-        if (rubric != null && rubric.getDescription() != null) {
-            rubricKeywords.addAll(extractKeywords(rubric.getDescription()));
+        if (rubric != null && rubric.description() != null) {
+            rubricKeywords.addAll(extractKeywords(rubric.description()));
         }
 
         Set<String> expectedKeywords = new HashSet<>(questionKeywords);
@@ -128,11 +121,11 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
     }
 
     @Override
-    public AttemptGradingResult grade(ExamAttempt attempt, List<ExamTurn> turns, Rubric rubric) {
-        return gradeAttempt(attempt, turns, rubric);
+    public AttemptGradingResult grade(List<EvaluationTurn> turns, RubricSummary rubric) {
+        return gradeAttempt(turns, rubric);
     }
 
-    public AttemptGradingResult gradeAttempt(ExamAttempt attempt, List<ExamTurn> turns, Rubric rubric) {
+    public AttemptGradingResult gradeAttempt(List<EvaluationTurn> turns, RubricSummary rubric) {
         if (turns == null || turns.isEmpty()) {
             return new AttemptGradingResult(
                     BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
@@ -144,9 +137,9 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
 
         BigDecimal sum = BigDecimal.ZERO;
         int evaluatedCount = 0;
-        for (ExamTurn turn : turns) {
-            if (turn.getScore() != null) {
-                sum = sum.add(turn.getScore());
+        for (EvaluationTurn turn : turns) {
+            if (turn.score() != null) {
+                sum = sum.add(turn.score());
                 evaluatedCount++;
             }
         }
@@ -155,17 +148,8 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
                 ? sum.divide(BigDecimal.valueOf(evaluatedCount), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
-        GradeLevel grade;
+        GradeLevel grade = GradeLevel.fromScore(average);
         double avgDouble = average.doubleValue();
-        if (avgDouble >= 8.5) {
-            grade = GradeLevel.EXCELLENT;
-        } else if (avgDouble >= 7.0) {
-            grade = GradeLevel.GOOD;
-        } else if (avgDouble >= 5.0) {
-            grade = GradeLevel.AVERAGE;
-        } else {
-            grade = GradeLevel.POOR;
-        }
 
         String detailedFeedback = String.format(
                 "Tổng kết bài thi vấn đáp (Hệ thống dự phòng): Điểm trung bình %.2f/10 trên %d/%d lượt vấn đáp đã trả lời. Xếp loại: %s.",

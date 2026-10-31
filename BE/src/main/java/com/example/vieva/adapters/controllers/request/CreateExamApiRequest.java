@@ -16,5 +16,13 @@ public record CreateExamApiRequest(
         // 1 minute to 4 hours
         @Min(value = 60, message = "Exam duration must be at least 1 minute")
         @Max(value = 14400, message = "Exam duration must not exceed 240 minutes")
-        Integer durationSeconds
+        Integer durationSeconds,
+
+        @Min(value = 30, message = "Answer time limit must be at least 30 seconds")
+        @Max(value = 600, message = "Answer time limit must be at most 600 seconds")
+        Integer answerTimeLimitSeconds,
+
+        @Min(value = 0, message = "Max follow-ups must be between 0 and 3")
+        @Max(value = 3, message = "Max follow-ups must be between 0 and 3")
+        Integer maxFollowUpsPerQuestion
 ) {}

@@ -79,10 +79,12 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
             UUID studentId,
             UUID subjectId,
             UUID examId,
-            AttemptStatus status,
+            String statusValue,
             int page,
             int size
     ) {
+        AttemptStatus status = com.example.vieva.application.usecases.common.EnumValues.parse(
+                AttemptStatus.class, statusValue, "Invalid attempt status: " + statusValue);
         if (studentId == null && subjectId == null && examId == null && status == null) {
             return getPerformance(page, size);
         }
@@ -120,7 +122,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
                             examTitle,
                             subjectName,
                             a.getTotalScore(),
-                            a.getGradeLevel(),
+                            a.getGradeLevel() != null ? a.getGradeLevel().name() : null,
                             a.getCompletedAt()
                     );
                 })

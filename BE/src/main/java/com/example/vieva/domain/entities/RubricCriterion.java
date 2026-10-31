@@ -15,7 +15,6 @@ import java.util.UUID;
  * Tiêu chí chấm điểm: tên, mô tả mức đạt, điểm tối đa và (tuỳ chọn) các mức đạt chi tiết.
  */
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,7 +33,7 @@ public class RubricCriterion {
         return performanceLevels != null ? Collections.unmodifiableList(performanceLevels) : Collections.emptyList();
     }
 
-    public void setPerformanceLevels(List<PerformanceLevel> performanceLevels) {
+    public void replacePerformanceLevels(List<PerformanceLevel> performanceLevels) {
         this.performanceLevels = performanceLevels != null ? new ArrayList<>(performanceLevels) : new ArrayList<>();
     }
 

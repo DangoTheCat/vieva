@@ -5,12 +5,11 @@ import logging
 import os
 import sys
 import numpy as np
-import soundfile as sf
 import torch
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from faster_whisper import WhisperModel
+from faster_whisper import WhisperModel, decode_audio
 
 logging.basicConfig(
     level=logging.INFO,
@@ -64,19 +63,34 @@ async def health():
         "cuda_available": torch.cuda.is_available(),
     }
 
+SUPPORTED_LANGUAGES = {"vi": "vi", "vi-vn": "vi", "en": "en", "en-us": "en"}
+PARTIAL_INTERVAL_SECONDS = float(os.getenv("STT_PARTIAL_INTERVAL_SECONDS", "1.0"))
+MIN_PARTIAL_BYTES = 8000
+
+
+def normalize_language(raw: str | None) -> str:
+    """Maps 'vi', 'vi-VN', 'en', 'en-US' to the Whisper language code; defaults to Vietnamese."""
+    if not raw:
+        return "vi"
+    return SUPPORTED_LANGUAGES.get(raw.strip().lower(), "vi")
+
+
+def decode_audio_bytes(audio_bytes: bytes) -> np.ndarray:
+    """Decodes any container the browser produces (webm/opus, ogg, mp4, wav) into 16 kHz mono float32.
+
+    MediaRecorder emits webm/opus, which libsndfile cannot read, so decoding goes through PyAV
+    (bundled with faster-whisper)."""
+    return decode_audio(io.BytesIO(audio_bytes), sampling_rate=16000)
+
+
 def transcribe_audio_chunk(audio_bytes: bytes, language: str = "vi") -> str:
-    """Decodes audio bytes (wav/ogg/webm/pcm) and transcribes using faster-whisper with Silero VAD."""
+    """Transcribes the accumulated audio of the current answer with Silero VAD."""
     if not audio_bytes or len(audio_bytes) < 44:
         return ""
     try:
-        # soundfile can read wav/ogg/flac from in-memory BytesIO
-        audio_file = io.BytesIO(audio_bytes)
-        data, sample_rate = sf.read(audio_file)
-        if data.ndim > 1:
-            data = data.mean(axis=1)  # convert stereo to mono
-        # Convert to float32
-        data = data.astype(np.float32)
-
+        data = decode_audio_bytes(audio_bytes)
+        if data.size == 0:
+            return ""
         segments, _ = model.transcribe(
             data,
             language=language,
@@ -92,56 +106,85 @@ def transcribe_audio_chunk(audio_bytes: bytes, language: str = "vi") -> str:
         )
         return " ".join([seg.text.strip() for seg in segments if seg.text.strip()]).strip()
     except Exception as e:
-        logger.error(f"Error during audio chunk transcription: {e}")
+        # A partial webm buffer can end mid-frame; the next partial or the final pass will succeed.
+        logger.warning(f"Could not transcribe audio buffer ({len(audio_bytes)} bytes): {e}")
         return ""
+
+
+async def send_json(websocket: WebSocket, payload: dict) -> None:
+    await websocket.send_text(json.dumps(payload, ensure_ascii=False))
+
 
 @app.websocket("/ws/transcribe")
 async def websocket_transcribe(websocket: WebSocket):
+    """Streaming STT contract (see README.md):
+
+    client -> server  binary audio chunks of one answer (webm/opus, ~250 ms each)
+    client -> server  {"type":"commit"}  end of the answer, keep the socket open ("eos" is accepted as an alias)
+    client -> server  {"type":"stop"}    end of the answer, then close
+    client -> server  {"type":"reset"}   drop the buffered audio
+    server -> client  {"type":"partial","text":"..."}  at most once per STT_PARTIAL_INTERVAL_SECONDS
+    server -> client  {"type":"final","text":"..."}    after commit/stop
+    server -> client  {"type":"error","code":"...","message":"..."}
+
+    Query string: ?lang=vi|en|vi-VN|en-US (default vi).
+    """
     await websocket.accept()
-    logger.info("WebSocket connection accepted for STT transcription.")
+    language = normalize_language(websocket.query_params.get("lang"))
+    logger.info(f"STT WebSocket accepted (language={language}).")
     audio_buffer = bytearray()
-    
+    loop = asyncio.get_running_loop()
+    last_partial_at = 0.0
+    last_partial_size = 0
+
     try:
         while True:
             message = await websocket.receive()
-            if "bytes" in message and message["bytes"]:
-                chunk = message["bytes"]
-                audio_buffer.extend(chunk)
+            if message.get("type") == "websocket.disconnect":
+                break
 
-                # Periodic partial transcription if accumulated buffer has audio
-                if len(audio_buffer) >= 32000:  # ~1 sec of 16kHz 16-bit PCM or small chunk
-                    partial_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer))
+            if message.get("bytes"):
+                audio_buffer.extend(message["bytes"])
+                now = loop.time()
+                grown = len(audio_buffer) - last_partial_size
+                if now - last_partial_at >= PARTIAL_INTERVAL_SECONDS and grown >= MIN_PARTIAL_BYTES:
+                    last_partial_at = now
+                    last_partial_size = len(audio_buffer)
+                    partial_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer), language)
                     if partial_text:
-                        await websocket.send_text(json.dumps({
-                            "type": "partial",
-                            "transcript": partial_text,
-                        }))
+                        await send_json(websocket, {"type": "partial", "text": partial_text})
+                continue
 
-            elif "text" in message and message["text"]:
+            if not message.get("text"):
+                continue
+            try:
                 data = json.loads(message["text"])
-                msg_type = data.get("type", "")
+            except json.JSONDecodeError:
+                await send_json(websocket, {"type": "error", "code": "BAD_MESSAGE", "message": "Expected a JSON control message"})
+                continue
 
-                if msg_type == "commit" or msg_type == "stop":
-                    # Perform final transcription on accumulated buffer
-                    final_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer))
-                    await websocket.send_text(json.dumps({
-                        "type": "final",
-                        "transcript": final_text,
-                    }))
-                    audio_buffer.clear()
-                    if msg_type == "stop":
-                        break
-                elif msg_type == "reset":
-                    audio_buffer.clear()
-                    await websocket.send_text(json.dumps({
-                        "type": "reset_ack",
-                    }))
+            msg_type = str(data.get("type", "")).lower()
+            if msg_type in ("commit", "eos", "stop"):
+                final_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer), language)
+                await send_json(websocket, {"type": "final", "text": final_text})
+                audio_buffer.clear()
+                last_partial_at = 0.0
+                last_partial_size = 0
+                if msg_type == "stop":
+                    break
+            elif msg_type == "reset":
+                audio_buffer.clear()
+                last_partial_at = 0.0
+                last_partial_size = 0
+                await send_json(websocket, {"type": "reset_ack"})
+            else:
+                await send_json(websocket, {"type": "error", "code": "UNKNOWN_TYPE", "message": f"Unknown message type: {msg_type}"})
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected.")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         try:
-            await websocket.send_text(json.dumps({"type": "error", "message": str(e)}))
+            await send_json(websocket, {"type": "error", "code": "STT_FAILURE", "message": str(e)})
         except Exception:
             pass
     finally:

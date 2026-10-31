@@ -7,7 +7,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -66,6 +65,22 @@ public class ExamScore {
         this.overrideBy = teacherId;
         this.overrideAt = Instant.now();
         this.overrideReason = reason;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Records the lecturer's grade after a question was re-graded by hand. */
+    public void recordTeacherGrade(BigDecimal score, GradeLevel grade, String feedback, UUID teacherId) {
+        this.totalScore = score;
+        this.grade = grade;
+        this.teacherScore = score;
+        this.teacherFeedback = feedback;
+        this.teacherId = teacherId;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Re-bands the grade after the total changed (e.g. an override). */
+    public void applyGrade(GradeLevel grade) {
+        this.grade = grade;
         this.updatedAt = Instant.now();
     }
 

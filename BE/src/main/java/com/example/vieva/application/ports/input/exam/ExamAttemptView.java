@@ -20,8 +20,33 @@ public record ExamAttemptView(
         Instant graceDeadline,
         UUID currentTurnId,
         String currentQuestionText,
-        String currentTtsAudioUrl
+        String currentTtsAudioUrl,
+        Integer answerTimeLimitSeconds,
+        Integer maxFollowUpsPerQuestion
 ) {
+    public ExamAttemptView(
+            UUID attemptId,
+            UUID studentId,
+            UUID subjectId,
+            String status,
+            int currentQuestionIndex,
+            int totalQuestions,
+            BigDecimal totalScore,
+            String gradeLevel,
+            Instant startedAt,
+            Instant completedAt,
+            Instant pausedAt,
+            Integer remainingSeconds,
+            Instant graceDeadline,
+            UUID currentTurnId,
+            String currentQuestionText,
+            String currentTtsAudioUrl
+    ) {
+        this(attemptId, studentId, subjectId, status, currentQuestionIndex, totalQuestions, totalScore, gradeLevel,
+                startedAt, completedAt, pausedAt, remainingSeconds, graceDeadline, currentTurnId, currentQuestionText,
+                currentTtsAudioUrl, null, null);
+    }
+
     public ExamAttemptView(
             UUID attemptId,
             UUID studentId,

@@ -24,15 +24,18 @@ public class SpeechGatewayAdapter implements SpeechGatewayPort {
     private final String baseUrl;
     private final List<String> fallbackVoices;
     private final HttpClient httpClient;
+    private final String sttBaseUrl;
     private final ObjectMapper objectMapper;
 
     @Autowired
     public SpeechGatewayAdapter(
             @Value("${tts.base-url:http://localhost:8001}") String baseUrl,
             @Value("${tts.voices:maichi}") String configuredVoices,
+            @Value("${stt.base-url:http://localhost:8002}") String sttBaseUrl,
             ObjectMapper objectMapper
     ) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.sttBaseUrl = sttBaseUrl.endsWith("/") ? sttBaseUrl.substring(0, sttBaseUrl.length() - 1) : sttBaseUrl;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
         this.fallbackVoices = Arrays.stream(configuredVoices.split(","))
                 .map(String::trim)
@@ -44,8 +47,12 @@ public class SpeechGatewayAdapter implements SpeechGatewayPort {
                 .build();
     }
 
+    public SpeechGatewayAdapter(String baseUrl, String configuredVoices, ObjectMapper objectMapper) {
+        this(baseUrl, configuredVoices, "http://localhost:8002", objectMapper);
+    }
+
     public SpeechGatewayAdapter(String baseUrl, String configuredVoices) {
-        this(baseUrl, configuredVoices, new ObjectMapper());
+        this(baseUrl, configuredVoices, "http://localhost:8002", new ObjectMapper());
     }
 
     @Override
@@ -71,6 +78,58 @@ public class SpeechGatewayAdapter implements SpeechGatewayPort {
             return false;
         }
         return getSupportedVoices(locale).contains(voice.trim());
+    }
+
+    /** ZeroTTS speaks Vietnamese; English questions are read by the student's browser voice. */
+    @Override
+    public List<String> getSupportedTtsLocales() {
+        return List.of("vi-VN", "en-US");
+    }
+
+    /** faster-whisper is multilingual; the exam supports Vietnamese and English. */
+    @Override
+    public List<String> getSupportedSttLocales() {
+        return List.of("vi-VN", "en-US");
+    }
+
+    @Override
+    public java.util.Optional<byte[]> synthesizeSample(String text, String voice) {
+        try {
+            java.util.Map<String, String> payload = new java.util.HashMap<>();
+            payload.put("text", text);
+            if (voice != null && !voice.isBlank()) {
+                payload.put("speaker", voice);
+            }
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/synthesize"))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                    .build();
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() == 200 && response.body() != null && response.body().length > 0) {
+                return java.util.Optional.of(response.body());
+            }
+            log.warn("TTS sample synthesis returned HTTP {}", response.statusCode());
+        } catch (Exception e) {
+            log.warn("TTS sample synthesis failed: {}", e.getMessage());
+        }
+        return java.util.Optional.empty();
+    }
+
+    @Override
+    public boolean isSttAvailable() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(sttBaseUrl + "/health"))
+                    .timeout(Duration.ofMillis(2000))
+                    .GET()
+                    .build();
+            return httpClient.send(request, HttpResponse.BodyHandlers.discarding()).statusCode() == 200;
+        } catch (Exception e) {
+            log.debug("STT service unavailable at {}: {}", sttBaseUrl, e.getMessage());
+            return false;
+        }
     }
 
     @Override

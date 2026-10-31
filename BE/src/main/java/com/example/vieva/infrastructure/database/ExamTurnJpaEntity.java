@@ -90,6 +90,12 @@ public class ExamTurnJpaEntity implements Persistable<UUID> {
     @Column(name = "teacher_graded_at")
     private Instant teacherGradedAt;
 
+    @Column(name = "asked_at")
+    private Instant askedAt;
+
+    @Column(name = "timed_out", nullable = false)
+    private boolean timedOut;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

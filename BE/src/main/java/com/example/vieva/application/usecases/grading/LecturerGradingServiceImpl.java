@@ -165,10 +165,12 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                             e.getCreatorId(),
                             e.getTitle(),
                             e.getDurationSeconds(),
-                            e.getStatus(),
+                            e.getStatus().name(),
                             count,
                             e.getCreatedAt(),
-                            e.getUpdatedAt()
+                            e.getUpdatedAt(),
+                            e.getAnswerTimeLimitSeconds(),
+                            e.getMaxFollowUpsPerQuestion()
                     );
                 })
                 .collect(Collectors.toList());
@@ -200,7 +202,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     name,
                     email,
                     code,
-                    a.getStatus(),
+                    a.getStatus().name(),
                     a.getTotalScore(),
                     aiScore,
                     teacherScore,
@@ -300,7 +302,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 attempt.getStudentId(),
                 name,
                 email,
-                attempt.getStatus(),
+                attempt.getStatus().name(),
                 attempt.getTotalScore(),
                 aiScore,
                 teacherScore,
@@ -431,8 +433,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
 
         BigDecimal avgScore = sum.divide(BigDecimal.valueOf(totalQuestions), 2, RoundingMode.HALF_UP);
         GradeLevel grade = determineGrade(avgScore);
-        attempt.setTotalScore(avgScore);
-        attempt.setGradeLevel(grade);
+        attempt.recordScore(avgScore, grade);
         examAttemptRepository.save(attempt);
 
         ExamScore score = examScoreRepository.findByAttemptId(attemptId)
@@ -459,11 +460,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
             score.clearOverride(); // Question regrading clears manual total override
         }
 
-        score.setTotalScore(avgScore);
-        score.setGrade(grade);
-        score.setTeacherScore(avgScore);
-        score.setTeacherFeedback(command.feedback());
-        score.setTeacherId(lecturerId);
+        score.recordTeacherGrade(avgScore, grade, command.feedback(), lecturerId);
         examScoreRepository.save(score);
 
         return getAttemptDetail(attemptId, lecturerId);
@@ -512,7 +509,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     // System (AI + lecturer grading) score; the override is reported separately
                     s.getTotalScore(),
                     s.getOverrideTotalScore(),
-                    s.getGrade(),
+                    s.getGrade() != null ? s.getGrade().name() : null,
                     s.getCreatedAt()
             ));
         }
@@ -549,9 +546,8 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
 
         score.overrideTotal(command.overrideTotalScore(), lecturerId, command.reason());
         GradeLevel grade = determineGrade(command.overrideTotalScore());
-        score.setGrade(grade);
-        attempt.setTotalScore(command.overrideTotalScore());
-        attempt.setGradeLevel(grade);
+        score.applyGrade(grade);
+        attempt.recordScore(command.overrideTotalScore(), grade);
         examAttemptRepository.save(attempt);
         ExamScore saved = examScoreRepository.save(score);
 
@@ -586,7 +582,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 studentName,
                 saved.getTotalScore(),
                 saved.getOverrideTotalScore(),
-                saved.getGrade(),
+                saved.getGrade() != null ? saved.getGrade().name() : null,
                 saved.getCreatedAt()
         );
     }
@@ -705,18 +701,6 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
     }
 
     private GradeLevel determineGrade(BigDecimal score) {
-        if (score == null) {
-            return GradeLevel.POOR;
-        }
-        double val = score.doubleValue();
-        if (val >= 8.5) {
-            return GradeLevel.EXCELLENT;
-        } else if (val >= 7.0) {
-            return GradeLevel.GOOD;
-        } else if (val >= 5.0) {
-            return GradeLevel.AVERAGE;
-        } else {
-            return GradeLevel.POOR;
-        }
+        return GradeLevel.fromScore(score);
     }
 }

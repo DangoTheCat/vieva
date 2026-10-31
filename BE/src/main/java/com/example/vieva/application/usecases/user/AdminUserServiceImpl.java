@@ -204,7 +204,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 if (userRepository.existsByEmail(newEmail)) {
                     throw new ApplicationException(ErrorCode.USER_EXISTED);
                 }
-                user.setEmail(newEmail);
+                user.changeEmail(newEmail);
             }
         }
 
@@ -215,7 +215,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 if (userRepository.existsByUserCode(newUserCode)) {
                     throw new ApplicationException(ErrorCode.USER_CODE_EXISTED);
                 }
-                user.setUserCode(newUserCode);
+                user.changeUserCode(newUserCode);
             }
         }
 

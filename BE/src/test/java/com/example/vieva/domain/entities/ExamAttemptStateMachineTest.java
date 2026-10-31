@@ -133,7 +133,7 @@ class ExamAttemptStateMachineTest {
         attempt.disconnect(400);
 
         // Simulate expired grace deadline
-        attempt.setGraceDeadline(Instant.now().minusSeconds(10));
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "graceDeadline", Instant.now().minusSeconds(10));
 
         assertErrorCode(attempt::reconnect, DomainErrorCode.INVALID_REQUEST);
         assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.INTERRUPTED);
@@ -295,10 +295,10 @@ class ExamAttemptStateMachineTest {
         attempt.start(true);
         attempt.disconnect();
 
-        attempt.setRemainingSeconds(null);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "remainingSeconds", null);
         assertErrorCode(attempt::reconnect, DomainErrorCode.INVALID_REQUEST);
 
-        attempt.setRemainingSeconds(-5);
+        org.springframework.test.util.ReflectionTestUtils.setField(attempt, "remainingSeconds", -5);
         assertErrorCode(attempt::reconnect, DomainErrorCode.INVALID_REQUEST);
     }
 

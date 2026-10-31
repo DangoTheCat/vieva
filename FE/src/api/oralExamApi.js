@@ -71,6 +71,15 @@ export const oralExamApi = {
   },
 
   /**
+   * The question has been read aloud: start the answer timer on the server
+   * POST /api/v1/student/attempts/{attemptId}/turns/{turnId}/ready
+   * @returns {Promise<{turnId: string, askedAt: string, answerDeadline: string, answerTimeLimitSeconds: number, remainingSeconds: number, serverTime: string}>}
+   */
+  markTurnReady(attemptId, turnId) {
+    return apiClient.post(`/student/attempts/${attemptId}/turns/${turnId}/ready`);
+  },
+
+  /**
    * Mark exam as disconnected and pause timer
    * POST /api/v1/student/attempts/{attemptId}/disconnect
    * @param {string|number} attemptId

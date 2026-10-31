@@ -1,18 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { getAuthToken, getSttWsUrl, toSttLang } from '../utils/speechConfig';
+
+const FINAL_TIMEOUT_MS = 5000;
 
 /**
- * useVoiceSTT Hook
- * Direct WebSocket STT hook connecting to ws://localhost:8002/ws/transcribe (Phương án A)
- * Uses MediaRecorder with 250ms audio slices or AudioContext, sending chunks over WebSocket.
- * Listens for:
- *   - { "type": "partial", "text": "..." }
- *   - { "type": "final", "text": "..." }
- * 
- * Exposes:
- *   isRecording, transcript, partialTranscript, audioBlob, startRecording, stopRecording, resetTranscript, isConnected
+ * useVoiceSTT — streams microphone audio to the STT service over WebSocket.
+ *
+ * Contract (ai-services/stt/main.py, covered by ai-services/stt/test_ws.py):
+ *   client -> server  binary webm/opus chunks (250 ms), then {"type":"commit"} at the end of an answer
+ *   server -> client  {"type":"partial","text"} and {"type":"final","text"}; {"type":"error",...}
+ *   URL ?lang=vi|en follows the admin speech settings.
+ *
+ * stopRecording() resolves with { transcript, audioBlob } once the server's "final" arrives
+ * (or after 5 s, with what is known), so the answer is never submitted half-transcribed.
+ * An STT failure is reported through onError; it never ends the exam session by itself.
+ * When the STT server can't be reached, the browser's Web Speech API (Chrome/Edge) transcribes
+ * instead, so the student still sees text; the audio is recorded and uploaded either way.
  */
 export function useVoiceSTT({
-  wsUrl = 'ws://localhost:8002/ws/transcribe',
+  wsUrl,
+  language = 'vi-VN',
   onFinalTranscript,
   onPartialTranscript,
   onError
@@ -27,38 +34,113 @@ export function useVoiceSTT({
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const recordedChunksRef = useRef([]);
+  const sendQueueRef = useRef(Promise.resolve());
+  const transcriptRef = useRef('');
+  const finalWaiterRef = useRef(null);
+  const stopPromiseRef = useRef(null);
+  const callbacksRef = useRef({ onFinalTranscript, onPartialTranscript, onError });
+  callbacksRef.current = { onFinalTranscript, onPartialTranscript, onError };
   // Browser Web Speech fallback, used only when the STT server can't be reached
   const speechRecRef = useRef(null);
+
+  const baseWsUrl = wsUrl || getSttWsUrl();
+  const token = getAuthToken();
+  const url = `${baseWsUrl}${baseWsUrl.includes('?') ? '&' : '?'}lang=${toSttLang(language)}`
+    + (token ? `&token=${encodeURIComponent(token)}` : '');
+
+  const settleFinal = useCallback((text) => {
+    const waiter = finalWaiterRef.current;
+    if (waiter) {
+      finalWaiterRef.current = null;
+      clearTimeout(waiter.timer);
+      waiter.resolve(text);
+    }
+  }, []);
+
+  const closeSocket = useCallback(() => {
+    const ws = socketRef.current;
+    socketRef.current = null;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      try { ws.close(); } catch (e) { /* already closing */ }
+    }
+    setIsConnected(false);
+  }, []);
+
+  const connectSocket = useCallback(() => new Promise((resolve, reject) => {
+    const current = socketRef.current;
+    if (current && current.readyState === WebSocket.OPEN && current.url === url) {
+      resolve(current);
+      return;
+    }
+    if (current) closeSocket();
+
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      setIsConnected(true);
+      resolve(ws);
+    };
+    ws.onmessage = (event) => {
+      let data;
+      try { data = JSON.parse(event.data); } catch (e) { return; }
+      const text = (data.text ?? data.transcript ?? '').trim();
+      if (data.type === 'partial') {
+        setPartialTranscript(text);
+        callbacksRef.current.onPartialTranscript?.(text);
+      } else if (data.type === 'final') {
+        const updated = [transcriptRef.current, text].filter(Boolean).join(' ').trim();
+        transcriptRef.current = updated;
+        setTranscript(updated);
+        setPartialTranscript('');
+        callbacksRef.current.onFinalTranscript?.(updated);
+        settleFinal(updated);
+      } else if (data.type === 'error') {
+        callbacksRef.current.onError?.(new Error(data.message || 'STT error'));
+      }
+    };
+    ws.onerror = (err) => {
+      setIsConnected(false);
+      callbacksRef.current.onError?.(err);
+      settleFinal(transcriptRef.current);
+      reject(err);
+    };
+    ws.onclose = () => {
+      setIsConnected(false);
+      settleFinal(transcriptRef.current);
+      if (socketRef.current === ws) socketRef.current = null;
+    };
+  }), [url, closeSocket, settleFinal]);
 
   const startBrowserRecognition = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return false;
     const rec = new SpeechRecognition();
-    rec.lang = 'vi-VN';
+    rec.lang = language;
     rec.continuous = true;
     rec.interimResults = true;
     rec.onresult = (event) => {
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const text = event.results[i][0].transcript;
+        const text = event.results[i][0].transcript.trim();
         if (event.results[i].isFinal) {
-          setTranscript((prev) => {
-            const updated = `${prev} ${text}`.trim();
-            if (onFinalTranscript) onFinalTranscript(updated);
-            return updated;
-          });
+          const updated = [transcriptRef.current, text].filter(Boolean).join(' ').trim();
+          transcriptRef.current = updated;
+          setTranscript(updated);
+          callbacksRef.current.onFinalTranscript?.(updated);
         } else {
           interim += text;
         }
       }
       setPartialTranscript(interim);
-      if (interim && onPartialTranscript) onPartialTranscript(interim);
+      if (interim) callbacksRef.current.onPartialTranscript?.(interim);
     };
     rec.onerror = (e) => console.warn('[useVoiceSTT] Browser speech recognition error:', e.error);
     // Chrome ends a continuous session after a pause; keep listening while recording
     rec.onend = () => {
       if (speechRecRef.current === rec) {
-        try { rec.start(); } catch (_) {}
+        try { rec.start(); } catch (_) { /* already started */ }
       }
     };
     try {
@@ -69,196 +151,121 @@ export function useVoiceSTT({
       console.warn('[useVoiceSTT] Cannot start browser speech recognition:', e);
       return false;
     }
-  }, [onFinalTranscript, onPartialTranscript]);
+  }, [language]);
 
-  // Cleanly close WebSocket
-  const closeSocket = useCallback(() => {
-    if (socketRef.current) {
-      try {
-        if (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING) {
-          socketRef.current.close();
-        }
-      } catch (err) {
-        console.warn('[useVoiceSTT] Error closing socket:', err);
-      }
-      socketRef.current = null;
-      setIsConnected(false);
-    }
+  const stopBrowserRecognition = useCallback(() => {
+    const rec = speechRecRef.current;
+    if (!rec) return;
+    speechRecRef.current = null; // clear first so onend doesn't restart it
+    try { rec.stop(); } catch (_) { /* already stopped */ }
   }, []);
 
-  // Connect WebSocket
-  const connectSocket = useCallback(() => {
-    return new Promise((resolve, reject) => {
-      try {
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          resolve(socketRef.current);
-          return;
-        }
-
-        const ws = new WebSocket(wsUrl);
-        socketRef.current = ws;
-
-        ws.onopen = () => {
-          setIsConnected(true);
-          resolve(ws);
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'partial') {
-              const text = data.text || '';
-              setPartialTranscript(text);
-              if (onPartialTranscript) onPartialTranscript(text);
-            } else if (data.type === 'final') {
-              const text = data.text || '';
-              setTranscript((prev) => {
-                const updated = prev ? `${prev} ${text}`.trim() : text.trim();
-                if (onFinalTranscript) onFinalTranscript(updated);
-                return updated;
-              });
-              setPartialTranscript('');
-            }
-          } catch (e) {
-            // If raw text instead of JSON
-            if (typeof event.data === 'string') {
-              setPartialTranscript(event.data);
-            }
-          }
-        };
-
-        ws.onerror = (err) => {
-          console.warn('[useVoiceSTT] WebSocket error:', err);
-          setIsConnected(false);
-          if (onError) onError(err);
-          reject(err);
-        };
-
-        ws.onclose = () => {
-          setIsConnected(false);
-        };
-      } catch (err) {
-        console.warn('[useVoiceSTT] Failed to initialize WebSocket:', err);
-        setIsConnected(false);
-        reject(err);
-      }
-    });
-  }, [wsUrl, onFinalTranscript, onPartialTranscript, onError]);
-
   const resetTranscript = useCallback(() => {
+    transcriptRef.current = '';
     setTranscript('');
     setPartialTranscript('');
     setAudioBlob(null);
+    recordedChunksRef.current = [];
   }, []);
 
-  // Start recording
+  /** Starts (or continues) recording the current answer. Earlier segments of the same answer are kept. */
   const startRecording = useCallback(async () => {
-    resetTranscript();
-    recordedChunksRef.current = [];
-
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true
-        }
+        audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
       });
       streamRef.current = stream;
 
-      // Try connecting to WS STT server
-      let wsInstance = null;
       try {
-        wsInstance = await connectSocket();
+        await connectSocket();
       } catch (wsErr) {
-        console.warn('[useVoiceSTT] STT server not reachable, falling back to browser speech recognition:', wsErr);
+        // Recording still works; the audio is uploaded with the answer and the lecturer can review it.
+        console.warn('[useVoiceSTT] STT service unreachable, falling back to browser speech recognition:', wsErr);
         startBrowserRecognition();
       }
 
-      // Pick supported mime type
       const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
-      const supportedMimeType = mimeTypes.find((type) => MediaRecorder.isTypeSupported(type)) || '';
-
-      const recorder = new MediaRecorder(stream, supportedMimeType ? { mimeType: supportedMimeType } : undefined);
+      const mimeType = mimeTypes.find((type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || '';
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = recorder;
 
-      recorder.ondataavailable = async (e) => {
-        if (e.data && e.data.size > 0) {
-          recordedChunksRef.current.push(e.data);
-          // If WS is open, send binary slice (Phương án A: chunks 250ms)
-          if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            try {
-              const arrayBuffer = await e.data.arrayBuffer();
-              socketRef.current.send(arrayBuffer);
-            } catch (sendErr) {
-              console.warn('[useVoiceSTT] Error sending audio chunk:', sendErr);
-            }
+      recorder.ondataavailable = (e) => {
+        if (!e.data || e.data.size === 0) return;
+        recordedChunksRef.current.push(e.data);
+        const chunk = e.data;
+        // Keep chunks in order: arrayBuffer() is async
+        sendQueueRef.current = sendQueueRef.current.then(async () => {
+          const ws = socketRef.current;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(await chunk.arrayBuffer());
           }
-        }
+        }).catch((err) => console.warn('[useVoiceSTT] Error sending audio chunk:', err));
       };
 
       recorder.onstop = () => {
-        const fullBlob = new Blob(recordedChunksRef.current, {
-          type: supportedMimeType || 'audio/webm'
-        });
-        setAudioBlob(fullBlob);
+        const blob = new Blob(recordedChunksRef.current, { type: mimeType || 'audio/webm' });
+        setAudioBlob(blob);
         setIsRecording(false);
+        const resolveStop = stopPromiseRef.current;
+        stopPromiseRef.current = null;
+        const finish = (text) => resolveStop?.({ transcript: text, audioBlob: blob });
+        sendQueueRef.current.then(() => {
+          const ws = socketRef.current;
+          if (!ws || ws.readyState !== WebSocket.OPEN) {
+            finish(transcriptRef.current);
+            return;
+          }
+          const timer = setTimeout(() => settleFinal(transcriptRef.current), FINAL_TIMEOUT_MS);
+          finalWaiterRef.current = { resolve: finish, timer };
+          ws.send(JSON.stringify({ type: 'commit' }));
+        });
       };
 
-      // Slice audio every 250ms
       recorder.start(250);
       setIsRecording(true);
     } catch (err) {
       console.error('[useVoiceSTT] Cannot start recording:', err);
       setIsRecording(false);
-      if (onError) onError(err);
+      callbacksRef.current.onError?.(err);
       throw err;
     }
-  }, [connectSocket, resetTranscript, onError, startBrowserRecognition]);
+  }, [connectSocket, settleFinal, startBrowserRecognition]);
 
-  // Stop recording
+  /** Stops recording; resolves with { transcript, audioBlob } for the answer so far. */
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch (e) {
-        console.warn('[useVoiceSTT] Error stopping MediaRecorder:', e);
+    const recorder = mediaRecorderRef.current;
+    const current = () => ({
+      transcript: transcriptRef.current,
+      audioBlob: recordedChunksRef.current.length
+        ? new Blob(recordedChunksRef.current, { type: recorder?.mimeType || 'audio/webm' })
+        : null
+    });
+    stopBrowserRecognition();
+    const promise = new Promise((resolve) => {
+      if (recorder && recorder.state !== 'inactive') {
+        stopPromiseRef.current = resolve;
+        try { recorder.stop(); } catch (e) { resolve(current()); }
+      } else {
+        resolve(current());
       }
-    }
-
+    });
     if (streamRef.current) {
-      try {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      } catch (e) {
-        console.warn('[useVoiceSTT] Error stopping tracks:', e);
-      }
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+    return promise;
+  }, [stopBrowserRecognition]);
 
-    if (speechRecRef.current) {
-      const rec = speechRecRef.current;
-      speechRecRef.current = null; // clear first so onend doesn't restart it
-      try { rec.stop(); } catch (_) {}
+  useEffect(() => () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      try { recorder.stop(); } catch (e) { /* ignore */ }
     }
-
-    // Tell STT server stream ended
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      try {
-        socketRef.current.send(JSON.stringify({ type: 'eos' }));
-      } catch (e) {}
-    }
-
-    setIsRecording(false);
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopRecording();
-      closeSocket();
-    };
-  }, [stopRecording, closeSocket]);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    stopBrowserRecognition();
+    closeSocket();
+  }, [closeSocket, stopBrowserRecognition]);
 
   return {
     isRecording,

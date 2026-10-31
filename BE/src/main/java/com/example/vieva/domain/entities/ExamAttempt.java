@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Getter
-@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,8 +28,16 @@ public class ExamAttempt {
     private Instant pausedAt;
     private Integer remainingSeconds;
     private Instant graceDeadline;
-    // Start of the current IN_PROGRESS segment; remainingSeconds is the budget left at that moment
+    /**
+     * Moment the exam clock last started running (start or reconnect). While IN_PROGRESS the
+     * remaining time is {@code remainingSeconds - (now - resumedAt)}; in every other state
+     * {@code remainingSeconds} is the frozen value. The server is the only source of truth.
+     */
     private Instant resumedAt;
+    /** Per-answer time limit frozen from the exam when the attempt is created. */
+    private Integer answerTimeLimitSeconds;
+    /** Maximum adaptive follow-up questions per main question, frozen from the exam. */
+    private Integer maxFollowUpsPerQuestion;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -66,10 +73,68 @@ public class ExamAttempt {
                 .build();
     }
 
+    public static final int DEFAULT_ANSWER_TIME_LIMIT_SECONDS = 120;
+    public static final int DEFAULT_MAX_FOLLOW_UPS = 2;
+    /** Extra seconds accepted after a deadline to absorb network and upload latency. */
+    public static final int SUBMIT_GRACE_SECONDS = 10;
+
     public static ExamAttempt initForExam(UUID examId, UUID studentId, UUID subjectId, int totalQuestions, int remainingSeconds) {
+        return initForExam(examId, studentId, subjectId, totalQuestions, remainingSeconds,
+                DEFAULT_ANSWER_TIME_LIMIT_SECONDS, DEFAULT_MAX_FOLLOW_UPS);
+    }
+
+    public static ExamAttempt initForExam(UUID examId, UUID studentId, UUID subjectId, int totalQuestions,
+                                          int remainingSeconds, int answerTimeLimitSeconds, int maxFollowUpsPerQuestion) {
         ExamAttempt attempt = init(studentId, subjectId, totalQuestions, remainingSeconds);
-        attempt.setExamId(examId);
+        attempt.examId = examId;
+        attempt.answerTimeLimitSeconds = answerTimeLimitSeconds;
+        attempt.maxFollowUpsPerQuestion = maxFollowUpsPerQuestion;
         return attempt;
+    }
+
+    /** Seconds left on the exam clock at {@code now}, computed on the server. */
+    public int remainingAt(Instant now) {
+        int frozen = this.remainingSeconds != null ? this.remainingSeconds : 0;
+        if (this.status != AttemptStatus.IN_PROGRESS) {
+            return Math.max(0, frozen);
+        }
+        Instant anchor = this.resumedAt != null ? this.resumedAt : this.startedAt;
+        if (anchor == null) {
+            return Math.max(0, frozen);
+        }
+        long elapsed = Math.max(0, Duration.between(anchor, now).getSeconds());
+        return (int) Math.max(0, frozen - elapsed);
+    }
+
+    /** True once the clock has run out, ignoring the submit grace window. */
+    public boolean isTimeExpired(Instant now) {
+        return this.status == AttemptStatus.IN_PROGRESS && remainingAt(now) <= 0;
+    }
+
+    /** True when the clock ran out more than {@link #SUBMIT_GRACE_SECONDS} ago. */
+    public boolean isPastSubmitGrace(Instant now) {
+        if (this.status != AttemptStatus.IN_PROGRESS) {
+            return false;
+        }
+        return isTimeExpired(now.minusSeconds(SUBMIT_GRACE_SECONDS));
+    }
+
+    public int effectiveAnswerTimeLimitSeconds() {
+        return this.answerTimeLimitSeconds != null && this.answerTimeLimitSeconds > 0
+                ? this.answerTimeLimitSeconds
+                : DEFAULT_ANSWER_TIME_LIMIT_SECONDS;
+    }
+
+    public int effectiveMaxFollowUps() {
+        return this.maxFollowUpsPerQuestion != null && this.maxFollowUpsPerQuestion >= 0
+                ? this.maxFollowUpsPerQuestion
+                : DEFAULT_MAX_FOLLOW_UPS;
+    }
+
+    /** Freezes the running clock into {@code remainingSeconds}. */
+    private void freezeClock(Instant now) {
+        this.remainingSeconds = remainingAt(now);
+        this.resumedAt = null;
     }
 
     @Deprecated
@@ -129,21 +194,23 @@ public class ExamAttempt {
         disconnect(null);
     }
 
-    public void disconnect(Integer currentRemainingSeconds) {
+    /**
+     * Pauses the clock. The remaining time is computed on the server; a client value can only
+     * shorten it (never extend it), so reloading the page cannot reset the timer.
+     */
+    public void disconnect(Integer clientRemainingSeconds) {
         if (this.status != AttemptStatus.IN_PROGRESS) {
             throw new DomainException(DomainErrorCode.INVALID_REQUEST,
                     "Cannot disconnect: exam attempt is not in progress (current status: " + this.status + ")");
         }
         Instant now = Instant.now();
-        // Server clock is authoritative (read while still IN_PROGRESS); a client value may only shorten it
-        int serverRemaining = remainingSecondsAt(now);
+        freezeClock(now);
+        if (clientRemainingSeconds != null) {
+            this.remainingSeconds = Math.max(0, Math.min(this.remainingSeconds, clientRemainingSeconds));
+        }
         this.status = AttemptStatus.RECONNECTING;
         this.pausedAt = now;
         this.graceDeadline = now.plusSeconds(120);
-        this.remainingSeconds = currentRemainingSeconds != null
-                ? Math.max(0, Math.min(currentRemainingSeconds, serverRemaining))
-                : serverRemaining;
-        this.resumedAt = null;
         this.updatedAt = now;
     }
 
@@ -185,31 +252,23 @@ public class ExamAttempt {
             return;
         }
         ensureInProgress();
-        this.remainingSeconds = remainingSecondsAt(Instant.now());
-        this.resumedAt = null;
+        Instant now = Instant.now();
+        freezeClock(now);
         this.status = AttemptStatus.FINALIZING;
-        this.updatedAt = Instant.now();
+        this.updatedAt = now;
+    }
+
+    /** Same as {@link #remainingAt(Instant)}; kept for callers merged from main. */
+    public int remainingSecondsAt(Instant now) {
+        return remainingAt(now);
     }
 
     /**
-     * Seconds left at {@code now}: while IN_PROGRESS the clock runs from resumedAt
-     * (startedAt for rows created before resumedAt existed); otherwise the stored budget.
+     * True when the attempt should be closed by the timeout scheduler: the clock ran out and the
+     * submit grace window has passed too, so an answer still uploading is not cut off.
      */
-    public int remainingSecondsAt(Instant now) {
-        int budget = this.remainingSeconds != null ? this.remainingSeconds : 0;
-        if (this.status != AttemptStatus.IN_PROGRESS) {
-            return Math.max(0, budget);
-        }
-        Instant segmentStart = this.resumedAt != null ? this.resumedAt : this.startedAt;
-        if (segmentStart == null) {
-            return Math.max(0, budget);
-        }
-        long elapsed = Math.max(0, Duration.between(segmentStart, now).getSeconds());
-        return (int) Math.max(0, budget - elapsed);
-    }
-
     public boolean isTimeUp(Instant now) {
-        return this.status == AttemptStatus.IN_PROGRESS && remainingSecondsAt(now) <= 0;
+        return isPastSubmitGrace(now);
     }
 
     public boolean isGraceExpired(Instant now) {
@@ -260,11 +319,12 @@ public class ExamAttempt {
         this.updatedAt = Instant.now();
     }
 
+    /** Accepts a client clock value only when it is lower than the server's (never extends time). */
     public void updateRemainingSeconds(int remainingSeconds) {
         ensureInProgress();
         Instant now = Instant.now();
-        // Re-anchor the running clock; never extend beyond what the server clock allows
-        this.remainingSeconds = Math.max(0, Math.min(remainingSeconds, remainingSecondsAt(now)));
+        int serverRemaining = remainingAt(now);
+        this.remainingSeconds = Math.max(0, Math.min(serverRemaining, remainingSeconds));
         this.resumedAt = now;
         this.updatedAt = now;
     }

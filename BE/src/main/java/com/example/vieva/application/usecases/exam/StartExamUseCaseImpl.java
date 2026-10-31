@@ -193,11 +193,13 @@ public class StartExamUseCaseImpl implements StartExamUseCase {
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
                 savedAttempt.getPausedAt(),
-                savedAttempt.remainingSecondsAt(Instant.now()),
+                savedAttempt.remainingAt(java.time.Instant.now()),
                 savedAttempt.getGraceDeadline(),
                 savedTurn.getId(),
                 savedTurn.getQuestionText(),
-                savedTurn.getTtsAudioUrl()
+                savedTurn.getTtsAudioUrl(),
+                savedAttempt.effectiveAnswerTimeLimitSeconds(),
+                savedAttempt.effectiveMaxFollowUps()
         );
     }
 }

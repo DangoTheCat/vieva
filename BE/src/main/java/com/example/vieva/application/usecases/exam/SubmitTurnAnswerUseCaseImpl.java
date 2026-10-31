@@ -2,14 +2,13 @@ package com.example.vieva.application.usecases.exam;
 
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
-import com.example.vieva.application.ports.common.QuestionBankSearchCriteria;
 import com.example.vieva.application.ports.input.exam.SubmitTurnAnswerUseCase;
 import com.example.vieva.application.ports.input.exam.TurnEvaluationView;
 import com.example.vieva.application.ports.output.*;
-import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.*;
 
 @Slf4j
@@ -17,8 +16,6 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
 
     private final ExamAttemptRepository examAttemptRepository;
     private final ExamTurnRepository examTurnRepository;
-    private final QuestionRepository questionRepository;
-    private final QuestionVersionRepository questionVersionRepository;
     private final RubricRepository rubricRepository;
     private final FileStoragePort fileStoragePort;
     private final VivaEvaluationGateway vivaEvaluationGateway;
@@ -28,12 +25,11 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
     private final CourseDocumentRepository courseDocumentRepository;
     private final DocumentChunkRepository documentChunkRepository;
     private final EmbeddingModelPort embeddingModel;
+    private final TransactionRunnerPort transactionRunner;
 
     public SubmitTurnAnswerUseCaseImpl(
             ExamAttemptRepository examAttemptRepository,
             ExamTurnRepository examTurnRepository,
-            QuestionRepository questionRepository,
-            QuestionVersionRepository questionVersionRepository,
             RubricRepository rubricRepository,
             FileStoragePort fileStoragePort,
             VivaEvaluationGateway vivaEvaluationGateway,
@@ -42,12 +38,11 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
             ExamFinalizationPort examFinalizationPort,
             CourseDocumentRepository courseDocumentRepository,
             DocumentChunkRepository documentChunkRepository,
-            EmbeddingModelPort embeddingModel
+            EmbeddingModelPort embeddingModel,
+            TransactionRunnerPort transactionRunner
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.examTurnRepository = examTurnRepository;
-        this.questionRepository = questionRepository;
-        this.questionVersionRepository = questionVersionRepository;
         this.rubricRepository = rubricRepository;
         this.fileStoragePort = fileStoragePort;
         this.vivaEvaluationGateway = vivaEvaluationGateway;
@@ -57,70 +52,15 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         this.courseDocumentRepository = courseDocumentRepository;
         this.documentChunkRepository = documentChunkRepository;
         this.embeddingModel = embeddingModel;
+        this.transactionRunner = transactionRunner;
     }
 
-    public SubmitTurnAnswerUseCaseImpl(
-            ExamAttemptRepository examAttemptRepository,
-            ExamTurnRepository examTurnRepository,
-            QuestionRepository questionRepository,
-            QuestionVersionRepository questionVersionRepository,
-            RubricRepository rubricRepository,
-            FileStoragePort fileStoragePort,
-            VivaEvaluationGateway vivaEvaluationGateway,
-            AttemptGradingService attemptGradingService,
-            ExamAttemptQuestionSnapshotRepository snapshotRepository,
-            ExamFinalizationPort examFinalizationPort
-    ) {
-        this(
-                examAttemptRepository,
-                examTurnRepository,
-                questionRepository,
-                questionVersionRepository,
-                rubricRepository,
-                fileStoragePort,
-                vivaEvaluationGateway,
-                attemptGradingService,
-                snapshotRepository,
-                examFinalizationPort,
-                null,
-                null,
-                null
-        );
-    }
-
-    public SubmitTurnAnswerUseCaseImpl(
-            ExamAttemptRepository examAttemptRepository,
-            ExamTurnRepository examTurnRepository,
-            QuestionRepository questionRepository,
-            QuestionVersionRepository questionVersionRepository,
-            RubricRepository rubricRepository,
-            FileStoragePort fileStoragePort,
-            VivaEvaluationGateway vivaEvaluationGateway,
-            AttemptGradingService attemptGradingService
-    ) {
-        this(
-                examAttemptRepository,
-                examTurnRepository,
-                questionRepository,
-                questionVersionRepository,
-                rubricRepository,
-                fileStoragePort,
-                vivaEvaluationGateway,
-                attemptGradingService,
-                null,
-                attemptId -> {
-                    if (attemptGradingService != null) {
-                        examAttemptRepository.findById(attemptId).ifPresent(attempt -> {
-                            List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
-                            attemptGradingService.gradeAndCompleteAttempt(attempt, turns);
-                        });
-                    }
-                }
-        );
-    }
-
+    /**
+     * Records the answer, evaluates it with the LLM and moves the interview on. The slow work
+     * (embedding + LLM) runs between two short transactions so the attempt row is never locked
+     * while waiting for the model (plan item 2.7).
+     */
     @Override
-    @UseCaseTransaction
     public TurnEvaluationView submitAnswer(
             UUID attemptId,
             UUID turnId,
@@ -129,6 +69,34 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
             byte[] audioBytes,
             String audioContentType
     ) {
+        // Step 1 — short transaction, attempt row locked: validate and store the answer
+        RecordedAnswer recorded = transactionRunner.inNewTransaction(
+                () -> recordAnswer(attemptId, turnId, studentId, transcriptText, audioBytes, audioContentType));
+        if (recorded.finishedView() != null) {
+            return recorded.finishedView();
+        }
+
+        // Step 2 — no transaction: retrieval and LLM evaluation
+        String ragContext = buildRagContext(recorded.subjectId(), recorded.turn().getQuestionText(), transcriptText);
+        VivaEvaluationContext evalContext = new VivaEvaluationContext(
+                recorded.expectedAnswer(), recorded.rubricJson(), ragContext);
+        VivaEvaluationResult evalResult = vivaEvaluationGateway.evaluateTurn(
+                AiGradingInputs.toEvaluationTurn(recorded.turn()), AiGradingInputs.toRubricSummary(recorded.rubric()), evalContext);
+
+        // Step 3 — short transaction, attempt row locked again: apply the result, pick the next turn
+        return transactionRunner.inNewTransaction(() -> applyEvaluation(attemptId, turnId, evalResult));
+    }
+
+    /** Outcome of step 1: either a final view (nothing to evaluate) or what the evaluator needs. */
+    private record RecordedAnswer(TurnEvaluationView finishedView, ExamTurn turn, UUID subjectId,
+                                  String expectedAnswer, String rubricJson, Rubric rubric) {
+        static RecordedAnswer finished(TurnEvaluationView view) {
+            return new RecordedAnswer(view, null, null, null, null, null);
+        }
+    }
+
+    private RecordedAnswer recordAnswer(UUID attemptId, UUID turnId, UUID studentId, String transcriptText,
+                                        byte[] audioBytes, String audioContentType) {
         // Lock attempt to serialize concurrent submissions
         ExamAttempt attempt = examAttemptRepository.findByIdForUpdate(attemptId)
                 .or(() -> examAttemptRepository.findById(attemptId))
@@ -154,7 +122,7 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     .orElse(null);
             boolean isAttemptFinished = attempt.getStatus() == AttemptStatus.FINALIZING
                     || attempt.getStatus() == AttemptStatus.COMPLETED;
-            return new TurnEvaluationView(
+            return RecordedAnswer.finished(new TurnEvaluationView(
                     currentTurn.getId(),
                     currentTurn.getAttemptId(),
                     currentTurn.getTurnType() != null ? currentTurn.getTurnType().name() : "MAIN_QUESTION",
@@ -170,7 +138,7 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     nextTurn != null ? nextTurn.getQuestionText() : null,
                     nextTurn != null && nextTurn.getTurnType() != null ? nextTurn.getTurnType().name() : null,
                     currentTurn.getUpdatedAt()
-            );
+            ));
         }
 
         // Reject new unevaluated answers when attempt status is not in progress
@@ -179,9 +147,34 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     "Exam attempt is not IN_PROGRESS (current: " + attempt.getStatus() + ")");
         }
 
-        // Time is up on the server clock; ExamAttemptTimeoutScheduler finalizes the attempt
-        if (attempt.isTimeUp(java.time.Instant.now())) {
-            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam time is up");
+        // Server-side exam clock: an answer arriving well after time ran out is not graded;
+        // the attempt is closed and finalized instead. Within the grace window it is graded,
+        // then the attempt ends without asking another question.
+        Instant now = Instant.now();
+        if (attempt.isPastSubmitGrace(now)) {
+            log.info("Attempt {} ran out of time before turn {} was submitted; finalizing", attemptId, turnId);
+            attempt.timeoutSession();
+            examAttemptRepository.save(attempt);
+            dispatchFinalization(attemptId, attempt);
+            return RecordedAnswer.finished(new TurnEvaluationView(
+                    currentTurn.getId(),
+                    currentTurn.getAttemptId(),
+                    currentTurn.getTurnType() != null ? currentTurn.getTurnType().name() : TurnType.MAIN_QUESTION.name(),
+                    currentTurn.getTurnOrder(),
+                    currentTurn.getStatus().name(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    true,
+                    null,
+                    null,
+                    null,
+                    now,
+                    0,
+                    true
+            ));
         }
 
         // Reject empty or blank transcript AND empty audio
@@ -194,52 +187,17 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         // Upload audio if provided
         String studentAudioUrl = null;
         if (hasAudio) {
-            String storagePath = String.format("oral-exams/%s/%s.wav", attemptId, turnId);
-            String contentType = audioContentType != null && !audioContentType.isBlank() ? audioContentType : "audio/wav";
+            String contentType = audioContentType != null && !audioContentType.isBlank() ? audioContentType : "audio/webm";
+            String storagePath = String.format("oral-exams/%s/%s.%s", attemptId, turnId, audioExtension(contentType));
             StoredFile storedFile = fileStoragePort.store(storagePath, audioBytes, contentType);
             studentAudioUrl = storedFile != null ? storedFile.url() : null;
         }
 
-        // Update current turn answer
-        currentTurn.submitAnswer(transcriptText, studentAudioUrl);
+        // Update current turn answer; late answers (after the per-answer deadline + grace) are flagged
+        currentTurn.submitAnswer(transcriptText, studentAudioUrl, now,
+                attempt.effectiveAnswerTimeLimitSeconds(), ExamAttempt.SUBMIT_GRACE_SECONDS);
 
-        // Build scoped RAG context if subject documents and embedding model are available
-        String ragContext = null;
-        if (courseDocumentRepository != null && documentChunkRepository != null && embeddingModel != null && attempt.getSubjectId() != null) {
-            List<CourseDocument> activeDocs = courseDocumentRepository.findActiveBySubjectId(attempt.getSubjectId());
-            List<CourseDocument> readyDocs = activeDocs != null
-                    ? activeDocs.stream().filter(CourseDocument::isReady).toList()
-                    : List.of();
-            if (!readyDocs.isEmpty()) {
-                List<UUID> readyDocIds = readyDocs.stream().map(CourseDocument::getDocumentId).toList();
-                String questionText = currentTurn.getQuestionText() != null ? currentTurn.getQuestionText() : "";
-                String transcript = transcriptText != null ? transcriptText : "";
-                String queryString = (questionText + " " + transcript).trim();
-                if (!queryString.isBlank()) {
-                    float[] queryEmbedding = embeddingModel.generateEmbedding(queryString);
-                    if (queryEmbedding != null && queryEmbedding.length > 0) {
-                        List<ChunkSearchResult> chunks = documentChunkRepository.searchSimilarChunks(
-                                attempt.getSubjectId(),
-                                readyDocIds,
-                                queryEmbedding,
-                                0.2,
-                                3
-                        );
-                        if (chunks != null && !chunks.isEmpty()) {
-                            StringBuilder sb = new StringBuilder();
-                            for (ChunkSearchResult c : chunks) {
-                                if (sb.length() > 0) {
-                                    sb.append("\n\n");
-                                }
-                                String docName = c.documentName() != null ? c.documentName() : "Tài liệu";
-                                sb.append("[Tài liệu: ").append(docName).append("]\n").append(c.content());
-                            }
-                            ragContext = sb.toString();
-                        }
-                    }
-                }
-            }
-        }
+        examTurnRepository.save(currentTurn);
 
         // Fetch frozen snapshot for current question to supply expected answer and rubric criteria
         String expectedAnswer = null;
@@ -263,14 +221,72 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
             }
         }
 
-        VivaEvaluationContext evalContext = new VivaEvaluationContext(expectedAnswer, rubricJson, ragContext);
-
         if (rubricRepository != null && currentTurn.getQuestionVersionId() != null && rubricJson == null) {
             rubric = rubricRepository.findByQuestionVersionId(currentTurn.getQuestionVersionId()).orElse(null);
         }
 
-        // Evaluate turn with frozen expected answer and rubric
-        VivaEvaluationResult evalResult = vivaEvaluationGateway.evaluateTurn(currentTurn, rubric, evalContext);
+        return new RecordedAnswer(null, currentTurn, attempt.getSubjectId(), expectedAnswer, rubricJson, rubric);
+    }
+
+    /** Retrieves course-material context for the evaluator. Runs outside any transaction (embedding call). */
+    private String buildRagContext(UUID subjectId, String questionTextOfTurn, String transcriptText) {
+        // Build scoped RAG context if subject documents and embedding model are available
+        String ragContext = null;
+        if (courseDocumentRepository != null && documentChunkRepository != null && embeddingModel != null && subjectId != null) {
+            List<CourseDocument> activeDocs = courseDocumentRepository.findActiveBySubjectId(subjectId);
+            List<CourseDocument> readyDocs = activeDocs != null
+                    ? activeDocs.stream().filter(CourseDocument::isReady).toList()
+                    : List.of();
+            if (!readyDocs.isEmpty()) {
+                List<UUID> readyDocIds = readyDocs.stream().map(CourseDocument::getDocumentId).toList();
+                String questionText = questionTextOfTurn != null ? questionTextOfTurn : "";
+                String transcript = transcriptText != null ? transcriptText : "";
+                String queryString = (questionText + " " + transcript).trim();
+                if (!queryString.isBlank()) {
+                    float[] queryEmbedding = embeddingModel.generateEmbedding(queryString);
+                    if (queryEmbedding != null && queryEmbedding.length > 0) {
+                        List<ChunkSearchResult> chunks = documentChunkRepository.searchSimilarChunks(
+                                subjectId,
+                                readyDocIds,
+                                queryEmbedding,
+                                0.2,
+                                3
+                        );
+                        if (chunks != null && !chunks.isEmpty()) {
+                            StringBuilder sb = new StringBuilder();
+                            for (ChunkSearchResult c : chunks) {
+                                if (sb.length() > 0) {
+                                    sb.append("\n\n");
+                                }
+                                String docName = c.documentName() != null ? c.documentName() : "Tài liệu";
+                                sb.append("[Tài liệu: ").append(docName).append("]\n").append(c.content());
+                            }
+                            ragContext = sb.toString();
+                        }
+                    }
+                }
+            }
+        }
+
+        return ragContext;
+    }
+
+    private TurnEvaluationView applyEvaluation(UUID attemptId, UUID turnId, VivaEvaluationResult evalResult) {
+        ExamAttempt attempt = examAttemptRepository.findByIdForUpdate(attemptId)
+                .or(() -> examAttemptRepository.findById(attemptId))
+                .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam attempt not found: " + attemptId));
+        ExamTurn currentTurn = examTurnRepository.findById(turnId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_REQUEST, "Turn not found: " + turnId));
+        if (currentTurn.getStatus() != TurnStatus.ANSWERED) {
+            // A concurrent request already evaluated this turn while the LLM was running
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST,
+                    "Turn is no longer awaiting evaluation (current: " + currentTurn.getStatus() + ")");
+        }
+        // The clock may have run out (or the student finished) while the answer was being evaluated:
+        // grade this answer, then end the attempt instead of asking another question.
+        boolean attemptStillRunning = attempt.getStatus() == AttemptStatus.IN_PROGRESS;
+        boolean sessionTimeUp = !attemptStillRunning || attempt.isTimeExpired(Instant.now());
+
         currentTurn.evaluate(
                 evalResult.score(),
                 evalResult.feedback(),
@@ -278,7 +294,7 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         );
         examTurnRepository.save(currentTurn);
 
-        // Enforce max 2 followups per main question
+        // Enforce the follow-up budget frozen from the exam (default 2 per main question)
         List<ExamTurn> questionTurns = examTurnRepository.findByAttemptIdAndQuestionIdOrderByTurnOrderAsc(
                 attemptId, currentTurn.getQuestionId()
         );
@@ -292,9 +308,10 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                 .filter(t -> t.getTurnType() == TurnType.FOLLOW_UP)
                 .count();
 
-        boolean canFollowUp = evalResult.shouldFollowUp()
+        boolean canFollowUp = !sessionTimeUp
+                && evalResult.shouldFollowUp()
                 && !evalResult.isStandardMet()
-                && followUpCount < 2
+                && followUpCount < attempt.effectiveMaxFollowUps()
                 && evalResult.followUpQuestionText() != null
                 && !evalResult.followUpQuestionText().isBlank();
 
@@ -306,7 +323,15 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         List<ExamTurn> allAttemptTurns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
         int nextTurnOrder = allAttemptTurns.size() + 1;
 
-        if (canFollowUp) {
+        if (sessionTimeUp) {
+            // Time ran out while this answer was in flight: grade it, then close the attempt
+            isAttemptFinished = true;
+            if (attemptStillRunning) {
+                attempt.timeoutSession();
+                examAttemptRepository.save(attempt);
+                dispatchFinalization(attemptId, attempt);
+            }
+        } else if (canFollowUp) {
             ExamTurn followUpTurn = ExamTurn.createFollowUp(
                     attemptId,
                     currentTurn.getQuestionId(),
@@ -354,50 +379,13 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     dispatchFinalization(attemptId, attempt);
                 }
             } else {
-                // Honest compatible legacy fallback for un-snapshotted attempts
-                var searchCriteria = QuestionBankSearchCriteria.builder()
-                        .subjectId(attempt.getSubjectId())
-                        .page(0)
-                        .size(50)
-                        .build();
-                var pagedQuestions = questionRepository != null ? questionRepository.searchBank(searchCriteria) : null;
-                List<Question> bankQuestions = pagedQuestions != null && pagedQuestions.getContent() != null
-                        ? pagedQuestions.getContent()
-                        : Collections.emptyList();
-
-                int nextIndex = attempt.getCurrentQuestionIndex() + 1;
-                if (nextIndex < bankQuestions.size()) {
-                    attempt.nextQuestion();
-                    examAttemptRepository.save(attempt);
-
-                    Question nextQuestion = bankQuestions.get(nextIndex);
-                    UUID nextApprovedVersionId = nextQuestion.getCurrentApprovedVersionId();
-                    QuestionVersion nextVersion = nextApprovedVersionId != null && questionVersionRepository != null
-                            ? questionVersionRepository.findById(nextApprovedVersionId).orElse(null)
-                            : null;
-
-                    String qContent = nextVersion != null ? nextVersion.getQuestionContent() : "";
-                    UUID vId = nextVersion != null ? nextVersion.getQuestionVersionId() : null;
-
-                    ExamTurn nextMainTurn = ExamTurn.createMainQuestion(
-                            attemptId,
-                            nextQuestion.getQuestionId(),
-                            vId,
-                            nextTurnOrder,
-                            qContent,
-                            null
-                    );
-                    ExamTurn savedNextMainTurn = examTurnRepository.save(nextMainTurn);
-                    nextTurnId = savedNextMainTurn.getId();
-                    nextQuestionText = savedNextMainTurn.getQuestionText();
-                    nextTurnType = TurnType.MAIN_QUESTION.name();
-                } else {
-                    // All questions finished, complete attempt
-                    isAttemptFinished = true;
-                    attempt.finish();
-                    examAttemptRepository.save(attempt);
-                    dispatchFinalization(attemptId, attempt);
-                }
+                // Every attempt freezes its questions into snapshots when it starts. Without them there is
+                // no frozen exam to continue, so the interview ends here instead of reading the live bank.
+                log.warn("Attempt {} has no question snapshots; ending the interview", attemptId);
+                isAttemptFinished = true;
+                attempt.finish();
+                examAttemptRepository.save(attempt);
+                dispatchFinalization(attemptId, attempt);
             }
         }
 
@@ -416,8 +404,19 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                 nextTurnId,
                 nextQuestionText,
                 nextTurnType,
-                currentTurn.getUpdatedAt()
+                currentTurn.getUpdatedAt(),
+                attempt.remainingAt(Instant.now()),
+                currentTurn.isTimedOut()
         );
+    }
+
+    private static String audioExtension(String contentType) {
+        String type = contentType.toLowerCase();
+        if (type.contains("webm")) return "webm";
+        if (type.contains("ogg")) return "ogg";
+        if (type.contains("mp4") || type.contains("m4a") || type.contains("aac")) return "m4a";
+        if (type.contains("mpeg") || type.contains("mp3")) return "mp3";
+        return "wav";
     }
 
     private void dispatchFinalization(UUID attemptId, ExamAttempt attempt) {

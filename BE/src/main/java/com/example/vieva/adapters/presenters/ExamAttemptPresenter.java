@@ -4,6 +4,7 @@ import com.example.vieva.application.ports.input.exam.ExamAttemptDetailView;
 import com.example.vieva.application.ports.input.exam.ExamAttemptView;
 import com.example.vieva.application.ports.input.exam.ExamTurnDetailView;
 import com.example.vieva.application.ports.input.exam.TurnEvaluationView;
+import com.example.vieva.application.ports.input.exam.TurnReadyView;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -31,8 +32,33 @@ public class ExamAttemptPresenter {
             Instant graceDeadline,
             UUID currentTurnId,
             String currentQuestionText,
-            String currentTtsAudioUrl
+            String currentTtsAudioUrl,
+            Integer answerTimeLimitSeconds,
+            Integer maxFollowUpsPerQuestion
     ) {
+        public ExamAttemptResponse(
+                UUID attemptId,
+                UUID studentId,
+                UUID subjectId,
+                String status,
+                int currentQuestionIndex,
+                int totalQuestions,
+                BigDecimal totalScore,
+                String gradeLevel,
+                Instant startedAt,
+                Instant completedAt,
+                Instant pausedAt,
+                Integer remainingSeconds,
+                Instant graceDeadline,
+                UUID currentTurnId,
+                String currentQuestionText,
+                String currentTtsAudioUrl
+        ) {
+            this(attemptId, studentId, subjectId, status, currentQuestionIndex, totalQuestions, totalScore, gradeLevel,
+                    startedAt, completedAt, pausedAt, remainingSeconds, graceDeadline, currentTurnId,
+                    currentQuestionText, currentTtsAudioUrl, null, null);
+        }
+
         public ExamAttemptResponse(
                 UUID attemptId,
                 UUID studentId,
@@ -70,7 +96,9 @@ public class ExamAttemptPresenter {
             String feedback,
             String rubricEvaluations,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            Instant askedAt,
+            boolean timedOut
     ) {}
 
     public record ExamAttemptDetailResponse(
@@ -89,8 +117,33 @@ public class ExamAttemptPresenter {
             Instant graceDeadline,
             String detailedFeedback,
             String scoringMode,
-            List<ExamTurnDetailResponse> turns
+            List<ExamTurnDetailResponse> turns,
+            Integer answerTimeLimitSeconds,
+            Integer maxFollowUpsPerQuestion
     ) {
+        public ExamAttemptDetailResponse(
+                UUID attemptId,
+                UUID studentId,
+                UUID subjectId,
+                String status,
+                int currentQuestionIndex,
+                int totalQuestions,
+                BigDecimal totalScore,
+                String gradeLevel,
+                Instant startedAt,
+                Instant completedAt,
+                Instant pausedAt,
+                Integer remainingSeconds,
+                Instant graceDeadline,
+                String detailedFeedback,
+                String scoringMode,
+                List<ExamTurnDetailResponse> turns
+        ) {
+            this(attemptId, studentId, subjectId, status, currentQuestionIndex, totalQuestions, totalScore, gradeLevel,
+                    startedAt, completedAt, pausedAt, remainingSeconds, graceDeadline, detailedFeedback, scoringMode,
+                    turns, null, null);
+        }
+
         public ExamAttemptDetailResponse(
                 UUID attemptId,
                 UUID studentId,
@@ -126,7 +179,19 @@ public class ExamAttemptPresenter {
             UUID nextTurnId,
             String nextQuestionText,
             String nextTurnType,
-            Instant updatedAt
+            Instant updatedAt,
+            Integer remainingSeconds,
+            boolean timedOut
+    ) {}
+
+    public record TurnReadyResponse(
+            UUID turnId,
+            UUID attemptId,
+            Instant askedAt,
+            Instant answerDeadline,
+            int answerTimeLimitSeconds,
+            int remainingSeconds,
+            Instant serverTime
     ) {}
 
     public ExamAttemptResponse toAttemptResponse(ExamAttemptView view) {
@@ -147,7 +212,9 @@ public class ExamAttemptPresenter {
                 view.graceDeadline(),
                 view.currentTurnId(),
                 view.currentQuestionText(),
-                view.currentTtsAudioUrl()
+                view.currentTtsAudioUrl(),
+                view.answerTimeLimitSeconds(),
+                view.maxFollowUpsPerQuestion()
         );
     }
 
@@ -170,7 +237,9 @@ public class ExamAttemptPresenter {
                 view.feedback(),
                 view.rubricEvaluations(),
                 view.createdAt(),
-                view.updatedAt()
+                view.updatedAt(),
+                view.askedAt(),
+                view.timedOut()
         );
     }
 
@@ -196,7 +265,9 @@ public class ExamAttemptPresenter {
                 view.graceDeadline(),
                 view.detailedFeedback(),
                 view.scoringMode(),
-                turnResponses
+                turnResponses,
+                view.answerTimeLimitSeconds(),
+                view.maxFollowUpsPerQuestion()
         );
     }
 
@@ -217,7 +288,22 @@ public class ExamAttemptPresenter {
                 view.nextTurnId(),
                 view.nextQuestionText(),
                 view.nextTurnType(),
-                view.updatedAt()
+                view.updatedAt(),
+                view.remainingSeconds(),
+                view.timedOut()
+        );
+    }
+
+    public TurnReadyResponse toTurnReadyResponse(TurnReadyView view) {
+        if (view == null) return null;
+        return new TurnReadyResponse(
+                view.turnId(),
+                view.attemptId(),
+                view.askedAt(),
+                view.answerDeadline(),
+                view.answerTimeLimitSeconds(),
+                view.remainingSeconds(),
+                view.serverTime()
         );
     }
 }

@@ -15,6 +15,15 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  /** Role flag published by AuthContext after login; only used to explain a forbidden action early. */
+  isAdminSession() {
+    try {
+      return window.sessionStorage.getItem('aives_role') === 'ADMIN';
+    } catch (e) {
+      return false;
+    }
+  }
+
   getToken() {
     return localStorage.getItem('aives_token');
   }
@@ -50,7 +59,17 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // headers last: options.headers is already merged above and must not drop Authorization
+    // Admins have read-only access to lecturer data; the BE rejects writes with 403 (plan item 3.3)
+    const method = (options.method || 'GET').toUpperCase();
+    if (method !== 'GET' && endpoint.startsWith('/lecturer/') && this.isAdminSession()) {
+      throw new ApiError(
+        'Quản trị viên chỉ được xem dữ liệu của giảng viên. Thao tác này do giảng viên phụ trách môn thực hiện.',
+        'ADMIN_READ_ONLY',
+        403,
+        null
+      );
+    }
+
     const config = {
       ...options,
       method: options.method || 'GET',
@@ -108,7 +127,7 @@ class ApiClient {
         throw err;
       }
       throw new ApiError(
-        'Không thể kết nối đến máy chủ Backend. Vui lòng kiểm tra dịch vụ Spring Boot (port 8080).',
+        'Không kết nối được máy chủ. Vui lòng kiểm tra mạng và thử lại.',
         'NETWORK_ERROR',
         0,
         null

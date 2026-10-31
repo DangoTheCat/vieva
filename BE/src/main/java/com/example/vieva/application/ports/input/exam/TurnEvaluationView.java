@@ -19,6 +19,28 @@ public record TurnEvaluationView(
         UUID nextTurnId,
         String nextQuestionText,
         String nextTurnType,
-        Instant updatedAt
+        Instant updatedAt,
+        Integer remainingSeconds,
+        boolean timedOut
 ) {
+    public TurnEvaluationView(
+            UUID turnId,
+            UUID attemptId,
+            String turnType,
+            int turnOrder,
+            String status,
+            BigDecimal score,
+            String feedback,
+            String rubricEvaluations,
+            String studentAudioUrl,
+            String transcriptText,
+            boolean isAttemptFinished,
+            UUID nextTurnId,
+            String nextQuestionText,
+            String nextTurnType,
+            Instant updatedAt
+    ) {
+        this(turnId, attemptId, turnType, turnOrder, status, score, feedback, rubricEvaluations, studentAudioUrl,
+                transcriptText, isAttemptFinished, nextTurnId, nextQuestionText, nextTurnType, updatedAt, null, false);
+    }
 }
