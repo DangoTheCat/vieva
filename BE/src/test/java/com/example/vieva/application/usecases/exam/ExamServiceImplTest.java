@@ -72,7 +72,7 @@ class ExamServiceImplTest {
         assertThat(view).isNotNull();
         assertThat(view.title()).isEqualTo("Midterm Exam");
         assertThat(view.durationSeconds()).isEqualTo(1200);
-        assertThat(view.status()).isEqualTo(ExamStatus.DRAFT);
+        assertThat(view.status()).isEqualTo(ExamStatus.DRAFT.name());
         verify(accessGuard).requireManage(actorId, subjectId);
     }
 
@@ -108,7 +108,7 @@ class ExamServiceImplTest {
         when(examRepository.findByIdForUpdate(examId)).thenReturn(Optional.of(exam));
         when(examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId)).thenReturn(Collections.emptyList());
 
-        UpdateExamStatusCommand cmd = new UpdateExamStatusCommand(ExamStatus.IN_PROGRESS);
+        UpdateExamStatusCommand cmd = new UpdateExamStatusCommand(ExamStatus.IN_PROGRESS.name());
         assertThatThrownBy(() -> examService.updateExamStatus(examId, cmd, actorId))
                 .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST)
@@ -131,11 +131,11 @@ class ExamServiceImplTest {
         ExamQuestion eq = ExamQuestion.create(examId, UUID.randomUUID(), UUID.randomUUID(), 0);
         when(examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId)).thenReturn(List.of(eq));
 
-        UpdateExamStatusCommand cmd = new UpdateExamStatusCommand(ExamStatus.IN_PROGRESS);
+        UpdateExamStatusCommand cmd = new UpdateExamStatusCommand(ExamStatus.IN_PROGRESS.name());
         ExamView view = examService.updateExamStatus(examId, cmd, actorId);
 
         assertThat(view).isNotNull();
-        assertThat(view.status()).isEqualTo(ExamStatus.IN_PROGRESS);
+        assertThat(view.status()).isEqualTo(ExamStatus.IN_PROGRESS.name());
         assertThat(view.questionCount()).isEqualTo(1);
     }
 

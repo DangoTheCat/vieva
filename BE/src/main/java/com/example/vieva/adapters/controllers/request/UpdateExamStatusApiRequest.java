@@ -1,9 +1,9 @@
 package com.example.vieva.adapters.controllers.request;
 
-import com.example.vieva.domain.entities.ExamStatus;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
+/** status: DRAFT | IN_PROGRESS | COMPLETED — parsed and validated by the use case. */
 public record UpdateExamStatusApiRequest(
-        @NotNull(message = "Exam status is required")
-        ExamStatus status
+        @NotBlank(message = "Exam status is required")
+        String status
 ) {}

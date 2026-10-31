@@ -81,7 +81,13 @@ class SubmitTurnAnswerUseCaseTest {
                 examFinalizationPort,
                 courseDocumentRepository,
                 documentChunkRepository,
-                embeddingModel
+                embeddingModel,
+                new TransactionRunnerPort() {
+                    @Override
+                    public <T> T inNewTransaction(java.util.function.Supplier<T> work) {
+                        return work.get();
+                    }
+                }
         );
     }
 
@@ -298,6 +304,51 @@ class SubmitTurnAnswerUseCaseTest {
         assertThat(view.nextTurnType()).isNull();
         assertThat(view.isAttemptFinished()).isTrue();
         assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.FINALIZING);
+    }
+
+    @Test
+    @DisplayName("submitAnswer calls the LLM outside any transaction (the attempt row is not locked while waiting)")
+    void submitAnswerEvaluatesOutsideTransaction() {
+        boolean[] inTransaction = {false};
+        int[] transactions = {0};
+        SubmitTurnAnswerUseCaseImpl txAwareUseCase = new SubmitTurnAnswerUseCaseImpl(
+                examAttemptRepository, examTurnRepository, questionRepository, questionVersionRepository,
+                rubricRepository, fileStoragePort, vivaEvaluationGateway, attemptGradingService,
+                snapshotRepository, examFinalizationPort, courseDocumentRepository, documentChunkRepository,
+                embeddingModel,
+                new TransactionRunnerPort() {
+                    @Override
+                    public <T> T inNewTransaction(java.util.function.Supplier<T> work) {
+                        transactions[0]++;
+                        inTransaction[0] = true;
+                        try {
+                            return work.get();
+                        } finally {
+                            inTransaction[0] = false;
+                        }
+                    }
+                });
+
+        ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);
+        attempt.setId(attemptId);
+        attempt.start(true);
+        when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
+        ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Q", null);
+        turn.setId(turnId);
+        when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
+        when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(List.of(
+                ExamAttemptQuestionSnapshot.create(attemptId, questionId, versionId, 0, "Q", "Expected", "{}")));
+        when(examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId)).thenReturn(List.of(turn));
+        when(vivaEvaluationGateway.evaluateTurn(any(), any(), any())).thenAnswer(inv -> {
+            assertThat(inTransaction[0]).as("LLM must not run inside a transaction").isFalse();
+            return new VivaEvaluationResult(true, false, null, new BigDecimal("9.00"), "Great", "{}");
+        });
+
+        TurnEvaluationView view = txAwareUseCase.submitAnswer(attemptId, turnId, studentId, "Answer", null, null);
+
+        assertThat(view.status()).isEqualTo(TurnStatus.EVALUATED.name());
+        assertThat(transactions[0]).isEqualTo(2);
     }
 
     @Test

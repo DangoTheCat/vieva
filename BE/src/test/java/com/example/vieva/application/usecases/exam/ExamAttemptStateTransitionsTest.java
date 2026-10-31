@@ -167,7 +167,8 @@ class ExamAttemptStateTransitionsTest {
 
         @BeforeEach
         void initUseCase() {
-            useCase = new ManageExamConnectionUseCaseImpl(examAttemptRepository, examTurnRepository, attemptGradingService);
+            useCase = new ManageExamConnectionUseCaseImpl(examAttemptRepository, examTurnRepository,
+                    attemptId -> { });
         }
 
         @Test
@@ -288,7 +289,7 @@ class ExamAttemptStateTransitionsTest {
             AttemptGradingResult result = new AttemptGradingResult(
                     new BigDecimal("8.50"), GradeLevel.EXCELLENT, "Great work", ScoringMode.GEMINI_FLASH_LITE
             );
-            when(attemptGradingGateway.gradeAttempt(any(), any(), any())).thenReturn(result);
+            when(attemptGradingGateway.gradeAttempt(any(), any())).thenReturn(result);
             when(examScoreRepository.save(any(ExamScore.class))).thenAnswer(inv -> inv.getArgument(0));
 
             ExamTurn turn = ExamTurn.createMainQuestion(attemptId, UUID.randomUUID(), UUID.randomUUID(), 1, "Q1", null);
@@ -311,8 +312,8 @@ class ExamAttemptStateTransitionsTest {
             attempt.start(true);
             attempt.finish(); // FINALIZING
 
-            when(attemptGradingGateway.gradeAttempt(any(), any(), any())).thenThrow(new RuntimeException("Gateway offline"));
-            when(ruleBasedGraderPort.grade(any(), any(), any())).thenThrow(new RuntimeException("Fallback failed"));
+            when(attemptGradingGateway.gradeAttempt(any(), any())).thenThrow(new RuntimeException("Gateway offline"));
+            when(ruleBasedGraderPort.grade(any(), any())).thenThrow(new RuntimeException("Fallback failed"));
 
             ExamTurn turn = ExamTurn.createMainQuestion(attemptId, UUID.randomUUID(), UUID.randomUUID(), 1, "Q1", null);
 

@@ -1,6 +1,5 @@
 package com.example.vieva.application.ports.input.grading;
 
-import com.example.vieva.domain.entities.GradeLevel;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,6 +14,6 @@ public record LecturerScoreView(
         String studentName,
         BigDecimal totalScore,
         BigDecimal overrideTotalScore,
-        GradeLevel grade,
+        String grade,
         Instant createdAt
 ) {}

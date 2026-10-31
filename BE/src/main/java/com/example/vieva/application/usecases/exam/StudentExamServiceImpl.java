@@ -33,7 +33,7 @@ public class StudentExamServiceImpl implements StudentExamService {
                 .map(exam -> {
                     int questionCount = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(exam.getId()).size();
                     Optional<ExamAttempt> attemptOpt = examAttemptRepository.findByExamIdAndStudentId(exam.getId(), studentId);
-                    AttemptStatus attemptStatus = attemptOpt.map(ExamAttempt::getStatus).orElse(null);
+                    String attemptStatus = attemptOpt.map(a -> a.getStatus().name()).orElse(null);
                     UUID attemptId = attemptOpt.map(ExamAttempt::getId).orElse(null);
                     return new StudentExamView(
                             exam.getId(),
@@ -196,7 +196,7 @@ public class StudentExamServiceImpl implements StudentExamService {
                             a.getExamId(),
                             title,
                             a.getTotalScore(),
-                            a.getGradeLevel(),
+                            a.getGradeLevel() != null ? a.getGradeLevel().name() : null,
                             a.getCompletedAt()
                     );
                 })

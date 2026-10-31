@@ -150,7 +150,7 @@ class AdminAnalyticsServiceImplTest {
         Subject subject = Subject.builder().subjectId(subjectId).subjectName("Computer Science").build();
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject));
 
-        PageResult<AdminPerformanceItemView> performance = service.getPerformance(studentId, subjectId, examId, status, 0, 10);
+        PageResult<AdminPerformanceItemView> performance = service.getPerformance(studentId, subjectId, examId, status.name(), 0, 10);
 
         assertThat(performance).isNotNull();
         assertThat(performance.getContent()).hasSize(1);

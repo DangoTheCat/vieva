@@ -1,41 +1,35 @@
 package com.example.vieva.infrastructure.service;
 
-import com.example.vieva.application.ports.output.ExamAttemptRepository;
+import com.example.vieva.application.ports.input.exam.FinalizeExamAttemptUseCase;
+import com.example.vieva.application.ports.input.exam.FinalizeExamAttemptUseCase.Outcome;
 import com.example.vieva.application.ports.output.ExamFinalizationPort;
-import com.example.vieva.application.ports.output.ExamScoreRepository;
-import com.example.vieva.application.ports.output.ExamTurnRepository;
-import com.example.vieva.application.usecases.exam.AttemptGradingService;
-import com.example.vieva.domain.entities.AttemptStatus;
-import com.example.vieva.domain.entities.ExamAttempt;
-import com.example.vieva.domain.entities.ExamScore;
-import com.example.vieva.domain.entities.ExamTurn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Humble delivery mechanism for exam finalization: runs it after commit, asynchronously, with
+ * retries and a periodic sweep. All state changes happen in {@link FinalizeExamAttemptUseCase}.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ExamFinalizationWorker implements ExamFinalizationPort {
 
-    private final ExamAttemptRepository examAttemptRepository;
-    private final ExamTurnRepository examTurnRepository;
-    private final ExamScoreRepository examScoreRepository;
-    private final AttemptGradingService attemptGradingService;
+    private static final int MAX_RETRIES = 3;
+
+    private final FinalizeExamAttemptUseCase finalizeExamAttemptUseCase;
 
     @Autowired(required = false)
     private TaskExecutor taskExecutor;
-
-    private static final int MAX_RETRIES = 3;
 
     @Override
     public void dispatchFinalization(UUID attemptId) {
@@ -60,76 +54,38 @@ public class ExamFinalizationWorker implements ExamFinalizationPort {
     }
 
     public void executeFinalization(UUID attemptId) {
-        // Idempotent: check if attempt already has a saved score
-        Optional<ExamScore> existingScore = examScoreRepository.findByAttemptId(attemptId);
-        if (existingScore.isPresent()) {
-            examAttemptRepository.findById(attemptId).ifPresent(att -> {
-                if (att.getStatus() == AttemptStatus.FINALIZING) {
-                    att.syncSuccess();
-                    examAttemptRepository.save(att);
-                }
-            });
-            log.info("Attempt {} already has recorded score, reconciled status if needed and skipping finalization", attemptId);
-            return;
-        }
-
-        int attempts = 0;
-        boolean success = false;
-        while (attempts < MAX_RETRIES && !success) {
-            attempts++;
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                Optional<ExamAttempt> attemptOpt = examAttemptRepository.findById(attemptId);
-                if (attemptOpt.isEmpty()) {
-                    log.error("Attempt {} not found during finalization", attemptId);
+                Outcome outcome = finalizeExamAttemptUseCase.finalizeAttempt(attemptId);
+                if (outcome != Outcome.NOT_GRADED) {
+                    log.info("Finalization of attempt {} finished with {} (try {})", attemptId, outcome, attempt);
                     return;
-                }
-                ExamAttempt attempt = attemptOpt.get();
-                if (attempt.getStatus() == AttemptStatus.COMPLETED) {
-                    log.info("Attempt {} is already COMPLETED", attemptId);
-                    return;
-                }
-
-                List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
-                ExamScore score = attemptGradingService.gradeAndCompleteAttempt(attempt, turns);
-                if (score != null) {
-                    success = true;
-                    log.info("Successfully graded and completed attempt {} on attempt {}", attemptId, attempts);
                 }
             } catch (Exception ex) {
-                log.warn("Finalization attempt {}/{} for attemptId {} failed: {}", attempts, MAX_RETRIES, attemptId, ex.getMessage());
-                try {
-                    Thread.sleep(300L * attempts);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                log.warn("Finalization try {}/{} for attempt {} failed: {}", attempt, MAX_RETRIES, attemptId, ex.getMessage());
+            }
+            try {
+                Thread.sleep(300L * attempt);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
 
-        if (!success) {
-            log.error("Failed to finalize attempt {} after {} retries. Setting status to INTERRUPTED", attemptId, MAX_RETRIES);
-            try {
-                Optional<ExamAttempt> attemptOpt = examAttemptRepository.findById(attemptId);
-                if (attemptOpt.isPresent()) {
-                    ExamAttempt attempt = attemptOpt.get();
-                    if (attempt.getStatus() == AttemptStatus.FINALIZING) {
-                        attempt.syncError();
-                        examAttemptRepository.save(attempt);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Failed to mark attempt {} as INTERRUPTED: {}", attemptId, e.getMessage());
-            }
+        log.error("Failed to finalize attempt {} after {} tries; marking it INTERRUPTED", attemptId, MAX_RETRIES);
+        try {
+            finalizeExamAttemptUseCase.markFinalizationFailed(attemptId);
+        } catch (Exception e) {
+            log.error("Failed to mark attempt {} as INTERRUPTED: {}", attemptId, e.getMessage());
         }
     }
 
-    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 60000, initialDelay = 10000)
+    @Scheduled(fixedDelay = 60000, initialDelay = 10000)
     public void recoverStuckAttempts() {
         try {
-            List<ExamAttempt> finalizing = examAttemptRepository.findByStatus(AttemptStatus.FINALIZING);
-            for (ExamAttempt attempt : finalizing) {
-                log.info("Recovering stuck FINALIZING attempt {}", attempt.getId());
-                executeFinalization(attempt.getId());
+            for (UUID attemptId : finalizeExamAttemptUseCase.findAttemptsAwaitingFinalization()) {
+                log.info("Recovering stuck FINALIZING attempt {}", attemptId);
+                executeFinalization(attemptId);
             }
         } catch (Exception e) {
             log.warn("Error during scheduled finalization recovery: {}", e.getMessage());

@@ -1,5 +1,7 @@
 package com.example.vieva.application.usecases.exam;
 
+import com.example.vieva.application.usecases.common.EnumValues;
+
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.exam.*;
@@ -110,13 +112,15 @@ public class ExamServiceImpl implements ExamService {
         if (command == null || command.status() == null) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam status is required");
         }
-        if (command.status() == ExamStatus.IN_PROGRESS) {
+        ExamStatus targetStatus = EnumValues.parse(ExamStatus.class, command.status(),
+                "Invalid exam status: " + command.status());
+        if (targetStatus == ExamStatus.IN_PROGRESS) {
             int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
             if (count == 0) {
                 throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Cannot publish exam with zero questions");
             }
         }
-        exam.transitionTo(command.status());
+        exam.transitionTo(targetStatus);
         Exam saved = examRepository.save(exam);
         int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
         return toView(saved, count);
@@ -229,7 +233,7 @@ public class ExamServiceImpl implements ExamService {
                 exam.getCreatorId(),
                 exam.getTitle(),
                 exam.getDurationSeconds(),
-                exam.getStatus(),
+                exam.getStatus().name(),
                 questionCount,
                 exam.getCreatedAt(),
                 exam.getUpdatedAt(),

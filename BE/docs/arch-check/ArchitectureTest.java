@@ -1,7 +1,10 @@
 package com.example.vieva.architecture;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchIgnore;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
@@ -9,6 +12,10 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
 @AnalyzeClasses(packages = "com.example.vieva", importOptions = ImportOption.DoNotIncludeTests.class)
+/**
+ * Clean Architecture rules (restored from commit ed43893, removed in 16d95fd) plus rules for the
+ * violations found in the 31/10/2026 audit. Run: mvn test -Dtest=ArchitectureTest
+ */
 public class ArchitectureTest {
     private static final String DOMAIN = "com.example.vieva.domain..";
     private static final String APPLICATION = "com.example.vieva.application..";
@@ -104,22 +111,43 @@ public class ArchitectureTest {
             .that().resideInAPackage("com.example.vieva.infrastructure.database..")
             .should().dependOnClassesThat().resideInAPackage(INPUT_PORTS);
 
-    // ---- Proposed extra rules (not in ed43893) ----
+    // ---- Rules added on 31/10/2026 (audit A2, A3, A4) ----
+
+    private static final DescribedPredicate<JavaClass> INTERVIEW_ENTITIES = DescribedPredicate.describe(
+            "interview domain entities (ExamAttempt, ExamTurn, Rubric, RubricCriterion)",
+            c -> c.isEquivalentTo(com.example.vieva.domain.entities.ExamAttempt.class)
+                    || c.isEquivalentTo(com.example.vieva.domain.entities.ExamTurn.class)
+                    || c.isEquivalentTo(com.example.vieva.domain.entities.Rubric.class)
+                    || c.isEquivalentTo(com.example.vieva.domain.entities.RubricCriterion.class));
+
+    private static final DescribedPredicate<JavaClass> AI_GRADING_PORTS = DescribedPredicate.describe(
+            "AI grading output ports",
+            c -> c.getPackageName().startsWith("com.example.vieva.application.ports.output")
+                    && (c.getSimpleName().endsWith("Gateway") || c.getSimpleName().endsWith("GraderPort")
+                    || c.getSimpleName().equals("AttemptGradingResult")));
+
+    // X1: AI grading ports and adapters exchange plain DTOs (EvaluationTurn, RubricSummary), not entities
     @ArchTest
-    public static final ArchRule X1_aiGatewaysDoNotDependOnDomainEntities = noClasses()
-            .that().haveSimpleNameEndingWith("Gateway").or().haveSimpleNameEndingWith("GraderPort")
-            .or().haveSimpleName("AttemptGradingResult")
-            .and().resideInAPackage(OUTPUT_PORTS)
-            .should().dependOnClassesThat().resideInAPackage("com.example.vieva.domain.entities..");
+    public static final ArchRule aiGradingPortsDoNotExposeInterviewEntities = noClasses()
+            .that(AI_GRADING_PORTS)
+            .should().dependOnClassesThat(INTERVIEW_ENTITIES);
 
     @ArchTest
-    public static final ArchRule X2_infrastructureDoesNotDependOnUseCases = noClasses()
+    public static final ArchRule aiAdaptersDoNotDependOnInterviewEntities = noClasses()
+            .that().resideInAPackage("com.example.vieva.infrastructure.ai..")
+            .should().dependOnClassesThat(INTERVIEW_ENTITIES);
+
+    // X2: infrastructure reaches the application only through ports (configuration wires use cases)
+    @ArchTest
+    public static final ArchRule infrastructureDoesNotDependOnUseCases = noClasses()
             .that().resideInAPackage(INFRASTRUCTURE)
             .and().resideOutsideOfPackage("com.example.vieva.infrastructure.configuration..")
             .should().dependOnClassesThat().resideInAPackage(USE_CASES);
 
+    // X3: entities protect their invariants — state changes go through business methods
+    @ArchIgnore(reason = "Plan Đợt 3 (task 3.1): remove @Setter from the 23 entities, then enable")
     @ArchTest
-    public static final ArchRule X3_entitiesHaveNoPublicSetters = noMethods()
+    public static final ArchRule entitiesHaveNoPublicSetters = noMethods()
             .that().arePublic().and().haveNameMatching("set[A-Z].*")
             .should().beDeclaredInClassesThat().resideInAPackage("com.example.vieva.domain.entities..");
 }
