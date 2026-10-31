@@ -7,6 +7,17 @@
  */
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
 
+const IS_PROD = Boolean(env.PROD);
+
+/** JWT of the signed-in user; the nginx speech proxies check it (?token= for WebSockets). */
+export const getAuthToken = () => {
+  try {
+    return window.localStorage.getItem('aives_token');
+  } catch (e) {
+    return null;
+  }
+};
+
 const toWsUrl = (value) => {
   if (!value) return null;
   if (value.startsWith('ws://') || value.startsWith('wss://')) return value;
@@ -17,11 +28,14 @@ const toWsUrl = (value) => {
   return value;
 };
 
+// Production build (served by nginx): go through the authenticated proxies.
+// Development (vite): talk to the services directly unless VITE_* overrides it.
 export const getSttWsUrl = () =>
-  toWsUrl(env.VITE_STT_WS_URL) || `ws://${window.location.hostname || 'localhost'}:8002/ws/transcribe`;
+  toWsUrl(env.VITE_STT_WS_URL)
+  || (IS_PROD ? toWsUrl('/ws/stt') : `ws://${window.location.hostname || 'localhost'}:8002/ws/transcribe`);
 
 export const getTtsBaseUrl = () =>
-  env.VITE_TTS_URL || `http://${window.location.hostname || 'localhost'}:8001`;
+  env.VITE_TTS_URL || (IS_PROD ? '/tts' : `http://${window.location.hostname || 'localhost'}:8001`);
 
 /** 'vi-VN' -> 'vi', 'en-US' -> 'en' (what the STT service expects in ?lang=). */
 export const toSttLang = (locale) => (String(locale || 'vi-VN').toLowerCase().startsWith('en') ? 'en' : 'vi');

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getSttWsUrl, toSttLang } from '../utils/speechConfig';
+import { getAuthToken, getSttWsUrl, toSttLang } from '../utils/speechConfig';
 
 const FINAL_TIMEOUT_MS = 5000;
 
@@ -39,7 +39,10 @@ export function useVoiceSTT({
   const callbacksRef = useRef({ onFinalTranscript, onPartialTranscript, onError });
   callbacksRef.current = { onFinalTranscript, onPartialTranscript, onError };
 
-  const url = `${wsUrl || getSttWsUrl()}${(wsUrl || getSttWsUrl()).includes('?') ? '&' : '?'}lang=${toSttLang(language)}`;
+  const baseWsUrl = wsUrl || getSttWsUrl();
+  const token = getAuthToken();
+  const url = `${baseWsUrl}${baseWsUrl.includes('?') ? '&' : '?'}lang=${toSttLang(language)}`
+    + (token ? `&token=${encodeURIComponent(token)}` : '');
 
   const settleFinal = useCallback((text) => {
     const waiter = finalWaiterRef.current;

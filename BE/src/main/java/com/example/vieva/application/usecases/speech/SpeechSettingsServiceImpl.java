@@ -1,5 +1,7 @@
 package com.example.vieva.application.usecases.speech;
 
+import com.example.vieva.application.ports.input.speech.SpeechTestResult;
+
 import com.example.vieva.application.exception.ApplicationException;
 import com.example.vieva.application.exception.ErrorCode;
 import com.example.vieva.application.ports.input.speech.SpeechSettingsResult;
@@ -45,7 +47,7 @@ public class SpeechSettingsServiceImpl implements SpeechSettingsService {
         if (targetTtsLanguage == null || targetTtsLanguage.isBlank()) {
             targetTtsLanguage = "vi-VN";
         }
-        if (!speechGateway.getSupportedLocales().contains(targetTtsLanguage)) {
+        if (!speechGateway.getSupportedTtsLocales().contains(targetTtsLanguage)) {
             throw new ApplicationException(ErrorCode.INVALID_SPEECH_LOCALE);
         }
 
@@ -58,7 +60,7 @@ public class SpeechSettingsServiceImpl implements SpeechSettingsService {
         if (targetSttLanguage == null || targetSttLanguage.isBlank()) {
             targetSttLanguage = "vi-VN";
         }
-        if (!speechGateway.getSupportedLocales().contains(targetSttLanguage)) {
+        if (!speechGateway.getSupportedSttLocales().contains(targetSttLanguage)) {
             throw new ApplicationException(ErrorCode.INVALID_SPEECH_LOCALE);
         }
 
@@ -126,6 +128,48 @@ public class SpeechSettingsServiceImpl implements SpeechSettingsService {
         );
         SpeechSettings saved = settingsRepository.save(settings);
         return toResult(saved);
+    }
+
+    @Override
+    public SpeechTestResult testSettings(String ttsLanguage, String sttLanguage, String voice, String sampleText) {
+        SpeechSettings current = settingsRepository.getSettings();
+        String tts = ttsLanguage != null && !ttsLanguage.isBlank() ? ttsLanguage.trim()
+                : (current.getTtsLanguage() != null ? current.getTtsLanguage() : "vi-VN");
+        String stt = sttLanguage != null && !sttLanguage.isBlank() ? sttLanguage.trim()
+                : (current.getSttLanguage() != null ? current.getSttLanguage() : "vi-VN");
+        if (!speechGateway.getSupportedTtsLocales().contains(tts) || !speechGateway.getSupportedSttLocales().contains(stt)) {
+            throw new ApplicationException(ErrorCode.INVALID_SPEECH_LOCALE);
+        }
+        boolean english = tts.toLowerCase().startsWith("en");
+        String chosenVoice = voice != null && !voice.isBlank() ? voice.trim()
+                : (english ? current.getEnglishVoice() : current.getVietnameseVoice());
+        String text = sampleText != null && !sampleText.isBlank() ? sampleText.trim()
+                : (english ? "Hello, this is the voice that will read your exam questions."
+                           : "Xin chào, đây là giọng đọc câu hỏi trong phòng thi vấn đáp.");
+
+        boolean ttsAvailable = speechGateway.isProviderAvailable();
+        boolean sttAvailable = speechGateway.isSttAvailable();
+        boolean engineSpeaksLanguage = speechGateway.getSupportedLocales().contains(tts);
+
+        String audioBase64 = null;
+        if (ttsAvailable && engineSpeaksLanguage) {
+            audioBase64 = speechGateway.synthesizeSample(text, chosenVoice)
+                    .map(bytes -> java.util.Base64.getEncoder().encodeToString(bytes))
+                    .orElse(null);
+        }
+        boolean browserVoice = !engineSpeaksLanguage;
+
+        String message;
+        if (!sttAvailable) {
+            message = "Dịch vụ nhận dạng giọng nói (STT) chưa phản hồi; sinh viên sẽ không thấy chữ khi trả lời.";
+        } else if (browserVoice) {
+            message = "Ngôn ngữ này được đọc bằng giọng của trình duyệt sinh viên (máy TTS chỉ hỗ trợ tiếng Việt).";
+        } else if (audioBase64 == null) {
+            message = "Máy TTS chưa tạo được câu mẫu; phòng thi sẽ dùng giọng của trình duyệt.";
+        } else {
+            message = "Thử nghiệm thành công. Có thể lưu cấu hình.";
+        }
+        return new SpeechTestResult(ttsAvailable, sttAvailable, tts, stt, chosenVoice, text, audioBase64, browserVoice, message);
     }
 
     private SpeechSettingsResult toResult(SpeechSettings s) {

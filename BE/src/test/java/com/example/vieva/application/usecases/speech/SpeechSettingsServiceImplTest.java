@@ -34,7 +34,48 @@ class SpeechSettingsServiceImplTest {
     void setUp() {
         settingsRepository = mock(SpeechSettingsRepository.class);
         speechGateway = mock(SpeechGatewayPort.class);
+        // TTS/STT locale lists default to the engine locales unless a test says otherwise
+        org.mockito.Mockito.doCallRealMethod().when(speechGateway).getSupportedTtsLocales();
+        org.mockito.Mockito.doCallRealMethod().when(speechGateway).getSupportedSttLocales();
         service = new SpeechSettingsServiceImpl(settingsRepository, speechGateway);
+    }
+
+    @Test
+    void acceptsEnglishSttAndBrowserTtsWhenGatewaySupportsThem() {
+        when(settingsRepository.getSettings()).thenReturn(defaultSettings());
+        when(settingsRepository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> inv.getArgument(0));
+        when(speechGateway.isProviderAvailable()).thenReturn(true);
+        when(speechGateway.getSupportedLocales()).thenReturn(List.of("vi-VN"));
+        org.mockito.Mockito.doReturn(List.of("vi-VN", "en-US")).when(speechGateway).getSupportedTtsLocales();
+        org.mockito.Mockito.doReturn(List.of("vi-VN", "en-US")).when(speechGateway).getSupportedSttLocales();
+        when(speechGateway.isVoiceSupported("vi-VN", "maichi")).thenReturn(true);
+
+        var result = service.updateSettings(com.example.vieva.application.ports.input.speech.UpdateSpeechSettingsRequest.builder()
+                .sttLanguage("en-US").ttsLanguage("en-US").build(), java.util.UUID.randomUUID());
+
+        org.assertj.core.api.Assertions.assertThat(result.getSttLanguage()).isEqualTo("en-US");
+        org.assertj.core.api.Assertions.assertThat(result.getTtsLanguage()).isEqualTo("en-US");
+    }
+
+    @Test
+    void testSettingsSpeaksSampleForEngineLanguageAndFlagsBrowserVoiceOtherwise() {
+        when(settingsRepository.getSettings()).thenReturn(defaultSettings());
+        when(speechGateway.getSupportedLocales()).thenReturn(List.of("vi-VN"));
+        org.mockito.Mockito.doReturn(List.of("vi-VN", "en-US")).when(speechGateway).getSupportedTtsLocales();
+        org.mockito.Mockito.doReturn(List.of("vi-VN", "en-US")).when(speechGateway).getSupportedSttLocales();
+        when(speechGateway.isProviderAvailable()).thenReturn(true);
+        when(speechGateway.isSttAvailable()).thenReturn(true);
+        when(speechGateway.synthesizeSample(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.Optional.of(new byte[]{1, 2, 3}));
+
+        var vi = service.testSettings("vi-VN", "vi-VN", null, null);
+        org.assertj.core.api.Assertions.assertThat(vi.audioBase64()).isEqualTo("AQID");
+        org.assertj.core.api.Assertions.assertThat(vi.browserVoice()).isFalse();
+
+        var en = service.testSettings("en-US", "en-US", null, null);
+        org.assertj.core.api.Assertions.assertThat(en.audioBase64()).isNull();
+        org.assertj.core.api.Assertions.assertThat(en.browserVoice()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(en.sttAvailable()).isTrue();
     }
 
     private SpeechSettings defaultSettings() {

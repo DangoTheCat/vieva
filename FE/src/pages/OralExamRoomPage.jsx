@@ -134,6 +134,8 @@ export function OralExamRoomPage({
   const autoSubmittedTurnRef = useRef(null);
   // Admin speech settings (Nhóm 7): STT/TTS language and voice used in this room
   const [speechSettings, setSpeechSettings] = useState(null);
+  // Set when the STT service fails; only then may the student type (fallback)
+  const [sttUnavailable, setSttUnavailable] = useState(false);
 
   // Reconnection state (Grace period max 120s)
   const [reconnectGraceLeft, setReconnectGraceLeft] = useState(120);
@@ -178,6 +180,7 @@ export function OralExamRoomPage({
     language: speechSettings?.sttLanguage || 'vi-VN',
     onError: (err) => {
       console.warn('STT Hook Warning:', err);
+      setSttUnavailable(true);
       showToast?.({
         type: 'warning',
         title: 'Nhận dạng giọng nói tạm gián đoạn',
@@ -185,6 +188,10 @@ export function OralExamRoomPage({
       });
     }
   });
+
+  useEffect(() => {
+    if (isWsConnected) setSttUnavailable(false);
+  }, [isWsConnected]);
 
   // Voice TTS Hook (voice, language and speed from the admin speech settings)
   const { isPlaying: isAiSpeaking, play: playTTS, stop: stopTTS } = useZeroTTS({
@@ -1693,12 +1700,17 @@ export function OralExamRoomPage({
               </label>
               
               <div className="relative">
+                {/* Oral exam: answers are spoken. Typing is only a fallback while speech recognition is unavailable. */}
                 <textarea
                   rows={6}
-                  value={manualText}
-                  onChange={(e) => setManualText(e.target.value)}
-                  placeholder="Nhấn 'Bắt đầu nói' bên dưới để trả lời bằng micro, hoặc gõ văn bản bổ sung tại đây..."
-                  className="w-full p-4 rounded-2xl bg-white border border-pink-200 focus:border-pink-500 focus:ring-0 text-ink text-xs sm:text-sm leading-relaxed placeholder:text-slate-400 font-medium shadow-sm"
+                  value={sttUnavailable ? manualText : [transcript, partialTranscript].filter(Boolean).join(' ')}
+                  onChange={(e) => { if (sttUnavailable) setManualText(e.target.value); }}
+                  readOnly={!sttUnavailable}
+                  aria-label="Nội dung câu trả lời"
+                  placeholder={sttUnavailable
+                    ? 'Nhận dạng giọng nói đang gián đoạn: bạn vẫn ghi âm câu trả lời, có thể gõ thêm nội dung chính tại đây.'
+                    : "Nhấn 'Bắt đầu nói' bên dưới và trả lời bằng giọng nói; nội dung sẽ hiện tại đây."}
+                  className={`w-full p-4 rounded-2xl border border-pink-200 focus:border-pink-500 focus:ring-0 text-ink text-xs sm:text-sm leading-relaxed placeholder:text-slate-400 font-medium shadow-sm ${sttUnavailable ? 'bg-white' : 'bg-slate-50 cursor-default'}`}
                 />
               </div>
 

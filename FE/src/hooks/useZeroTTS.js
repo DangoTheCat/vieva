@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { getTtsBaseUrl } from '../utils/speechConfig';
+import { getAuthToken, getTtsBaseUrl } from '../utils/speechConfig';
 
 /**
  * useZeroTTS — reads text aloud through the TTS service (POST {ttsBaseUrl}/synthesize),
@@ -101,7 +101,10 @@ export function useZeroTTS({
     setIsPlaying(true);
     fetch(`${baseUrl}/synthesize`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {})
+      },
       // ai-services/tts SynthesizeRequest: { text, speaker }
       body: JSON.stringify(voiceId ? { text: textOrUrl, speaker: voiceId } : { text: textOrUrl }),
       signal: abortControllerRef.current.signal

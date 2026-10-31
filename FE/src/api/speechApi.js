@@ -15,6 +15,14 @@ export const speechApi = {
     return apiClient.patch('/admin/speech', payload);
   },
 
+  /**
+   * POST /api/v1/admin/speech/test — tries a configuration without saving it
+   * @returns {Promise<{ttsAvailable: boolean, sttAvailable: boolean, audioBase64: string|null, browserVoice: boolean, sampleText: string, message: string}>}
+   */
+  testSettings({ ttsLanguage, sttLanguage, voice, sampleText }) {
+    return apiClient.post('/admin/speech/test', { ttsLanguage, sttLanguage, voice, sampleText });
+  },
+
   /** GET /api/v1/student/speech — same settings, readable by any signed-in user */
   getSettings() {
     return apiClient.get('/student/speech');
