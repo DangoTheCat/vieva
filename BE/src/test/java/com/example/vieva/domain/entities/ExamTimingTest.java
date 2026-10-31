@@ -123,6 +123,9 @@ class ExamTimingTest {
         Instant later = Instant.now().plusSeconds(5);
         turn.markAsked(later);
         assertThat(turn.getAskedAt()).isEqualTo(later);
+        // A second call (page reload) must not restart the timer
+        turn.markAsked(later.plusSeconds(60));
+        assertThat(turn.getAskedAt()).isEqualTo(later);
         turn.submitAnswer("A", null);
         assertThatThrownBy(() -> turn.markAsked(Instant.now())).isInstanceOf(DomainException.class);
     }

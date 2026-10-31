@@ -4,8 +4,11 @@ import { userApi } from '../api/userApi';
 import { oralExamApi } from '../api/oralExamApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { getActiveExam, gradeLabel } from '../utils/activeExam';
+import { speechApi } from '../api/speechApi';
 import { useVoiceSTT } from '../hooks/useVoiceSTT';
 import { useZeroTTS } from '../hooks/useZeroTTS';
+import { pickVoice } from '../utils/speechConfig';
+import { TURN_TYPE, isFollowUp, turnBadge, turnTitle } from '../utils/turnTypes';
 import { 
   Radio, 
   Mic, 
@@ -40,7 +43,10 @@ import { VoiceWaveform } from '../components/common/VoiceWaveform';
 import { AudioVisualizerCanvas } from '../components/exam/AudioVisualizerCanvas';
 
 // Placeholder rendered until the attempt's first turn arrives from the BE
-const EMPTY_QUESTION = { content: '', title: 'Đang tải câu hỏi...', badge: '', type: 'MAIN' };
+const EMPTY_QUESTION = { content: '', title: 'Đang tải câu hỏi...', badge: '', type: TURN_TYPE.MAIN };
+
+/** Text recorded when the answer time runs out with nothing said, so the turn can still be graded. */
+const NO_ANSWER_TEXT = '[Thí sinh không trả lời trong thời gian quy định]';
 
 /**
  * Maps backend ExamTurnDetailResponse list to frontend Question structure
@@ -52,12 +58,12 @@ const mapTurnsToQuestions = (turns, totalQuestions) => {
     turnId: t.turnId,
     questionNumber: t.turnOrder || idx + 1,
     totalQuestions: totalQuestions || turns.length,
-    type: t.turnType || 'MAIN',
-    badge: t.turnType === 'PROBING' ? `Câu hỏi xoáy thích ứng (Lượt ${t.turnOrder || idx + 1})` : 'Câu hỏi chính',
-    title: `Câu ${t.turnOrder || idx + 1}: ${t.turnType === 'PROBING' ? 'Hỏi xoáy thích ứng (Adaptive Probing)' : 'Kiến thức cốt lõi'}`,
+    type: t.turnType || TURN_TYPE.MAIN,
+    badge: turnBadge(t.turnType),
+    title: turnTitle(t.turnType, t.turnOrder || idx + 1),
     content: t.questionText || '',
     ttsAudioUrl: t.ttsAudioUrl,
-    hint: t.turnType === 'PROBING' ? 'Phân tích sâu hơn các khía cạnh kỹ thuật đã nêu.' : '',
+    hint: isFollowUp(t.turnType) ? 'Giải thích rõ hơn ý bạn vừa trả lời.' : '',
     rubricCriteria: t.rubricEvaluations || 'Đánh giá năng lực chuyên môn và phản xạ kiến trúc.'
   }));
 };
@@ -82,7 +88,7 @@ const mapRubricsFromTurns = (turns) => {
         } catch (e) {}
       }
       list.push({
-        name: `Lượt ${t.turnOrder || i + 1}: ${t.turnType === 'PROBING' ? 'Hỏi xoáy thích ứng' : 'Kiến thức cốt lõi'}`,
+        name: `Lượt ${t.turnOrder || i + 1}: ${turnBadge(t.turnType)}`,
         score: t.score != null ? Number(t.score) : null,
         max: 10,
         comment: t.feedback || ''
@@ -122,6 +128,12 @@ export function OralExamRoomPage({
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(activeExam?.durationSeconds || 900);
   const [isSubmittingTurn, setIsSubmittingTurn] = useState(false);
+  // Per-answer timer, started by the server once the question has been read (POST .../ready)
+  const [answerDeadlineMs, setAnswerDeadlineMs] = useState(null);
+  const [answerSecondsLeft, setAnswerSecondsLeft] = useState(null);
+  const autoSubmittedTurnRef = useRef(null);
+  // Admin speech settings (Nhóm 7): STT/TTS language and voice used in this room
+  const [speechSettings, setSpeechSettings] = useState(null);
 
   // Reconnection state (Grace period max 120s)
   const [reconnectGraceLeft, setReconnectGraceLeft] = useState(120);
@@ -151,37 +163,34 @@ export function OralExamRoomPage({
   const preflightAudioCtxRef = useRef(null);
   const preflightStreamRef = useRef(null);
   const preflightAnimFrameRef = useRef(null);
-  const wasWsConnectedRef = useRef(false);
-
-  // Voice STT Hook
-  const { 
-    isRecording, 
-    transcript, 
-    partialTranscript, 
-    audioBlob, 
-    startRecording, 
-    stopRecording, 
-    resetTranscript, 
-    isConnected: isWsConnected 
+  // Voice STT Hook. An STT failure only warns the student: the recording is still uploaded
+  // with the answer, and losing the STT stream is not a lost exam connection.
+  const {
+    isRecording,
+    transcript,
+    partialTranscript,
+    audioBlob,
+    startRecording,
+    stopRecording,
+    resetTranscript,
+    isConnected: isWsConnected
   } = useVoiceSTT({
+    language: speechSettings?.sttLanguage || 'vi-VN',
     onError: (err) => {
       console.warn('STT Hook Warning:', err);
-      // Trigger disconnect if WS dropped while student was in IN_PROGRESS
-      if (wasWsConnectedRef.current && examStage === 'IN_PROGRESS') {
-        handleDisconnect('Mất kết nối với máy chủ nhận diện giọng nói (STT Stream dropped).');
-      }
+      showToast?.({
+        type: 'warning',
+        title: 'Nhận dạng giọng nói tạm gián đoạn',
+        message: 'Bạn vẫn có thể tiếp tục trả lời, bản ghi âm sẽ được gửi kèm câu trả lời.'
+      });
     }
   });
 
-  // Track WS connection status
-  useEffect(() => {
-    if (isWsConnected) {
-      wasWsConnectedRef.current = true;
-    }
-  }, [isWsConnected]);
-
-  // Voice TTS Hook
+  // Voice TTS Hook (voice, language and speed from the admin speech settings)
   const { isPlaying: isAiSpeaking, play: playTTS, stop: stopTTS } = useZeroTTS({
+    voiceId: pickVoice(speechSettings),
+    language: speechSettings?.ttsLanguage || 'vi-VN',
+    speed: speechSettings?.speed || 1.0,
     onError: (err) => {
       console.warn('TTS Hook Warning:', err);
     }
@@ -199,6 +208,13 @@ export function OralExamRoomPage({
         const u = await userApi.getCurrentUser();
         if (isMounted) setProfile(u);
       } catch (e) {}
+
+      try {
+        const settings = await speechApi.getSettings();
+        if (isMounted && settings) setSpeechSettings(settings);
+      } catch (e) {
+        console.warn('Speech settings unavailable, using Vietnamese defaults:', e);
+      }
 
       let targetAttemptId = attemptId || initialAttemptId;
 
@@ -338,28 +354,59 @@ export function OralExamRoomPage({
     };
   }, [examStage, attemptId]);
 
-  // 4. Track WS connection drop during active exam session
+  // 4. Read the question aloud, then ask the server to start the answer timer.
+  //    Reading time is not counted against the student (ExamTurn.askedAt is set after TTS).
   useEffect(() => {
-    if (isWsConnected) {
-      wasWsConnectedRef.current = true;
-    } else if (wasWsConnectedRef.current && examStage === 'IN_PROGRESS') {
-      wasWsConnectedRef.current = false;
-      handleDisconnect('Mất kết nối với máy chủ nhận diện giọng nói (WebSocket stream dropped).');
-    }
-  }, [isWsConnected, examStage]);
+    if (examStage !== 'IN_PROGRESS' || !currentQuestion?.turnId) return undefined;
+    let cancelled = false;
+    resetTranscript();
+    setManualText(answersByQuestion[activeQuestionIndex]?.text || '');
+    setAnswerDeadlineMs(null);
+    setAnswerSecondsLeft(null);
+    const turnId = currentQuestion.turnId;
+    const timer = setTimeout(async () => {
+      try {
+        await playTTS(currentQuestion.content);
+      } catch (e) {
+        // Reading failed: start the timer anyway so the exam keeps moving
+      }
+      if (cancelled || !attemptId) return;
+      try {
+        const ready = await oralExamApi.markTurnReady(attemptId, turnId);
+        if (cancelled || !ready) return;
+        const skewMs = ready.serverTime ? Date.now() - new Date(ready.serverTime).getTime() : 0;
+        if (ready.answerDeadline) {
+          setAnswerDeadlineMs(new Date(ready.answerDeadline).getTime() + skewMs);
+        }
+        if (ready.remainingSeconds != null) setSecondsLeft(ready.remainingSeconds);
+      } catch (err) {
+        console.warn('markTurnReady failed:', err);
+      }
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [activeQuestionIndex, examStage, currentQuestion?.turnId]);
 
-  // 4. TTS Read Question upon changing question in IN_PROGRESS
+  // 5. Per-answer countdown; when it reaches zero the answer is submitted automatically
   useEffect(() => {
-    if (examStage === 'IN_PROGRESS' && currentQuestion) {
-      resetTranscript();
-      setManualText(answersByQuestion[activeQuestionIndex]?.text || '');
-      // Automatically voice out question
-      const timer = setTimeout(() => {
-        playTTS(currentQuestion.content);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (examStage !== 'IN_PROGRESS' || !answerDeadlineMs) return undefined;
+    const tick = () => setAnswerSecondsLeft(Math.max(0, Math.ceil((answerDeadlineMs - Date.now()) / 1000)));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [examStage, answerDeadlineMs]);
+
+  useEffect(() => {
+    const turnId = currentQuestion?.turnId;
+    if (examStage === 'IN_PROGRESS' && answerSecondsLeft === 0 && turnId
+        && !isSubmittingTurn && autoSubmittedTurnRef.current !== turnId) {
+      autoSubmittedTurnRef.current = turnId;
+      showToast?.({ type: 'warning', title: 'Hết giờ trả lời câu này', message: 'Câu trả lời hiện tại được nộp tự động.' });
+      handleSubmitTurn({ auto: true });
     }
-  }, [activeQuestionIndex, examStage]);
+  }, [answerSecondsLeft, examStage, isSubmittingTurn, currentQuestion?.turnId]);
 
   // Stop TTS & STT on unmount
   useEffect(() => {
@@ -478,9 +525,9 @@ export function OralExamRoomPage({
           id: number,
           turnId: sessionRes.currentTurnId,
           questionNumber: number,
-          type: 'MAIN',
-          badge: 'Câu hỏi chính',
-          title: `Câu ${number}: Kiến thức cốt lõi`,
+          type: TURN_TYPE.MAIN,
+          badge: turnBadge(TURN_TYPE.MAIN),
+          title: turnTitle(TURN_TYPE.MAIN, number),
           content: sessionRes.currentQuestionText || '',
           ttsAudioUrl: sessionRes.currentTtsAudioUrl
         }]);
@@ -625,27 +672,34 @@ export function OralExamRoomPage({
   /**
    * Submit turn answer & question loop: probe() / nextQuestion()
    */
-  const handleSubmitTurn = async () => {
-    if (isRecording) {
-      stopRecording();
-    }
-
-    const answerContent = currentCompositeTranscript;
-    if (!answerContent && !audioBlob) {
-      showToast?.({ type: 'warning', title: 'Chưa Có Câu Trả Lời', message: 'Hãy trả lời bằng giọng nói hoặc nhập câu trả lời trước khi nộp.' });
-      return;
-    }
+  const handleSubmitTurn = async ({ auto = false } = {}) => {
+    if (isSubmittingTurn) return;
     if (!attemptId || !currentQuestion.turnId) {
       showToast?.({ type: 'error', message: 'Không xác định được lượt hỏi hiện tại. Vui lòng tải lại phòng thi.' });
       return;
     }
     setIsSubmittingTurn(true);
 
+    // Wait for the STT "final" so the whole answer is submitted, not the last partial
+    const recorded = await stopRecording();
+    const spoken = recorded?.transcript || transcript;
+    const answerAudio = recorded?.audioBlob || audioBlob;
+    let answerContent = [manualText, spoken].filter(Boolean).join(' ').trim();
+
+    if (!answerContent && !answerAudio) {
+      if (!auto) {
+        setIsSubmittingTurn(false);
+        showToast?.({ type: 'warning', title: 'Chưa Có Câu Trả Lời', message: 'Hãy trả lời bằng giọng nói trước khi nộp.' });
+        return;
+      }
+      answerContent = NO_ANSWER_TEXT;
+    }
+
     let evalRes;
     try {
       evalRes = await oralExamApi.submitTurnAnswer(attemptId, currentQuestion.turnId, {
         transcriptText: answerContent,
-        audioBlob: audioBlob
+        audioBlob: answerAudio
       });
     } catch (err) {
       setIsSubmittingTurn(false);
@@ -660,7 +714,7 @@ export function OralExamRoomPage({
         questionId: currentQuestion.id,
         turnId: currentQuestion.turnId,
         text: answerContent,
-        audioBlob: audioBlob,
+        audioBlob: answerAudio,
         score: evalRes?.score,
         feedback: evalRes?.feedback,
         rubricEvaluations: evalRes?.rubricEvaluations
@@ -668,12 +722,14 @@ export function OralExamRoomPage({
     }));
 
     setIsSubmittingTurn(false);
-
-    if (showToast) {
-      showToast({
-        type: 'success',
-        title: 'Đã Nộp Câu Trả Lời',
-        message: `Đã lưu câu trả lời cho ${currentQuestion.badge || `Câu ${activeQuestionIndex + 1}`}.`
+    if (evalRes?.remainingSeconds != null) {
+      setSecondsLeft(evalRes.remainingSeconds);
+    }
+    if (evalRes?.timedOut && !auto) {
+      showToast?.({
+        type: 'warning',
+        title: 'Câu trả lời nộp trễ',
+        message: 'Câu trả lời đã được ghi nhận nhưng quá thời gian quy định, giảng viên sẽ thấy ghi chú này.'
       });
     }
 
@@ -685,7 +741,7 @@ export function OralExamRoomPage({
 
     // If backend generated adaptive probe question or dynamic next turn
     if (evalRes?.nextQuestionText && evalRes?.nextTurnId) {
-      const isProbing = evalRes.nextTurnType === 'PROBING';
+      const isProbing = isFollowUp(evalRes.nextTurnType);
       const nextIndex = activeQuestionIndex + 1;
       setQuestions((prevQuestions) => {
         const updated = [...prevQuestions];
@@ -694,9 +750,9 @@ export function OralExamRoomPage({
           turnId: evalRes.nextTurnId,
           questionNumber: nextIndex + 1,
           totalQuestions: Math.max(updated.length, nextIndex + 1),
-          type: evalRes.nextTurnType || (isProbing ? 'PROBING' : 'MAIN'),
-          badge: isProbing ? `Câu hỏi xoáy thích ứng (Lượt ${nextIndex + 1})` : 'Câu hỏi chính',
-          title: `Câu ${nextIndex + 1}: ${isProbing ? 'Hỏi xoáy thích ứng (Adaptive Probing)' : 'Kiến thức cốt lõi'}`,
+          type: evalRes.nextTurnType || (isProbing ? TURN_TYPE.FOLLOW_UP : TURN_TYPE.MAIN),
+          badge: turnBadge(evalRes.nextTurnType),
+          title: turnTitle(evalRes.nextTurnType, nextIndex + 1),
           content: evalRes.nextQuestionText,
           rubricCriteria: isProbing ? 'Làm rõ và đào sâu nội dung câu trả lời trước đó.' : 'Nắm vững kiến trúc và nguyên lý hệ thống.'
         };
@@ -711,8 +767,8 @@ export function OralExamRoomPage({
       if (isProbing && showToast) {
         showToast({
           type: 'info',
-          title: 'Hỏi Xoáy Thích Ứng (Adaptive Probing)',
-          message: 'Giám thị AI đưa ra câu hỏi xoáy thích ứng để làm rõ câu trả lời vừa rồi.'
+          title: 'Câu hỏi làm rõ',
+          message: 'Giám khảo AI hỏi thêm để làm rõ câu trả lời vừa rồi.'
         });
       }
       return;
@@ -1431,7 +1487,7 @@ export function OralExamRoomPage({
                   : 'bg-amber-100 text-amber-800 border-amber-300'
               }`}>
                 <Radio className={`w-3 h-3 ${isWsConnected ? 'text-emerald-600 animate-pulse' : 'text-amber-600'}`} />
-                {isWsConnected ? 'STT Direct WS Online' : 'WS Local Mode'}
+                {isWsConnected ? 'Nhận dạng giọng nói: sẵn sàng' : 'Nhận dạng giọng nói: chờ kết nối'}
               </span>
             </div>
             <p className="text-xs text-green-800 mt-0.5">
@@ -1462,16 +1518,22 @@ export function OralExamRoomPage({
             </p>
           </div>
 
-          {/* Disconnect Simulation Trigger (Simulate network drop for state machine testing) */}
-          <button
-            type="button"
-            onClick={() => handleDisconnect('Mô phỏng ngắt kết nối mạng thí sinh.')}
-            title="Mô phỏng mất kết nối mạng để kiểm tra trạng thái RECONNECTING"
-            className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold border border-amber-400 shadow-sm cursor-pointer flex items-center gap-1"
+          {/* Per-answer timer: starts after the question has been read aloud */}
+          <div
+            aria-live="polite"
+            className={`text-right font-mono px-3.5 py-1.5 rounded-xl border transition-all duration-300 ${
+              answerSecondsLeft != null && answerSecondsLeft <= 15
+                ? 'bg-rose-100 border-rose-300 text-rose-900 ring-2 ring-rose-200'
+                : 'bg-white border-pink-200 text-ink shadow-2xs'
+            }`}
           >
-            <WifiOff className="w-3.5 h-3.5 text-amber-700" />
-            <span className="hidden md:inline">Test Rớt Mạng</span>
-          </button>
+            <span className="text-[11px] font-bold uppercase tracking-wider block text-green-700">
+              Thời gian trả lời câu này
+            </span>
+            <p className="text-xs sm:text-sm font-black">
+              {answerSecondsLeft == null ? (isAiSpeaking ? 'Đang đọc câu hỏi' : '--:--') : formatTime(answerSecondsLeft)}
+            </p>
+          </div>
 
           <button
             type="button"
@@ -1562,11 +1624,11 @@ export function OralExamRoomPage({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${
-                    currentQuestion.type === 'PROBING'
+                    isFollowUp(currentQuestion.type)
                       ? 'bg-rose-50 text-rose-800 border-rose-200'
                       : 'bg-green-100 text-green-900 border-green-400'
                   }`}>
-                    {currentQuestion.badge || (currentQuestion.type === 'PROBING' ? 'Câu hỏi xoáy thích ứng' : 'Câu hỏi chính')}
+                    {currentQuestion.badge || turnBadge(currentQuestion.type)}
                   </span>
                   <span className="text-xs font-mono font-bold text-green-700">
                     Mã lượt: #{currentQuestion.turnId || currentQuestion.id}

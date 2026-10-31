@@ -84,18 +84,43 @@ export function LecturerExamsPage({ showToast }) {
     e.preventDefault();
     const title = form.title.trim();
     const minutes = Number(form.minutes);
+    const answerSeconds = Number(form.answerSeconds);
+    const maxFollowUps = Number(form.maxFollowUps);
     if (!title) return;
     if (!form.examId && (!Number.isFinite(minutes) || minutes < 1)) {
       showToast({ type: 'warning', message: 'Thời lượng phải tối thiểu 1 phút.' });
       return;
     }
+    if (form.isDraft !== false) {
+      if (!Number.isInteger(answerSeconds) || answerSeconds < 30 || answerSeconds > 600) {
+        showToast({ type: 'warning', message: 'Thời gian trả lời mỗi câu phải từ 30 đến 600 giây.' });
+        return;
+      }
+      if (!Number.isInteger(maxFollowUps) || maxFollowUps < 0 || maxFollowUps > 3) {
+        showToast({ type: 'warning', message: 'Số câu hỏi làm rõ tối đa phải từ 0 đến 3.' });
+        return;
+      }
+    }
     setIsSaving(true);
     try {
       if (form.examId) {
-        await lecturerExamApi.updateTitle(form.examId, title);
-        showToast({ type: 'success', message: 'Đã cập nhật tên kỳ thi.' });
+        if (form.isDraft) {
+          await lecturerExamApi.updateExam(form.examId, {
+            title, answerTimeLimitSeconds: answerSeconds, maxFollowUpsPerQuestion: maxFollowUps
+          });
+          showToast({ type: 'success', message: 'Đã cập nhật kỳ thi.' });
+        } else {
+          await lecturerExamApi.updateTitle(form.examId, title);
+          showToast({ type: 'success', message: 'Đã cập nhật tên kỳ thi.' });
+        }
       } else {
-        await lecturerExamApi.createExam({ subjectId, title, durationSeconds: Math.round(minutes * 60) });
+        await lecturerExamApi.createExam({
+          subjectId,
+          title,
+          durationSeconds: Math.round(minutes * 60),
+          answerTimeLimitSeconds: answerSeconds,
+          maxFollowUpsPerQuestion: maxFollowUps
+        });
         showToast({ type: 'success', message: 'Đã tạo kỳ thi ở trạng thái Bản nháp. Hãy chọn câu hỏi trước khi mở thi.' });
       }
       setForm(null);
@@ -229,7 +254,7 @@ export function LecturerExamsPage({ showToast }) {
               <option key={s.subjectId} value={s.subjectId}>{s.subjectCode} — {s.subjectName}</option>
             ))}
           </select>
-          <button type="button" disabled={!subjectId} onClick={() => setForm({ title: '', minutes: 15 })} className={primaryBtn}>
+          <button type="button" disabled={!subjectId} onClick={() => setForm({ title: '', minutes: 15, answerSeconds: 120, maxFollowUps: 2, isDraft: true })} className={primaryBtn}>
             <CalendarPlus className="w-4 h-4" /> Tạo kỳ thi
           </button>
         </div>
@@ -259,11 +284,23 @@ export function LecturerExamsPage({ showToast }) {
                     <p className="text-[11px] text-green-800 flex items-center gap-3">
                       <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {Math.round(exam.durationSeconds / 60)} phút</span>
                       <span className="flex items-center gap-1"><ListChecks className="w-3.5 h-3.5" /> {exam.questionCount} câu hỏi</span>
+                      <span>{exam.answerTimeLimitSeconds ?? 120} giây/câu</span>
+                      <span>Tối đa {exam.maxFollowUpsPerQuestion ?? 2} câu làm rõ</span>
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={() => setForm({ examId: exam.id, title: exam.title })} className={ghostBtn}>
-                      <Pencil className="w-3.5 h-3.5" /> Đổi tên
+                    <button
+                      type="button"
+                      onClick={() => setForm({
+                        examId: exam.id,
+                        title: exam.title,
+                        isDraft,
+                        answerSeconds: exam.answerTimeLimitSeconds ?? 120,
+                        maxFollowUps: exam.maxFollowUpsPerQuestion ?? 2
+                      })}
+                      className={ghostBtn}
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> {isDraft ? 'Chỉnh sửa' : 'Đổi tên'}
                     </button>
                     {isDraft && (
                       <>
@@ -302,7 +339,9 @@ export function LecturerExamsPage({ showToast }) {
         <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <form onSubmit={handleSaveExam} className="bg-white border border-pink-200 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-md">
             <div className="flex items-center justify-between">
-              <h2 className="font-heading font-black text-lg">{form.examId ? 'Đổi tên kỳ thi' : 'Tạo kỳ thi mới'}</h2>
+              <h2 className="font-heading font-black text-lg">
+                {!form.examId ? 'Tạo kỳ thi mới' : form.isDraft ? 'Chỉnh sửa kỳ thi' : 'Đổi tên kỳ thi'}
+              </h2>
               <button type="button" onClick={() => setForm(null)} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100"><X className="w-5 h-5" /></button>
             </div>
             <label className="block text-xs font-bold space-y-1">
@@ -314,6 +353,23 @@ export function LecturerExamsPage({ showToast }) {
                 <span>Thời lượng (phút)</span>
                 <input type="number" min="1" required value={form.minutes} onChange={e => setForm({ ...form, minutes: e.target.value })} className={inputClass} />
               </label>
+            )}
+            {form.isDraft && (
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs font-bold space-y-1">
+                  <span>Thời gian trả lời mỗi câu (giây)</span>
+                  <input type="number" min="30" max="600" step="10" required value={form.answerSeconds}
+                    onChange={e => setForm({ ...form, answerSeconds: e.target.value })} className={inputClass} />
+                </label>
+                <label className="block text-xs font-bold space-y-1">
+                  <span>Số câu hỏi làm rõ tối đa mỗi câu</span>
+                  <input type="number" min="0" max="3" required value={form.maxFollowUps}
+                    onChange={e => setForm({ ...form, maxFollowUps: e.target.value })} className={inputClass} />
+                </label>
+                <p className="col-span-2 text-xs text-green-800">
+                  Áp dụng cho mọi lượt thi của kỳ thi này; không đổi được sau khi mở thi.
+                </p>
+              </div>
             )}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setForm(null)} className={ghostBtn}>Huỷ</button>
