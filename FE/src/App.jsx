@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, Suspense, lazy } from 'react';
+﻿import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
@@ -77,17 +77,19 @@ function AppContent() {
     setCurrentView('profile');
   };
 
-  // Global Toast state
-  const [toast, setToast] = useState(null);
+  // Global toast queue: messages are shown one after another instead of replacing each other
+  const [toastQueue, setToastQueue] = useState([]);
+  const toast = toastQueue[0] || null;
+  const dismissToast = useCallback(() => setToastQueue((queue) => queue.slice(1)), []);
 
-  // Interactive Voice Lab State
-  const [isMicTesting, setIsMicTesting] = useState(false);
-  const [selectedVoiceModel, setSelectedVoiceModel] = useState('vi-VN-SophiaNeural');
-  const [micVolume, setMicVolume] = useState(0.7);
-
-  const showToast = (toastData) => {
-    setToast(toastData);
-  };
+  const showToast = useCallback((toastData) => {
+    if (!toastData) return;
+    setToastQueue((queue) => {
+      const last = queue[queue.length - 1];
+      if (last && last.message === toastData.message && last.title === toastData.title) return queue;
+      return [...queue, toastData].slice(-4);
+    });
+  }, []);
 
   // Views each role may open — Strictly limited to 3 Core Functional Groups + Profile Page
   const allowedViews = [
@@ -168,7 +170,7 @@ function AppContent() {
 
             {/* Clean Progress Bar */}
             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-blue-600 h-full rounded-full animate-pulse w-3/4"></div>
+              <div className="bg-pink-600 h-full rounded-full animate-pulse w-3/4"></div>
             </div>
           </div>
 
@@ -176,7 +178,7 @@ function AppContent() {
           <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span className="text-[11px] font-mono font-medium text-slate-400">
-              Secured Academic Node • v4.8
+              AIVES • FPT University
             </span>
           </div>
         </div>
@@ -190,14 +192,14 @@ function AppContent() {
       return (
         <Suspense fallback={<PageSkeleton />}>
           <RegisterPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
-          <Toast toast={toast} onClose={() => setToast(null)} />
+          <Toast toast={toast} onClose={dismissToast} />
         </Suspense>
       );
     }
     return (
       <Suspense fallback={<PageSkeleton />}>
         <LoginPage onNavigate={(view) => setCurrentView(view)} showToast={showToast} />
-        <Toast toast={toast} onClose={() => setToast(null)} />
+        <Toast toast={toast} onClose={dismissToast} />
       </Suspense>
     );
   }
@@ -207,7 +209,7 @@ function AppContent() {
     return (
       <Suspense fallback={<PageSkeleton />}>
         <ForceChangePasswordPage showToast={showToast} />
-        <Toast toast={toast} onClose={() => setToast(null)} />
+        <Toast toast={toast} onClose={dismissToast} />
       </Suspense>
     );
   }
@@ -375,7 +377,7 @@ function AppContent() {
       />
 
       {/* TOAST NOTIFICATION CONTAINER */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
+      <Toast toast={toast} onClose={dismissToast} />
 
     </div>
   );

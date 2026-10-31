@@ -177,11 +177,11 @@ export function DiscoverPage({ onNavigate, showToast }) {
               <li key={s.attemptId} className="p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-bold truncate">{s.examTitle}</p>
-                  <p className="text-[11px] text-green-800">{s.completedAt ? new Date(s.completedAt).toLocaleDateString('vi-VN') : ''}</p>
+                  <p className="text-xs text-green-800">{s.completedAt ? new Date(s.completedAt).toLocaleDateString('vi-VN') : ''}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-heading font-black text-lg text-pink-600 leading-none">{s.totalScore != null ? Number(s.totalScore) : '—'} / 10</p>
-                  <p className="text-[11px] font-bold text-green-700">{gradeLabel(s.gradeLevel)}</p>
+                  <p className="text-xs font-bold text-green-700">{gradeLabel(s.gradeLevel)}</p>
                 </div>
               </li>
             ))}

@@ -1,38 +1,53 @@
 // Bloom Taxonomy Levels & Color Tokens (Pedagogical UI)
-export const BLOOM_LEVELS = [
-  { value: 'REMEMBER', label: '1. Nhận Biết (Remember)', short: 'Nhớ', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'UNDERSTAND', label: '2. Thông Hiểu (Understand)', short: 'Hiểu', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'APPLY', label: '3. Vận Dụng (Apply)', short: 'Vận dụng', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'ANALYZE', label: '4. Phân Tích (Analyze)', short: 'Phân tích', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
-  { value: 'EVALUATE', label: '5. Đánh Giá (Evaluate)', short: 'Đánh giá', color: 'bg-amber-50 text-amber-800 border border-amber-200' },
-  { value: 'CREATE', label: '6. Sáng Tạo (Create)', short: 'Sáng tạo', color: 'bg-indigo-50 text-indigo-800 border border-indigo-200' }
+// Bloom levels. Labels match the BE enum (BloomLevel.viLabel).
+// The requirement names four levels (nhớ, hiểu, vận dụng, phân tích): those are offered when creating
+// questions. EVALUATE/CREATE stay in ALL_BLOOM_LEVELS so existing questions still display and filter.
+export const ALL_BLOOM_LEVELS = [
+  { value: 'REMEMBER', label: '1. Nhớ (Remember)', short: 'Nhớ', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'UNDERSTAND', label: '2. Hiểu (Understand)', short: 'Hiểu', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'APPLY', label: '3. Vận dụng (Apply)', short: 'Vận dụng', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'ANALYZE', label: '4. Phân tích (Analyze)', short: 'Phân tích', color: 'bg-emerald-50 text-emerald-800 border border-pink-200' },
+  { value: 'EVALUATE', label: '5. Đánh giá (Evaluate)', short: 'Đánh giá', color: 'bg-amber-50 text-amber-800 border border-amber-200' },
+  { value: 'CREATE', label: '6. Sáng tạo (Create)', short: 'Sáng tạo', color: 'bg-pink-50 text-pink-800 border border-pink-200' }
 ];
 
-// Presets for RAG Bloom Taxonomy distribution
+/** The four levels required for oral exams; used wherever a new question gets a level. */
+export const BLOOM_LEVELS = ALL_BLOOM_LEVELS.slice(0, 4);
+
+/** Display metadata for any stored level (falls back to the first level for unknown values). */
+export const bloomMeta = (value) => ALL_BLOOM_LEVELS.find((b) => b.value === value) || ALL_BLOOM_LEVELS[0];
+
+/** Options for a select that edits an existing question: the four levels plus its current one if outside them. */
+export const bloomOptionsFor = (current) =>
+  BLOOM_LEVELS.some((b) => b.value === current) || !current
+    ? BLOOM_LEVELS
+    : [...BLOOM_LEVELS, bloomMeta(current)];
+
+// Presets for RAG Bloom Taxonomy distribution (four required levels only)
 export const BLOOM_PRESETS = [
   {
     id: 'BALANCED',
     name: 'Cân Bằng Chuẩn',
-    desc: 'Bao quát từ cơ bản đến vận dụng & phân tích',
-    weights: { REMEMBER: 0.2, UNDERSTAND: 0.3, APPLY: 0.3, ANALYZE: 0.2, EVALUATE: 0, CREATE: 0 }
+    desc: 'Bao quát từ nhớ, hiểu đến vận dụng và phân tích',
+    weights: { REMEMBER: 0.2, UNDERSTAND: 0.3, APPLY: 0.3, ANALYZE: 0.2 }
   },
   {
     id: 'VIVA_ORAL',
     name: 'Vấn Đáp Viva',
-    desc: 'Ưu tiên phản biện, lập luận & đánh giá phương án',
-    weights: { REMEMBER: 0.1, UNDERSTAND: 0.2, APPLY: 0.3, ANALYZE: 0.25, EVALUATE: 0.15, CREATE: 0 }
+    desc: 'Ưu tiên vận dụng và phân tích, lập luận',
+    weights: { REMEMBER: 0.1, UNDERSTAND: 0.25, APPLY: 0.35, ANALYZE: 0.3 }
   },
   {
     id: 'FOUNDATIONAL',
     name: 'Nền Tảng',
     desc: 'Tập trung định nghĩa cốt lõi & hiểu nguyên lý',
-    weights: { REMEMBER: 0.4, UNDERSTAND: 0.4, APPLY: 0.2, ANALYZE: 0, EVALUATE: 0, CREATE: 0 }
+    weights: { REMEMBER: 0.4, UNDERSTAND: 0.4, APPLY: 0.2, ANALYZE: 0 }
   },
   {
     id: 'ADVANCED',
     name: 'Bậc Cao',
-    desc: 'Đào sâu phân tích, đánh giá & đề xuất giải pháp',
-    weights: { REMEMBER: 0, UNDERSTAND: 0.1, APPLY: 0.2, ANALYZE: 0.35, EVALUATE: 0.25, CREATE: 0.1 }
+    desc: 'Đào sâu vận dụng và phân tích',
+    weights: { REMEMBER: 0, UNDERSTAND: 0.2, APPLY: 0.35, ANALYZE: 0.45 }
   },
   {
     id: 'CUSTOM',

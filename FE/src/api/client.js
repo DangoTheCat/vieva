@@ -127,7 +127,7 @@ class ApiClient {
         throw err;
       }
       throw new ApiError(
-        'Không thể kết nối đến máy chủ Backend. Vui lòng kiểm tra dịch vụ Spring Boot (port 8080).',
+        'Không kết nối được máy chủ. Vui lòng kiểm tra mạng và thử lại.',
         'NETWORK_ERROR',
         0,
         null

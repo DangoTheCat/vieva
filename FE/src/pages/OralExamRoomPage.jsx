@@ -41,72 +41,14 @@ import {
 } from 'lucide-react';
 import { VoiceWaveform } from '../components/common/VoiceWaveform';
 import { AudioVisualizerCanvas } from '../components/exam/AudioVisualizerCanvas';
+import { NoAttemptView } from '../components/exam/stages/NoAttemptView';
+import { ReadyStage } from '../components/exam/stages/ReadyStage';
+import { ReconnectingStage } from '../components/exam/stages/ReconnectingStage';
+import { FinalizingStage } from '../components/exam/stages/FinalizingStage';
+import { InterruptedStage } from '../components/exam/stages/InterruptedStage';
+import { CompletedStage } from '../components/exam/stages/CompletedStage';
+import { EMPTY_QUESTION, NO_ANSWER_TEXT, mapTurnsToQuestions, mapRubricsFromTurns, toExamResult, formatTime } from '../components/exam/examRoomModel';
 
-// Placeholder rendered until the attempt's first turn arrives from the BE
-const EMPTY_QUESTION = { content: '', title: 'Đang tải câu hỏi...', badge: '', type: TURN_TYPE.MAIN };
-
-/** Text recorded when the answer time runs out with nothing said, so the turn can still be graded. */
-const NO_ANSWER_TEXT = '[Thí sinh không trả lời trong thời gian quy định]';
-
-/**
- * Maps backend ExamTurnDetailResponse list to frontend Question structure
- */
-const mapTurnsToQuestions = (turns, totalQuestions) => {
-  if (!Array.isArray(turns) || turns.length === 0) return null;
-  return turns.map((t, idx) => ({
-    id: t.questionId || idx + 1,
-    turnId: t.turnId,
-    questionNumber: t.turnOrder || idx + 1,
-    totalQuestions: totalQuestions || turns.length,
-    type: t.turnType || TURN_TYPE.MAIN,
-    badge: turnBadge(t.turnType),
-    title: turnTitle(t.turnType, t.turnOrder || idx + 1),
-    content: t.questionText || '',
-    ttsAudioUrl: t.ttsAudioUrl,
-    hint: isFollowUp(t.turnType) ? 'Giải thích rõ hơn ý bạn vừa trả lời.' : '',
-    rubricCriteria: t.rubricEvaluations || 'Đánh giá năng lực chuyên môn và phản xạ kiến trúc.'
-  }));
-};
-
-/**
- * Maps backend turns to per-turn rubric results
- */
-const mapRubricsFromTurns = (turns) => {
-  if (Array.isArray(turns) && turns.length > 0) {
-    const list = [];
-    turns.forEach((t, i) => {
-      if (t.rubricEvaluations) {
-        try {
-          const parsed = JSON.parse(t.rubricEvaluations);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            list.push(...parsed);
-            return;
-          } else if (parsed && parsed.name) {
-            list.push(parsed);
-            return;
-          }
-        } catch (e) {}
-      }
-      list.push({
-        name: `Lượt ${t.turnOrder || i + 1}: ${turnBadge(t.turnType)}`,
-        score: t.score != null ? Number(t.score) : null,
-        max: 10,
-        comment: t.feedback || ''
-      });
-    });
-    return list;
-  }
-  return [];
-};
-
-/** Builds the COMPLETED-screen result from the BE attempt detail; score stays null while grading is pending */
-const toExamResult = (detail) => ({
-  totalScore: detail?.totalScore != null ? Number(detail.totalScore) : null,
-  grade: gradeLabel(detail?.gradeLevel),
-  maxScore: 10,
-  feedback: detail?.detailedFeedback || '',
-  rubrics: mapRubricsFromTurns(detail?.turns)
-});
 
 export function OralExamRoomPage({
   onNavigate,
@@ -424,12 +366,6 @@ export function OralExamRoomPage({
     };
   }, [stopTTS, stopRecording]);
 
-  // Format seconds mm:ss
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
 
   // --- Preflight Check Handlers (READY state) ---
   const startPreflightMicTest = async () => {
@@ -791,15 +727,13 @@ export function OralExamRoomPage({
    * FINALIZING -> INTERRUPTED: syncError()
    */
   const handleFinishExam = async (reason = 'USER_SUBMIT') => {
-    stopRecording();
     stopTTS();
-
     setExamStage('FINALIZING');
     setFinalizingStep(1);
 
     try {
-      // Step 1: Pack transcript & turn audio slices
-      await new Promise((res) => setTimeout(res, 800));
+      // Step 1 (real): close the microphone and the STT stream
+      await stopRecording();
       setFinalizingStep(2);
 
       // Step 2: Call finishExam API
@@ -813,7 +747,7 @@ export function OralExamRoomPage({
         }
       }
 
-      await new Promise((res) => setTimeout(res, 800));
+      // Step 3 (real): wait for the server to grade the attempt
       setFinalizingStep(3);
 
       // Step 3: Polling for attempt grading completion (syncSuccess / syncError)
@@ -897,578 +831,46 @@ export function OralExamRoomPage({
     }
   };
 
-  const studentName = profile?.fullName || currentUser?.fullName || 'Nguyễn Văn An';
-  const studentCode = profile?.userCode || currentUser?.userCode || 'SE170001';
+  const studentName = profile?.fullName || currentUser?.fullName || '—';
+  const studentCode = profile?.userCode || currentUser?.userCode || '—';
 
   // ==========================================
   // RENDER STATE 1: READY (Pre-flight check)
   // ==========================================
   if (!attemptId) {
-    return (
-      <div className="max-w-md mx-auto py-12 px-4">
-        <div className="bg-white border border-pink-200 rounded-3xl p-8 shadow-md text-center space-y-4">
-          <BookOpen className="w-10 h-10 text-green-700 mx-auto" />
-          <h2 className="font-heading font-black text-xl text-ink">Chưa chọn ca thi</h2>
-          <p className="text-xs text-green-800">Hãy chọn một ca thi đang mở tại Cổng Thi để vào phòng thi vấn đáp.</p>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('discover')}
-            className="px-6 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs border border-pink-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
-          >
-            Về Cổng Thi
-          </button>
-        </div>
-      </div>
-    );
+    return <NoAttemptView onNavigate={onNavigate} />;
   }
 
   if (examStage === 'READY') {
-    return (
-      <div className="max-w-3xl mx-auto py-8 px-4 animate-in fade-in duration-300">
-        <div className="bg-white border border-pink-200 rounded-3xl p-6 sm:p-10 shadow-md space-y-8">
-          
-          {/* Header */}
-          <div className="flex items-center gap-4 pb-6 border-b border-pink-200">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-pink-200 text-slate-700 flex items-center justify-center text-2xl shadow-sm shrink-0">
-              🎙️
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-green-700 block">
-                  Khảo Thí Vấn Đáp AI • Trạng Thái: READY
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Chuẩn bị thiết bị
-                </span>
-              </div>
-              <h1 className="font-heading font-black text-2xl sm:text-3xl text-ink">
-                Kiểm Tra Thiết Bị Phòng Thi (Pre-flight Check)
-              </h1>
-            </div>
-          </div>
-
-          <p className="text-xs sm:text-sm text-green-900 leading-relaxed">
-            Chào mừng <strong>{studentName} ({studentCode})</strong>. Để đảm bảo bài thi diễn ra công bằng và thông suốt, vui lòng kiểm tra Micro và Loa của thiết bị trước khi bắt đầu bài thi.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* 1. Test Mic & Waveform */}
-            <div className="bg-white border border-pink-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Mic className="w-5 h-5 text-pink-600" />
-                    <h3 className="font-bold text-sm text-ink">Kiểm Tra Microphone</h3>
-                  </div>
-                  {preflightMicOk ? (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Chuẩn ✓
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                      Chưa test
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-green-800">
-                  Nhấn "Bật Micro Thử Nghiệm", nói một câu ngắn vào micro để kiểm tra sóng âm.
-                </p>
-              </div>
-
-              {/* Volume bar & waveform */}
-              <div className="space-y-2">
-                <div className="h-5 bg-slate-100 border border-pink-200 rounded-lg overflow-hidden p-0.5 flex items-center">
-                  <div 
-                    className="h-full bg-pink-600 rounded-md transition-all duration-75"
-                    style={{ width: `${preflightMicVolume}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] font-mono text-green-700">
-                  <span>Mức âm lượng: {preflightMicVolume}%</span>
-                  <span>{preflightMicVolume > 15 ? 'Đã nhận tín hiệu tốt ✓' : 'Nói to hơn...'}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={preflightTestingMic ? stopPreflightMic : startPreflightMicTest}
-                  className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    preflightTestingMic 
-                      ? 'bg-rose-100 text-rose-800 hover:bg-rose-200' 
-                      : 'bg-pink-100 hover:bg-pink-200 text-pink-900'
-                  }`}
-                >
-                  {preflightTestingMic ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                  <span>{preflightTestingMic ? 'Dừng Mic' : 'Bật Thử Mic'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPreflightMicOk(true)}
-                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-emerald-400 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>{preflightMicOk ? 'Micro Đạt ✓' : 'Xác Nhận Mic'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Test Speaker */}
-            <div className="bg-white border border-pink-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Volume2 className="w-5 h-5 text-green-700" />
-                    <h3 className="font-bold text-sm text-ink">Kiểm Tra Loa / Tai Nghe</h3>
-                  </div>
-                  {preflightSpeakerOk ? (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Chuẩn ✓
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                      Chưa test
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-green-800">
-                  Nhấn nút bên dưới để nghe giọng nói thử nghiệm của Giám thị AI.
-                </p>
-              </div>
-
-              <div className="p-3 bg-slate-50 border border-pink-200 rounded-xl text-xs text-slate-700 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-pink-600 shrink-0" />
-                <span>ZeroTTS &amp; Web Audio Engine: Sẵn sàng phát âm.</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleTestSpeaker}
-                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-green-100 hover:bg-green-200 text-green-900 border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Volume2 className="w-4 h-4" />
-                <span>{isAiSpeaking ? 'Đang Phát Âm Thử...' : 'Phát Thử Giọng Giám Thị AI'}</span>
-              </button>
-            </div>
-
-          </div>
-
-          {/* Action Footer: "Bắt đầu thi" */}
-          <div className="pt-4 border-t border-pink-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-green-800">
-              * Khuyến nghị dùng tai nghe và micro rời để đạt chất lượng nhận diện giọng nói cao nhất.
-            </div>
-            <button
-              type="button"
-              onClick={handleStartExam}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-sm border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>Bắt Đầu Thi (Vào Phòng Thi)</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-        </div>
-      </div>
-    );
+    return <ReadyStage handleStartExam={handleStartExam} handleTestSpeaker={handleTestSpeaker} isAiSpeaking={isAiSpeaking} preflightMicOk={preflightMicOk} preflightMicVolume={preflightMicVolume} preflightSpeakerOk={preflightSpeakerOk} preflightTestingMic={preflightTestingMic} setPreflightMicOk={setPreflightMicOk} startPreflightMicTest={startPreflightMicTest} stopPreflightMic={stopPreflightMic} studentCode={studentCode} studentName={studentName} />;
   }
 
   // ==========================================
   // RENDER STATE 3: RECONNECTING (Yellow Warning Modal/Banner)
   // ==========================================
   if (examStage === 'RECONNECTING') {
-    return (
-      <div className="max-w-3xl mx-auto py-10 px-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-amber-50 border border-amber-300 rounded-3xl p-6 sm:p-10 shadow-xl text-amber-950 space-y-6">
-          
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center text-2xl shadow-xs shrink-0">
-              <AlertTriangle className="w-8 h-8 text-amber-900" />
-            </div>
-            <div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 border border-amber-400 inline-block mb-1">
-                TRẠNG THÁI: RECONNECTING • TẠM DỪNG ĐỒNG HỒ
-              </span>
-              <h2 className="font-heading font-black text-xl sm:text-2xl text-amber-950">
-                Mất kết nối mạng! Đồng hồ thi tạm dừng. Đang thử kết nối lại... (Thời gian chờ tối đa 120s)
-              </h2>
-            </div>
-          </div>
-
-          <div className="bg-white/80 border-2 border-amber-500 rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-amber-900">
-              <span className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-700" />
-                Thời gian ân hạn còn lại:
-              </span>
-              <span className="font-mono text-base font-black text-amber-950 bg-amber-200 px-3 py-1 rounded-xl border border-amber-400">
-                {reconnectGraceLeft}s / 120s
-              </span>
-            </div>
-
-            {/* Grace progress bar */}
-            <div className="h-4 bg-amber-200 rounded-full border border-amber-400 overflow-hidden p-0.5">
-              <div 
-                className="h-full bg-amber-600 rounded-full transition-all duration-1000 ease-linear"
-                style={{ width: `${(reconnectGraceLeft / 120) * 100}%` }}
-              />
-            </div>
-
-            <p className="text-xs text-amber-900 leading-relaxed font-medium">
-              Hệ thống đã tự động tạm dừng đồng hồ làm bài thi để bảo vệ thời gian của bạn. 
-              Nếu bạn phục hồi kết nối trong vòng <strong>120 giây</strong>, bài thi sẽ được tiếp tục ngay tại câu hỏi hiện tại.
-            </p>
-          </div>
-
-          {/* Action buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={handleReconnect}
-              disabled={isReconnecting}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-black text-xs sm:text-sm border-2 border-amber-800 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isReconnecting ? 'animate-spin' : ''}`} />
-              <span>{isReconnecting ? 'Đang Kiểm Tra Kết Nối...' : 'Thử Kết Nối Lại Ngay'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate ? onNavigate('discover') : window.location.reload()}
-              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-amber-50 text-amber-900 font-bold text-xs border-2 border-amber-600 shadow-sm cursor-pointer"
-            >
-              Quay lại danh sách ca thi
-            </button>
-          </div>
-
-        </div>
-      </div>
-    );
+    return <ReconnectingStage handleReconnect={handleReconnect} isReconnecting={isReconnecting} onNavigate={onNavigate} reconnectGraceLeft={reconnectGraceLeft} />;
   }
 
   // ==========================================
   // RENDER STATE 4: FINALIZING (Full-screen overlay/banner)
   // ==========================================
   if (examStage === 'FINALIZING') {
-    return (
-      <div className="fixed inset-0 z-50 bg-ink/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-        <div className="bg-white border border-pink-200 rounded-3xl p-8 sm:p-10 max-w-xl w-full shadow-lg space-y-6 text-center text-ink">
-          
-          <div className="w-20 h-20 rounded-3xl bg-slate-100 border border-pink-200 text-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm animate-pulse">
-            <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-[11px] font-black uppercase tracking-wider text-green-700 block">
-              Trạng Thái Ca Thi: FINALIZING
-            </span>
-            <h2 className="font-heading font-black text-xl sm:text-2xl text-ink">
-              Đang đồng bộ dữ liệu và Giám thị AI đang chấm điểm đa tầng...
-            </h2>
-            <p className="text-xs sm:text-sm text-green-800">
-              Vui lòng giữ nguyên cửa sổ trình duyệt. Hệ thống đang tiến hành bóc băng, mã hóa SHA-256 và chấm điểm theo khung Rubric chuẩn Bloom.
-            </p>
-          </div>
-
-          {/* Synchronizing 3 Steps Progress */}
-          <div className="space-y-3 text-left">
-            <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
-              finalizingStep >= 1 ? 'bg-white border-slate-900 text-ink font-semibold shadow-2xs' : 'bg-slate-50 border-pink-200 text-slate-400'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  finalizingStep > 1 ? 'bg-emerald-600 text-white' : 'bg-pink-600 text-white'
-                }`}>
-                  {finalizingStep > 1 ? '✓' : <Loader2 className="w-3 h-3 animate-spin" />}
-                </span>
-                <span>1. Đóng gói transcript &amp; bản ghi âm các lượt vấn đáp</span>
-              </div>
-              <span className="text-[10px] text-green-700">
-                {finalizingStep > 1 ? 'Hoàn tất ✓' : 'Đang xử lý...'}
-              </span>
-            </div>
-
-            <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
-              finalizingStep >= 2 ? 'bg-white border-slate-900 font-semibold shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-500'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  finalizingStep > 2 ? 'bg-emerald-600 text-white' : finalizingStep === 2 ? 'bg-pink-600 text-white' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {finalizingStep > 2 ? '✓' : finalizingStep === 2 ? <Loader2 className="w-3 h-3 animate-spin" /> : '2'}
-                </span>
-                <span>2. Đồng bộ hóa dữ liệu với máy chủ khảo thí trung tâm</span>
-              </div>
-              <span className="text-[10px] text-green-700">
-                {finalizingStep > 2 ? 'Hoàn tất ✓' : finalizingStep === 2 ? 'Đang đồng bộ...' : 'Chờ...'}
-              </span>
-            </div>
-
-            <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
-              finalizingStep >= 3 ? 'bg-white border-slate-900 font-semibold shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-500'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  finalizingStep === 3 ? 'bg-pink-600 text-white' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {finalizingStep === 3 ? <Loader2 className="w-3 h-3 animate-spin" /> : '3'}
-                </span>
-                <span>3. Hội đồng Giám thị AI chấm điểm đa tầng &amp; lập biên bản Rubric</span>
-              </div>
-              <span className="text-[10px] text-green-700">
-                {finalizingStep === 3 ? 'Đang chấm điểm...' : 'Chờ...'}
-              </span>
-            </div>
-          </div>
-
-          <div className="pt-2 text-center text-[11px] text-green-800 font-mono">
-            * Phiên thi được bảo mật toàn vẹn qua Transactional Outbox Pattern
-          </div>
-
-        </div>
-      </div>
-    );
+    return <FinalizingStage finalizingStep={finalizingStep} transcript={transcript} />;
   }
 
   // ==========================================
   // RENDER STATE 6: INTERRUPTED (Red Neo-brutalist Card)
   // ==========================================
   if (examStage === 'INTERRUPTED') {
-    return (
-      <div className="max-w-3xl mx-auto py-10 px-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-rose-50 border-4 border-rose-600 rounded-3xl p-6 sm:p-10 shadow-md text-rose-950 space-y-6">
-          
-          <div className="flex items-center gap-4 pb-4 border-b-2 border-rose-200">
-            <div className="w-16 h-16 rounded-2xl bg-rose-200 border-2 border-rose-700 text-rose-800 flex items-center justify-center text-3xl shadow-sm shrink-0">
-              <ShieldAlert className="w-8 h-8 text-rose-700" />
-            </div>
-            <div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-200 text-rose-900 border border-rose-400 inline-block mb-1">
-                TRẠNG THÁI: INTERRUPTED
-              </span>
-              <h1 className="font-heading font-black text-xl sm:text-2xl text-rose-950">
-                Ca thi bị gián đoạn do mất kết nối hoặc sự cố đồng bộ!
-              </h1>
-            </div>
-          </div>
-
-          <div className="bg-white border-2 border-rose-400 rounded-2xl p-5 shadow-sm space-y-3">
-            <h3 className="font-bold text-sm text-rose-900">Chi tiết lý do gián đoạn:</h3>
-            <p className="text-xs sm:text-sm text-rose-950 leading-relaxed font-medium">
-              {interruptedReason || 'Ca thi bị gián đoạn do mất kết nối mạng quá thời hạn ân hạn (120s) hoặc máy chủ không thể hoàn tất chu trình đồng bộ.'}
-            </p>
-            <div className="p-3 bg-rose-100/60 border border-rose-300 rounded-xl text-xs text-rose-900">
-              🛡️ <strong>Bảo vệ dữ liệu:</strong> Mọi câu trả lời của các câu hỏi bạn đã nộp trước thời điểm gián đoạn đã được hệ thống lưu trữ an toàn trong Transactional Outbox.
-            </div>
-          </div>
-
-          {/* Technical Attempt Reference */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-rose-100 border border-rose-300 rounded-xl text-xs font-mono text-rose-900">
-            <span>Mã ca thi (Attempt ID): #{attemptId}</span>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(attemptId)}
-              className="flex items-center gap-1 font-bold text-rose-800 hover:text-rose-950 cursor-pointer underline"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copiedAttempt ? 'Đã sao chép ✓' : 'Sao chép mã'}</span>
-            </button>
-          </div>
-
-          {/* Action buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={() => setShowSupportModal(true)}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm border-2 border-rose-900 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              <PhoneCall className="w-4 h-4" />
-              <span>Liên Hệ Giám Thị / Hỗ Trợ Kỹ Thuật</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate ? onNavigate('discover') : window.location.reload()}
-              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white hover:bg-rose-50 text-rose-900 font-bold text-xs border-2 border-rose-500 shadow-sm cursor-pointer"
-            >
-              ← Quay Lại Danh Sách Ca Thi
-            </button>
-          </div>
-
-        </div>
-
-        {/* Support Modal dialog */}
-        {showSupportModal && (
-          <div className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-paper border-4 border-rose-600 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-md space-y-5 text-ink">
-              <div className="flex items-center justify-between pb-3 border-b-2 border-rose-200">
-                <div className="flex items-center gap-2 font-heading font-black text-lg text-rose-950">
-                  <PhoneCall className="w-5 h-5 text-rose-600" />
-                  <span>Kênh Hỗ Trợ Khảo Thí</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSupportModal(false)}
-                  className="p-1 rounded-lg hover:bg-rose-100 text-rose-800 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-3 text-xs sm:text-sm text-rose-950">
-                <div className="p-3 bg-white border-2 border-rose-300 rounded-xl space-y-1">
-                  <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Hotline Trực Tiếp Hội Đồng Thi</span>
-                  <p className="font-heading font-black text-base text-rose-900">1900-8888 (Nhánh 2)</p>
-                  <span className="text-[11px] text-green-800 block">Thời gian trực: 07:30 - 21:00 các ngày thi</span>
-                </div>
-
-                <div className="p-3 bg-white border-2 border-rose-300 rounded-xl space-y-1">
-                  <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Email Cán Bộ Coi Thi Trực Tuyến</span>
-                  <p className="font-mono font-bold text-xs text-rose-900">proctor-support@vieva.edu.vn</p>
-                </div>
-
-                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-xs text-rose-900">
-                  Vui lòng cung cấp <strong>Mã SV: {studentCode}</strong> và <strong>Mã Ca Thi: #{attemptId}</strong> khi liên hệ để được hỗ trợ mở lại ca thi ân hạn.
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowSupportModal(false)}
-                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs border-2 border-rose-900 shadow-sm cursor-pointer"
-              >
-                Đã hiểu &amp; Đóng
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    return <InterruptedStage attemptId={attemptId} copiedAttempt={copiedAttempt} copyToClipboard={copyToClipboard} interruptedReason={interruptedReason} onNavigate={onNavigate} setShowSupportModal={setShowSupportModal} showSupportModal={showSupportModal} studentCode={studentCode} />;
   }
 
   // ==========================================
   // RENDER STATE 5: COMPLETED (Rubric Report & Certificate)
   // ==========================================
   if (examStage === 'COMPLETED') {
-    const displayResult = examResult || toExamResult(null);
-
-    return (
-      <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-300">
-        <div className="bg-white border border-pink-200 rounded-3xl p-6 sm:p-10 shadow-md space-y-8">
-          
-          {/* Header */}
-          <div className="text-center space-y-3 pb-6 border-b border-pink-200">
-            <div className="w-20 h-20 rounded-3xl bg-slate-100 border border-pink-200 text-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm">
-              🎓
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-green-700 block">
-                Báo Cáo Đánh Giá Khảo Thí Vấn Đáp • TRẠNG THÁI: COMPLETED
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                Đã lưu DB ✓
-              </span>
-            </div>
-            <h1 className="font-heading font-black text-2xl sm:text-3xl text-ink">
-              Kết Quả Bài Thi Vấn Đáp Trực Tuyến
-            </h1>
-            <p className="text-xs sm:text-sm text-green-800">
-              Thí sinh: <strong>{studentName}</strong> • Mã SV: <strong>{studentCode}</strong> • Ca thi: <strong>#{attemptId}</strong>
-            </p>
-          </div>
-
-          {/* Overall Score Box */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-pink-200 p-5 rounded-2xl shadow-sm text-center">
-              <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">
-                Điểm Tổng Kết
-              </span>
-              <div className="font-heading font-black text-4xl text-pink-600">
-                {displayResult.totalScore != null ? displayResult.totalScore : '—'} <span className="text-lg text-ink font-sans">/ {displayResult.maxScore}</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-pink-200 p-5 rounded-2xl shadow-sm text-center">
-              <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">
-                Xếp Loại Đạt Được
-              </span>
-              <div className="font-heading font-black text-2xl sm:text-3xl text-green-700">
-                {displayResult.grade}
-              </div>
-            </div>
-
-            <div className="bg-white border border-pink-200 p-5 rounded-2xl shadow-sm text-center">
-              <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">
-                Số Lượt Câu Hỏi
-              </span>
-              <div className="font-heading font-black text-2xl sm:text-3xl text-ink">
-                {questions.length}
-              </div>
-            </div>
-          </div>
-
-          {displayResult.totalScore == null && (
-            <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs text-amber-900 font-medium">
-              Bài thi đã được nộp và đang chờ chấm điểm. Điểm sẽ hiển thị tại Cổng Thi khi giảng viên/AI hoàn tất.
-            </div>
-          )}
-
-          {/* AI Comprehensive Feedback */}
-          {displayResult.feedback && (
-            <div className="bg-white border border-pink-200 p-5 sm:p-6 rounded-2xl shadow-2xs space-y-2">
-              <div className="flex items-center gap-2 text-pink-900 font-bold text-sm">
-                <Sparkles className="w-5 h-5 text-pink-600" />
-                <span>Nhận Xét Chuyên Môn Từ Giám Thị AI</span>
-              </div>
-              <p className="text-xs sm:text-sm text-pink-950 leading-relaxed font-medium">
-                "{displayResult.feedback}"
-              </p>
-            </div>
-          )}
-
-          {/* Rubric Breakdown List */}
-          <div className="space-y-4">
-            <h3 className="font-heading font-black text-lg text-ink flex items-center gap-2">
-              <Award className="w-5 h-5 text-green-700" />
-              Chi Tiết Đánh Giá Theo Ma Trận Rubric Chuẩn Bloom
-            </h3>
-
-            <div className="space-y-3">
-              {displayResult.rubrics.map((r, i) => (
-                <div 
-                  key={i} 
-                  className="bg-white border border-pink-200 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <span className="font-bold text-xs text-ink block">{r.name}</span>
-                    <p className="text-xs text-green-800">{r.comment}</p>
-                  </div>
-                  <div className="shrink-0 font-mono font-bold text-sm bg-slate-100 text-slate-800 border border-pink-200 px-3 py-1 rounded-xl self-start sm:self-center">
-                    {r.score != null ? r.score : '—'} / {r.max}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="pt-6 border-t border-pink-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={() => onNavigate ? onNavigate('discover') : window.location.reload()}
-              className="px-6 py-3 rounded-2xl bg-white hover:bg-green-50 text-green-900 font-bold text-xs border border-pink-200 shadow-sm cursor-pointer"
-            >
-              ← Trở Về Danh Sách Học Phần
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-    );
+    return <CompletedStage attemptId={attemptId} examResult={examResult} onNavigate={onNavigate} questions={questions} studentCode={studentCode} studentName={studentName} />;
   }
 
   // ==========================================
@@ -1488,7 +890,7 @@ export function OralExamRoomPage({
               <h1 className="font-heading font-black text-base sm:text-lg text-ink">
                 Phòng Thi Vấn Đáp Trực Tuyến (Oral Exam Room)
               </h1>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center gap-1 ${
                 isWsConnected 
                   ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
                   : 'bg-amber-100 text-amber-800 border-amber-300'
@@ -1506,18 +908,18 @@ export function OralExamRoomPage({
         {/* Question Counter & Countdown Timer */}
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
           <div className="text-right font-mono bg-white border border-pink-200 px-3.5 py-1.5 rounded-xl shadow-sm">
-            <span className="text-[9px] font-bold text-green-700 uppercase tracking-wider block">Tiến độ câu hỏi</span>
+            <span className="text-xs font-bold text-green-700 uppercase tracking-wider block">Tiến độ câu hỏi</span>
             <p className="text-xs sm:text-sm font-extrabold text-ink">
               Lượt {activeQuestionIndex + 1}{totalQuestions ? ` • ${totalQuestions} câu chính` : ''}
             </p>
           </div>
 
-          <div className={`text-right font-mono px-3.5 py-1.5 rounded-xl border transition-all duration-300 ${
+          <div aria-live="polite" aria-label="Thời gian ca thi còn lại" className={`text-right font-mono px-3.5 py-1.5 rounded-xl border transition-all duration-300 ${
             secondsLeft <= 30 && secondsLeft > 0
               ? 'bg-rose-100 border-rose-300 text-rose-900 animate-pulse shadow-sm ring-2 ring-rose-200' 
               : 'bg-pink-50 border-pink-200 text-pink-900 shadow-2xs'
           }`}>
-            <span className={`text-[9px] font-bold uppercase tracking-wider block ${secondsLeft <= 30 && secondsLeft > 0 ? 'text-rose-700 font-extrabold' : 'text-pink-700'}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider block ${secondsLeft <= 30 && secondsLeft > 0 ? 'text-rose-700 font-extrabold' : 'text-pink-700'}`}>
               {secondsLeft <= 30 && secondsLeft > 0 ? '⚡ Sắp Hết Giờ!' : 'Thời Gian Ca Thi'}
             </span>
             <p className={`text-xs sm:text-sm font-black ${secondsLeft <= 30 && secondsLeft > 0 ? 'text-rose-800' : 'text-pink-900'}`}>
@@ -1534,7 +936,7 @@ export function OralExamRoomPage({
                 : 'bg-white border-pink-200 text-ink shadow-2xs'
             }`}
           >
-            <span className="text-[11px] font-bold uppercase tracking-wider block text-green-700">
+            <span className="text-xs font-bold uppercase tracking-wider block text-green-700">
               Thời gian trả lời câu này
             </span>
             <p className="text-xs sm:text-sm font-black">
@@ -1568,7 +970,7 @@ export function OralExamRoomPage({
                 👩‍🏫
               </div>
               {/* Pulsing indicator */}
-              <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold border-2 ${
+              <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-xs font-bold border-2 ${
                 isAiSpeaking 
                   ? 'bg-pink-600 text-white border-blue-700 animate-pulse' 
                   : 'bg-white text-slate-700 border-pink-200 shadow-2xs'
@@ -1580,7 +982,7 @@ export function OralExamRoomPage({
             {/* AI Examiner Info & Controls */}
             <div className="space-y-3 flex-1 text-center sm:text-left">
               <div>
-                <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider block">
+                <span className="text-xs font-bold text-green-700 uppercase tracking-wider block">
                   Giám Thị Khảo Thí Trí Tuệ Nhân Tạo
                 </span>
                 <h3 className="font-heading font-black text-xl text-ink">
@@ -1630,7 +1032,7 @@ export function OralExamRoomPage({
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-pink-200">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border-2 ${
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border-2 ${
                     isFollowUp(currentQuestion.type)
                       ? 'bg-rose-50 text-rose-800 border-rose-200'
                       : 'bg-green-100 text-green-900 border-green-400'
@@ -1677,7 +1079,7 @@ export function OralExamRoomPage({
                   Khu Vực Trả Lời Vấn Đáp
                 </h3>
               </div>
-              <span className="text-[11px] font-mono text-green-700 font-bold">
+              <span className="text-xs font-mono text-green-700 font-bold">
                 {isRecording ? 'Đang Thu Âm...' : 'Micro Sẵn Sàng'}
               </span>
             </div>
@@ -1687,15 +1089,14 @@ export function OralExamRoomPage({
               <div className="p-3 bg-paper rounded-2xl border border-pink-200 flex items-center justify-between shadow-2xs animate-in fade-in">
                 <div className="flex items-center gap-2.5">
                   <AudioVisualizerCanvas isActive={true} volume={0.9} barCount={18} width={150} height={24} primaryColor="#CE9893" accentColor="#819266" />
-                  <span className="text-xs font-mono text-pink-950 font-bold">Đang nhận diện giọng nói (STT)...</span>
+                  <span className="text-xs text-pink-950 font-bold">Đang nghe câu trả lời của bạn...</span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded-md border border-pink-200 font-bold">250ms Slices</span>
               </div>
             )}
 
             {/* Realtime transcript live typing effect */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-green-800 uppercase tracking-wider block">
+              <label className="text-xs font-bold text-green-800 uppercase tracking-wider block">
                 Nội dung câu trả lời (Bóc băng giọng nói &amp; Soạn thảo):
               </label>
               
@@ -1716,9 +1117,9 @@ export function OralExamRoomPage({
 
               {/* Live transcript preview if recording */}
               {(transcript || partialTranscript) && (
-                <div className="p-3 bg-slate-50 border border-pink-200 rounded-xl text-xs text-slate-800 font-medium animate-in fade-in">
-                  <span className="font-bold text-pink-800 block text-[10px] uppercase tracking-wider mb-0.5">
-                    Live STT Stream:
+                <div aria-live="polite" className="p-3 bg-slate-50 border border-pink-200 rounded-xl text-xs text-slate-800 font-medium animate-in fade-in">
+                  <span className="font-bold text-pink-800 block text-xs uppercase tracking-wider mb-0.5">
+                    Đang nhận dạng:
                   </span>
                   <span>{transcript} </span>
                   <span className="text-pink-600 font-bold underline">{partialTranscript}</span>
@@ -1753,7 +1154,7 @@ export function OralExamRoomPage({
                 </button>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] text-green-800 pt-1">
+              <div className="flex items-center justify-between text-xs text-green-800 pt-1">
                 <span>Tiêu chí: {currentQuestion.rubricCriteria}</span>
               </div>
             </div>
@@ -1781,7 +1182,7 @@ export function OralExamRoomPage({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
+                      <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-bold ${
                         isCurrent ? 'bg-white text-ink font-bold' : isAnswered ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
                       }`}>
                         {idx + 1}
@@ -1789,7 +1190,7 @@ export function OralExamRoomPage({
                       <span className="truncate">{q.title || `Câu ${idx + 1}`}</span>
                     </div>
                     {isAnswered && (
-                      <span className="text-[10px] font-bold text-emerald-700 shrink-0">Đã nộp ✓</span>
+                      <span className="text-xs font-bold text-emerald-700 shrink-0">Đã nộp ✓</span>
                     )}
                   </div>
                 );
