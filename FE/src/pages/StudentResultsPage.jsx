@@ -92,14 +92,14 @@ export function StudentResultsPage({ showToast }) {
                 >
                   <div className="min-w-0">
                     <p className="font-bold text-sm truncate">{s.examTitle || 'Ca thi'}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Hoàn tất: {formatDate(s.completedAt)}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Hoàn tất: {formatDate(s.completedAt)}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
                       <p className="font-heading font-black text-lg text-pink-600 leading-none">
                         {s.totalScore != null ? Number(s.totalScore) : '—'}<span className="text-xs text-ink font-sans"> / 10</span>
                       </p>
-                      <p className="text-[11px] font-bold text-slate-700">{gradeLabel(s.gradeLevel)}</p>
+                      <p className="text-xs font-bold text-slate-700">{gradeLabel(s.gradeLevel)}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-700" />
                   </div>
@@ -116,7 +116,7 @@ export function StudentResultsPage({ showToast }) {
             <div className="sticky top-0 bg-white p-5 border-b border-pink-200 flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-heading font-black text-lg">{selected.examTitle || 'Chi tiết ca thi'}</h2>
-                <p className="text-[11px] text-slate-500">Mã ca thi: <span className="font-mono">{selected.attemptId}</span></p>
+                <p className="text-xs text-slate-500">Mã ca thi: <span className="font-mono">{selected.attemptId}</span></p>
               </div>
               <button
                 type="button"
@@ -135,15 +135,15 @@ export function StudentResultsPage({ showToast }) {
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="bg-white border border-pink-200 rounded-xl p-3">
-                      <p className="text-[10px] uppercase font-bold text-slate-700">Điểm</p>
+                      <p className="text-xs uppercase font-bold text-slate-700">Điểm</p>
                       <p className="font-heading font-black text-xl text-pink-600">{detail.totalScore != null ? Number(detail.totalScore) : '—'} / 10</p>
                     </div>
                     <div className="bg-white border border-pink-200 rounded-xl p-3">
-                      <p className="text-[10px] uppercase font-bold text-slate-700">Xếp loại</p>
+                      <p className="text-xs uppercase font-bold text-slate-700">Xếp loại</p>
                       <p className="font-heading font-black text-xl">{gradeLabel(detail.gradeLevel)}</p>
                     </div>
                     <div className="bg-white border border-pink-200 rounded-xl p-3">
-                      <p className="text-[10px] uppercase font-bold text-slate-700">Số lượt</p>
+                      <p className="text-xs uppercase font-bold text-slate-700">Số lượt</p>
                       <p className="font-heading font-black text-xl">{detail.turns?.length || 0}</p>
                     </div>
                   </div>
