@@ -30,6 +30,8 @@ public class ExamTurnPersistenceMapper {
                 .teacherFeedback(domain.getTeacherFeedback())
                 .teacherId(domain.getTeacherId())
                 .teacherGradedAt(domain.getTeacherGradedAt())
+                .askedAt(domain.getAskedAt())
+                .timedOut(domain.isTimedOut())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .isNewEntity(false)
@@ -60,6 +62,8 @@ public class ExamTurnPersistenceMapper {
                 .teacherFeedback(entity.getTeacherFeedback())
                 .teacherId(entity.getTeacherId())
                 .teacherGradedAt(entity.getTeacherGradedAt())
+                .askedAt(entity.getAskedAt())
+                .timedOut(entity.isTimedOut())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

@@ -134,11 +134,13 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
-                attempt.getRemainingSeconds(),
+                attempt.remainingAt(java.time.Instant.now()),
                 attempt.getGraceDeadline(),
                 turn != null ? turn.getId() : null,
                 turn != null ? turn.getQuestionText() : null,
-                turn != null ? turn.getTtsAudioUrl() : null
+                turn != null ? turn.getTtsAudioUrl() : null,
+                attempt.effectiveAnswerTimeLimitSeconds(),
+                attempt.effectiveMaxFollowUps()
         );
     }
 }

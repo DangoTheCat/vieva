@@ -10,6 +10,7 @@ import com.example.vieva.application.transaction.UseCaseTransaction;
 import com.example.vieva.domain.entities.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.*;
 
 @Slf4j
@@ -179,6 +180,37 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                     "Exam attempt is not IN_PROGRESS (current: " + attempt.getStatus() + ")");
         }
 
+        // Server-side exam clock: an answer arriving well after time ran out is not graded;
+        // the attempt is closed and finalized instead. Within the grace window it is graded,
+        // then the attempt ends without asking another question.
+        Instant now = Instant.now();
+        if (attempt.isPastSubmitGrace(now)) {
+            log.info("Attempt {} ran out of time before turn {} was submitted; finalizing", attemptId, turnId);
+            attempt.timeoutSession();
+            examAttemptRepository.save(attempt);
+            dispatchFinalization(attemptId, attempt);
+            return new TurnEvaluationView(
+                    currentTurn.getId(),
+                    currentTurn.getAttemptId(),
+                    currentTurn.getTurnType() != null ? currentTurn.getTurnType().name() : TurnType.MAIN_QUESTION.name(),
+                    currentTurn.getTurnOrder(),
+                    currentTurn.getStatus().name(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    true,
+                    null,
+                    null,
+                    null,
+                    now,
+                    0,
+                    true
+            );
+        }
+        boolean sessionTimeUp = attempt.isTimeExpired(now);
+
         // Reject empty or blank transcript AND empty audio
         boolean hasTranscript = transcriptText != null && !transcriptText.trim().isEmpty();
         boolean hasAudio = audioBytes != null && audioBytes.length > 0;
@@ -189,14 +221,15 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         // Upload audio if provided
         String studentAudioUrl = null;
         if (hasAudio) {
-            String storagePath = String.format("oral-exams/%s/%s.wav", attemptId, turnId);
-            String contentType = audioContentType != null && !audioContentType.isBlank() ? audioContentType : "audio/wav";
+            String contentType = audioContentType != null && !audioContentType.isBlank() ? audioContentType : "audio/webm";
+            String storagePath = String.format("oral-exams/%s/%s.%s", attemptId, turnId, audioExtension(contentType));
             StoredFile storedFile = fileStoragePort.store(storagePath, audioBytes, contentType);
             studentAudioUrl = storedFile != null ? storedFile.url() : null;
         }
 
-        // Update current turn answer
-        currentTurn.submitAnswer(transcriptText, studentAudioUrl);
+        // Update current turn answer; late answers (after the per-answer deadline + grace) are flagged
+        currentTurn.submitAnswer(transcriptText, studentAudioUrl, now,
+                attempt.effectiveAnswerTimeLimitSeconds(), ExamAttempt.SUBMIT_GRACE_SECONDS);
 
         // Build scoped RAG context if subject documents and embedding model are available
         String ragContext = null;
@@ -273,7 +306,7 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         );
         examTurnRepository.save(currentTurn);
 
-        // Enforce max 2 followups per main question
+        // Enforce the follow-up budget frozen from the exam (default 2 per main question)
         List<ExamTurn> questionTurns = examTurnRepository.findByAttemptIdAndQuestionIdOrderByTurnOrderAsc(
                 attemptId, currentTurn.getQuestionId()
         );
@@ -287,9 +320,10 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                 .filter(t -> t.getTurnType() == TurnType.FOLLOW_UP)
                 .count();
 
-        boolean canFollowUp = evalResult.shouldFollowUp()
+        boolean canFollowUp = !sessionTimeUp
+                && evalResult.shouldFollowUp()
                 && !evalResult.isStandardMet()
-                && followUpCount < 2
+                && followUpCount < attempt.effectiveMaxFollowUps()
                 && evalResult.followUpQuestionText() != null
                 && !evalResult.followUpQuestionText().isBlank();
 
@@ -301,7 +335,13 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
         List<ExamTurn> allAttemptTurns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
         int nextTurnOrder = allAttemptTurns.size() + 1;
 
-        if (canFollowUp) {
+        if (sessionTimeUp) {
+            // Time ran out while this answer was in flight: grade it, then close the attempt
+            isAttemptFinished = true;
+            attempt.timeoutSession();
+            examAttemptRepository.save(attempt);
+            dispatchFinalization(attemptId, attempt);
+        } else if (canFollowUp) {
             ExamTurn followUpTurn = ExamTurn.createFollowUp(
                     attemptId,
                     currentTurn.getQuestionId(),
@@ -411,8 +451,19 @@ public class SubmitTurnAnswerUseCaseImpl implements SubmitTurnAnswerUseCase {
                 nextTurnId,
                 nextQuestionText,
                 nextTurnType,
-                currentTurn.getUpdatedAt()
+                currentTurn.getUpdatedAt(),
+                attempt.remainingAt(Instant.now()),
+                currentTurn.isTimedOut()
         );
+    }
+
+    private static String audioExtension(String contentType) {
+        String type = contentType.toLowerCase();
+        if (type.contains("webm")) return "webm";
+        if (type.contains("ogg")) return "ogg";
+        if (type.contains("mp4") || type.contains("m4a") || type.contains("aac")) return "m4a";
+        if (type.contains("mpeg") || type.contains("mp3")) return "mp3";
+        return "wav";
     }
 
     private void dispatchFinalization(UUID attemptId, ExamAttempt attempt) {

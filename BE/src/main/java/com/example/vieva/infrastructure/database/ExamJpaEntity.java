@@ -46,6 +46,12 @@ public class ExamJpaEntity implements Persistable<UUID> {
     @Column(name = "status", nullable = false, length = 50)
     private ExamStatus status;
 
+    @Column(name = "answer_time_limit_seconds", nullable = false)
+    private Integer answerTimeLimitSeconds;
+
+    @Column(name = "max_follow_ups_per_question", nullable = false)
+    private Integer maxFollowUpsPerQuestion;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

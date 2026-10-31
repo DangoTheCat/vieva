@@ -30,7 +30,8 @@ public class ExamServiceImpl implements ExamService {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Subject ID is required");
         }
         accessGuard.requireManage(actorId, command.subjectId());
-        Exam exam = Exam.create(command.subjectId(), actorId, command.title(), command.durationSeconds());
+        Exam exam = Exam.create(command.subjectId(), actorId, command.title(), command.durationSeconds(),
+                command.answerTimeLimitSeconds(), command.maxFollowUpsPerQuestion());
         Exam saved = examRepository.save(exam);
         return toView(saved, 0);
     }
@@ -86,10 +87,16 @@ public class ExamServiceImpl implements ExamService {
         if (!exam.isDraft()) {
             throw new ApplicationException(ErrorCode.EXAM_NOT_DRAFT);
         }
-        if (command == null || command.title() == null || command.title().isBlank()) {
+        if (command == null || command.isEmpty()) {
             throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam title is required");
         }
-        exam.updateTitle(command.title());
+        if (command.title() != null) {
+            if (command.title().isBlank()) {
+                throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Exam title is required");
+            }
+            exam.updateTitle(command.title());
+        }
+        exam.applyInterviewSettings(command.answerTimeLimitSeconds(), command.maxFollowUpsPerQuestion());
         Exam saved = examRepository.save(exam);
         int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
         return toView(saved, count);
@@ -225,7 +232,9 @@ public class ExamServiceImpl implements ExamService {
                 exam.getStatus(),
                 questionCount,
                 exam.getCreatedAt(),
-                exam.getUpdatedAt()
+                exam.getUpdatedAt(),
+                exam.getAnswerTimeLimitSeconds(),
+                exam.getMaxFollowUpsPerQuestion()
         );
     }
 }

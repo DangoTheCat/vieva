@@ -86,7 +86,7 @@ public enum ErrorCode {
     ATTEMPT_NOT_FOUND("1079", "Exam attempt not found"),
     ATTEMPT_NOT_OWNED("1080", "Attempt does not belong to the current student"),
     TURN_NOT_FOUND("1081", "Exam turn not found"),
-    MAX_FOLLOWUPS_EXCEEDED("1082", "Maximum of 2 follow-up questions per main question reached"),
+    MAX_FOLLOWUPS_EXCEEDED("1082", "Maximum number of follow-up questions for this main question reached"),
     GRADING_FORBIDDEN("1083", "You do not have permission to grade this attempt"),
     INVALID_SCORE("1084", "Score must be between 0 and 10");
 

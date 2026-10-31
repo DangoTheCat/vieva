@@ -75,6 +75,15 @@ public class ExamAttemptJpaEntity implements Persistable<UUID> {
     @Column(name = "grace_deadline")
     private Instant graceDeadline;
 
+    @Column(name = "resumed_at")
+    private Instant resumedAt;
+
+    @Column(name = "answer_time_limit_seconds")
+    private Integer answerTimeLimitSeconds;
+
+    @Column(name = "max_follow_ups_per_question")
+    private Integer maxFollowUpsPerQuestion;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -8,6 +8,8 @@ import com.example.vieva.application.ports.input.exam.ExamAttemptView;
 import com.example.vieva.application.ports.input.exam.ExamTurnDetailView;
 import com.example.vieva.application.ports.input.exam.GetExamAttemptUseCase;
 import com.example.vieva.application.ports.input.exam.ManageExamConnectionUseCase;
+import com.example.vieva.application.ports.input.exam.MarkTurnReadyUseCase;
+import com.example.vieva.application.ports.input.exam.TurnReadyView;
 import com.example.vieva.application.ports.input.exam.StartExamSessionUseCase;
 import com.example.vieva.application.ports.input.exam.StartExamUseCase;
 import com.example.vieva.application.ports.input.exam.StudentExamService;
@@ -40,6 +42,7 @@ public class StudentExamAttemptController {
     private final ManageExamConnectionUseCase manageExamConnectionUseCase;
     private final GetExamAttemptUseCase getExamAttemptUseCase;
     private final SubmitTurnAnswerUseCase submitTurnAnswerUseCase;
+    private final MarkTurnReadyUseCase markTurnReadyUseCase;
     private final StudentExamService studentExamService;
     private final ExamAttemptPresenter presenter;
 
@@ -67,6 +70,18 @@ public class StudentExamAttemptController {
         boolean deviceReady = request == null || request.deviceReady() == null || Boolean.TRUE.equals(request.deviceReady());
         ExamAttemptView attemptView = startExamSessionUseCase.startSession(id, studentId, deviceReady);
         return ResponseEntity.ok(presenter.toAttemptResponse(attemptView));
+    }
+
+    /** Called by the client when the question has been read aloud; starts the answer timer. */
+    @PostMapping("/{id}/turns/{turnId}/ready")
+    public ResponseEntity<ExamAttemptPresenter.TurnReadyResponse> markTurnReady(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("id") UUID id,
+            @PathVariable("turnId") UUID turnId
+    ) {
+        UUID studentId = CurrentUser.id(currentUser);
+        TurnReadyView view = markTurnReadyUseCase.markReady(id, turnId, studentId);
+        return ResponseEntity.ok(presenter.toTurnReadyResponse(view));
     }
 
     @PostMapping("/{id}/disconnect")

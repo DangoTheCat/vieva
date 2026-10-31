@@ -1,0 +1,66 @@
+R1	domainDoesNotDependOnOuterLayers	PASS	0 class	0 import
+R2	domainHasZeroDependenciesOnFrameworks	PASS	0 class	0 import
+R3	applicationDoesNotDependOnAdaptersInfraOrSpring	PASS	0 class	0 import
+R4	outputPortsDoNotDependOnInputPorts	PASS	0 class	0 import
+R4b	inputPortsDoNotDependOnOutputPorts	PASS	0 class	0 import
+R4c	portsDoNotDependOnUseCaseImplementations	PASS	0 class	0 import
+R5	adaptersDoNotDependOnInfrastructure	PASS	0 class	0 import
+R6	inputPortsDoNotDependOnDomainEntities	FAIL	11 class	11 import
+     application.ports.input.admin.AdminAnalyticsService -> domain.entities.AttemptStatus
+     application.ports.input.admin.AdminPerformanceItemView -> domain.entities.GradeLevel
+     application.ports.input.exam.ExamCommands -> domain.entities.ExamStatus
+     application.ports.input.exam.ExamView -> domain.entities.ExamStatus
+     application.ports.input.exam.ExamViews -> domain.entities.ExamStatus
+     application.ports.input.exam.StudentExamView -> domain.entities.AttemptStatus
+     application.ports.input.exam.StudentScoreView -> domain.entities.GradeLevel
+     application.ports.input.exam.UpdateExamStatusCommand -> domain.entities.ExamStatus
+     application.ports.input.grading.AttemptGradingDetailView -> domain.entities.AttemptStatus
+     application.ports.input.grading.ExamParticipantView -> domain.entities.AttemptStatus
+     application.ports.input.grading.LecturerScoreView -> domain.entities.GradeLevel
+R7	controllersDoNotDependOnUseCaseImplementations	PASS	0 class	0 import
+R8	adaptersDoNotDependOnDomainEntities	FAIL	2 class	2 import
+     adapters.controllers.AdminAnalyticsController -> domain.entities.AttemptStatus
+     adapters.controllers.request.UpdateExamStatusApiRequest -> domain.entities.ExamStatus
+R9	presentersDoNotDependOnDomainEntities	PASS	0 class	0 import
+R10	controllersDoNotDependOnDomainEntities	FAIL	2 class	2 import
+     adapters.controllers.AdminAnalyticsController -> domain.entities.AttemptStatus
+     adapters.controllers.request.UpdateExamStatusApiRequest -> domain.entities.ExamStatus
+R11	controllersDoNotDependOnOutputPorts	PASS	0 class	0 import
+R12	adaptersDoNotDependOnOutputPorts	PASS	0 class	0 import
+R13	infrastructureDoesNotDependOnAdapters	PASS	0 class	0 import
+R14	infrastructureDatabaseDoesNotDependOnInputPorts	PASS	0 class	0 import
+X1	outputPortsDoNotDependOnDomainEntities (de xuat)	FAIL	30 class	51 import
+     application.ports.output.AttemptGradingGateway -> domain.entities.ExamAttempt, domain.entities.ExamTurn, domain.entities.Rubric
+     application.ports.output.AttemptGradingResult -> domain.entities.GradeLevel, domain.entities.ScoringMode
+     application.ports.output.AuditEventRepository -> domain.entities.AuditEvent
+     application.ports.output.CourseDocumentRepository -> domain.entities.CourseDocument
+     application.ports.output.DocumentChunkRepository -> domain.entities.DocumentChunk
+     application.ports.output.ExamAttemptQuestionSnapshotRepository -> domain.entities.ExamAttemptQuestionSnapshot
+     application.ports.output.ExamAttemptRepository -> domain.entities.AttemptStatus, domain.entities.ExamAttempt
+     application.ports.output.ExamQuestionRepository -> domain.entities.ExamQuestion
+     application.ports.output.ExamRepository -> domain.entities.Exam, domain.entities.ExamStatus
+     application.ports.output.ExamScoreRepository -> domain.entities.ExamScore
+     application.ports.output.ExamTurnRepository -> domain.entities.ExamTurn
+     application.ports.output.LecturerSubjectRepository -> domain.entities.LecturerSubject
+     application.ports.output.NotificationRepository -> domain.entities.Notification
+     application.ports.output.QuestionDraftWriter -> domain.entities.CourseDocument, domain.entities.DocumentStatus, domain.entities.Question, domain.entities.QuestionSource, domain.entities.QuestionVersion, domain.entities.Rubric, domain.entities.RubricCriterion
+     application.ports.output.QuestionGenerationRequestRepository -> domain.entities.QuestionGenerationRequest
+     application.ports.output.QuestionRepository -> domain.entities.Question
+     application.ports.output.QuestionSourceRepository -> domain.entities.QuestionSource
+     application.ports.output.QuestionVersionAggregate -> domain.entities.Question, domain.entities.QuestionSource, domain.entities.QuestionVersion, domain.entities.Rubric, domain.entities.RubricCriterion, domain.entities.Topic
+     application.ports.output.QuestionVersionRepository -> domain.entities.QuestionVersion
+     application.ports.output.QuestionVersionViewAssemblerPort -> domain.entities.Question, domain.entities.QuestionVersion
+     application.ports.output.RoleRepository -> domain.entities.Role
+     application.ports.output.RubricCriterionRepository -> domain.entities.RubricCriterion
+     application.ports.output.RubricRepository -> domain.entities.Rubric
+     application.ports.output.RubricTemplateRepository -> domain.entities.RubricTemplate
+     application.ports.output.RuleBasedGraderPort -> domain.entities.ExamAttempt, domain.entities.ExamTurn, domain.entities.Rubric
+     application.ports.output.SpeechSettingsRepository -> domain.entities.SpeechSettings
+     application.ports.output.SubjectRepository -> domain.entities.Subject, domain.entities.SubjectStatus
+     application.ports.output.TopicRepository -> domain.entities.Topic
+     application.ports.output.UserRepository -> domain.entities.User
+     application.ports.output.VivaEvaluationGateway -> domain.entities.ExamTurn, domain.entities.Rubric
+X2	infrastructureDoesNotDependOnUseCases (de xuat, tru configuration)	FAIL	1 class	1 import
+     infrastructure.service.ExamFinalizationWorker -> application.usecases.exam.AttemptGradingService
+X3	entitiesHaveNoPublicSetters (de xuat)	FAIL	23 class
+     AuditEvent, CourseDocument, DocumentChunk, Exam, ExamAttempt, ExamAttemptQuestionSnapshot, ExamQuestion, ExamScore, ExamTurn, LecturerSubject, Question, QuestionGenerationRequest, QuestionSource, QuestionVersion, Role, Rubric, RubricCriterion, RubricTemplate, SpeechSettings, Subject, Topic, User, UserRole
