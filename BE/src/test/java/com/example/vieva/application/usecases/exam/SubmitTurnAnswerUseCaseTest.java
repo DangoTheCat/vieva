@@ -301,6 +301,80 @@ class SubmitTurnAnswerUseCaseTest {
     }
 
     @Test
+    @DisplayName("submitAnswer closes the attempt without grading when the exam clock ran out beyond the grace window")
+    void submitAnswerAfterTimeRanOutFinalizesWithoutGrading() {
+        ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 2, 60);
+        attempt.setId(attemptId);
+        attempt.start(true);
+        attempt.setResumedAt(java.time.Instant.now().minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 30));
+        when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
+
+        ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Q", null);
+        turn.setId(turnId);
+        when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
+
+        TurnEvaluationView view = useCase.submitAnswer(attemptId, turnId, studentId, "Late answer", null, null);
+
+        assertThat(view.isAttemptFinished()).isTrue();
+        assertThat(view.remainingSeconds()).isZero();
+        assertThat(turn.getStatus()).isEqualTo(TurnStatus.PENDING);
+        assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.FINALIZING);
+        verify(vivaEvaluationGateway, never()).evaluateTurn(any(), any(), any());
+        verify(examFinalizationPort).dispatchFinalization(attemptId);
+    }
+
+    @Test
+    @DisplayName("submitAnswer respects the follow-up limit frozen from the exam (1 instead of the default 2)")
+    void submitAnswerUsesConfiguredFollowUpLimit() {
+        ExamAttempt attempt = ExamAttempt.initForExam(UUID.randomUUID(), studentId, subjectId, 1, 900, 120, 1);
+        attempt.setId(attemptId);
+        attempt.start(true);
+        when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
+
+        ExamTurn mainTurn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Main Q", null);
+        mainTurn.setId(UUID.randomUUID());
+        ExamTurn f1 = ExamTurn.createFollowUp(attemptId, questionId, versionId, mainTurn.getId(), 2, "Follow 1", null);
+        f1.setId(turnId);
+        when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(f1));
+        when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(List.of(
+                ExamAttemptQuestionSnapshot.create(attemptId, questionId, versionId, 0, "Main Q", "Expected", "{}")));
+        when(vivaEvaluationGateway.evaluateTurn(any(), any(), any())).thenReturn(new VivaEvaluationResult(
+                false, true, "Follow 2 text", new BigDecimal("6.00"), "Unclear", "{}"));
+        when(examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId)).thenReturn(List.of(mainTurn, f1));
+
+        TurnEvaluationView view = useCase.submitAnswer(attemptId, turnId, studentId, "Answer", null, null);
+
+        assertThat(view.nextTurnType()).isNull();
+        assertThat(view.isAttemptFinished()).isTrue();
+    }
+
+    @Test
+    @DisplayName("submitAnswer flags an answer that arrives after the per-answer deadline")
+    void submitAnswerFlagsLateAnswer() {
+        ExamAttempt attempt = ExamAttempt.initForExam(UUID.randomUUID(), studentId, subjectId, 1, 900, 60, 2);
+        attempt.setId(attemptId);
+        attempt.start(true);
+        when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
+
+        ExamTurn turn = ExamTurn.createMainQuestion(attemptId, questionId, versionId, 1, "Q", null);
+        turn.setId(turnId);
+        turn.setAskedAt(java.time.Instant.now().minusSeconds(60 + ExamAttempt.SUBMIT_GRACE_SECONDS + 20));
+        when(examTurnRepository.findById(turnId)).thenReturn(Optional.of(turn));
+        when(examTurnRepository.save(any(ExamTurn.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(List.of(
+                ExamAttemptQuestionSnapshot.create(attemptId, questionId, versionId, 0, "Q", "Expected", "{}")));
+        when(vivaEvaluationGateway.evaluateTurn(any(), any(), any())).thenReturn(new VivaEvaluationResult(
+                true, false, null, new BigDecimal("8.00"), "Good", "{}"));
+        when(examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId)).thenReturn(List.of(turn));
+
+        TurnEvaluationView view = useCase.submitAnswer(attemptId, turnId, studentId, "Answer", null, null);
+
+        assertThat(view.timedOut()).isTrue();
+        assertThat(turn.isTimedOut()).isTrue();
+    }
+
+    @Test
     @DisplayName("submitAnswer builds non-empty RAG context when ready subject documents and similar chunks exist")
     void submitAnswerWithAvailableSubjectEvidenceBuildsNonEmptyRagContext() {
         ExamAttempt attempt = ExamAttempt.init(studentId, subjectId, 1);

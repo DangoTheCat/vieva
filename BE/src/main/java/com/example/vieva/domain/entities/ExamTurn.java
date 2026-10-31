@@ -33,6 +33,10 @@ public class ExamTurn {
     private String teacherFeedback;
     private UUID teacherId;
     private Instant teacherGradedAt;
+    /** When the question finished being read to the student; the answer timer starts here. */
+    private Instant askedAt;
+    /** True when the answer arrived after the per-answer deadline (plus grace). */
+    private boolean timedOut;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -49,6 +53,7 @@ public class ExamTurn {
                 .questionText(questionText)
                 .ttsAudioUrl(ttsAudioUrl)
                 .status(TurnStatus.PENDING)
+                .askedAt(now)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -68,9 +73,37 @@ public class ExamTurn {
                 .questionText(questionText)
                 .ttsAudioUrl(ttsAudioUrl)
                 .status(TurnStatus.PENDING)
+                .askedAt(now)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+    }
+
+    /**
+     * Restarts the answer timer once the question has been read aloud (TTS finished), so reading
+     * time is not counted against the student. Only a pending turn can be marked.
+     */
+    public void markAsked(Instant now) {
+        if (this.status != TurnStatus.PENDING) {
+            throw new DomainException(DomainErrorCode.INVALID_REQUEST,
+                    "Turn is not pending an answer (current status: " + status + ")");
+        }
+        this.askedAt = now;
+        this.updatedAt = now;
+    }
+
+    /** Deadline for the answer: askedAt + limit (the submit grace is applied by the caller). */
+    public Instant answerDeadline(int answerTimeLimitSeconds) {
+        Instant start = this.askedAt != null ? this.askedAt : this.createdAt;
+        return start != null ? start.plusSeconds(answerTimeLimitSeconds) : null;
+    }
+
+    /** Records the answer and flags it as late when it arrives after deadline + grace. */
+    public void submitAnswer(String transcriptText, String studentAudioUrl, Instant now,
+                             int answerTimeLimitSeconds, int graceSeconds) {
+        Instant deadline = answerDeadline(answerTimeLimitSeconds);
+        submitAnswer(transcriptText, studentAudioUrl);
+        this.timedOut = deadline != null && now.isAfter(deadline.plusSeconds(graceSeconds));
     }
 
     public void submitAnswer(String transcriptText, String studentAudioUrl) {

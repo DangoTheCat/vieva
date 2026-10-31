@@ -48,6 +48,8 @@ class StudentExamAttemptControllerTest {
     @Mock
     private SubmitTurnAnswerUseCase submitTurnAnswerUseCase;
     @Mock
+    private com.example.vieva.application.ports.input.exam.MarkTurnReadyUseCase markTurnReadyUseCase;
+    @Mock
     private StudentExamService studentExamService;
 
     private MockMvc mockMvc;
@@ -64,6 +66,7 @@ class StudentExamAttemptControllerTest {
                 manageExamConnectionUseCase,
                 getExamAttemptUseCase,
                 submitTurnAnswerUseCase,
+                markTurnReadyUseCase,
                 studentExamService,
                 presenter
         );
@@ -133,6 +136,22 @@ class StudentExamAttemptControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.attemptId").value(attemptId.toString()))
                 .andExpect(jsonPath("$.status").value("READY"));
+    }
+
+    @Test
+    @DisplayName("POST /attempts/{id}/turns/{turnId}/ready returns the answer deadline and server clock")
+    void markTurnReadyEndpoint() throws Exception {
+        UUID turnId = UUID.randomUUID();
+        Instant askedAt = Instant.parse("2026-11-02T08:00:00Z");
+        when(markTurnReadyUseCase.markReady(eq(attemptId), eq(turnId), eq(studentId)))
+                .thenReturn(new com.example.vieva.application.ports.input.exam.TurnReadyView(
+                        turnId, attemptId, askedAt, askedAt.plusSeconds(120), 120, 640, askedAt));
+
+        mockMvc.perform(post("/api/v1/student/attempts/{id}/turns/{turnId}/ready", attemptId, turnId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnId").value(turnId.toString()))
+                .andExpect(jsonPath("$.answerTimeLimitSeconds").value(120))
+                .andExpect(jsonPath("$.remainingSeconds").value(640));
     }
 
     @Test

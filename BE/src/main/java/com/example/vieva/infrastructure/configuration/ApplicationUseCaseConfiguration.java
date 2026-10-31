@@ -13,6 +13,7 @@ import com.example.vieva.application.usecases.exam.ExamServiceImpl;
 import com.example.vieva.application.usecases.exam.GetExamAttemptUseCaseImpl;
 import com.example.vieva.application.usecases.exam.ManageExamConnectionUseCaseImpl;
 import com.example.vieva.application.usecases.exam.StartExamSessionUseCaseImpl;
+import com.example.vieva.application.usecases.exam.MarkTurnReadyUseCaseImpl;
 import com.example.vieva.application.usecases.exam.StartExamUseCaseImpl;
 import com.example.vieva.application.usecases.exam.StudentExamServiceImpl;
 import com.example.vieva.application.usecases.exam.SubmitTurnAnswerUseCaseImpl;
@@ -69,6 +70,7 @@ import org.springframework.context.annotation.Import;
         StudentExamServiceImpl.class,
         AdminAnalyticsServiceImpl.class,
         StartExamSessionUseCaseImpl.class,
+        MarkTurnReadyUseCaseImpl.class,
         GetExamAttemptUseCaseImpl.class,
         SubjectServiceImpl.class,
         AdminUserServiceImpl.class,

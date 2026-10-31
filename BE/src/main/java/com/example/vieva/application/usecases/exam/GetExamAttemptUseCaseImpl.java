@@ -55,7 +55,9 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
                         t.getFeedback(),
                         t.getRubricEvaluations(),
                         t.getCreatedAt(),
-                        t.getUpdatedAt()
+                        t.getUpdatedAt(),
+                        t.getAskedAt(),
+                        t.isTimedOut()
                 ))
                 .toList();
 
@@ -71,11 +73,13 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
-                attempt.getRemainingSeconds(),
+                attempt.remainingAt(java.time.Instant.now()),
                 attempt.getGraceDeadline(),
                 score != null ? score.getDetailedFeedback() : null,
                 score != null && score.getScoringMode() != null ? score.getScoringMode().name() : null,
-                turnViews
+                turnViews,
+                attempt.effectiveAnswerTimeLimitSeconds(),
+                attempt.effectiveMaxFollowUps()
         );
     }
 }

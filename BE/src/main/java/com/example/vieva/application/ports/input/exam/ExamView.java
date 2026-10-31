@@ -14,5 +14,7 @@ public record ExamView(
         ExamStatus status,
         int questionCount,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        int answerTimeLimitSeconds,
+        int maxFollowUpsPerQuestion
 ) {}

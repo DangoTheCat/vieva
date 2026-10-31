@@ -168,7 +168,9 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                             e.getStatus(),
                             count,
                             e.getCreatedAt(),
-                            e.getUpdatedAt()
+                            e.getUpdatedAt(),
+                            e.getAnswerTimeLimitSeconds(),
+                            e.getMaxFollowUpsPerQuestion()
                     );
                 })
                 .collect(Collectors.toList());

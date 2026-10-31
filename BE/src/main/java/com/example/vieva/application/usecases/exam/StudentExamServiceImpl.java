@@ -81,7 +81,9 @@ public class StudentExamServiceImpl implements StudentExamService {
                 studentId,
                 exam.getSubjectId(),
                 examQuestions.size(),
-                exam.getDurationSeconds()
+                exam.getDurationSeconds(),
+                exam.getAnswerTimeLimitSeconds(),
+                exam.getMaxFollowUpsPerQuestion()
         );
         ExamAttempt savedAttempt = examAttemptRepository.save(attempt);
 
@@ -228,11 +230,13 @@ public class StudentExamServiceImpl implements StudentExamService {
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
-                attempt.getRemainingSeconds(),
+                attempt.remainingAt(java.time.Instant.now()),
                 attempt.getGraceDeadline(),
                 lastTurn != null ? lastTurn.getId() : null,
                 lastTurn != null ? lastTurn.getQuestionText() : null,
-                lastTurn != null ? lastTurn.getTtsAudioUrl() : null
+                lastTurn != null ? lastTurn.getTtsAudioUrl() : null,
+                attempt.effectiveAnswerTimeLimitSeconds(),
+                attempt.effectiveMaxFollowUps()
         );
     }
 }
