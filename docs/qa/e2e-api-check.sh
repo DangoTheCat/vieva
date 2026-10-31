@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # End-to-end API checks for student / lecturer / admin flows. Usage: bash e2e.sh [--expiry]
-B=http://localhost:8080/api/v1
+B=${API_BASE:-http://localhost:8080/api/v1}
+# Credentials come from the environment, never from this file:
+#   QA_PASSWORD=<password of the seeded accounts> bash docs/qa/e2e-api-check.sh
+: "${QA_PASSWORD:?Set QA_PASSWORD to the password of the seeded accounts}"
+QA_TEMP_PASSWORD="Qa$(date +%s)x$RANDOM"
 PASS=0; FAIL=0
 ok(){ PASS=$((PASS+1)); echo "  PASS  $1"; }
 ko(){ FAIL=$((FAIL+1)); echo "  FAIL  $1 -> $2"; }
@@ -10,14 +14,14 @@ req(){ local auth=(); [ -n "$2" ] && auth=(-H "Authorization: Bearer $2")
   CODE=${out##*$'\n'}; BODY=${out%$'\n'*}; }
 expect(){ [ "$CODE" = "$1" ] && ok "$2" || ko "$2" "HTTP $CODE ${BODY:0:160}"; }
 field(){ echo "$BODY" | grep -oE "\"$1\":\"[^\"]+\"" | head -1 | cut -d'"' -f4; }
-login(){ req POST "" /auth/login "{\"email\":\"$1\",\"password\":\"${2:-password123}\"}"; field accessToken; }
+login(){ req POST "" /auth/login "{\"email\":\"$1\",\"password\":\"${2:-$QA_PASSWORD}\"}"; field accessToken; }
 
 echo "== AUTH"
 A=$(login admin@aives.edu.vn); [ -n "$A" ] && ok "admin login" || ko "admin login" "$BODY"
 L=$(login vancee@fpt.edu.vn); [ -n "$L" ] && ok "lecturer login" || ko "lecturer login" "$BODY"
 S=$(login student@fpt.edu.vn); [ -n "$S" ] && ok "student login" || ko "student login" "$BODY"
 req POST "" /auth/login '{"email":"student@fpt.edu.vn","password":"wrong-pass"}'; expect 401 "wrong password rejected"
-req POST "" /auth/login '{"email":"SE170001","password":"password123"}'; expect 400 "non-email login rejected"
+req POST "" /auth/login "{\"email\":\"SE170001\",\"password\":\"$QA_PASSWORD\"}"; expect 400 "non-email login rejected"
 
 echo "== RBAC"
 req GET "$S" /lecturer/subjects; expect 403 "student blocked from lecturer API"
@@ -35,11 +39,11 @@ n=$(echo "$BODY" | grep -o '"subjectId"' | wc -l); [ "$n" -ge 1 ] && ok "admin s
 EMAIL="qa.$(date +%s)@fpt.edu.vn"
 req POST "$A" /admin/users "{\"email\":\"$EMAIL\",\"fullName\":\"QA Auto\",\"roleCode\":\"ROLE_STUDENT\"}"; expect 201 "admin create user"
 U=$(field userId)
-req POST "$A" /admin/users/$U/reset-password '{"newPassword":"Tmp9xKq27mPa"}'; expect 200 "admin reset password"
-req POST "" /auth/login "{\"email\":\"$EMAIL\",\"password\":\"Tmp9xKq27mPa\"}"; expect 200 "new user logs in with temp password"
+req POST "$A" /admin/users/$U/reset-password "{\"newPassword\":\"$QA_TEMP_PASSWORD\"}"; expect 200 "admin reset password"
+req POST "" /auth/login "{\"email\":\"$EMAIL\",\"password\":\"$QA_TEMP_PASSWORD\"}"; expect 200 "new user logs in with temp password"
 echo "$BODY" | grep -q '"mustChangePassword":true' && ok "mustChangePassword=true" || ko "mustChangePassword" "$BODY"
 req DELETE "$A" /admin/users/$U; expect 200 "admin delete user"
-req POST "" /auth/login "{\"email\":\"$EMAIL\",\"password\":\"Tmp9xKq27mPa\"}"; expect 401 "deleted user cannot log in"
+req POST "" /auth/login "{\"email\":\"$EMAIL\",\"password\":\"$QA_TEMP_PASSWORD\"}"; expect 401 "deleted user cannot log in"
 
 echo "== LECTURER"
 SUB=d0000000-0000-0000-0000-000000000001
