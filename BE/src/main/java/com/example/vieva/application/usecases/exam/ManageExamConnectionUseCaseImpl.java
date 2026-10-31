@@ -27,35 +27,11 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
     public ManageExamConnectionUseCaseImpl(
             ExamAttemptRepository examAttemptRepository,
             ExamTurnRepository examTurnRepository,
-            AttemptGradingService attemptGradingService,
             ExamFinalizationPort examFinalizationPort
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.examTurnRepository = examTurnRepository;
         this.examFinalizationPort = examFinalizationPort;
-    }
-
-    public ManageExamConnectionUseCaseImpl(
-            ExamAttemptRepository examAttemptRepository,
-            ExamTurnRepository examTurnRepository,
-            ExamFinalizationPort examFinalizationPort
-    ) {
-        this(examAttemptRepository, examTurnRepository, null, examFinalizationPort);
-    }
-
-    public ManageExamConnectionUseCaseImpl(
-            ExamAttemptRepository examAttemptRepository,
-            ExamTurnRepository examTurnRepository,
-            AttemptGradingService attemptGradingService
-    ) {
-        this(examAttemptRepository, examTurnRepository, attemptId -> {
-            if (attemptGradingService != null) {
-                examAttemptRepository.findById(attemptId).ifPresent(attempt -> {
-                    List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
-                    attemptGradingService.gradeAndCompleteAttempt(attempt, turns);
-                });
-            }
-        });
     }
 
     @Override

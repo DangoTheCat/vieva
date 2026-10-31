@@ -165,7 +165,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                             e.getCreatorId(),
                             e.getTitle(),
                             e.getDurationSeconds(),
-                            e.getStatus(),
+                            e.getStatus().name(),
                             count,
                             e.getCreatedAt(),
                             e.getUpdatedAt(),
@@ -202,7 +202,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     name,
                     email,
                     code,
-                    a.getStatus(),
+                    a.getStatus().name(),
                     a.getTotalScore(),
                     aiScore,
                     teacherScore,
@@ -302,7 +302,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 attempt.getStudentId(),
                 name,
                 email,
-                attempt.getStatus(),
+                attempt.getStatus().name(),
                 attempt.getTotalScore(),
                 aiScore,
                 teacherScore,
@@ -513,7 +513,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     studentName,
                     s.getOverrideTotalScore() != null ? s.getOverrideTotalScore() : s.getTotalScore(),
                     s.getOverrideTotalScore(),
-                    s.getGrade(),
+                    s.getGrade() != null ? s.getGrade().name() : null,
                     s.getCreatedAt()
             ));
         }
@@ -587,7 +587,7 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 studentName,
                 saved.getOverrideTotalScore() != null ? saved.getOverrideTotalScore() : saved.getTotalScore(),
                 saved.getOverrideTotalScore(),
-                saved.getGrade(),
+                saved.getGrade() != null ? saved.getGrade().name() : null,
                 saved.getCreatedAt()
         );
     }
@@ -706,18 +706,6 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
     }
 
     private GradeLevel determineGrade(BigDecimal score) {
-        if (score == null) {
-            return GradeLevel.POOR;
-        }
-        double val = score.doubleValue();
-        if (val >= 8.5) {
-            return GradeLevel.EXCELLENT;
-        } else if (val >= 7.0) {
-            return GradeLevel.GOOD;
-        } else if (val >= 5.0) {
-            return GradeLevel.AVERAGE;
-        } else {
-            return GradeLevel.POOR;
-        }
+        return GradeLevel.fromScore(score);
     }
 }

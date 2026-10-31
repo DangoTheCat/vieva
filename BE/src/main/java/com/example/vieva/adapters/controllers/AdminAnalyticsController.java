@@ -5,7 +5,6 @@ import com.example.vieva.application.ports.common.PageResult;
 import com.example.vieva.application.ports.input.admin.AdminAnalyticsService;
 import com.example.vieva.application.ports.input.admin.AdminPerformanceItemView;
 import com.example.vieva.application.ports.input.admin.AdminStatsView;
-import com.example.vieva.domain.entities.AttemptStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,7 +34,7 @@ public class AdminAnalyticsController {
             @RequestParam(name = "studentId", required = false) UUID studentId,
             @RequestParam(name = "subjectId", required = false) UUID subjectId,
             @RequestParam(name = "examId", required = false) UUID examId,
-            @RequestParam(name = "status", required = false) AttemptStatus status,
+            @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {

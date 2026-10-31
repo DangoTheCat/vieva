@@ -1,6 +1,5 @@
 package com.example.vieva.application.ports.input.grading;
 
-import com.example.vieva.domain.entities.AttemptStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,7 +12,7 @@ public record AttemptGradingDetailView(
         UUID studentId,
         String studentName,
         String studentEmail,
-        AttemptStatus status,
+        String status,
         BigDecimal totalScore,
         BigDecimal aiScore,
         BigDecimal teacherScore,

@@ -96,7 +96,8 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
             AttemptGradingResult gradingResult = null;
             try {
                 if (attemptGradingGateway != null) {
-                    gradingResult = attemptGradingGateway.gradeAttempt(lockedAttempt, turns, rubric);
+                    gradingResult = attemptGradingGateway.gradeAttempt(
+                            AiGradingInputs.toEvaluationTurns(turns), AiGradingInputs.toRubricSummary(rubric));
                 }
             } catch (Exception ex) {
                 log.warn("AttemptGradingGateway failed for attempt {}, falling back to rule-based grading: {}",
@@ -105,7 +106,8 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
 
             if (gradingResult == null) {
                 if (ruleBasedGraderPort != null) {
-                    gradingResult = ruleBasedGraderPort.grade(lockedAttempt, turns, rubric);
+                    gradingResult = ruleBasedGraderPort.grade(
+                            AiGradingInputs.toEvaluationTurns(turns), AiGradingInputs.toRubricSummary(rubric));
                 } else {
                     gradingResult = fallbackRuleBasedGrading(turns);
                 }
@@ -142,17 +144,7 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
                 }
 
                 BigDecimal totalScore = sum.divide(BigDecimal.valueOf(snapshots.size()), 2, RoundingMode.HALF_UP);
-                GradeLevel gradeLevel;
-                double avgDouble = totalScore.doubleValue();
-                if (avgDouble >= 8.5) {
-                    gradeLevel = GradeLevel.EXCELLENT;
-                } else if (avgDouble >= 7.0) {
-                    gradeLevel = GradeLevel.GOOD;
-                } else if (avgDouble >= 5.0) {
-                    gradeLevel = GradeLevel.AVERAGE;
-                } else {
-                    gradeLevel = GradeLevel.POOR;
-                }
+                GradeLevel gradeLevel = GradeLevel.fromScore(totalScore);
 
                 String feedback = gradingResult != null ? gradingResult.detailedFeedback() : "Hoàn thành bài thi vấn đáp.";
                 ScoringMode mode = gradingResult != null ? gradingResult.scoringMode() : ScoringMode.RULE_BASED_FALLBACK;
@@ -215,17 +207,7 @@ public class AttemptGradingServiceImpl implements AttemptGradingService {
                 ? sum.divide(BigDecimal.valueOf(evaluatedCount), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
-        GradeLevel grade;
-        double avgDouble = average.doubleValue();
-        if (avgDouble >= 8.5) {
-            grade = GradeLevel.EXCELLENT;
-        } else if (avgDouble >= 7.0) {
-            grade = GradeLevel.GOOD;
-        } else if (avgDouble >= 5.0) {
-            grade = GradeLevel.AVERAGE;
-        } else {
-            grade = GradeLevel.POOR;
-        }
+        GradeLevel grade = GradeLevel.fromScore(average);
 
         String feedback = String.format("Calculated via rule-based fallback across %d turns with average score %.2f.",
                 evaluatedCount, average.doubleValue());

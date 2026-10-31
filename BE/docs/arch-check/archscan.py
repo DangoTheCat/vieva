@@ -16,7 +16,7 @@ def deps(cls):
 def rule(rid,desc,src_pkgs,dst_pkgs,exclude=()):
     v=[]
     for c,(pkg,imps,src) in files.items():
-        if not any(inpkg(pkg,s) for s in src_pkgs): continue
+        if not any(inpkg(pkg,s) or inpkg(c,s) for s in src_pkgs): continue
         if any(inpkg(pkg,e) for e in exclude): continue
         for i in imps:
             if any(inpkg(i,d) for d in dst_pkgs): v.append((c,i))
@@ -39,7 +39,8 @@ rule('R11','controllersDoNotDependOnOutputPorts',[CT],[OP]),
 rule('R12','adaptersDoNotDependOnOutputPorts',[AD],[OP]),
 rule('R13','infrastructureDoesNotDependOnAdapters',[INF],[AD]),
 rule('R14','infrastructureDatabaseDoesNotDependOnInputPorts',[INF+'.database'],[IP]),
-rule('X1','outputPortsDoNotDependOnDomainEntities (de xuat)',[OP],[ENT]),
+rule('X1','aiGradingDoesNotDependOnInterviewEntities (de xuat)',[INF+'.ai'],[ENT+'.ExamAttempt',ENT+'.ExamTurn',ENT+'.Rubric',ENT+'.RubricCriterion']),
+rule('X1b','aiGatewayPortsDoNotDependOnInterviewEntities (de xuat)',[OP+'.VivaEvaluationGateway',OP+'.AttemptGradingGateway',OP+'.RuleBasedGraderPort',OP+'.AttemptGradingResult'],[ENT+'.ExamAttempt',ENT+'.ExamTurn',ENT+'.Rubric',ENT+'.RubricCriterion']),
 rule('X2','infrastructureDoesNotDependOnUseCases (de xuat, tru configuration)',[INF],[UC],[INF+'.configuration']),
 ]
 # X3 public setters in entities via @Setter

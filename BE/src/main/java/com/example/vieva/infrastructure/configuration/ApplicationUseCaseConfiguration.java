@@ -9,6 +9,7 @@ import com.example.vieva.application.usecases.catalog.LecturerCatalogServiceImpl
 import com.example.vieva.application.usecases.common.ErrorTranslatorImpl;
 import com.example.vieva.application.usecases.document.DocumentServiceImpl;
 import com.example.vieva.application.usecases.exam.AttemptGradingServiceImpl;
+import com.example.vieva.application.usecases.exam.FinalizeExamAttemptUseCaseImpl;
 import com.example.vieva.application.usecases.exam.ExamServiceImpl;
 import com.example.vieva.application.usecases.exam.GetExamAttemptUseCaseImpl;
 import com.example.vieva.application.usecases.exam.ManageExamConnectionUseCaseImpl;
@@ -118,7 +119,6 @@ public class ApplicationUseCaseConfiguration {
         return new ManageExamConnectionUseCaseImpl(
                 examAttemptRepository,
                 examTurnRepository,
-                attemptGradingService,
                 examFinalizationPort
         );
     }
@@ -137,7 +137,8 @@ public class ApplicationUseCaseConfiguration {
             ExamFinalizationPort examFinalizationPort,
             CourseDocumentRepository courseDocumentRepository,
             DocumentChunkRepository documentChunkRepository,
-            EmbeddingModelPort embeddingModelPort
+            EmbeddingModelPort embeddingModelPort,
+            TransactionRunnerPort transactionRunnerPort
     ) {
         return new SubmitTurnAnswerUseCaseImpl(
                 examAttemptRepository,
@@ -152,7 +153,8 @@ public class ApplicationUseCaseConfiguration {
                 examFinalizationPort,
                 courseDocumentRepository,
                 documentChunkRepository,
-                embeddingModelPort
+                embeddingModelPort,
+                transactionRunnerPort
         );
     }
 
@@ -248,6 +250,17 @@ public class ApplicationUseCaseConfiguration {
                 accessGuard,
                 auditor
         );
+    }
+
+    @Bean
+    public FinalizeExamAttemptUseCaseImpl finalizeExamAttemptUseCase(
+            ExamAttemptRepository examAttemptRepository,
+            ExamTurnRepository examTurnRepository,
+            ExamScoreRepository examScoreRepository,
+            AttemptGradingService attemptGradingService
+    ) {
+        return new FinalizeExamAttemptUseCaseImpl(examAttemptRepository, examTurnRepository, examScoreRepository,
+                attemptGradingService);
     }
 
     @Bean
