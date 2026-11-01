@@ -1,9 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { CompletedStage } from '../components/exam/stages/CompletedStage';
 import { FinalizingStage } from '../components/exam/stages/FinalizingStage';
 import { InterruptedStage } from '../components/exam/stages/InterruptedStage';
 import { NoAttemptView } from '../components/exam/stages/NoAttemptView';
-import { ReadyStage } from '../components/exam/stages/ReadyStage';
 import { ReconnectingStage } from '../components/exam/stages/ReconnectingStage';
 import { useExamSession } from '../hooks/useExamSession';
 import { InProgressStage } from '../components/exam/stages/InProgressStage';
@@ -33,11 +32,6 @@ export function OralExamRoomPage({
     manualText,
     setManualText,
     examResult,
-    preflightMicOk,
-    setPreflightMicOk,
-    preflightSpeakerOk,
-    preflightTestingMic,
-    preflightMicVolume,
     isRecording,
     transcript,
     partialTranscript,
@@ -47,10 +41,6 @@ export function OralExamRoomPage({
     stopTTS,
     activeExam,
     currentQuestion,
-    startPreflightMicTest,
-    stopPreflightMic,
-    handleTestSpeaker,
-    handleStartExam,
     handleReconnect,
     handleToggleSpeak,
     handleSubmitTurn,
@@ -61,14 +51,27 @@ export function OralExamRoomPage({
   } = useExamSession({ onNavigate, showToast });
 
   // ==========================================
-  // RENDER STATE 1: READY (Pre-flight check)
+  // RENDER STATE: NO ATTEMPT
   // ==========================================
   if (!attemptId) {
     return <NoAttemptView onNavigate={onNavigate} />;
   }
 
+  // ==========================================
+  // RENDER STATE 1: READY (Auto-starting exam session)
+  // ==========================================
   if (examStage === 'READY') {
-    return <ReadyStage handleStartExam={handleStartExam} handleTestSpeaker={handleTestSpeaker} isAiSpeaking={isAiSpeaking} preflightMicOk={preflightMicOk} preflightMicVolume={preflightMicVolume} preflightSpeakerOk={preflightSpeakerOk} preflightTestingMic={preflightTestingMic} setPreflightMicOk={setPreflightMicOk} startPreflightMicTest={startPreflightMicTest} stopPreflightMic={stopPreflightMic} studentCode={studentCode} studentName={studentName} />;
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center space-y-4 animate-in fade-in duration-200">
+        <div className="w-14 h-14 rounded-2xl bg-pink-100 text-pink-700 flex items-center justify-center shadow-xs mx-auto">
+          <span className="w-6 h-6 border-2 border-pink-600 border-t-transparent rounded-full animate-spin"></span>
+        </div>
+        <div className="space-y-1">
+          <h2 className="font-heading font-black text-xl text-ink">Đang Khởi Tạo Phòng Thi Vấn Đáp AI...</h2>
+          <p className="text-xs text-slate-500">Thiết bị đã được hiệu chuẩn. Giám thị AI đang chuẩn bị câu hỏi cho bạn.</p>
+        </div>
+      </div>
+    );
   }
 
   // ==========================================

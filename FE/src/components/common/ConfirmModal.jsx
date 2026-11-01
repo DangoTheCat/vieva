@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
 export function ConfirmModal({
@@ -39,12 +40,15 @@ export function ConfirmModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 bg-pink-600/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-200"
+      className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isLoading) onCancel();
+      }}
     >
       <div className="bg-white rounded-2xl max-w-md w-full border border-pink-200 shadow-xl overflow-hidden flex flex-col transform transition-all animate-modal-entry">
         
@@ -105,6 +109,7 @@ export function ConfirmModal({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

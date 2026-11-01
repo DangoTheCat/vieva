@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { X, FileSpreadsheet, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -20,8 +21,8 @@ export function ImportQuestionsModal({
     onImport({ file, isDryRun });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
       <div className="bg-paper rounded-2xl max-w-lg w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry">
         
         {/* Header */}
@@ -142,6 +143,7 @@ export function ImportQuestionsModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

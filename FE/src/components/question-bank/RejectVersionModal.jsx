@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 
@@ -16,8 +17,8 @@ export function RejectVersionModal({
     setReason('');
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
       <div className="bg-paper rounded-2xl max-w-md w-full border border-pink-200 shadow-md p-5 space-y-4 animate-modal-entry">
         <div className="flex items-center justify-between border-b border-pink-100 pb-2.5">
           <h3 className="font-heading font-extrabold text-sm text-ink flex items-center gap-2">
@@ -65,6 +66,7 @@ export function RejectVersionModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

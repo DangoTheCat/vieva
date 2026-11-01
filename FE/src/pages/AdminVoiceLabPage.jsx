@@ -134,7 +134,7 @@ export function AdminVoiceLabPage({ showToast }) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto w-full space-y-6 pb-10 text-ink animate-modal-entry">
+    <div className="max-w-3xl mx-auto w-full space-y-6 pb-10 text-ink ">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading font-bold text-2xl tracking-tight text-ink">Cấu Hình Giọng Nói</h1>

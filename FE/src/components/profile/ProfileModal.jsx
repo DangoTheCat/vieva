@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { userApi } from '../../api/userApi';
@@ -118,9 +119,8 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
     }
   };
 
-  return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150"
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
     >
@@ -357,6 +357,7 @@ export function ProfileModal({ isOpen, initialTab = 'info', onClose, showToast }
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

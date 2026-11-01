@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React from 'react';
 import { X } from 'lucide-react';
 import { SkeletonCard } from '../common/Skeleton';
@@ -5,8 +6,8 @@ import { SkeletonCard } from '../common/Skeleton';
 export function QuestionDetailModal({ questionDetail, onClose }) {
   if (!questionDetail) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
       <div className="bg-paper rounded-2xl max-w-2xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-pink-200 pb-3">
           <h3 className="font-heading font-extrabold text-sm text-ink">
@@ -79,6 +80,7 @@ export function QuestionDetailModal({ questionDetail, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

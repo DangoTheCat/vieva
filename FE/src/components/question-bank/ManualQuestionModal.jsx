@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { BLOOM_LEVELS } from './bloomConstants';
@@ -34,8 +35,8 @@ export function ManualQuestionModal({
 
   const totalScore = criteria.reduce((sum, c) => sum + (Number(c.maxScore) || 0), 0);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog">
       <div className="bg-paper rounded-2xl max-w-xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-pink-200 pb-3">
           <h3 className="font-heading font-extrabold text-sm text-ink">Soạn Câu Hỏi Mới Kèm Ma Trận Rubric</h3>
@@ -145,6 +146,7 @@ export function ManualQuestionModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

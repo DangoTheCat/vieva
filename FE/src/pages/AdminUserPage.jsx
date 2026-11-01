@@ -264,7 +264,7 @@ export function AdminUserPage({ onOpenMatrix, showToast, refreshKey }) {
 
       {/* OFFLINE / RECONNECT BANNER */}
       {fetchError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs animate-modal-entry mb-6">
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs  mb-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
               <WifiOff className="w-4 h-4" />

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { questionBankApi } from '../api/questionBankApi';
 import { rubricApi } from '../api/rubricApi';
@@ -258,7 +259,7 @@ export function RubricStudioPage({ showToast }) {
   const progressPercent = Math.min(Math.max((currentTotalScore / 10.0) * 100, 0), 100);
 
   return (
-    <div className="space-y-6 animate-modal-entry text-ink max-w-7xl mx-auto w-full pb-10">
+    <div className="space-y-6 text-ink max-w-7xl mx-auto w-full pb-10">
 
       {/* 1. Header Bar */}
       <div className="bg-white border border-pink-200 rounded-2xl p-5 sm:p-6 md:p-8 shadow-2xs relative overflow-hidden">
@@ -582,8 +583,8 @@ export function RubricStudioPage({ showToast }) {
       </div>
 
       {/* 5. Rubric Modal (Thêm / Chỉnh Sửa Tiêu Chí Rubric) */}
-      {isRubricModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+      {isRubricModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-pink-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 animate-modal-entry text-ink">
             <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
               <div className="flex items-center gap-2">
@@ -660,9 +661,9 @@ export function RubricStudioPage({ showToast }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-
     </div>
   );
 }
