@@ -5,7 +5,7 @@ import { gradeLabel } from '../utils/activeExam';
 import { Pagination } from '../components/common/Pagination';
 import { Users, GraduationCap, School, Shield, ClipboardList, Activity, RotateCcw, BarChart3 } from 'lucide-react';
 
-const fmt = (n) => (n != null ? Number(n).toFixed(2).replace(/\.00$/, '') : '—');
+const fmt = (n) => (n != null ? String(Number(Number(n).toFixed(2))) : '—');
 
 function StatTile({ icon: Icon, label, value, hint }) {
   return (

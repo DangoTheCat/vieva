@@ -264,7 +264,7 @@ export function RubricStudioPage({ showToast }) {
       {/* 1. Header Bar */}
       <div className="bg-white border border-pink-200 rounded-2xl p-5 sm:p-6 md:p-8 shadow-2xs relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 min-w-0 space-y-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-slate-100 border border-pink-200 rounded-full">
               <Award className="w-4 h-4 text-slate-600" />
               <span className="text-xs font-semibold text-slate-700 tracking-wide">
@@ -284,7 +284,7 @@ export function RubricStudioPage({ showToast }) {
             <select 
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="bg-white text-slate-800 font-semibold text-xs px-3.5 py-2 rounded-xl border border-pink-200 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer"
+              className="w-full sm:w-auto sm:max-w-xs truncate bg-white text-slate-800 font-semibold text-xs px-3.5 py-2 rounded-xl border border-pink-200 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer"
             >
               {subjects.length === 0 && <option value="">Chưa có môn học</option>}
               {subjects.map((s) => (
