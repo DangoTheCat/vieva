@@ -17,6 +17,18 @@ public interface DocumentChunkJpaRepository extends JpaRepository<DocumentChunkJ
     @EntityGraph(attributePaths = {"document"})
     List<DocumentChunkJpaEntity> findByDocument_DocumentIdOrderByChunkIndexAsc(UUID documentId);
 
+    @Query(value = """
+        SELECT c.*
+        FROM document_chunks c
+        JOIN course_documents d ON c.document_id = d.document_id
+        WHERE c.embedding IS NULL
+          AND d.indexing_status = 'READY'
+          AND d.deleted_at IS NULL
+        ORDER BY c.document_id, c.chunk_index
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<DocumentChunkJpaEntity> findReadyChunksWithoutEmbedding(@Param("limit") int limit);
+
     @Modifying
     @Query("DELETE FROM DocumentChunkJpaEntity c WHERE c.document.documentId = :documentId")
     void deleteByDocumentId(@Param("documentId") UUID documentId);

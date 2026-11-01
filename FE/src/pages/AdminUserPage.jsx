@@ -36,7 +36,7 @@ function generateTemporaryPassword() {
   return chars.join('');
 }
 
-export function AdminUserPage({ onOpenMatrix, showToast }) {
+export function AdminUserPage({ onOpenMatrix, showToast, refreshKey }) {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -126,7 +126,7 @@ export function AdminUserPage({ onOpenMatrix, showToast }) {
       fetchUsers();
     }, 250);
     return () => clearTimeout(timer);
-  }, [keyword, role, status, sortBy, sortDirection, page]);
+  }, [keyword, role, status, sortBy, sortDirection, page, refreshKey]);
 
   // Reconnect Countdown Timer
   useEffect(() => {
