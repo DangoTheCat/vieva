@@ -15,6 +15,9 @@ public interface DocumentChunkRepository {
     List<DocumentChunk> findAllByIds(Collection<UUID> chunkIds);
     List<DocumentChunk> findByDocumentId(UUID documentId);
 
+    /** Chunks of READY, non-deleted documents that have no embedding yet (e.g. SQL seed data). */
+    List<DocumentChunk> findReadyChunksWithoutEmbedding(int limit);
+
     /**
      * Cosine-similarity retrieval (pgvector {@code <=>}) restricted to READY, non-deleted documents
      * of the subject AND to the selected document ids (BR-07), best matches first.

@@ -89,6 +89,16 @@ public class PgVectorAdapter implements DocumentChunkRepository {
     }
 
     @Override
+    public List<DocumentChunk> findReadyChunksWithoutEmbedding(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        return jpaRepository.findReadyChunksWithoutEmbedding(limit).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<ChunkSearchResult> searchSimilarChunks(UUID subjectId, Collection<UUID> documentIds,
                                                        float[] queryEmbedding, double minSimilarity, int limit) {
         if (documentIds == null || documentIds.isEmpty() || queryEmbedding == null || limit <= 0) {
