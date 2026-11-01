@@ -72,6 +72,8 @@ function AppContent() {
   // Modals state
   const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  // Bumped after a top-bar quick add so the open user list refetches
+  const [usersVersion, setUsersVersion] = useState(0);
 
   const handleOpenProfile = () => {
     setCurrentView('profile');
@@ -259,6 +261,7 @@ function AppContent() {
               <AdminUserPage
                 onOpenMatrix={() => setIsMatrixOpen(true)}
                 showToast={showToast}
+                refreshKey={usersVersion}
               />
             )}
 
@@ -372,6 +375,7 @@ function AppContent() {
         onClose={() => setIsQuickAddOpen(false)}
         onSuccess={() => {
           showToast({ type: 'success', message: 'Tạo tài khoản thành công!' });
+          setUsersVersion((v) => v + 1);
         }}
         showToast={showToast}
       />
