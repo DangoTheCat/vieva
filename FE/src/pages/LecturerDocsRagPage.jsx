@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { courseDocumentApi } from '../api/courseDocumentApi';
 import { knowledgeApi } from '../api/knowledgeApi';
@@ -256,7 +257,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
   };
 
   return (
-    <div className="space-y-6 animate-modal-entry text-ink pb-10">
+    <div className="space-y-6 text-ink pb-10">
 
       {/* HEADER BAR */}
       <div className="bg-white border border-pink-200 p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
@@ -514,8 +515,8 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       )}
 
       {/* UPLOAD MODAL WITH MATERIAL DROPZONE */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+      {isUploadModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-pink-200 rounded-2xl max-w-lg w-full p-6 shadow-md space-y-4 animate-modal-entry text-ink">
             <div className="flex items-center justify-between pb-3 border-b-2 border-cream">
               <div className="flex items-center gap-2">
@@ -570,12 +571,13 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* VIEW CHUNKS MODAL WITH REAL PREVIEW DATA */}
-      {isChunksModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+      {isChunksModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-pink-200 rounded-2xl max-w-2xl w-full p-6 shadow-md space-y-4 animate-modal-entry text-ink max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b-2 border-cream shrink-0">
               <div className="flex items-center gap-2 min-w-0">
@@ -658,9 +660,9 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-
     </div>
   );
 }

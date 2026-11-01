@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { gradeLabel } from '../utils/activeExam';
@@ -71,7 +72,7 @@ export function LecturerReviewRegradingPage({ showToast }) {
   );
 
   return (
-    <div className="max-w-5xl mx-auto w-full space-y-6 pb-10 text-ink animate-modal-entry">
+    <div className="max-w-5xl mx-auto w-full space-y-6 pb-10 text-ink">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading font-extrabold text-2xl tracking-tight">Phúc Khảo &amp; Điều Chỉnh Điểm</h1>
@@ -137,9 +138,9 @@ export function LecturerReviewRegradingPage({ showToast }) {
         </div>
       </section>
 
-      {editing && (
-        <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <form onSubmit={handleSave} className="bg-white border border-pink-200 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl text-xs text-ink">
+      {editing && createPortal(
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <form onSubmit={handleSave} className="bg-white border border-pink-200 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl text-xs text-ink animate-modal-entry">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-heading font-black text-lg">Điều chỉnh điểm</h2>
@@ -168,7 +169,8 @@ export function LecturerReviewRegradingPage({ showToast }) {
               </button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

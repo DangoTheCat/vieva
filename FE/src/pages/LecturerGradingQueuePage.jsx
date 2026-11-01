@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { isProbeTurn } from '../utils/activeExam';
@@ -154,7 +155,7 @@ export function LecturerGradingQueuePage({ showToast }) {
   );
 
   return (
-    <div className="max-w-6xl mx-auto w-full space-y-6 pb-10 text-ink animate-modal-entry">
+    <div className="max-w-6xl mx-auto w-full space-y-6 pb-10 text-ink">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading font-extrabold text-2xl tracking-tight">Chấm Điểm Bài Thi</h1>
@@ -234,8 +235,8 @@ export function LecturerGradingQueuePage({ showToast }) {
         </div>
       </section>
 
-      {attempt && (
-        <div className="fixed inset-0 z-50 bg-ink/50 flex justify-end" role="dialog" aria-modal="true">
+      {attempt && createPortal(
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex justify-end" role="dialog" aria-modal="true">
           <div className="bg-white w-full max-w-2xl h-full overflow-y-auto border-l border-pink-200 shadow-2xl">
             <div className="sticky top-0 bg-white z-10 p-5 border-b border-pink-200 flex items-start justify-between gap-3">
               <div>
@@ -287,7 +288,8 @@ export function LecturerGradingQueuePage({ showToast }) {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

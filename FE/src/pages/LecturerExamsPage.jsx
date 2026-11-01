@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { lecturerExamApi } from '../api/lecturerExamApi';
 import { questionBankApi } from '../api/questionBankApi';
@@ -26,7 +27,7 @@ const STATUS_META = {
 };
 
 const inputClass = 'w-full bg-white border border-pink-200 focus:border-pink-500 rounded-xl p-2.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-2xs';
-const primaryBtn = 'px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
+const primaryBtn = 'px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 cursor-pointer';
 const ghostBtn = 'px-3 py-1.5 rounded-lg bg-white border border-pink-200 hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition disabled:opacity-50 shadow-2xs cursor-pointer';
 
 /**
@@ -39,13 +40,28 @@ export function LecturerExamsPage({ showToast }) {
   const [exams, setExams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [form, setForm] = useState(null); // { examId?, title, minutes }
+  const [form, setForm] = useState(null); // { examId?, title, minutes, answerSeconds, maxFollowUps, isDraft }
   const [isSaving, setIsSaving] = useState(false);
   const [confirm, setConfirm] = useState(null); // { exam, action: 'delete' | 'open' | 'close' }
   const [isConfirming, setIsConfirming] = useState(false);
 
   const [questionEditor, setQuestionEditor] = useState(null); // { exam, approved, selected: [{questionId, questionVersionId, content}] }
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+
+  // Close modals on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (questionEditor && !isSaving) {
+          setQuestionEditor(null);
+        } else if (form && !isSaving) {
+          setForm(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [questionEditor, form, isSaving]);
 
   useEffect(() => {
     (async () => {
@@ -238,7 +254,7 @@ export function LecturerExamsPage({ showToast }) {
   }[confirm.action];
 
   return (
-    <div className="max-w-5xl mx-auto w-full space-y-6 pb-10 text-ink animate-modal-entry">
+    <div className="max-w-5xl mx-auto w-full space-y-6 pb-10 text-ink">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading font-extrabold text-2xl tracking-tight">Quản Lý Kỳ Thi</h1>
@@ -336,15 +352,29 @@ export function LecturerExamsPage({ showToast }) {
         )}
       </section>
 
-      {/* CREATE / RENAME */}
-      {form && (
-        <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <form onSubmit={handleSaveExam} className="bg-white border border-pink-200 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-md">
+      {/* CREATE / RENAME MODAL */}
+      {form && createPortal(
+        <div 
+          className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto" 
+          role="dialog" 
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSaving) setForm(null);
+          }}
+        >
+          <form onSubmit={handleSaveExam} className="bg-white border border-pink-200 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-modal-entry my-auto">
             <div className="flex items-center justify-between">
               <h2 className="font-heading font-black text-lg">
                 {!form.examId ? 'Tạo kỳ thi mới' : form.isDraft ? 'Chỉnh sửa kỳ thi' : 'Đổi tên kỳ thi'}
               </h2>
-              <button type="button" onClick={() => setForm(null)} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100"><X className="w-5 h-5" /></button>
+              <button 
+                type="button" 
+                onClick={() => setForm(null)} 
+                aria-label="Đóng" 
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <label className="block text-xs font-bold space-y-1">
               <span>Tên kỳ thi</span>
@@ -380,70 +410,145 @@ export function LecturerExamsPage({ showToast }) {
               </button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* QUESTION PICKER */}
-      {questionEditor && (
-        <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div className="bg-white border border-pink-200 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-md">
-            <div className="p-5 border-b border-pink-200 flex items-center justify-between">
+      {/* QUESTION PICKER MODAL */}
+      {questionEditor && createPortal(
+        <div 
+          className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6" 
+          role="dialog" 
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSaving && !isLoadingQuestions) setQuestionEditor(null);
+          }}
+        >
+          <div className="bg-white border border-pink-200 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-modal-entry">
+            <div className="p-5 border-b border-pink-200 flex items-center justify-between shrink-0 bg-white">
               <div>
                 <h2 className="font-heading font-black text-lg">Câu hỏi cho "{questionEditor.exam.title}"</h2>
                 <p className="text-[11px] text-green-800">Chỉ hiển thị phiên bản câu hỏi đã được duyệt (APPROVED) của môn học.</p>
               </div>
-              <button type="button" onClick={() => setQuestionEditor(null)} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100"><X className="w-5 h-5" /></button>
+              <button 
+                type="button" 
+                onClick={() => setQuestionEditor(null)} 
+                aria-label="Đóng" 
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {isLoadingQuestions ? (
-              <div className="p-10 flex items-center justify-center gap-2 text-xs text-green-800"><Loader2 className="w-4 h-4 animate-spin" /> Đang tải...</div>
+              <div className="p-12 flex items-center justify-center gap-2 text-xs text-green-800">
+                <Loader2 className="w-5 h-5 animate-spin text-green-700" /> Đang tải ngân hàng câu hỏi...
+              </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-4 p-5 overflow-y-auto text-xs">
+              <div className="flex-1 min-h-0 grid md:grid-cols-2 gap-4 p-5 overflow-y-auto text-xs">
                 <div className="space-y-2">
-                  <h3 className="font-bold">Ngân hàng câu hỏi đã duyệt ({questionEditor.approved.length})</h3>
+                  <h3 className="font-bold text-slate-800 flex items-center justify-between">
+                    <span>Ngân hàng câu hỏi đã duyệt</span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600 font-mono">
+                      {questionEditor.approved.length}
+                    </span>
+                  </h3>
                   {questionEditor.approved.length === 0 && (
-                    <p className="text-green-800">Chưa có câu hỏi nào được duyệt. Hãy duyệt câu hỏi ở trang Ngân Hàng Câu Hỏi.</p>
+                    <div className="p-4 rounded-xl border border-pink-100 bg-pink-50/50 text-green-800 text-center">
+                      Chưa có câu hỏi nào được duyệt. Hãy duyệt câu hỏi ở trang Ngân Hàng Câu Hỏi.
+                    </div>
                   )}
-                  {questionEditor.approved.map(v => {
-                    const checked = questionEditor.selected.some(s => s.questionVersionId === v.versionId);
-                    return (
-                      <label key={v.versionId} className={`flex gap-2 p-3 rounded-xl border-2 cursor-pointer ${checked ? 'border-slate-900 bg-slate-50' : 'border-pink-200 bg-white hover:bg-slate-50'}`}>
-                        <input type="checkbox" checked={checked} onChange={() => toggleQuestion(v)} className="mt-0.5 accent-green-600" />
-                        <span className="space-y-0.5">
-                          <span className="block font-medium">{v.content}</span>
-                          <span className="block text-[10px] text-green-700">{v.questionCode} • v{v.versionNumber}{v.topicName ? ` • ${v.topicName}` : ''}{v.bloomLevelLabel ? ` • ${v.bloomLevelLabel}` : ''}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
+                  <div className="space-y-2">
+                    {questionEditor.approved.map(v => {
+                      const checked = questionEditor.selected.some(s => s.questionVersionId === v.versionId);
+                      return (
+                        <label 
+                          key={v.versionId} 
+                          className={`flex gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            checked 
+                              ? 'border-green-600 bg-green-50/40 shadow-xs' 
+                              : 'border-pink-200 bg-white hover:border-pink-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input 
+                            type="checkbox" 
+                            checked={checked} 
+                            onChange={() => toggleQuestion(v)} 
+                            className="mt-0.5 w-4 h-4 accent-green-600 cursor-pointer" 
+                          />
+                          <span className="space-y-1 min-w-0 flex-1">
+                            <span className="block font-medium text-ink leading-relaxed break-words">{v.content}</span>
+                            <span className="block text-[10px] text-green-700 font-medium">
+                              {v.questionCode} • v{v.versionNumber}{v.topicName ? ` • ${v.topicName}` : ''}{v.bloomLevelLabel ? ` • ${v.bloomLevelLabel}` : ''}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <h3 className="font-bold">Thứ tự trong kỳ thi ({questionEditor.selected.length})</h3>
-                  {questionEditor.selected.length === 0 && <p className="text-green-800">Chưa chọn câu hỏi nào.</p>}
-                  <ol className="space-y-2">
-                    {questionEditor.selected.map((s, i) => (
-                      <li key={s.questionVersionId} className="flex items-start gap-2 p-3 rounded-xl border border-pink-200 bg-white">
-                        <span className="font-mono font-black text-green-700">{i + 1}.</span>
-                        <span className="flex-1">{s.content}</span>
-                        <span className="flex flex-col gap-1">
-                          <button type="button" onClick={() => moveQuestion(i, -1)} disabled={i === 0} aria-label="Lên" className="p-0.5 rounded hover:bg-green-100 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
-                          <button type="button" onClick={() => moveQuestion(i, 1)} disabled={i === questionEditor.selected.length - 1} aria-label="Xuống" className="p-0.5 rounded hover:bg-green-100 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
+                  <h3 className="font-bold text-slate-800 flex items-center justify-between">
+                    <span>Thứ tự trong kỳ thi</span>
+                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-[10px] text-green-800 font-bold font-mono">
+                      {questionEditor.selected.length}
+                    </span>
+                  </h3>
+                  {questionEditor.selected.length === 0 ? (
+                    <div className="p-6 rounded-xl border border-dashed border-slate-200 text-center text-slate-400">
+                      Chưa chọn câu hỏi nào. Tích chọn từ cột bên trái.
+                    </div>
+                  ) : (
+                    <ol className="space-y-2">
+                      {questionEditor.selected.map((s, i) => (
+                        <li key={s.questionVersionId} className="flex items-start gap-2.5 p-3 rounded-xl border border-pink-200 bg-white shadow-2xs">
+                          <span className="font-mono font-bold text-xs text-green-700 w-5 shrink-0 pt-0.5">{i + 1}.</span>
+                          <span className="flex-1 text-ink leading-relaxed break-words">{s.content}</span>
+                          <span className="flex flex-col gap-1 shrink-0">
+                            <button 
+                              type="button" 
+                              onClick={() => moveQuestion(i, -1)} 
+                              disabled={i === 0} 
+                              aria-label="Lên" 
+                              className="p-1 rounded hover:bg-green-100 disabled:opacity-30 disabled:hover:bg-transparent transition text-slate-600 cursor-pointer"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              type="button" 
+                              onClick={() => moveQuestion(i, 1)} 
+                              disabled={i === questionEditor.selected.length - 1} 
+                              aria-label="Xuống" 
+                              className="p-1 rounded hover:bg-green-100 disabled:opacity-30 disabled:hover:bg-transparent transition text-slate-600 cursor-pointer"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                 </div>
               </div>
             )}
 
-            <div className="p-5 border-t border-pink-200 flex justify-end gap-2">
-              <button type="button" onClick={() => setQuestionEditor(null)} className={ghostBtn}>Huỷ</button>
-              <button type="button" onClick={saveQuestions} disabled={isSaving || isLoadingQuestions} className={primaryBtn}>
+            <div className="p-4 sm:p-5 border-t border-pink-200 flex justify-end gap-2.5 shrink-0 bg-slate-50/70">
+              <button type="button" onClick={() => setQuestionEditor(null)} className={ghostBtn}>
+                Huỷ
+              </button>
+              <button 
+                type="button" 
+                onClick={saveQuestions} 
+                disabled={isSaving || isLoadingQuestions} 
+                className={primaryBtn}
+              >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />} Lưu danh sách câu hỏi
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ConfirmModal

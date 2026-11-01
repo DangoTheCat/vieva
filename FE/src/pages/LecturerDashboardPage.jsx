@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
@@ -116,7 +117,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
   }), { examCount: 0, submittedCount: 0, pendingCount: 0, totalParticipants: 0 });
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto w-full animate-modal-entry text-ink pb-10">
+    <div className="space-y-8 max-w-6xl mx-auto w-full text-ink pb-10">
 
       {/* TOPBAR / HEADER SEARCH BAR & CREATE BUTTON */}
       <div className="bg-white border border-pink-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs">
@@ -269,8 +270,8 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
       </div>
 
       {/* CREATE SPACE / TOPIC MODAL */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+      {isCreateModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-pink-200 rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-xl space-y-4 animate-modal-entry text-ink">
             
             <div className="flex items-center justify-between pb-3 border-b border-cream">
@@ -350,9 +351,9 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
             </form>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-
     </div>
   );
 }
