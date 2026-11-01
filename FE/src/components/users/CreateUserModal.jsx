@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
 import { ROLE_OPTIONS } from '../../utils/roles';
@@ -101,9 +102,8 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
     setFormError('');
   };
 
-  return (
-    <div 
-      className="fixed inset-0 z-50 bg-pink-600/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-200"
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-create-user-title"
@@ -326,6 +326,8 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
         </form>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState, useEffect } from 'react';
 import { KeyRound, X, Eye, EyeOff } from 'lucide-react';
 import { adminUserApi } from '../../api/adminUserApi';
@@ -45,9 +46,8 @@ export function ResetPasswordModal({ user, onClose, showToast }) {
     }
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150"
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
     >
@@ -116,6 +116,7 @@ export function ResetPasswordModal({ user, onClose, showToast }) {
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body
   );
 }

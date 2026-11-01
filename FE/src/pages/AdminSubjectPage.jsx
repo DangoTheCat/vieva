@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   BookOpen, 
   Plus, 
@@ -262,7 +263,7 @@ export function AdminSubjectPage({ showToast }) {
   const distinctLecturersCount = new Set(assignments.map(a => a.lecturerId)).size;
 
   return (
-    <div className="space-y-6 animate-modal-entry pb-12">
+    <div className="space-y-6 pb-12">
       
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -556,9 +557,9 @@ export function AdminSubjectPage({ showToast }) {
       {/* ========================================================================= */}
       {/* 5. CREATE / EDIT SUBJECT MODAL                                            */}
       {/* ========================================================================= */}
-      {isEditModalOpen && (
+      {isEditModalOpen && createPortal(
         <div 
-          className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
           role="dialog"
         >
           <div className="relative w-full max-w-lg rounded-2xl border border-pink-200 bg-paper p-6 sm:p-7 shadow-md flex flex-col animate-modal-entry">
@@ -676,9 +677,9 @@ export function AdminSubjectPage({ showToast }) {
       {/* ========================================================================= */}
       {/* 6. ASSIGN LECTURERS MODAL                                                 */}
       {/* ========================================================================= */}
-      {isAssignModalOpen && activeSubjectForAssign && (
+      {isAssignModalOpen && activeSubjectForAssign && createPortal(
         <div 
-          className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
           role="dialog"
         >
           <div className="relative w-full max-w-3xl rounded-xl border border-pink-200 bg-paper p-6 md:p-8 shadow-md max-h-[90vh] overflow-y-auto animate-modal-entry">
