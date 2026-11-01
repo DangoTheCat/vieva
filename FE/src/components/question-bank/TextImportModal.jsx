@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React from 'react';
 import { X, FileText } from 'lucide-react';
 import { BLOOM_LEVELS } from './bloomConstants';
@@ -16,8 +17,8 @@ export function TextImportModal({
 
   const questionCount = textImport.text ? textImport.text.split(/\r?\n/).filter((l) => l.trim()).length : 0;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <form onSubmit={onSubmit} className="bg-paper rounded-2xl max-w-2xl w-full border border-pink-200 shadow-md p-6 space-y-4 text-xs animate-modal-entry">
         
         {/* Header */}
@@ -124,6 +125,7 @@ export function TextImportModal({
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body
   );
 }

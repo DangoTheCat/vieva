@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React from 'react';
 import { X } from 'lucide-react';
 import { bloomOptionsFor } from './bloomConstants';
@@ -13,8 +14,8 @@ export function EditDraftModal({
 
   const totalScore = editDraft.criteria?.reduce((sum, c) => sum + (Number(c.maxScore) || 0), 0) || 0;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" role="dialog" aria-modal="true">
       <div className="bg-paper rounded-2xl max-w-xl w-full border border-pink-200 shadow-md p-6 space-y-4 animate-modal-entry max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
@@ -110,6 +111,7 @@ export function EditDraftModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
