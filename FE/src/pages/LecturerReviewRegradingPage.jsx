@@ -5,7 +5,7 @@ import { getErrorMessage } from '../utils/errorCodes';
 import { gradeLabel } from '../utils/activeExam';
 import { Search, X, Loader2, Scale, RotateCcw } from 'lucide-react';
 
-const fmt = (n) => (n != null ? Number(n).toFixed(2).replace(/\.00$/, '') : '—');
+const fmt = (n) => (n != null ? String(Number(Number(n).toFixed(2))) : '—');
 
 /**
  * Score review (phúc khảo): every final score across the lecturer's exams,

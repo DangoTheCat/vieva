@@ -14,7 +14,7 @@ const ATTEMPT_LABEL = {
   INTERRUPTED: 'Gián đoạn'
 };
 
-const fmt = (n) => (n != null ? Number(n).toFixed(2).replace(/\.00$/, '') : '—');
+const fmt = (n) => (n != null ? String(Number(Number(n).toFixed(2))) : '—');
 const ghostBtn = 'px-3 py-1.5 rounded-lg bg-white border border-pink-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer';
 
 function StatTile({ icon: Icon, label, value }) {

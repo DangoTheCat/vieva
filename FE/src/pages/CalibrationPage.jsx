@@ -270,7 +270,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
         <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
-              Bước 1 / 3: Kiểm Tra Microphone
+              Bước 1 / 2: Kiểm Tra Microphone
             </span>
             <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
               Kiểm Tra Tín Hiệu Thu Âm Giọng Nói
@@ -398,7 +398,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
         <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
-              Bước 2 / 3: Kiểm Tra Loa / Tai Nghe
+              Bước 2 / 2: Kiểm Tra Loa / Tai Nghe
             </span>
             <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
               Bạn Có Nghe Rõ Giọng Đọc Của Giám Thị Ảo?

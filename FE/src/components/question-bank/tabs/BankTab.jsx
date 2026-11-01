@@ -9,8 +9,8 @@ export function BankTab({ bankPage, bankPageSize, bankQuestions, bankTotalElemen
   return (
     <div className="space-y-6">
       {/* ACTION TOOLBAR & FILTERS */}
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-paper p-4 rounded-xl border border-pink-200 shadow-sm">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 flex-1">
+      <div className="flex flex-col 2xl:flex-row items-stretch 2xl:items-center justify-between gap-3 bg-paper p-4 rounded-xl border border-pink-200 shadow-sm">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 flex-1 min-w-0">
           {/* Search */}
           <div className="relative min-w-[220px] flex-1">
             <Search className="w-4 h-4 text-green-700 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -83,7 +83,7 @@ export function BankTab({ bankPage, bankPageSize, bankQuestions, bankTotalElemen
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}
