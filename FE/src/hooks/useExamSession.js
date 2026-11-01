@@ -176,11 +176,54 @@ export function useExamSession({ onNavigate, showToast }) {
               setReconnectGraceLeft(diffSec);
             }
             if (detail.status && ['READY', 'IN_PROGRESS', 'RECONNECTING', 'FINALIZING', 'COMPLETED', 'INTERRUPTED'].includes(detail.status)) {
-              setExamStage(detail.status);
               if (detail.status === 'COMPLETED') {
+                setExamStage('COMPLETED');
                 setExamResult(toExamResult(detail));
               } else if (detail.status === 'INTERRUPTED') {
+                setExamStage('INTERRUPTED');
                 setInterruptedReason(detail.detailedFeedback || 'Ca thi bị gián đoạn do mất kết nối hoặc sự cố đồng bộ.');
+              } else if (detail.status === 'READY') {
+                try {
+                  const sessionRes = await oralExamApi.startExamSession(targetAttemptId, true);
+                  if (isMounted && sessionRes) {
+                    if (sessionRes.totalQuestions) setTotalQuestions(sessionRes.totalQuestions);
+                    if (sessionRes.remainingSeconds != null && sessionRes.remainingSeconds > 0) {
+                      setSecondsLeft(sessionRes.remainingSeconds);
+                    }
+                    if (sessionRes.currentTurnId) {
+                      const number = 1;
+                      setQuestions([{
+                        id: number,
+                        turnId: sessionRes.currentTurnId,
+                        questionNumber: number,
+                        type: TURN_TYPE.MAIN,
+                        badge: turnBadge(TURN_TYPE.MAIN),
+                        title: turnTitle(TURN_TYPE.MAIN, number),
+                        content: sessionRes.currentQuestionText || '',
+                        ttsAudioUrl: sessionRes.currentTtsAudioUrl
+                      }]);
+                      setActiveQuestionIndex(0);
+                    }
+                    setExamStage('IN_PROGRESS');
+                    if (showToast) {
+                      showToast({
+                        type: 'success',
+                        title: 'Bắt Đầu Bài Thi',
+                        message: 'Chào mừng bạn vào phòng thi vấn đáp. Đồng hồ ca thi bắt đầu tính giờ!'
+                      });
+                    }
+                  }
+                } catch (startErr) {
+                  console.error('Auto-start exam session failed:', startErr);
+                  if (isMounted) {
+                    setExamStage('READY');
+                    if (showToast) {
+                      showToast({ type: 'error', title: 'Không Thể Khởi Tạo Phòng Thi', message: getErrorMessage(startErr) });
+                    }
+                  }
+                }
+              } else {
+                setExamStage(detail.status);
               }
             }
           }

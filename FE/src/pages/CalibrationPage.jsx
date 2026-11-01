@@ -181,7 +181,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
   };
 
   return (
-    <div className="max-w-4xl w-full mx-auto space-y-6 animate-modal-entry py-4 text-slate-800 pb-12">
+    <div className="max-w-4xl w-full mx-auto space-y-6  py-4 text-slate-800 pb-12">
       
       {/* Top Header Card */}
       <div className="bg-white border border-pink-200/90 p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-2xs">

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
@@ -232,7 +232,7 @@ function AppContent() {
       <div className="flex-1 flex w-full">
 
         {/* LEFT PERSISTENT SIDEBAR */}
-        {activeView !== 'calibration' && activeView !== 'exam-room' && (
+        {activeView !== 'exam-room' && (
           <Sidebar
             currentTab={activeView}
             onNavigate={(view) => setCurrentView(view)}
