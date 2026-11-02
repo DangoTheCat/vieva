@@ -56,6 +56,7 @@ services:
       # Inside Docker the speech services are reached by service name (the .env values are for local runs)
       TTS_BASE_URL: http://tts-service:8001
       STT_BASE_URL: http://stt-service:8002
+      STT_CONTEXT_SECRET: ${STT_CONTEXT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,9 +86,13 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - STT_MODEL_ID=suzii/vi-whisper-large-v3-turbo
+      - STT_CONTEXT_BACKEND_URL=http://backend:8080
+      - STT_CONTEXT_SECRET=${STT_CONTEXT_SECRET:-}
+      - STT_MODEL_ID=/models/vi-whisper-large-v3-turbo
       - STT_DEVICE=cuda
       - STT_COMPUTE_TYPE=float16
+    volumes:
+      - stt_models:/models:ro
     deploy:
       resources:
         reservations:
@@ -132,3 +137,5 @@ services:
 
 volumes:
   postgres_data:
+  stt_models:
+    name: vieva_stt_models

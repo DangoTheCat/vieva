@@ -4,6 +4,10 @@ import json
 import logging
 import os
 import sys
+import time
+import urllib.request
+import urllib.error
+import uuid
 import numpy as np
 import torch
 from contextlib import asynccontextmanager
@@ -83,7 +87,33 @@ def decode_audio_bytes(audio_bytes: bytes) -> np.ndarray:
     return decode_audio(io.BytesIO(audio_bytes), sampling_rate=16000)
 
 
-def transcribe_audio_chunk(audio_bytes: bytes, language: str = "vi") -> str:
+def load_attempt_context(attempt_id: str | None, token: str | None) -> str:
+    secret = os.getenv("STT_CONTEXT_SECRET", "")
+    if not attempt_id or not token or not secret:
+        return ""
+    try:
+        attempt_id = str(uuid.UUID(attempt_id))
+        base = os.getenv("STT_CONTEXT_BACKEND_URL", "http://localhost:8080").rstrip("/")
+        request = urllib.request.Request(
+            f"{base}/api/v1/internal/stt/attempts/{attempt_id}/context",
+            headers={"Authorization": f"Bearer {token}", "X-STT-Context-Secret": secret},
+        )
+        with urllib.request.urlopen(request, timeout=2) as response:
+            value = json.load(response).get("initial_prompt", "")
+        return value[:1400] if isinstance(value, str) else ""
+    except Exception as exc:
+        logger.warning("STT context unavailable (%s)", type(exc).__name__)
+        return ""
+
+
+def prompt_tokens(context: str):
+    if not context:
+        return None
+    # Budget in actual Whisper tokenizer tokens, not characters. No model-global state.
+    return model.hf_tokenizer.encode(" " + context.strip(), add_special_tokens=False).ids[:200]
+
+
+def transcribe_audio_chunk(audio_bytes: bytes, language: str = "vi", context: str = "") -> str:
     """Transcribes the accumulated audio of the current answer with Silero VAD."""
     if not audio_bytes or len(audio_bytes) < 44:
         return ""
@@ -95,6 +125,7 @@ def transcribe_audio_chunk(audio_bytes: bytes, language: str = "vi") -> str:
             data,
             language=language,
             task="transcribe",
+            initial_prompt=prompt_tokens(context),
             vad_filter=True,
             vad_parameters=dict(
                 threshold=0.5,
@@ -132,6 +163,13 @@ async def websocket_transcribe(websocket: WebSocket):
     await websocket.accept()
     language = normalize_language(websocket.query_params.get("lang"))
     logger.info(f"STT WebSocket accepted (language={language}).")
+    context = ""
+    next_context_check = 0.0
+    attempt_id = websocket.query_params.get("attemptId")
+    token = websocket.query_params.get("token")
+    authorization = websocket.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        token = authorization[7:]
     audio_buffer = bytearray()
     loop = asyncio.get_running_loop()
     last_partial_at = 0.0
@@ -144,13 +182,16 @@ async def websocket_transcribe(websocket: WebSocket):
                 break
 
             if message.get("bytes"):
+                if not context and attempt_id and time.monotonic() >= next_context_check:
+                    next_context_check = time.monotonic() + 5
+                    context = await asyncio.to_thread(load_attempt_context, attempt_id, token)
                 audio_buffer.extend(message["bytes"])
                 now = loop.time()
                 grown = len(audio_buffer) - last_partial_size
                 if now - last_partial_at >= PARTIAL_INTERVAL_SECONDS and grown >= MIN_PARTIAL_BYTES:
                     last_partial_at = now
                     last_partial_size = len(audio_buffer)
-                    partial_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer), language)
+                    partial_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer), language, context)
                     if partial_text:
                         await send_json(websocket, {"type": "partial", "text": partial_text})
                 continue
@@ -165,7 +206,7 @@ async def websocket_transcribe(websocket: WebSocket):
 
             msg_type = str(data.get("type", "")).lower()
             if msg_type in ("commit", "eos", "stop"):
-                final_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer), language)
+                final_text = await asyncio.to_thread(transcribe_audio_chunk, bytes(audio_buffer), language, context)
                 await send_json(websocket, {"type": "final", "text": final_text})
                 audio_buffer.clear()
                 last_partial_at = 0.0

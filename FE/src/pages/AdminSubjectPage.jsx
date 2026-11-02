@@ -671,7 +671,8 @@ export function AdminSubjectPage({ showToast }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
@@ -810,7 +811,8 @@ export function AdminSubjectPage({ showToast }) {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}

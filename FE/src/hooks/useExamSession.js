@@ -82,6 +82,7 @@ export function useExamSession({ onNavigate, showToast }) {
     resetTranscript,
     isConnected: isWsConnected
   } = useVoiceSTT({
+    attemptId,
     language: speechSettings?.sttLanguage || 'vi-VN',
     onError: (err) => {
       console.warn('STT Hook Warning:', err);

@@ -19,6 +19,7 @@ const FINAL_TIMEOUT_MS = 5000;
  */
 export function useVoiceSTT({
   wsUrl,
+  attemptId,
   language = 'vi-VN',
   onFinalTranscript,
   onPartialTranscript,
@@ -46,7 +47,8 @@ export function useVoiceSTT({
   const baseWsUrl = wsUrl || getSttWsUrl();
   const token = getAuthToken();
   const url = `${baseWsUrl}${baseWsUrl.includes('?') ? '&' : '?'}lang=${toSttLang(language)}`
-    + (token ? `&token=${encodeURIComponent(token)}` : '');
+    + (token ? `&token=${encodeURIComponent(token)}` : '')
+    + (attemptId ? `&attemptId=${encodeURIComponent(attemptId)}` : '');
 
   const settleFinal = useCallback((text) => {
     const waiter = finalWaiterRef.current;

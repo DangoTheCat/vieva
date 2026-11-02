@@ -57,7 +57,8 @@ class ExamServiceImplTest {
                 questionRepository,
                 questionVersionRepository,
                 accessGuard,
-                userRepository
+                userRepository,
+                org.mockito.Mockito.mock(com.example.vieva.application.ports.output.ExamSttContextPort.class)
         );
     }
 

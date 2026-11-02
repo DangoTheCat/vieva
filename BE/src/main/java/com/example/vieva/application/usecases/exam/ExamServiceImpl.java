@@ -24,6 +24,7 @@ public class ExamServiceImpl implements ExamService {
     private final QuestionVersionRepository questionVersionRepository;
     private final SubjectAccessGuard accessGuard;
     private final UserRepository userRepository;
+    private final ExamSttContextPort sttContext;
 
     @Override
     @UseCaseTransaction
@@ -130,6 +131,7 @@ public class ExamServiceImpl implements ExamService {
         }
         exam.transitionTo(targetStatus);
         Exam saved = examRepository.save(exam);
+        if (targetStatus == ExamStatus.IN_PROGRESS) sttContext.dispatch(examId);
         int count = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId).size();
         return toView(saved, count);
     }
