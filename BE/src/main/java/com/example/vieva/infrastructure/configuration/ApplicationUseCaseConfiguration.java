@@ -277,7 +277,8 @@ public class ApplicationUseCaseConfiguration {
             RubricRepository rubricRepository,
             ExamAttemptRepository examAttemptRepository,
             ExamScoreRepository examScoreRepository,
-            ExamAttemptQuestionSnapshotRepository snapshotRepository
+            ExamAttemptQuestionSnapshotRepository snapshotRepository,
+            TransactionRunnerPort transactionRunnerPort
     ) {
         return new AttemptGradingServiceImpl(
                 attemptGradingGateway,
@@ -285,7 +286,8 @@ public class ApplicationUseCaseConfiguration {
                 rubricRepository,
                 examAttemptRepository,
                 examScoreRepository,
-                snapshotRepository
+                snapshotRepository,
+                transactionRunnerPort
         );
     }
 }

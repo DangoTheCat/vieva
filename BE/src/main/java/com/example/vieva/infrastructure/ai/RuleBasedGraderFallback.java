@@ -7,8 +7,6 @@ import com.example.vieva.application.ports.output.RubricSummary;
 import com.example.vieva.application.ports.output.VivaEvaluationContext;
 import com.example.vieva.application.ports.output.VivaEvaluationGateway;
 import com.example.vieva.application.ports.output.VivaEvaluationResult;
-import com.example.vieva.domain.entities.GradeLevel;
-import com.example.vieva.domain.entities.ScoringMode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -129,9 +127,9 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
         if (turns == null || turns.isEmpty()) {
             return new AttemptGradingResult(
                     BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
-                    GradeLevel.POOR,
+                    "POOR",
                     "Không có câu trả lời nào trong lượt thi.",
-                    ScoringMode.RULE_BASED_FALLBACK
+                    "RULE_BASED_FALLBACK"
             );
         }
 
@@ -148,7 +146,7 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
                 ? sum.divide(BigDecimal.valueOf(evaluatedCount), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
-        GradeLevel grade = GradeLevel.fromScore(average);
+        String grade = deriveGradeLevel(average);
         double avgDouble = average.doubleValue();
 
         String detailedFeedback = String.format(
@@ -156,7 +154,23 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
                 avgDouble, evaluatedCount, turns.size(), gradeLabelVi(grade)
         );
 
-        return new AttemptGradingResult(average, grade, detailedFeedback, ScoringMode.RULE_BASED_FALLBACK);
+        return new AttemptGradingResult(average, grade, detailedFeedback, "RULE_BASED_FALLBACK");
+    }
+
+    private static String deriveGradeLevel(BigDecimal score) {
+        if (score == null) {
+            return "POOR";
+        }
+        if (score.compareTo(new BigDecimal("8.5")) >= 0) {
+            return "EXCELLENT";
+        }
+        if (score.compareTo(new BigDecimal("7.0")) >= 0) {
+            return "GOOD";
+        }
+        if (score.compareTo(new BigDecimal("5.0")) >= 0) {
+            return "AVERAGE";
+        }
+        return "POOR";
     }
 
     private String generateFollowUpQuestion(String originalQuestion, Set<String> expectedKeywords, Set<String> answerKeywords) {
@@ -182,12 +196,15 @@ public class RuleBasedGraderFallback implements RuleBasedGraderPort, VivaEvaluat
     }
 
     // Same wording as the FE grade labels (utils/activeExam.js)
-    private static String gradeLabelVi(GradeLevel grade) {
+    private static String gradeLabelVi(String grade) {
+        if (grade == null) {
+            return "Chưa đạt";
+        }
         return switch (grade) {
-            case EXCELLENT -> "Xuất sắc";
-            case GOOD -> "Khá";
-            case AVERAGE -> "Trung bình";
-            case POOR -> "Chưa đạt";
+            case "EXCELLENT" -> "Xuất sắc";
+            case "GOOD" -> "Khá";
+            case "AVERAGE" -> "Trung bình";
+            default -> "Chưa đạt";
         };
     }
 

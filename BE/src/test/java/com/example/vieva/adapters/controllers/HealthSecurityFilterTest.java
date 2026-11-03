@@ -24,6 +24,7 @@ class HealthSecurityFilterTest {
     private MockMvc mockMvc;
 
     @MockitoBean private com.example.vieva.application.ports.output.NotificationRepository notificationRepository;
+    @MockitoBean private com.example.vieva.infrastructure.service.ExamSttContextService examSttContextService;
     @MockitoBean private com.example.vieva.infrastructure.database.RoleJpaRepository roleJpaRepository;
     @MockitoBean private com.example.vieva.infrastructure.database.UserJpaRepository userJpaRepository;
     @MockitoBean private com.example.vieva.infrastructure.database.AuditEventJpaRepository auditEventJpaRepository;

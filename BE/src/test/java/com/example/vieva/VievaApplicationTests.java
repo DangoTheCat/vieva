@@ -12,6 +12,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 })
 class VievaApplicationTests {
     @MockitoBean private com.example.vieva.application.ports.output.NotificationRepository notificationRepository;
+    @MockitoBean private com.example.vieva.infrastructure.service.ExamSttContextService examSttContextService;
 
     @MockitoBean
     private RoleJpaRepository roleJpaRepository;
