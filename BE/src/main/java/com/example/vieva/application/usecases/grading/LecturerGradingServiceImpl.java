@@ -208,7 +208,8 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     teacherScore,
                     overrideScore,
                     a.getStartedAt(),
-                    a.getCompletedAt()
+                    a.getCompletedAt(),
+                    scoreOpt.map(ExamScore::isPublished).orElse(false)
             ));
         }
         return views;
@@ -307,7 +308,9 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 aiScore,
                 teacherScore,
                 overrideScore,
-                questionViews
+                questionViews,
+                scoreOpt.map(ExamScore::isPublished).orElse(false),
+                scoreOpt.map(ExamScore::getPublishedAt).orElse(null)
         );
     }
 
@@ -467,6 +470,42 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
     }
 
     @Override
+    @UseCaseTransaction
+    public AttemptGradingDetailView publishScore(UUID attemptId, UUID lecturerId) {
+        ExamAttempt attempt = examAttemptRepository.findByIdForUpdate(attemptId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ATTEMPT_NOT_FOUND));
+        checkAttemptAccess(attempt, lecturerId);
+
+        if (attempt.getStatus() != AttemptStatus.COMPLETED) {
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST, "Only completed attempts can have their score finalized");
+        }
+
+        ExamScore score = examScoreRepository.findByAttemptId(attemptId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_REQUEST,
+                        "The attempt has not been graded yet; wait for AI grading to finish"));
+
+        if (!score.isPublished()) {
+            score.publish(lecturerId);
+            examScoreRepository.save(score);
+
+            if (auditor != null) {
+                Map<String, Object> oldValues = new LinkedHashMap<>();
+                oldValues.put("publishedAt", null);
+
+                Map<String, Object> newValues = new LinkedHashMap<>();
+                newValues.put("publishedAt", score.getPublishedAt() != null ? score.getPublishedAt().toString() : null);
+                newValues.put("totalScore", score.getEffectiveTotalScore());
+                newValues.put("actor", lecturerId);
+                newValues.put("attemptId", attemptId);
+
+                auditor.record(lecturerId, "SCORE_PUBLISHED", "EXAM_SCORE", score.getId(), oldValues, newValues);
+            }
+        }
+
+        return getAttemptDetail(attemptId, lecturerId);
+    }
+
+    @Override
     @UseCaseTransaction(readOnly = true)
     public List<LecturerScoreView> listScores(UUID lecturerId) {
         boolean admin = isAdmin(lecturerId);
@@ -510,7 +549,8 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                     s.getTotalScore(),
                     s.getOverrideTotalScore(),
                     s.getGrade() != null ? s.getGrade().name() : null,
-                    s.getCreatedAt()
+                    s.getCreatedAt(),
+                    s.isPublished()
             ));
         }
         return views;
@@ -583,7 +623,8 @@ public class LecturerGradingServiceImpl implements LecturerGradingService {
                 saved.getTotalScore(),
                 saved.getOverrideTotalScore(),
                 saved.getGrade() != null ? saved.getGrade().name() : null,
-                saved.getCreatedAt()
+                saved.getCreatedAt(),
+                saved.isPublished()
         );
     }
 

@@ -26,6 +26,8 @@ public class ExamScorePersistenceMapper {
                 .overrideBy(domain.getOverrideBy())
                 .overrideAt(domain.getOverrideAt())
                 .overrideReason(domain.getOverrideReason())
+                .publishedAt(domain.getPublishedAt())
+                .publishedBy(domain.getPublishedBy())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .isNewEntity(false)
@@ -52,6 +54,8 @@ public class ExamScorePersistenceMapper {
                 .overrideBy(entity.getOverrideBy())
                 .overrideAt(entity.getOverrideAt())
                 .overrideReason(entity.getOverrideReason())
+                .publishedAt(entity.getPublishedAt())
+                .publishedBy(entity.getPublishedBy())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

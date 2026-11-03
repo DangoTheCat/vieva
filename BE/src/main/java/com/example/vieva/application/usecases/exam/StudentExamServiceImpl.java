@@ -25,6 +25,7 @@ public class StudentExamServiceImpl implements StudentExamService {
     private final RubricCriterionRepository rubricCriterionRepository;
     private final JsonSerializerPort jsonSerializerPort;
     private final SubjectRepository subjectRepository;
+    private final ExamScoreRepository examScoreRepository;
 
     @Override
     @UseCaseTransaction(readOnly = true)
@@ -149,6 +150,7 @@ public class StudentExamServiceImpl implements StudentExamService {
     public List<ExamTurnDetailView> getAttemptTurns(UUID attemptId, UUID studentId) {
         ExamAttempt attempt = getOwnedAttempt(attemptId, studentId);
         List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attempt.getId());
+        boolean released = StudentScoreVisibility.isReleased(examScoreRepository, attempt);
         return turns.stream()
                 .map(t -> new ExamTurnDetailView(
                         t.getId(),
@@ -163,9 +165,9 @@ public class StudentExamServiceImpl implements StudentExamService {
                         t.getStudentAudioUrl(),
                         t.getTranscriptText(),
                         t.getStatus().name(),
-                        t.getScore(),
-                        t.getFeedback(),
-                        t.getRubricEvaluations(),
+                        released ? t.getScore() : null,
+                        released ? t.getFeedback() : null,
+                        released ? t.getRubricEvaluations() : null,
                         t.getCreatedAt(),
                         t.getUpdatedAt()
                 ))
@@ -192,13 +194,16 @@ public class StudentExamServiceImpl implements StudentExamService {
                                 .map(Subject::getSubjectName)
                                 .orElse("Exam");
                     }
+                    // The score stays hidden until the lecturer finalizes it
+                    boolean released = StudentScoreVisibility.isReleased(examScoreRepository, a);
                     return new StudentScoreView(
                             a.getId(),
                             a.getExamId(),
                             title,
-                            a.getTotalScore(),
-                            a.getGradeLevel() != null ? a.getGradeLevel().name() : null,
-                            a.getCompletedAt()
+                            released ? a.getTotalScore() : null,
+                            released && a.getGradeLevel() != null ? a.getGradeLevel().name() : null,
+                            a.getCompletedAt(),
+                            released
                     );
                 })
                 .collect(Collectors.toList());
@@ -219,6 +224,7 @@ public class StudentExamServiceImpl implements StudentExamService {
     private ExamAttemptView toAttemptView(ExamAttempt attempt) {
         List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attempt.getId());
         ExamTurn lastTurn = turns.isEmpty() ? null : turns.get(turns.size() - 1);
+        boolean released = StudentScoreVisibility.isReleased(examScoreRepository, attempt);
         return new ExamAttemptView(
                 attempt.getId(),
                 attempt.getStudentId(),
@@ -226,8 +232,8 @@ public class StudentExamServiceImpl implements StudentExamService {
                 attempt.getStatus().name(),
                 attempt.getCurrentQuestionIndex(),
                 attempt.getTotalQuestions(),
-                attempt.getTotalScore(),
-                attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
+                released ? attempt.getTotalScore() : null,
+                released && attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),

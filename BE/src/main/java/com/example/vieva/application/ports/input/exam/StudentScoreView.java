@@ -11,5 +11,7 @@ public record StudentScoreView(
         String examTitle,
         BigDecimal totalScore,
         String gradeLevel,
-        Instant completedAt
+        Instant completedAt,
+        /** False while the lecturer has not finalized the grade; score and grade are then null. */
+        boolean scorePublished
 ) {}

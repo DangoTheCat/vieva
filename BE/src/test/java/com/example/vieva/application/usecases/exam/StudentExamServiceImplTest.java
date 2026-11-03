@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -44,6 +45,8 @@ class StudentExamServiceImplTest {
     private JsonSerializerPort jsonSerializerPort;
     @Mock
     private SubjectRepository subjectRepository;
+    @Mock
+    private ExamScoreRepository examScoreRepository;
 
     private StudentExamServiceImpl service;
 
@@ -63,7 +66,8 @@ class StudentExamServiceImplTest {
                 rubricRepository,
                 rubricCriterionRepository,
                 jsonSerializerPort,
-                subjectRepository
+                subjectRepository,
+                examScoreRepository
         );
     }
 
@@ -173,5 +177,76 @@ class StudentExamServiceImplTest {
         assertThat(result).hasSize(1);
         StudentFrozenQuestionView view = result.get(0);
         assertThat(view.questionText()).isEqualTo("What is dependency inversion?");
+    }
+
+    private ExamAttempt completedAttempt(UUID attemptId) {
+        return ExamAttempt.builder()
+                .id(attemptId)
+                .studentId(studentId)
+                .subjectId(subjectId)
+                .examId(examId)
+                .status(AttemptStatus.COMPLETED)
+                .totalScore(new BigDecimal("4.38"))
+                .gradeLevel(GradeLevel.fromScore(new BigDecimal("4.38")))
+                .build();
+    }
+
+    @Test
+    @DisplayName("getStudentScores: hides the AI score until the lecturer finalizes it")
+    void getStudentScores_HidesUnpublishedScore() {
+        UUID attemptId = UUID.randomUUID();
+        when(examAttemptRepository.findByStudentId(studentId)).thenReturn(List.of(completedAttempt(attemptId)));
+        when(examRepository.findById(examId)).thenReturn(Optional.empty());
+        ExamScore aiOnly = ExamScore.create(attemptId, new BigDecimal("4.38"), GradeLevel.fromScore(new BigDecimal("4.38")),
+                "AI feedback", ScoringMode.GEMINI_FLASH_LITE);
+        when(examScoreRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(aiOnly));
+
+        List<StudentScoreView> result = service.getStudentScores(studentId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).totalScore()).isNull();
+        assertThat(result.get(0).gradeLevel()).isNull();
+        assertThat(result.get(0).scorePublished()).isFalse();
+    }
+
+    @Test
+    @DisplayName("getStudentScores: shows the score once the lecturer finalized it")
+    void getStudentScores_ShowsPublishedScore() {
+        UUID attemptId = UUID.randomUUID();
+        when(examAttemptRepository.findByStudentId(studentId)).thenReturn(List.of(completedAttempt(attemptId)));
+        when(examRepository.findById(examId)).thenReturn(Optional.empty());
+        ExamScore score = ExamScore.create(attemptId, new BigDecimal("4.38"), GradeLevel.fromScore(new BigDecimal("4.38")),
+                "AI feedback", ScoringMode.GEMINI_FLASH_LITE);
+        score.publish(UUID.randomUUID());
+        when(examScoreRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(score));
+
+        List<StudentScoreView> result = service.getStudentScores(studentId);
+
+        assertThat(result.get(0).totalScore()).isEqualByComparingTo(new BigDecimal("4.38"));
+        assertThat(result.get(0).scorePublished()).isTrue();
+    }
+
+    @Test
+    @DisplayName("getAttemptTurns: hides AI turn scores and feedback before the lecturer finalizes")
+    void getAttemptTurns_HidesUnpublishedGrading() {
+        UUID attemptId = UUID.randomUUID();
+        when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(completedAttempt(attemptId)));
+        ExamTurn turn = ExamTurn.builder()
+                .id(UUID.randomUUID())
+                .attemptId(attemptId)
+                .turnType(TurnType.MAIN_QUESTION)
+                .turnOrder(1)
+                .status(TurnStatus.EVALUATED)
+                .score(new BigDecimal("3.00"))
+                .feedback("AI feedback")
+                .build();
+        when(examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId)).thenReturn(List.of(turn));
+        when(examScoreRepository.findByAttemptId(attemptId)).thenReturn(Optional.empty());
+
+        List<ExamTurnDetailView> result = service.getAttemptTurns(attemptId, studentId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).score()).isNull();
+        assertThat(result.get(0).feedback()).isNull();
     }
 }

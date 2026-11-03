@@ -806,8 +806,8 @@ export function useExamSession({ onNavigate, showToast }) {
       setExamStage('COMPLETED');
       if (showToast) {
         showToast(syncStatus === 'COMPLETED'
-          ? { type: 'success', title: 'Ca Thi Hoàn Tất', message: 'Dữ liệu đã được đồng bộ thành công. Báo cáo đánh giá đã sẵn sàng!' }
-          : { type: 'info', title: 'Đã Nộp Bài', message: 'Bài thi đang được chấm. Xem điểm tại Cổng Thi khi có kết quả.' });
+          ? { type: 'success', title: 'Ca Thi Hoàn Tất', message: 'Bài thi đã được lưu. Điểm sẽ được công bố sau khi giảng viên chốt điểm.' }
+          : { type: 'info', title: 'Đã Nộp Bài', message: 'Bài thi đang được chấm. Điểm sẽ được công bố sau khi giảng viên chốt điểm.' });
       }
     } catch (err) {
       console.error('Finalizing synchronization error:', err);

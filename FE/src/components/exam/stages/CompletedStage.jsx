@@ -63,7 +63,7 @@ export function CompletedStage({ activeExam, attemptId, examResult, onNavigate, 
 
         {displayResult.totalScore == null && (
           <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs text-amber-900 font-medium">
-            Bài thi đã được nộp và đang chờ chấm điểm. Điểm sẽ hiển thị tại Cổng Thi khi giảng viên/AI hoàn tất.
+            Bài thi đã được nộp thành công. Điểm và nhận xét sẽ được công bố tại mục Kết Quả Thi sau khi giảng viên chốt điểm.
           </div>
         )}
 
@@ -80,7 +80,8 @@ export function CompletedStage({ activeExam, attemptId, examResult, onNavigate, 
           </div>
         )}
 
-        {/* Rubric Breakdown List */}
+        {/* Rubric Breakdown List — only once the lecturer has finalized the grade */}
+        {displayResult.totalScore != null && (
         <div className="space-y-4">
           <h3 className="font-heading font-black text-lg text-ink flex items-center gap-2">
             <Award className="w-5 h-5 text-green-700" />
@@ -104,6 +105,7 @@ export function CompletedStage({ activeExam, attemptId, examResult, onNavigate, 
             ))}
           </div>
         </div>
+        )}
 
         {/* Actions */}
         <div className="pt-6 border-t border-pink-200 flex flex-col sm:flex-row items-center justify-between gap-4">

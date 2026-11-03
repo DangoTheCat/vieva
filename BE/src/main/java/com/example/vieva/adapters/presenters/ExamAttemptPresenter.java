@@ -279,9 +279,11 @@ public class ExamAttemptPresenter {
                 view.turnType(),
                 view.turnOrder(),
                 view.status(),
-                view.score(),
-                view.feedback(),
-                view.rubricEvaluations(),
+                // Students never see AI grading while answering; scores are released only
+                // after the lecturer finalizes them (see StudentScoreVisibility)
+                null,
+                null,
+                null,
                 view.studentAudioUrl(),
                 view.transcriptText(),
                 view.isAttemptFinished(),

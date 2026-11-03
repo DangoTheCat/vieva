@@ -106,8 +106,9 @@ public class ManageExamConnectionUseCaseImpl implements ManageExamConnectionUseC
                 attempt.getStatus().name(),
                 attempt.getCurrentQuestionIndex(),
                 attempt.getTotalQuestions(),
-                attempt.getTotalScore(),
-                attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
+                // Live exam flow: the score is only shown after the lecturer finalizes it
+                null,
+                null,
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),

@@ -661,4 +661,59 @@ class LecturerGradingServiceImplTest {
         assertThat(savedScore.getTotalScore()).isEqualByComparingTo("8.00");
         assertThat(savedScore.getEffectiveTotalScore()).isEqualByComparingTo("8.00");
     }
+
+    private ExamAttempt completedAttemptForPublish(AttemptStatus status) {
+        ExamAttempt attempt = ExamAttempt.builder()
+                .id(attemptId)
+                .examId(examId)
+                .subjectId(subjectId)
+                .studentId(studentId)
+                .status(status)
+                .totalQuestions(1)
+                .totalScore(new BigDecimal("4.38"))
+                .build();
+        when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
+        when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+        when(examRepository.findById(examId)).thenReturn(Optional.of(Exam.builder()
+                .id(examId).subjectId(subjectId).creatorId(lecturerId).title("Midterm").build()));
+        when(snapshotRepository.findByAttemptIdOrderByOrderIndexAsc(attemptId)).thenReturn(Collections.emptyList());
+        return attempt;
+    }
+
+    @Test
+    @DisplayName("publishScore: lecturer finalizes the AI grade so the student can see it")
+    void publishScore_PublishesAndAudits() {
+        completedAttemptForPublish(AttemptStatus.COMPLETED);
+        ExamScore score = ExamScore.create(attemptId, new BigDecimal("4.38"),
+                GradeLevel.fromScore(new BigDecimal("4.38")), "AI", ScoringMode.GEMINI_FLASH_LITE);
+        when(examScoreRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(score));
+
+        AttemptGradingDetailView result = service.publishScore(attemptId, lecturerId);
+
+        assertThat(score.isPublished()).isTrue();
+        assertThat(score.getPublishedBy()).isEqualTo(lecturerId);
+        assertThat(result.scorePublished()).isTrue();
+        verify(examScoreRepository).save(score);
+        verify(auditor).record(eq(lecturerId), eq("SCORE_PUBLISHED"), eq("EXAM_SCORE"), eq(score.getId()), any(), any());
+    }
+
+    @Test
+    @DisplayName("publishScore: rejects attempts that are not completed yet")
+    void publishScore_RejectsUnfinishedAttempt() {
+        completedAttemptForPublish(AttemptStatus.FINALIZING);
+
+        assertThatThrownBy(() -> service.publishScore(attemptId, lecturerId))
+                .isInstanceOf(ApplicationException.class);
+        verify(examScoreRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("publishScore: rejects attempts the AI has not graded yet")
+    void publishScore_RejectsMissingScore() {
+        completedAttemptForPublish(AttemptStatus.COMPLETED);
+        when(examScoreRepository.findByAttemptId(attemptId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.publishScore(attemptId, lecturerId))
+                .isInstanceOf(ApplicationException.class);
+    }
 }

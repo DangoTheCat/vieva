@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { isProbeTurn } from '../utils/activeExam';
-import { Users, CheckCircle2, Clock, Search, X, Loader2, BarChart3, Save, ClipboardCheck } from 'lucide-react';
+import { Users, CheckCircle2, Clock, Search, X, Loader2, BarChart3, Save, ClipboardCheck, Lock, EyeOff } from 'lucide-react';
 
 const ATTEMPT_LABEL = {
   READY: 'Chờ bắt đầu',
@@ -43,6 +43,8 @@ export function LecturerGradingQueuePage({ showToast }) {
   const [isLoadingAttempt, setIsLoadingAttempt] = useState(false);
   const [drafts, setDrafts] = useState({}); // questionId -> { score, feedback }
   const [savingQuestionId, setSavingQuestionId] = useState(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -106,6 +108,7 @@ export function LecturerGradingQueuePage({ showToast }) {
 
   const applyAttempt = (detail) => {
     setAttempt(detail);
+    setConfirmPublish(false);
     const next = {};
     (detail?.questions || []).forEach(q => {
       next[q.questionId] = {
@@ -148,6 +151,24 @@ export function LecturerGradingQueuePage({ showToast }) {
       setSavingQuestionId(null);
     }
   };
+
+  // Lecturer finalizes the grade; the student only sees the score after this
+  const publishScore = async () => {
+    if (!attempt?.attemptId) return;
+    setIsPublishing(true);
+    try {
+      applyAttempt(await lecturerGradingApi.publishScore(attempt.attemptId));
+      showToast({ type: 'success', message: 'Đã chốt điểm. Sinh viên đã có thể xem kết quả.' });
+      loadParticipants();
+    } catch (err) {
+      showToast({ type: 'error', message: getErrorMessage(err) });
+    } finally {
+      setIsPublishing(false);
+      setConfirmPublish(false);
+    }
+  };
+
+  const canPublish = attempt?.status === 'COMPLETED' && attempt?.aiScore != null && !attempt?.scorePublished;
 
   const q = searchTerm.toLowerCase().trim();
   const filtered = participants.filter(p =>
@@ -224,6 +245,11 @@ export function LecturerGradingQueuePage({ showToast }) {
                   <td className="py-3 px-4 font-mono font-black text-pink-700">
                     {fmt(p.overrideTotalScore ?? p.totalScore)}
                     {p.overrideTotalScore != null && <span className="ml-1 text-[10px] text-amber-700 font-sans">(đã điều chỉnh)</span>}
+                    {p.status === 'COMPLETED' && (
+                      p.scorePublished
+                        ? <span className="ml-1 text-[10px] text-green-700 font-sans font-bold">(đã chốt)</span>
+                        : <span className="ml-1 text-[10px] text-amber-700 font-sans font-bold">(chưa chốt)</span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <button type="button" onClick={() => openAttempt(p)} className={ghostBtn}>Chấm bài</button>
@@ -244,6 +270,17 @@ export function LecturerGradingQueuePage({ showToast }) {
                 <p className="text-[11px] text-green-800">
                   {attempt.examTitle} • Điểm AI {fmt(attempt.aiScore)} • Điểm GV {fmt(attempt.teacherScore)} • Tổng {fmt(attempt.overrideTotalScore ?? attempt.totalScore)}
                 </p>
+                {!isLoadingAttempt && attempt.status === 'COMPLETED' && (
+                  attempt.scorePublished ? (
+                    <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-green-800 bg-green-50 border border-green-200 rounded-lg px-2 py-0.5">
+                      <Lock className="w-3.5 h-3.5" /> Đã chốt điểm{attempt.publishedAt ? ` lúc ${new Date(attempt.publishedAt).toLocaleString('vi-VN')}` : ''} • Sinh viên đã xem được
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5">
+                      <EyeOff className="w-3.5 h-3.5" /> Chưa chốt điểm • Sinh viên chưa thấy điểm
+                    </p>
+                  )
+                )}
               </div>
               <button type="button" onClick={() => setAttempt(null)} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100"><X className="w-5 h-5" /></button>
             </div>
@@ -287,6 +324,30 @@ export function LecturerGradingQueuePage({ showToast }) {
                 </article>
               ))}
             </div>
+
+            {!isLoadingAttempt && attempt.status === 'COMPLETED' && !attempt.scorePublished && (
+              <div className="sticky bottom-0 bg-white border-t border-pink-200 p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <p className="text-slate-600 max-w-sm">
+                  {attempt.aiScore == null
+                    ? 'AI chưa chấm xong bài này, chưa thể chốt điểm.'
+                    : 'Kiểm tra và chấm lại từng câu nếu cần, sau đó chốt điểm để công bố cho sinh viên.'}
+                </p>
+                {confirmPublish ? (
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setConfirmPublish(false)} disabled={isPublishing} className={ghostBtn}>Huỷ</button>
+                    <button type="button" onClick={publishScore} disabled={isPublishing}
+                      className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
+                      {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />} Xác nhận chốt {fmt(attempt.overrideTotalScore ?? attempt.totalScore)} điểm
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setConfirmPublish(true)} disabled={!canPublish}
+                    className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
+                    <Lock className="w-4 h-4" /> Chốt điểm
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>,
         document.body

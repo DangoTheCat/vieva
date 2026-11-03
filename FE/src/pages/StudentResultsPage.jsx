@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { oralExamApi } from '../api/oralExamApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { gradeLabel, isProbeTurn } from '../utils/activeExam';
-import { Award, ChevronRight, Loader2, RotateCcw, MessageSquareText, X } from 'lucide-react';
+import { Award, ChevronRight, Clock, Loader2, RotateCcw, MessageSquareText, X } from 'lucide-react';
 
 const formatDate = (iso) => (iso ? new Date(iso).toLocaleString('vi-VN') : '—');
 
@@ -107,12 +107,18 @@ export function StudentResultsPage({ showToast }) {
                     <p className="text-xs text-slate-500 mt-0.5">Hoàn tất: {formatDate(s.completedAt)}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right">
-                      <p className="font-heading font-black text-lg text-pink-600 leading-none">
-                        {s.totalScore != null ? Number(s.totalScore) : '—'}<span className="text-xs text-ink font-sans"> / 10</span>
-                      </p>
-                      <p className="text-xs font-bold text-slate-700">{gradeLabel(s.gradeLevel)}</p>
-                    </div>
+                    {s.scorePublished === false ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                        <Clock className="w-3.5 h-3.5" /> Chờ giảng viên chốt điểm
+                      </span>
+                    ) : (
+                      <div className="text-right">
+                        <p className="font-heading font-black text-lg text-pink-600 leading-none">
+                          {s.totalScore != null ? Number(s.totalScore) : '—'}<span className="text-xs text-ink font-sans"> / 10</span>
+                        </p>
+                        <p className="text-xs font-bold text-slate-700">{gradeLabel(s.gradeLevel)}</p>
+                      </div>
+                    )}
                     <ChevronRight className="w-4 h-4 text-slate-700" />
                   </div>
                 </button>
@@ -155,6 +161,11 @@ export function StudentResultsPage({ showToast }) {
                 </div>
               ) : (
                 <>
+                  {selected.scorePublished === false && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 font-medium">
+                      Bài thi đã được AI chấm sơ bộ và đang chờ giảng viên chốt điểm. Điểm và nhận xét sẽ hiển thị sau khi giảng viên chốt.
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="bg-white border border-pink-200 rounded-xl p-3 shadow-2xs">
                       <p className="text-xs uppercase font-bold text-slate-700">Điểm</p>
@@ -184,9 +195,11 @@ export function StudentResultsPage({ showToast }) {
                           <span className="font-bold text-ink">
                             Lượt {t.turnOrder || i + 1} • {isProbeTurn(t.turnType) ? 'Câu hỏi làm rõ' : 'Câu hỏi chính'}
                           </span>
-                          <span className="font-mono font-bold text-xs bg-slate-100 border border-pink-200 text-slate-800 rounded-lg px-2.5 py-0.5">
-                            {t.score != null ? Number(t.score) : '—'} / 10
-                          </span>
+                          {selected.scorePublished !== false && (
+                            <span className="font-mono font-bold text-xs bg-slate-100 border border-pink-200 text-slate-800 rounded-lg px-2.5 py-0.5">
+                              {t.score != null ? Number(t.score) : '—'} / 10
+                            </span>
+                          )}
                         </div>
                         <p className="text-ink font-medium leading-relaxed">{t.questionText}</p>
                         {t.transcriptText && (

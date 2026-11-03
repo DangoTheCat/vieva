@@ -74,6 +74,12 @@ public class ExamScoreJpaEntity implements Persistable<UUID> {
     @Column(name = "override_reason", columnDefinition = "TEXT")
     private String overrideReason;
 
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
+    @Column(name = "published_by")
+    private UUID publishedBy;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
