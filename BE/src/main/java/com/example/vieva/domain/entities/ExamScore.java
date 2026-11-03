@@ -26,6 +26,9 @@ public class ExamScore {
     private UUID overrideBy;
     private Instant overrideAt;
     private String overrideReason;
+    /** Set when the lecturer finalizes ("chốt") the grade; students only see scores after this. */
+    private Instant publishedAt;
+    private UUID publishedBy;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -90,5 +93,18 @@ public class ExamScore {
         this.overrideAt = null;
         this.overrideReason = null;
         this.updatedAt = Instant.now();
+    }
+
+    /** True once a lecturer has finalized the grade, making it visible to the student. */
+    public boolean isPublished() {
+        return publishedAt != null;
+    }
+
+    /** Lecturer finalizes the grade; from now on the student can see the score and feedback. */
+    public void publish(UUID teacherId) {
+        Instant now = Instant.now();
+        this.publishedAt = now;
+        this.publishedBy = teacherId;
+        this.updatedAt = now;
     }
 }

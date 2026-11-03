@@ -17,5 +17,6 @@ public record ExamParticipantView(
         BigDecimal teacherScore,
         BigDecimal overrideTotalScore,
         Instant startedAt,
-        Instant completedAt
+        Instant completedAt,
+        boolean scorePublished
 ) {}

@@ -37,6 +37,8 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
 
         List<ExamTurn> turns = examTurnRepository.findByAttemptIdOrderByTurnOrderAsc(attemptId);
         ExamScore score = examScoreRepository.findByAttemptId(attemptId).orElse(null);
+        // Hide AI grading until the lecturer finalizes the score
+        boolean released = StudentScoreVisibility.isReleased(score);
 
         List<ExamTurnDetailView> turnViews = turns.stream()
                 .map(t -> new ExamTurnDetailView(
@@ -52,9 +54,9 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
                         t.getStudentAudioUrl(),
                         t.getTranscriptText(),
                         t.getStatus().name(),
-                        t.getScore(),
-                        t.getFeedback(),
-                        t.getRubricEvaluations(),
+                        released ? t.getScore() : null,
+                        released ? t.getFeedback() : null,
+                        released ? t.getRubricEvaluations() : null,
                         t.getCreatedAt(),
                         t.getUpdatedAt(),
                         t.getAskedAt(),
@@ -69,14 +71,14 @@ public class GetExamAttemptUseCaseImpl implements GetExamAttemptUseCase {
                 attempt.getStatus().name(),
                 attempt.getCurrentQuestionIndex(),
                 attempt.getTotalQuestions(),
-                attempt.getTotalScore(),
-                attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
+                released ? attempt.getTotalScore() : null,
+                released && attempt.getGradeLevel() != null ? attempt.getGradeLevel().name() : null,
                 attempt.getStartedAt(),
                 attempt.getCompletedAt(),
                 attempt.getPausedAt(),
                 attempt.remainingAt(java.time.Instant.now()),
                 attempt.getGraceDeadline(),
-                score != null ? score.getDetailedFeedback() : null,
+                released ? score.getDetailedFeedback() : null,
                 score != null && score.getScoringMode() != null ? score.getScoringMode().name() : null,
                 turnViews,
                 attempt.effectiveAnswerTimeLimitSeconds(),

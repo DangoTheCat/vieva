@@ -11,6 +11,8 @@ public interface LecturerGradingService {
     List<ExamParticipantView> getExamParticipants(UUID examId, UUID lecturerId);
     AttemptGradingDetailView getAttemptDetail(UUID attemptId, UUID lecturerId);
     AttemptGradingDetailView gradeQuestion(UUID attemptId, UUID questionId, GradeQuestionCommand command, UUID lecturerId);
+    /** Lecturer finalizes ("chốt") the grade of a completed attempt and releases it to the student. */
+    AttemptGradingDetailView publishScore(UUID attemptId, UUID lecturerId);
     List<LecturerScoreView> listScores(UUID lecturerId);
     LecturerScoreView overrideScore(UUID scoreId, OverrideScoreCommand command, UUID lecturerId);
     ExamGradingStatsView getExamStats(UUID examId, UUID lecturerId);

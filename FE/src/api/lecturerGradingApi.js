@@ -37,6 +37,11 @@ export const lecturerGradingApi = {
     return apiClient.put(`/lecturer/attempts/${attemptId}/questions/${questionId}`, { score, feedback });
   },
 
+  /** POST /api/v1/lecturer/attempts/{attemptId}/publish — finalize the grade; only then the student sees it */
+  publishScore(attemptId) {
+    return apiClient.post(`/lecturer/attempts/${attemptId}/publish`);
+  },
+
   /** GET /api/v1/lecturer/scores */
   listScores() {
     return apiClient.get('/lecturer/scores');

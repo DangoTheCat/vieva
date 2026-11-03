@@ -179,10 +179,14 @@ export function DiscoverPage({ onNavigate, showToast }) {
                   <p className="font-bold truncate">{s.examTitle}</p>
                   <p className="text-xs text-green-800">{s.completedAt ? new Date(s.completedAt).toLocaleDateString('vi-VN') : ''}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="font-heading font-black text-lg text-pink-600 leading-none">{s.totalScore != null ? Number(s.totalScore) : '—'} / 10</p>
-                  <p className="text-xs font-bold text-green-700">{gradeLabel(s.gradeLevel)}</p>
-                </div>
+                {s.scorePublished === false ? (
+                  <span className="shrink-0 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">Chờ GV chốt điểm</span>
+                ) : (
+                  <div className="text-right shrink-0">
+                    <p className="font-heading font-black text-lg text-pink-600 leading-none">{s.totalScore != null ? Number(s.totalScore) : '—'} / 10</p>
+                    <p className="text-xs font-bold text-green-700">{gradeLabel(s.gradeLevel)}</p>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

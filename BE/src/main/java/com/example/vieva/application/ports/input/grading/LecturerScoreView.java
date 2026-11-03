@@ -15,5 +15,6 @@ public record LecturerScoreView(
         BigDecimal totalScore,
         BigDecimal overrideTotalScore,
         String grade,
-        Instant createdAt
+        Instant createdAt,
+        boolean scorePublished
 ) {}

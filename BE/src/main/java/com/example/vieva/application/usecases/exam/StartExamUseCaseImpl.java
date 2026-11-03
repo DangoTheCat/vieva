@@ -188,8 +188,9 @@ public class StartExamUseCaseImpl implements StartExamUseCase {
                 savedAttempt.getStatus().name(),
                 savedAttempt.getCurrentQuestionIndex(),
                 savedAttempt.getTotalQuestions(),
-                savedAttempt.getTotalScore(),
-                savedAttempt.getGradeLevel() != null ? savedAttempt.getGradeLevel().name() : null,
+                // Live exam flow: the score is only shown after the lecturer finalizes it
+                null,
+                null,
                 savedAttempt.getStartedAt(),
                 savedAttempt.getCompletedAt(),
                 savedAttempt.getPausedAt(),

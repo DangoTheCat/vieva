@@ -88,6 +88,16 @@ public class LecturerGradingController {
         return ResponseEntity.ok(lecturerGradingService.gradeQuestion(attemptId, questionId, command, lecturerId));
     }
 
+    /** Lecturer finalizes ("chốt điểm") the attempt; the student sees the score only after this. */
+    @PostMapping("/attempts/{attemptId}/publish")
+    public ResponseEntity<AttemptGradingDetailView> publishScore(
+            @AuthenticationPrincipal ActorView currentUser,
+            @PathVariable("attemptId") UUID attemptId
+    ) {
+        UUID lecturerId = CurrentUser.id(currentUser);
+        return ResponseEntity.ok(lecturerGradingService.publishScore(attemptId, lecturerId));
+    }
+
     @GetMapping("/scores")
     public ResponseEntity<List<LecturerScoreView>> listScores(
             @AuthenticationPrincipal ActorView currentUser
