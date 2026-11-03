@@ -753,7 +753,7 @@ export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
                     newPassword.length >= 6 ? 'bg-green-100 text-green-900 border-green-400 font-bold' : 'bg-paper text-slate-500 border-green-200'
                   }`}>
-                    {newPassword.length >= 6 ? '✓ Đủ độ dài tối thiểu' : '• Cần ít nhất 6 ký tự'}
+                    {newPassword.length >= 6 ? 'Đủ độ dài tối thiểu' : '• Cần ít nhất 6 ký tự'}
                   </span>
                 </div>
               </div>
@@ -787,7 +787,7 @@ export function ProfilePage({ showToast, onNavigate, initialTab = 'info' }) {
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded border mt-1 inline-block ${
                     confirmPassword === newPassword ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-medium' : 'bg-rose-50 text-rose-700 border-rose-200'
                   }`}>
-                    {confirmPassword === newPassword ? '✓ Mật khẩu xác nhận trùng khớp' : '⚠ Mật khẩu xác nhận chưa khớp'}
+                    {confirmPassword === newPassword ? 'Mật khẩu xác nhận trùng khớp' : 'Mật khẩu xác nhận chưa khớp'}
                   </span>
                 )}
               </div>

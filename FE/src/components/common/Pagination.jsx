@@ -1,4 +1,5 @@
 import React from 'react';
+import { Select } from './Select';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export function Pagination({
@@ -49,7 +50,7 @@ export function Pagination({
         {onSizeChange && (
           <div className="flex items-center gap-1.5 ml-1 sm:ml-2 sm:pl-3 sm:border-l sm:border-pink-200">
             <span className="text-[11px] text-slate-500">Hiển thị:</span>
-            <select
+            <Select
               value={size}
               onChange={(e) => onSizeChange(Number(e.target.value))}
               className="bg-white border border-pink-200 rounded-lg px-2 py-0.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs cursor-pointer"
@@ -57,7 +58,7 @@ export function Pagination({
               {sizeOptions.map(opt => (
                 <option key={opt} value={opt}>{opt} / trang</option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
       </div>

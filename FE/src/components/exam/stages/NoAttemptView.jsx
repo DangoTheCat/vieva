@@ -5,7 +5,7 @@ import { BookOpen } from 'lucide-react';
 export function NoAttemptView({ onNavigate }) {
   return (
     <div className="max-w-md mx-auto py-12 px-4">
-      <div className="bg-white border border-pink-200 rounded-3xl p-8 shadow-md text-center space-y-4">
+      <div className="bg-white border border-pink-200 rounded-2xl p-8 shadow-md text-center space-y-4">
         <BookOpen className="w-10 h-10 text-green-700 mx-auto" />
         <h2 className="font-heading font-black text-xl text-ink">Chưa chọn ca thi</h2>
         <p className="text-xs text-green-800">Hãy chọn một ca thi đang mở tại Cổng Thi để vào phòng thi vấn đáp.</p>

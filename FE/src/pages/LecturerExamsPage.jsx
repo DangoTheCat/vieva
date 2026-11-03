@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Select } from '../components/common/Select';
 import { createPortal } from 'react-dom';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { lecturerExamApi } from '../api/lecturerExamApi';
@@ -261,7 +262,7 @@ export function LecturerExamsPage({ showToast }) {
           <p className="text-xs text-green-800 mt-1">Tạo kỳ thi, chọn câu hỏi đã duyệt và mở/đóng ca thi cho sinh viên.</p>
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <Select
             value={subjectId}
             onChange={(e) => setSubjectId(e.target.value)}
             className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs"
@@ -271,7 +272,7 @@ export function LecturerExamsPage({ showToast }) {
             {subjects.map(s => (
               <option key={s.subjectId} value={s.subjectId}>{s.subjectCode} — {s.subjectName}</option>
             ))}
-          </select>
+          </Select>
           <button type="button" disabled={!subjectId} onClick={() => setForm({ title: '', minutes: 15, answerSeconds: 120, maxFollowUps: 2, isDraft: true })} className={primaryBtn}>
             <CalendarPlus className="w-4 h-4" /> Tạo kỳ thi
           </button>

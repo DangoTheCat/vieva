@@ -1,9 +1,10 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Select } from '../components/common/Select';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { isProbeTurn } from '../utils/activeExam';
-import { Users, CheckCircle2, Clock, Search, X, Loader2, BarChart3, Save, ClipboardCheck, Lock, EyeOff } from 'lucide-react';
+import { Users, CheckCircle2, Clock, Search, X, Loader2, BarChart3, ClipboardCheck, Lock, EyeOff } from 'lucide-react';
 
 const ATTEMPT_LABEL = {
   READY: 'Chờ bắt đầu',
@@ -16,6 +17,7 @@ const ATTEMPT_LABEL = {
 
 const fmt = (n) => (n != null ? String(Number(Number(n).toFixed(2))) : '—');
 const ghostBtn = 'px-3 py-1.5 rounded-lg bg-white border border-pink-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer';
+const secondaryBtn = 'px-4 py-2 rounded-xl bg-white border border-pink-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
 
 function StatTile({ icon: Icon, label, value }) {
   return (
@@ -42,7 +44,7 @@ export function LecturerGradingQueuePage({ showToast }) {
   const [attempt, setAttempt] = useState(null);
   const [isLoadingAttempt, setIsLoadingAttempt] = useState(false);
   const [drafts, setDrafts] = useState({}); // questionId -> { score, feedback }
-  const [savingQuestionId, setSavingQuestionId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [confirmPublish, setConfirmPublish] = useState(false);
 
@@ -132,24 +134,43 @@ export function LecturerGradingQueuePage({ showToast }) {
     }
   };
 
-  const saveGrade = async (questionId) => {
-    const draft = drafts[questionId] || {};
-    const score = Number(draft.score);
-    if (draft.score === '' || !Number.isFinite(score) || score < 0 || score > 10) {
-      showToast({ type: 'warning', message: 'Điểm phải nằm trong khoảng 0 – 10.' });
-      return;
+  // Questions whose score/feedback draft differs from what the server last returned
+  const changedQuestions = (attempt?.questions || []).filter(qn => {
+    const d = drafts[qn.questionId] || {};
+    const origScore = qn.teacherScore != null ? String(qn.teacherScore) : '';
+    return (d.score ?? '') !== origScore || (d.feedback ?? '').trim() !== (qn.teacherFeedback || '').trim();
+  });
+  const isDirty = changedQuestions.length > 0;
+
+  const submitGrades = async () => {
+    for (const qn of changedQuestions) {
+      const d = drafts[qn.questionId] || {};
+      const score = Number(d.score);
+      if (d.score === '' || !Number.isFinite(score) || score < 0 || score > 10) {
+        showToast({ type: 'warning', message: `Câu ${qn.orderIndex}: điểm phải nằm trong khoảng 0 – 10.` });
+        return;
+      }
     }
-    setSavingQuestionId(questionId);
+    setIsSubmitting(true);
     try {
-      const updated = await lecturerGradingApi.gradeQuestion(attempt.attemptId, questionId, { score, feedback: draft.feedback?.trim() || null });
-      applyAttempt(updated);
-      showToast({ type: 'success', message: 'Đã lưu điểm giảng viên cho câu hỏi.' });
+      let updated = null;
+      for (const qn of changedQuestions) {
+        const d = drafts[qn.questionId];
+        updated = await lecturerGradingApi.gradeQuestion(attempt.attemptId, qn.questionId, { score: Number(d.score), feedback: d.feedback?.trim() || null });
+      }
+      if (updated) applyAttempt(updated);
+      showToast({ type: 'success', message: `Đã cập nhật điểm chấm cho ${changedQuestions.length} câu hỏi.` });
       loadParticipants();
     } catch (err) {
       showToast({ type: 'error', message: getErrorMessage(err) });
     } finally {
-      setSavingQuestionId(null);
+      setIsSubmitting(false);
     }
+  };
+
+  const closeAttempt = () => {
+    if (isDirty && !window.confirm('Bạn có thay đổi điểm chưa cập nhật. Đóng và bỏ các thay đổi này?')) return;
+    setAttempt(null);
   };
 
   // Lecturer finalizes the grade; the student only sees the score after this
@@ -168,7 +189,8 @@ export function LecturerGradingQueuePage({ showToast }) {
     }
   };
 
-  const canPublish = attempt?.status === 'COMPLETED' && attempt?.aiScore != null && !attempt?.scorePublished;
+  const canPublish = attempt?.status === 'COMPLETED' && attempt?.aiScore != null && !attempt?.scorePublished && !isDirty;
+  const primaryBtn = 'px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
 
   const q = searchTerm.toLowerCase().trim();
   const filtered = participants.filter(p =>
@@ -183,16 +205,16 @@ export function LecturerGradingQueuePage({ showToast }) {
           <p className="text-xs text-green-800 mt-1">Xem bài làm của thí sinh, điểm AI và chấm lại từng câu hỏi.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select value={courseId} onChange={e => setCourseId(e.target.value)} aria-label="Môn học"
+          <Select value={courseId} onChange={e => setCourseId(e.target.value)} aria-label="Môn học"
             className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs">
             {courses.length === 0 && <option value="">Chưa được phân công môn học</option>}
             {courses.map(c => <option key={c.subjectId} value={c.subjectId}>{c.subjectCode} — {c.subjectName}</option>)}
-          </select>
-          <select value={examId} onChange={e => setExamId(e.target.value)} aria-label="Kỳ thi" disabled={exams.length === 0}
+          </Select>
+          <Select value={examId} onChange={e => setExamId(e.target.value)} aria-label="Kỳ thi" disabled={exams.length === 0}
             className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs disabled:opacity-50">
             {exams.length === 0 && <option value="">Chưa có kỳ thi</option>}
             {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-          </select>
+          </Select>
         </div>
       </header>
 
@@ -262,13 +284,13 @@ export function LecturerGradingQueuePage({ showToast }) {
       </section>
 
       {attempt && createPortal(
-        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex justify-end" role="dialog" aria-modal="true">
-          <div className="bg-white w-full max-w-2xl h-full overflow-y-auto border-l border-pink-200 shadow-2xl">
-            <div className="sticky top-0 bg-white z-10 p-5 border-b border-pink-200 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="font-heading font-black text-lg">{attempt.studentName}</h2>
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="grading-title">
+          <div className="bg-white w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl border border-pink-200 shadow-2xl overflow-hidden">
+            <div className="shrink-0 px-6 py-4 border-b border-pink-200 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 id="grading-title" className="font-heading font-black text-lg truncate">{attempt.studentName}</h2>
                 <p className="text-[11px] text-green-800">
-                  {attempt.examTitle} • Điểm AI {fmt(attempt.aiScore)} • Điểm GV {fmt(attempt.teacherScore)} • Tổng {fmt(attempt.overrideTotalScore ?? attempt.totalScore)}
+                  {[attempt.examTitle, `Điểm AI ${fmt(attempt.aiScore)}`, `Điểm GV ${fmt(attempt.teacherScore)}`, `Tổng ${fmt(attempt.overrideTotalScore ?? attempt.totalScore)}`].filter(Boolean).join(' • ')}
                 </p>
                 {!isLoadingAttempt && attempt.status === 'COMPLETED' && (
                   attempt.scorePublished ? (
@@ -282,70 +304,91 @@ export function LecturerGradingQueuePage({ showToast }) {
                   )
                 )}
               </div>
-              <button type="button" onClick={() => setAttempt(null)} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={closeAttempt} aria-label="Đóng" className="p-1 rounded-lg hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-600"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="p-5 space-y-4 text-xs">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs bg-slate-50/60">
               {isLoadingAttempt ? (
-                <div className="flex items-center gap-2 text-green-800"><Loader2 className="w-4 h-4 animate-spin" /> Đang tải bài làm...</div>
-              ) : (attempt.questions || []).map(qn => (
-                <article key={qn.questionId} className="bg-white border border-pink-200 rounded-xl p-4 space-y-3 shadow-2xs">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-bold">Câu {qn.orderIndex}. {qn.questionText}</p>
-                    <span className="shrink-0 font-mono font-bold bg-slate-100 border border-pink-200 text-slate-800 rounded-lg px-2 py-0.5">{fmt(qn.effectiveScore)} / 10</span>
-                  </div>
-                  {qn.expectedAnswer && (
-                    <p className="text-green-900 bg-green-50 rounded-lg p-2"><strong>Đáp án tham khảo:</strong> {qn.expectedAnswer}</p>
-                  )}
-                  <ol className="space-y-2">
-                    {(qn.turns || []).map(t => (
-                      <li key={t.turnId} className="border-l-4 border-pink-300 pl-3 space-y-1">
-                        <p className="text-[11px] font-bold text-pink-800">{isProbeTurn(t.turnType) ? 'Câu hỏi xoáy' : 'Câu hỏi chính'} • AI: {fmt(t.score)}</p>
-                        {isProbeTurn(t.turnType) && <p className="italic">{t.questionText}</p>}
-                        <p><strong>Trả lời:</strong> {t.transcriptText || <span className="text-green-700">(chưa trả lời)</span>}</p>
-                        {t.feedback && <p className="text-green-800"><strong>Nhận xét AI:</strong> {t.feedback}</p>}
-                      </li>
-                    ))}
-                  </ol>
-                  <div className="grid sm:grid-cols-[100px_1fr_auto] gap-2 items-start pt-2 border-t border-pink-100">
-                    <input type="number" min="0" max="10" step="0.25" aria-label="Điểm giảng viên" placeholder="Điểm"
-                      value={drafts[qn.questionId]?.score ?? ''}
-                      onChange={e => setDrafts(d => ({ ...d, [qn.questionId]: { ...d[qn.questionId], score: e.target.value } }))}
-                      className="bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs" />
-                    <textarea rows={2} aria-label="Nhận xét giảng viên" placeholder="Nhận xét của giảng viên (tuỳ chọn)"
-                      value={drafts[qn.questionId]?.feedback ?? ''}
-                      onChange={e => setDrafts(d => ({ ...d, [qn.questionId]: { ...d[qn.questionId], feedback: e.target.value } }))}
-                      className="bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs" />
-                    <button type="button" onClick={() => saveGrade(qn.questionId)} disabled={savingQuestionId === qn.questionId}
-                      className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
-                      {savingQuestionId === qn.questionId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Lưu
-                    </button>
-                  </div>
-                </article>
-              ))}
+                <div className="space-y-3">{[0, 1].map(i => <div key={i} className="h-40 rounded-xl animate-pulse bg-slate-200/80" />)}</div>
+              ) : (attempt.questions || []).length === 0 ? (
+                <p className="text-center text-green-800 py-10">Bài làm chưa có câu hỏi nào.</p>
+              ) : (attempt.questions || []).map(qn => {
+                const changed = changedQuestions.some(c => c.questionId === qn.questionId);
+                return (
+                  <article key={qn.questionId} className={`bg-white border rounded-xl p-4 space-y-3 shadow-2xs ${changed ? 'border-amber-400' : 'border-pink-200'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-bold leading-relaxed">Câu {qn.orderIndex}. {qn.questionText}</p>
+                      <span className="shrink-0 font-mono font-bold bg-slate-100 border border-pink-200 text-slate-800 rounded-lg px-2 py-0.5">{fmt(qn.effectiveScore)} / 10</span>
+                    </div>
+                    {qn.expectedAnswer && (
+                      <p className="text-green-900 bg-green-50 rounded-lg p-3 leading-relaxed whitespace-pre-line"><strong>Đáp án tham khảo:</strong> {qn.expectedAnswer}</p>
+                    )}
+                    <ol className="space-y-3">
+                      {(qn.turns || []).map(t => (
+                        <li key={t.turnId} className="border-l-4 border-pink-300 pl-3 space-y-1 leading-relaxed">
+                          <p className="text-[11px] font-bold text-pink-800">{isProbeTurn(t.turnType) ? 'Câu hỏi xoáy' : 'Câu hỏi chính'} • AI: {fmt(t.score)}</p>
+                          {isProbeTurn(t.turnType) && <p className="italic text-slate-700">{t.questionText}</p>}
+                          <p><strong>Trả lời:</strong> {t.transcriptText || <span className="text-slate-500 italic">(chưa trả lời)</span>}</p>
+                          {t.feedback && <p className="text-green-800"><strong>Nhận xét AI:</strong> {t.feedback}</p>}
+                        </li>
+                      ))}
+                    </ol>
+                    <div className="grid sm:grid-cols-[140px_1fr] gap-3 items-start pt-3 border-t border-pink-100">
+                      <label className="space-y-1">
+                        <span className="block text-[11px] font-bold text-slate-700">Điểm GV (0 – 10)</span>
+                        <input type="number" min="0" max="10" step="0.25" placeholder="Giữ điểm AI"
+                          value={drafts[qn.questionId]?.score ?? ''}
+                          onChange={e => setDrafts(d => ({ ...d, [qn.questionId]: { ...d[qn.questionId], score: e.target.value } }))}
+                          className="w-full bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-200 shadow-2xs" />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="block text-[11px] font-bold text-slate-700">Nhận xét của giảng viên <span className="font-normal text-slate-500">(tuỳ chọn)</span></span>
+                        <textarea rows={2} placeholder="Nhập nhận xét cho câu trả lời này..."
+                          value={drafts[qn.questionId]?.feedback ?? ''}
+                          onChange={e => setDrafts(d => ({ ...d, [qn.questionId]: { ...d[qn.questionId], feedback: e.target.value } }))}
+                          className="w-full resize-y bg-white border border-pink-200 rounded-xl p-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-200 shadow-2xs" />
+                      </label>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
-            {!isLoadingAttempt && attempt.status === 'COMPLETED' && !attempt.scorePublished && (
-              <div className="sticky bottom-0 bg-white border-t border-pink-200 p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <p className="text-slate-600 max-w-sm">
-                  {attempt.aiScore == null
-                    ? 'AI chưa chấm xong bài này, chưa thể chốt điểm.'
-                    : 'Kiểm tra và chấm lại từng câu nếu cần, sau đó chốt điểm để công bố cho sinh viên.'}
+            {!isLoadingAttempt && (
+              <div className="shrink-0 bg-white border-t border-pink-200 px-6 py-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <p className="text-slate-600 max-w-md">
+                  {isDirty
+                    ? `Có ${changedQuestions.length} câu đã thay đổi nhưng chưa được cập nhật.`
+                    : attempt.scorePublished
+                      ? 'Điểm đã được chốt. Nếu điều chỉnh, kết quả của sinh viên sẽ được cập nhật theo.'
+                      : attempt.status !== 'COMPLETED'
+                        ? 'Thí sinh chưa nộp bài, chưa thể chốt điểm.'
+                        : attempt.aiScore == null
+                          ? 'AI chưa chấm xong bài này, chưa thể chốt điểm.'
+                          : 'Kiểm tra và chấm lại từng câu nếu cần, sau đó chốt điểm để công bố cho sinh viên.'}
                 </p>
-                {confirmPublish ? (
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => setConfirmPublish(false)} disabled={isPublishing} className={ghostBtn}>Huỷ</button>
-                    <button type="button" onClick={publishScore} disabled={isPublishing}
-                      className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
-                      {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />} Xác nhận chốt {fmt(attempt.overrideTotalScore ?? attempt.totalScore)} điểm
-                    </button>
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => setConfirmPublish(true)} disabled={!canPublish}
-                    className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
-                    <Lock className="w-4 h-4" /> Chốt điểm
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {confirmPublish ? (
+                    <>
+                      <button type="button" onClick={() => setConfirmPublish(false)} disabled={isPublishing} className={ghostBtn}>Huỷ</button>
+                      <button type="button" onClick={publishScore} disabled={isPublishing} className={primaryBtn}>
+                        {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />} Xác nhận chốt {fmt(attempt.overrideTotalScore ?? attempt.totalScore)} điểm
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" onClick={submitGrades} disabled={!isDirty || isSubmitting} className={isDirty ? primaryBtn : secondaryBtn}>
+                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />} Cập nhật điểm chấm
+                      </button>
+                      {attempt.status === 'COMPLETED' && !attempt.scorePublished && (
+                        <button type="button" onClick={() => setConfirmPublish(true)} disabled={!canPublish || isSubmitting} className={primaryBtn}
+                          title={isDirty ? 'Hãy cập nhật điểm chấm trước khi chốt' : undefined}>
+                          <Lock className="w-4 h-4" /> Chốt điểm
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

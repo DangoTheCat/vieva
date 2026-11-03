@@ -2,7 +2,7 @@ import React from 'react';
 import { isFollowUp, turnBadge } from '../../../utils/turnTypes';
 import { AudioVisualizerCanvas } from '../AudioVisualizerCanvas';
 import { formatTime } from '../examRoomModel';
-import { Mic, MicOff, Radio, Send, Sparkles, Square, Volume2 } from 'lucide-react';
+import { GraduationCap, Mic, MicOff, Radio, Send, Sparkles, Square, Volume2 } from 'lucide-react';
 
 /** Exam room — IN_PROGRESS stage (the live interview). Extracted from OralExamRoomPage (plan item 2.12). */
 export function InProgressStage({ questions, totalQuestions, activeQuestionIndex, secondsLeft, isSubmittingTurn, answerSecondsLeft, sttUnavailable, answersByQuestion, manualText, setManualText, isRecording, transcript, partialTranscript, isWsConnected, isAiSpeaking, playTTS, stopTTS, activeExam, currentQuestion, handleToggleSpeak, handleSubmitTurn, handleFinishExam, studentName, studentCode }) {
@@ -10,15 +10,15 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
     <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-in fade-in duration-200 text-ink">
       
       {/* 1. Header: Exam Title, Question counter, Timer, Reconnect Test Trigger */}
-      <div className="bg-white border border-pink-200 rounded-3xl p-5 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white border border-pink-200 rounded-2xl p-5 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-pink-200 text-slate-700 flex items-center justify-center text-xl shadow-sm shrink-0">
-            🎙️
+            <Mic className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-heading font-black text-base sm:text-lg text-ink">
-                Phòng Thi Vấn Đáp Trực Tuyến (Oral Exam Room)
+                Phòng thi vấn đáp
               </h1>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center gap-1 ${
                 isWsConnected 
@@ -91,16 +91,16 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
         <div className="lg:col-span-7 space-y-6">
           
           {/* Center Stage: AI Examiner Avatar with pulsing soundwave animation */}
-          <div className="bg-white border border-pink-200 rounded-3xl p-6 shadow-md flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden">
+          <div className="bg-white border border-pink-200 rounded-2xl p-6 shadow-md flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden">
             {/* AI Avatar */}
             <div className="relative shrink-0">
-              <div className={`w-28 h-28 rounded-3xl bg-pink-100 border border-pink-200 flex items-center justify-center text-5xl shadow-sm relative transition-transform ${
+              <div className={`w-28 h-28 rounded-2xl bg-pink-100 border border-pink-200 flex items-center justify-center text-5xl shadow-sm relative transition-transform ${
                 isAiSpeaking ? 'scale-105 ring-4 ring-pink-400' : ''
               }`}>
-                👩‍🏫
+                <GraduationCap className="w-12 h-12 text-pink-700" strokeWidth={1.5} />
               </div>
               {/* Pulsing indicator */}
-              <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-xs font-bold border-2 ${
+              <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-xs font-bold border ${
                 isAiSpeaking 
                   ? 'bg-pink-600 text-white border-blue-700 animate-pulse' 
                   : 'bg-white text-slate-700 border-pink-200 shadow-2xs'
@@ -138,7 +138,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
                 <button
                   type="button"
                   onClick={() => playTTS(currentQuestion.content)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-green-50 text-ink font-bold text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-green-50 text-ink font-bold text-xs border border-pink-200 shadow-sm active:scale-[0.98] transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Volume2 className="w-3.5 h-3.5 text-pink-600" />
                   <span>Nghe Lại Câu Hỏi</span>
@@ -158,11 +158,11 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
           </div>
 
           {/* Question Card: Question content, badge "Câu hỏi chính" hoặc "Câu hỏi xoáy" */}
-          <div className="bg-white border border-pink-200 rounded-3xl p-6 shadow-md space-y-4">
+          <div className="bg-white border border-pink-200 rounded-2xl p-6 shadow-md space-y-4">
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-pink-200">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border-2 ${
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                     isFollowUp(currentQuestion.type)
                       ? 'bg-rose-50 text-rose-800 border-rose-200'
                       : 'bg-green-100 text-green-900 border-green-400'
@@ -198,7 +198,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
         {/* Right Column (5 cols): Answer Section & Action Controls */}
         <div className="lg:col-span-5 space-y-6">
           
-          <div className="bg-white border border-pink-200 rounded-3xl p-6 shadow-md space-y-4">
+          <div className="bg-white border border-pink-200 rounded-2xl p-6 shadow-md space-y-4">
             
             <div className="flex items-center justify-between pb-3 border-b border-pink-200">
               <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
                 <button
                   type="button"
                   onClick={handleToggleSpeak}
-                  className={`py-3 px-4 rounded-2xl font-black text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`py-3 px-4 rounded-2xl font-black text-xs border border-pink-200 shadow-sm active:scale-[0.98] transition cursor-pointer flex items-center justify-center gap-2 ${
                     isRecording
                       ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
                       : 'bg-white hover:bg-green-50 text-ink'
@@ -277,7 +277,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
                   type="button"
                   onClick={handleSubmitTurn}
                   disabled={isSubmittingTurn}
-                  className="py-3 px-4 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-xs border border-pink-200 shadow-sm active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="py-3 px-4 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-xs border border-pink-200 shadow-sm active:scale-[0.98] transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
                   <span>{isSubmittingTurn ? 'Đang Nộp...' : 'Dừng & Nộp Câu Trả Lời'}</span>
@@ -292,7 +292,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
           </div>
 
           {/* Question Stepper / Overview */}
-          <div className="bg-white border border-pink-200 rounded-3xl p-5 shadow-md space-y-3">
+          <div className="bg-white border border-pink-200 rounded-2xl p-5 shadow-md space-y-3">
             <h4 className="font-heading font-black text-xs uppercase tracking-wider text-green-800">
               Danh Sách Lượt Vấn Đáp
             </h4>
@@ -303,7 +303,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
                 return (
                   <div
                     key={q.id || idx}
-                    className={`p-2.5 rounded-xl border-2 transition flex items-center justify-between text-xs ${
+                    className={`p-2.5 rounded-xl border transition flex items-center justify-between text-xs ${
                       isCurrent
                         ? 'bg-pink-600 text-white border-slate-900 font-semibold shadow-xs'
                         : isAnswered
@@ -320,7 +320,7 @@ export function InProgressStage({ questions, totalQuestions, activeQuestionIndex
                       <span className="truncate">{q.title || `Câu ${idx + 1}`}</span>
                     </div>
                     {isAnswered && (
-                      <span className="text-xs font-bold text-emerald-700 shrink-0">Đã nộp ✓</span>
+                      <span className="text-xs font-bold text-emerald-700 shrink-0">Đã nộp</span>
                     )}
                   </div>
                 );

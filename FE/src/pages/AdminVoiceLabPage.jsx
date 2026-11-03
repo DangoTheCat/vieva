@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Select } from '../components/common/Select';
 import { speechApi } from '../api/speechApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { Volume2, Save, Loader2, Square, Mic, RotateCcw } from 'lucide-react';
@@ -157,15 +158,15 @@ export function AdminVoiceLabPage({ showToast }) {
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="block font-semibold text-slate-700 space-y-1">
               <span className="flex items-center gap-1.5"><Mic className="w-3.5 h-3.5 text-pink-600" /> Ngôn ngữ nhận diện (STT)</span>
-              <select value={form.sttLanguage} onChange={e => setForm({ ...form, sttLanguage: e.target.value })} className={inputClass}>
+              <Select value={form.sttLanguage} onChange={e => setForm({ ...form, sttLanguage: e.target.value })} className={inputClass}>
                 {LOCALES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-              </select>
+              </Select>
             </label>
             <label className="block font-semibold text-slate-700 space-y-1">
               <span className="flex items-center gap-1.5"><Volume2 className="w-3.5 h-3.5 text-pink-600" /> Ngôn ngữ đọc (TTS)</span>
-              <select value={form.ttsLanguage} onChange={e => setForm({ ...form, ttsLanguage: e.target.value })} className={inputClass}>
+              <Select value={form.ttsLanguage} onChange={e => setForm({ ...form, ttsLanguage: e.target.value })} className={inputClass}>
                 {LOCALES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-              </select>
+              </Select>
             </label>
             <label className="block font-semibold text-slate-700 space-y-1">
               <span>Giọng tiếng Việt</span>

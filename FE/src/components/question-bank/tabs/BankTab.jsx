@@ -1,4 +1,5 @@
 import React from 'react';
+import { Select } from '../../common/Select';
 import { ALL_BLOOM_LEVELS } from '../bloomConstants';
 import { Pagination } from '../../common/Pagination';
 import { SkeletonCard } from '../../common/Skeleton';
@@ -31,7 +32,7 @@ export function BankTab({ bankPage, bankPageSize, bankQuestions, bankTotalElemen
 
           {/* Topic Filter */}
           <div className="relative">
-            <select
+            <Select
               value={filterTopicId}
               onChange={(e) => {
                 const next = e.target.value;
@@ -45,13 +46,12 @@ export function BankTab({ bankPage, bankPageSize, bankQuestions, bankTotalElemen
               {topics.map(t => (
                 <option key={t.topicId} value={t.topicId}>{t.name}</option>
               ))}
-            </select>
-            <ChevronDown className="w-4 h-4 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-green-700" />
+            </Select>
           </div>
 
           {/* Bloom Filter */}
           <div className="relative">
-            <select
+            <Select
               value={filterBloom}
               onChange={(e) => {
                 const next = e.target.value;
@@ -65,8 +65,7 @@ export function BankTab({ bankPage, bankPageSize, bankQuestions, bankTotalElemen
               {ALL_BLOOM_LEVELS.map(b => (
                 <option key={b.value} value={b.value}>{b.label}</option>
               ))}
-            </select>
-            <ChevronDown className="w-4 h-4 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-green-700" />
+            </Select>
           </div>
 
           <button

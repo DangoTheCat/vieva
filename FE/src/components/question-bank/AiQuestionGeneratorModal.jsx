@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Select } from '../common/Select';
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
@@ -156,7 +157,7 @@ export function AiQuestionGeneratorModal({
           {/* Topic Selector */}
           <div>
             <label className="block text-xs font-bold text-ink mb-1">Chủ Đề Áp Dụng (Topic)</label>
-            <select
+            <Select
               value={topicId}
               onChange={(e) => setTopicId(e.target.value)}
               disabled={isGeneratingAi}
@@ -168,7 +169,7 @@ export function AiQuestionGeneratorModal({
                   {t.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/* RAG Context Documents */}
@@ -468,7 +469,7 @@ export function AiQuestionGeneratorModal({
 
           {!isBloomBalanced && (
             <div className="p-2.5 rounded-xl border border-rose-200 bg-rose-50 text-[11px] text-rose-900 flex items-center justify-between">
-              <span>⚠ Tổng số câu ({totalAllocatedBloom}) chưa khớp với số lượng ({totalQuestions}).</span>
+              <span>Tổng số câu ({totalAllocatedBloom}) chưa khớp với số lượng ({totalQuestions}).</span>
               <button
                 type="button"
                 onClick={handleAutoBalanceBloom}

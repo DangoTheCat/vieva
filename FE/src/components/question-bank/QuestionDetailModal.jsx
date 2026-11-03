@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import React from 'react';
 import { X } from 'lucide-react';
 import { SkeletonCard } from '../common/Skeleton';
+import { questionStatusLabel } from '../../utils/questionStatus';
 
 export function QuestionDetailModal({ questionDetail, onClose }) {
   if (!questionDetail) return null;
@@ -28,7 +29,7 @@ export function QuestionDetailModal({ questionDetail, onClose }) {
           <div className="space-y-4 text-xs">
             <div className="flex flex-wrap gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-pink-200 shadow-2xs">
-                {questionDetail.detail?.status}
+                {questionStatusLabel(questionDetail.detail?.status)}
               </span>
               {questionDetail.detail?.pendingDraft && (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800 border border-rose-200">
@@ -67,7 +68,7 @@ export function QuestionDetailModal({ questionDetail, onClose }) {
                     </div>
                     <div className="text-right shrink-0">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {h.status}
+                        {questionStatusLabel(h.status)}
                       </span>
                       <p className="text-[10px] text-slate-400 mt-1 font-mono">
                         {h.createdAt ? new Date(h.createdAt).toLocaleString('vi-VN') : ''}

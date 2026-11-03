@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Select } from '../common/Select';
 import React from 'react';
 import { X } from 'lucide-react';
 import { bloomOptionsFor } from './bloomConstants';
@@ -35,7 +36,7 @@ export function EditDraftModal({
         <form onSubmit={onSave} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-ink mb-1">Cấp Độ Nhận Thức (Bloom)</label>
-            <select
+            <Select
               value={editDraft.bloomLevel}
               onChange={(e) => setEditDraft((d) => ({ ...d, bloomLevel: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl text-xs bg-white border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-2xs font-medium cursor-pointer"
@@ -45,7 +46,7 @@ export function EditDraftModal({
                   {b.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>

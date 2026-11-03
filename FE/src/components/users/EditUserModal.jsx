@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
+import { Select } from '../common/Select';
 import { ROLE_OPTIONS, getUserRole } from '../../utils/roles';
 import { getErrorMessage } from '../../utils/errorCodes';
 import { useAuth } from '../../context/AuthContext';
@@ -222,7 +223,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
             </div>
             <div>
               <label className="block font-bold text-slate-700 mb-1">Trạng Thái Hoạt Động:</label>
-              <select
+              <Select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 disabled={isEditingSelf}
@@ -231,7 +232,7 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, showToast }) {
                 <option value="ACTIVE">Hoạt động (ACTIVE)</option>
                 <option value="INACTIVE">Vô hiệu hóa (INACTIVE)</option>
                 <option value="BANNED">Khóa vi phạm (BANNED)</option>
-              </select>
+              </Select>
             </div>
           </div>
 

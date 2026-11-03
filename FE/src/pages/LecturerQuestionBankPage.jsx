@@ -10,6 +10,7 @@ import {
   FolderPlus,
 } from 'lucide-react';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
+import { Select } from '../components/common/Select';
 import { courseDocumentApi } from '../api/courseDocumentApi';
 import { questionBankApi } from '../api/questionBankApi';
 import { questionGenerationApi } from '../api/questionGenerationApi';
@@ -555,7 +556,7 @@ export function LecturerQuestionBankPage({ showToast }) {
   const handleTriggerAiGeneration = async (customConfig) => {
     const docIds = customConfig?.documentIds || genDocumentIds;
     if (docIds.length === 0) {
-      showToast({ type: 'error', message: 'Vui lòng chọn ít nhất 1 tài liệu giáo trình READY để sinh câu hỏi.' });
+      showToast({ type: 'error', message: 'Vui lòng chọn ít nhất 1 tài liệu ở trạng thái Sẵn sàng để sinh câu hỏi.' });
       return;
     }
 
@@ -898,7 +899,7 @@ export function LecturerQuestionBankPage({ showToast }) {
             <span className="px-2 py-0.5 rounded-full bg-green-500 text-paper font-bold text-[10px] tracking-wide">ACTIVE</span>
           </div>
           <div className="relative">
-            <select
+            <Select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
               className="w-full appearance-none bg-surface-container-lowest border border-pink-200 rounded-lg py-1.5 pl-3 pr-8 text-xs font-bold text-ink cursor-pointer focus:outline-none focus:border-pink-500 shadow-sm"
@@ -908,8 +909,7 @@ export function LecturerQuestionBankPage({ showToast }) {
                   [{s.subjectCode}] {s.subjectName}
                 </option>
               ))}
-            </select>
-            <ChevronsUpDown className="w-4 h-4 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-green-700" />
+            </Select>
           </div>
           <div className="mt-2 pt-1.5 border-t-2 border-cream flex items-center justify-between text-[11px] text-on-surface-variant">
             <span>Mã: <strong className="text-ink">{activeSubject ? activeSubject.subjectCode : 'Chưa chọn'}</strong></span>

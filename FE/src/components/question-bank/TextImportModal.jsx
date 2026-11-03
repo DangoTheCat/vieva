@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Select } from '../common/Select';
 import React from 'react';
 import { X, FileText } from 'lucide-react';
 import { BLOOM_LEVELS } from './bloomConstants';
@@ -58,7 +59,7 @@ export function TextImportModal({
         <div className="grid sm:grid-cols-3 gap-3">
           <label className="block font-bold space-y-1">
             <span className="text-ink">Chủ đề (Tùy chọn)</span>
-            <select
+            <Select
               value={textImport.topicId || ''}
               onChange={(e) => setTextImport({ ...textImport, topicId: e.target.value })}
               className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:border-pink-500 shadow-2xs cursor-pointer"
@@ -69,12 +70,12 @@ export function TextImportModal({
                   {t.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="block font-bold space-y-1">
             <span className="text-ink">Mức Bloom (Tùy chọn)</span>
-            <select
+            <Select
               value={textImport.bloomLevel || ''}
               onChange={(e) => setTextImport({ ...textImport, bloomLevel: e.target.value })}
               className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:border-pink-500 shadow-2xs cursor-pointer"
@@ -85,12 +86,12 @@ export function TextImportModal({
                   {b.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="block font-bold space-y-1">
             <span className="text-ink">Mẫu Rubric (Tùy chọn)</span>
-            <select
+            <Select
               value={textImport.rubricTemplateId || ''}
               onChange={(e) => setTextImport({ ...textImport, rubricTemplateId: e.target.value })}
               className="w-full bg-white border border-pink-200 rounded-xl p-2 font-normal focus:outline-none focus:border-pink-500 shadow-2xs cursor-pointer"
@@ -101,7 +102,7 @@ export function TextImportModal({
                   {t.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         </div>
 

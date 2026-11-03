@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Select } from '../components/common/Select';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
 import { getErrorMessage } from '../utils/errorCodes';
 import { gradeLabel } from '../utils/activeExam';
@@ -91,11 +92,11 @@ export function LecturerReviewRegradingPage({ showToast }) {
             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Tìm theo tên thí sinh hoặc kỳ thi..."
               className="w-full bg-white border border-pink-200 rounded-xl p-2 pl-9 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-pink-500 shadow-2xs" />
           </div>
-          <select value={examFilter} onChange={e => setExamFilter(e.target.value)} aria-label="Lọc theo kỳ thi"
+          <Select value={examFilter} onChange={e => setExamFilter(e.target.value)} aria-label="Lọc theo kỳ thi"
             className="bg-white border border-pink-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pink-500 shadow-2xs">
             <option value="">Tất cả kỳ thi</option>
             {examOptions.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
