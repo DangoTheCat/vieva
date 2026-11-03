@@ -34,6 +34,10 @@ public class User {
     @Builder.Default
     private Set<UserRole> userRoles = new HashSet<>();
 
+    public Set<UserRole> getUserRoles() {
+        return userRoles == null ? java.util.Collections.emptySet() : java.util.Collections.unmodifiableSet(userRoles);
+    }
+
     /**
      * An account has exactly one role: assigning a role replaces the current one.
      */

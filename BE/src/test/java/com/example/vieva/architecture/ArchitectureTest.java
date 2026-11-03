@@ -66,19 +66,19 @@ public class ArchitectureTest {
             .should().dependOnClassesThat().resideInAPackage(INFRASTRUCTURE);
 
     @ArchTest
-    public static final ArchRule inputPortsDoNotDependOnDomainEntities = noClasses()
+    public static final ArchRule inputPortsDoNotDependOnDomain = noClasses()
             .that().resideInAPackage(INPUT_PORTS)
-            .should().dependOnClassesThat().resideInAPackage("com.example.vieva.domain.entities..");
+            .should().dependOnClassesThat().resideInAPackage(DOMAIN);
 
     @ArchTest
-    public static final ArchRule controllersDoNotDependOnUseCaseImplementations = noClasses()
-            .that().resideInAPackage(CONTROLLERS)
+    public static final ArchRule adaptersDoNotDependOnUseCaseImplementations = noClasses()
+            .that().resideInAPackage(ADAPTERS)
             .should().dependOnClassesThat().resideInAPackage(USE_CASES);
 
     @ArchTest
-    public static final ArchRule adaptersDoNotDependOnDomainEntities = noClasses()
+    public static final ArchRule adaptersDoNotDependOnDomain = noClasses()
             .that().resideInAPackage(ADAPTERS)
-            .should().dependOnClassesThat().resideInAPackage("com.example.vieva.domain.entities..");
+            .should().dependOnClassesThat().resideInAPackage(DOMAIN);
 
     @ArchTest
     public static final ArchRule presentersDoNotDependOnDomainEntities = noClasses()
@@ -110,14 +110,25 @@ public class ArchitectureTest {
             .that().resideInAPackage("com.example.vieva.infrastructure.database..")
             .should().dependOnClassesThat().resideInAPackage(INPUT_PORTS);
 
+    // Rule R5: only database gateways and configuration (composition root) touch domain in infrastructure
+    @ArchTest
+    public static final ArchRule onlyDbGatewaysTouchDomain = noClasses()
+            .that().resideInAPackage(INFRASTRUCTURE)
+            .and().resideOutsideOfPackages(
+                    "com.example.vieva.infrastructure.configuration..",
+                    "com.example.vieva.infrastructure.database..")
+            .should().dependOnClassesThat().resideInAPackage(DOMAIN);
+
     // ---- Rules added on 31/10/2026 (audit A2, A3, A4) ----
 
     private static final DescribedPredicate<JavaClass> INTERVIEW_ENTITIES = DescribedPredicate.describe(
-            "interview domain entities (ExamAttempt, ExamTurn, Rubric, RubricCriterion)",
+            "interview domain entities and enums (ExamAttempt, ExamTurn, Rubric, RubricCriterion, GradeLevel, ScoringMode)",
             c -> c.isEquivalentTo(com.example.vieva.domain.entities.ExamAttempt.class)
                     || c.isEquivalentTo(com.example.vieva.domain.entities.ExamTurn.class)
                     || c.isEquivalentTo(com.example.vieva.domain.entities.Rubric.class)
-                    || c.isEquivalentTo(com.example.vieva.domain.entities.RubricCriterion.class));
+                    || c.isEquivalentTo(com.example.vieva.domain.entities.RubricCriterion.class)
+                    || c.isEquivalentTo(com.example.vieva.domain.entities.GradeLevel.class)
+                    || c.isEquivalentTo(com.example.vieva.domain.entities.ScoringMode.class));
 
     private static final DescribedPredicate<JavaClass> AI_GRADING_PORTS = DescribedPredicate.describe(
             "AI grading output ports",

@@ -8,8 +8,6 @@ import com.example.vieva.application.ports.output.RubricSummary;
 import com.example.vieva.application.ports.output.VivaEvaluationContext;
 import com.example.vieva.application.ports.output.VivaEvaluationGateway;
 import com.example.vieva.application.ports.output.VivaEvaluationResult;
-import com.example.vieva.domain.entities.GradeLevel;
-import com.example.vieva.domain.entities.ScoringMode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -220,19 +218,35 @@ public class GeminiOralExamAdapter implements VivaEvaluationGateway, AttemptGrad
             }
 
             // The grade band is a business rule, not something the LLM decides: derive it from the score
-            GradeLevel gradeLevel = GradeLevel.fromScore(totalScore);
+            String gradeLevel = deriveGradeLevel(totalScore);
 
             return new AttemptGradingResult(
                     totalScore,
                     gradeLevel,
                     llmPayload.detailedFeedback() != null ? llmPayload.detailedFeedback() : "",
-                    ScoringMode.GEMINI_FLASH_LITE
+                    "GEMINI_FLASH_LITE"
             );
 
         } catch (Exception ex) {
             log.warn("Gemini attempt grading failed: {}, falling back to RuleBasedGraderFallback", ex.getMessage());
             return fallbackGrader.gradeAttempt(turns, rubric);
         }
+    }
+
+    private static String deriveGradeLevel(BigDecimal score) {
+        if (score == null) {
+            return "POOR";
+        }
+        if (score.compareTo(new BigDecimal("8.5")) >= 0) {
+            return "EXCELLENT";
+        }
+        if (score.compareTo(new BigDecimal("7.0")) >= 0) {
+            return "GOOD";
+        }
+        if (score.compareTo(new BigDecimal("5.0")) >= 0) {
+            return "AVERAGE";
+        }
+        return "POOR";
     }
 
     private static String extractJson(String raw) {

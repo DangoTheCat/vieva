@@ -274,7 +274,8 @@ class ExamAttemptStateTransitionsTest {
                     ruleBasedGraderPort,
                     rubricRepository,
                     examAttemptRepository,
-                    examScoreRepository
+                    examScoreRepository,
+                    java.util.function.Supplier::get
             );
         }
 
@@ -286,8 +287,10 @@ class ExamAttemptStateTransitionsTest {
             attempt.start(true);
             attempt.finish(); // FINALIZING
 
+            when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
+
             AttemptGradingResult result = new AttemptGradingResult(
-                    new BigDecimal("8.50"), GradeLevel.EXCELLENT, "Great work", ScoringMode.GEMINI_FLASH_LITE
+                    new BigDecimal("8.50"), "EXCELLENT", "Great work", "GEMINI_FLASH_LITE"
             );
             when(attemptGradingGateway.gradeAttempt(any(), any())).thenReturn(result);
             when(examScoreRepository.save(any(ExamScore.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -311,6 +314,8 @@ class ExamAttemptStateTransitionsTest {
             org.springframework.test.util.ReflectionTestUtils.setField(attempt, "id", attemptId);
             attempt.start(true);
             attempt.finish(); // FINALIZING
+
+            when(examAttemptRepository.findByIdForUpdate(attemptId)).thenReturn(Optional.of(attempt));
 
             when(attemptGradingGateway.gradeAttempt(any(), any())).thenThrow(new RuntimeException("Gateway offline"));
             when(ruleBasedGraderPort.grade(any(), any())).thenThrow(new RuntimeException("Fallback failed"));

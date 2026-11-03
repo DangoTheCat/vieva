@@ -66,6 +66,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class LecturerQuestionBankApiTest {
     @MockitoBean private com.example.vieva.application.ports.output.NotificationRepository notificationRepository;
+    @MockitoBean private com.example.vieva.infrastructure.service.ExamSttContextService examSttContextService;
 
     @Autowired private MockMvc mockMvc;
 
