@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Select } from '../common/Select';
 import React, { useState, useEffect, useRef } from 'react';
 import { adminUserApi } from '../../api/adminUserApi';
 import { ROLE_OPTIONS } from '../../utils/roles';
@@ -220,7 +221,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1.5 text-xs">Trạng Thái Khởi Tạo:</label>
-                <select
+                <Select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full h-10 px-3.5 rounded-xl border border-pink-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 text-ink text-xs bg-white transition cursor-pointer shadow-2xs outline-none font-medium"
@@ -228,7 +229,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess, showToast }) {
                   <option value="ACTIVE">Hoạt động (ACTIVE)</option>
                   <option value="INACTIVE">Chờ kích hoạt (INACTIVE)</option>
                   <option value="BANNED">Tạm khóa (BANNED)</option>
-                </select>
+                </Select>
               </div>
             </div>
 

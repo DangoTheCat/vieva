@@ -1,4 +1,5 @@
 import React from 'react';
+import { Select } from '../common/Select';
 import { Search, Filter, ArrowUpDown, X, RotateCcw, ChevronDown } from 'lucide-react';
 import { ROLE_OPTIONS } from '../../utils/roles';
 
@@ -52,7 +53,7 @@ export function UserFilterBar({
       <div className="flex flex-wrap items-center gap-2">
         {/* Role Filter */}
         <div className="relative">
-          <select
+          <Select
             value={role}
             onChange={(e) => setRole(e.target.value)}
             className="appearance-none pl-3 pr-8 py-2 bg-white rounded-lg border border-pink-200 text-slate-800 font-medium text-xs focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs cursor-pointer"
@@ -62,13 +63,12 @@ export function UserFilterBar({
             {ROLE_OPTIONS.map(({ code, description }) => (
               <option key={code} value={code}>{description} ({code})</option>
             ))}
-          </select>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </Select>
         </div>
 
         {/* Status Filter */}
         <div className="relative">
-          <select
+          <Select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             className="appearance-none pl-3 pr-8 py-2 bg-white rounded-lg border border-pink-200 text-slate-800 font-medium text-xs focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs cursor-pointer"
@@ -79,13 +79,12 @@ export function UserFilterBar({
             <option value="INACTIVE">Chưa kích hoạt (INACTIVE)</option>
             <option value="BANNED">Đang khóa (BANNED)</option>
             <option value="DELETED">Đã xóa mềm (DELETED)</option>
-          </select>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </Select>
         </div>
 
         {/* Sort By */}
         <div className="flex items-center rounded-lg border border-pink-200 bg-white shadow-2xs overflow-hidden">
-          <select
+          <Select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="appearance-none pl-3 pr-2 py-2 bg-transparent font-medium text-slate-800 focus:outline-none text-xs cursor-pointer"
@@ -95,7 +94,7 @@ export function UserFilterBar({
             <option value="fullName">Họ và tên</option>
             <option value="email">Email</option>
             <option value="status">Trạng thái</option>
-          </select>
+          </Select>
           <button
             type="button"
             onClick={() => setSortDirection(sortDirection === 'ASC' ? 'DESC' : 'ASC')}

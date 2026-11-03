@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { Select } from '../components/common/Select';
 import { 
   BookOpen, 
   Plus, 
@@ -357,7 +358,7 @@ export function AdminSubjectPage({ showToast }) {
             <span className="font-bold text-xs uppercase">Trạng Thái:</span>
           </div>
           <div className="relative flex-1 md:w-56">
-            <select
+            <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full pl-3 pr-8 py-2 rounded-lg border border-pink-200 bg-paper font-bold text-xs text-ink focus:outline-none focus:border-pink-500 focus:shadow-sm cursor-pointer"
@@ -365,7 +366,7 @@ export function AdminSubjectPage({ showToast }) {
               <option value="ALL">Tất cả trạng thái</option>
               <option value="ACTIVE">Hoạt động (Active)</option>
               <option value="INACTIVE">Ngưng hoạt động (Inactive)</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
@@ -629,14 +630,14 @@ export function AdminSubjectPage({ showToast }) {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-green-800 mb-1">Trạng Thái</label>
-                  <select
+                  <Select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl text-xs border border-pink-200 bg-paper text-ink font-bold focus:outline-none focus:border-pink-500 cursor-pointer"
                   >
                     <option value="ACTIVE">ACTIVE (Hoạt động)</option>
                     <option value="INACTIVE">INACTIVE (Ngưng)</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 
@@ -714,7 +715,7 @@ export function AdminSubjectPage({ showToast }) {
               <label className="block font-bold text-xs text-green-900 mb-2">Thêm giảng viên vào môn học:</label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <select
+                  <Select
                     value={selectedLecturerIdToAdd}
                     onChange={(e) => setSelectedLecturerIdToAdd(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-pink-200 bg-paper font-bold text-xs text-ink focus:outline-none focus:border-pink-500 cursor-pointer"
@@ -725,7 +726,7 @@ export function AdminSubjectPage({ showToast }) {
                         {lec.fullName} ({lec.email})
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <button
                   type="button"

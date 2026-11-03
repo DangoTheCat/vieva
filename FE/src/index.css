@@ -134,3 +134,81 @@
 .animate-modal-entry {
   animation: modalEntry 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Unified dropdowns: one native <select> look across student & lecturer pages */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2364748B' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.25rem !important;
+  font-family: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+select:not([multiple]):not([size]):hover:not(:disabled) {
+  border-color: #DEB9B5;
+  background-color: #FFFBFA;
+}
+select:not([multiple]):not([size]):focus,
+select:not([multiple]):not([size]):focus-visible {
+  outline: none;
+  border-color: #CE9893;
+  box-shadow: 0 0 0 3px rgba(206, 152, 147, 0.22);
+}
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background-color: #F8F5F4;
+}
+select option {
+  font-family: inherit;
+  color: #1F1F1D;
+  background-color: #FFFFFF;
+  padding: 0.4rem 0.6rem;
+}
+
+/* Custom <Select> trigger + popup (components/common/Select.jsx) */
+.ui-select-trigger {
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.ui-select-trigger:hover:not(:disabled) {
+  border-color: #DEB9B5;
+  background-color: #FFFBFA;
+}
+.ui-select-trigger:focus-visible,
+.ui-select-trigger.is-open {
+  outline: none;
+  border-color: #CE9893;
+  box-shadow: 0 0 0 3px rgba(206, 152, 147, 0.22);
+}
+.ui-select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background-color: #F8F5F4;
+}
+.ui-select-menu {
+  animation: ui-select-in 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes ui-select-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ui-select-menu.origin-bottom {
+  animation-name: ui-select-in-up;
+}
+@keyframes ui-select-in-up {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-select-menu { animation: none; }
+}

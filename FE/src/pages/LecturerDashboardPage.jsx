@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Select } from '../components/common/Select';
 import { useAuth } from '../context/AuthContext';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { lecturerGradingApi } from '../api/lecturerGradingApi';
@@ -123,10 +124,10 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
       <div className="bg-white border border-pink-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs">
         <div>
           <h1 className="font-heading font-extrabold text-xl text-ink tracking-tight">
-            Trang Tổng Quan Khảo Thí (Lecturer Overview)
+            Tổng quan
           </h1>
           <p className="text-xs text-on-surface-variant mt-0.5">
-            Xin chào, <strong className="text-ink font-semibold">{lecturerName}</strong> • Quản lý môn học phân công &amp; không gian khảo thí tự động
+            Xin chào, <strong className="text-ink font-semibold">{lecturerName}</strong> • Môn học bạn phụ trách và tình hình các kỳ thi
           </p>
         </div>
 
@@ -204,7 +205,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
         {isLoading ? (
           <div className="p-8 text-center bg-white rounded-2xl border border-pink-200 shadow-2xs space-y-3">
             <Loader2 className="w-6 h-6 text-green-700 animate-spin mx-auto" />
-            <p className="text-xs text-on-surface-variant font-medium">Đang tải danh sách môn học từ Backend...</p>
+            <p className="text-xs text-on-surface-variant font-medium">Đang tải danh sách môn học ...</p>
           </div>
         ) : filteredSubjects.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-2xl border border-pink-200 shadow-2xs space-y-3">
@@ -294,7 +295,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
             <form onSubmit={handleCreateSpace} className="space-y-3.5 text-xs text-ink">
               <div>
                 <label className="font-bold text-ink block mb-1">Môn Học Phụ Trách</label>
-                <select 
+                <Select 
                   value={selectedSubjectId}
                   onChange={(e) => setSelectedSubjectId(e.target.value)}
                   className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs text-ink font-medium focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs"
@@ -305,7 +306,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
                       {s.subjectCode} - {s.subjectName}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div>
@@ -326,7 +327,7 @@ export function LecturerDashboardPage({ onNavigate, showToast }) {
                   rows={3} 
                   value={spaceForm.description}
                   onChange={(e) => setSpaceForm({ ...spaceForm, description: e.target.value })}
-                  placeholder="Mô tả các yêu cầu và khía cạnh cần AI Examiner đào sâu..." 
+                  placeholder="Mô tả các yêu cầu và khía cạnh cần tập trung hỏi sâu..." 
                   className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs text-ink placeholder:text-slate-400 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-2xs"
                 />
               </div>

@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Select } from '../components/common/Select';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { courseDocumentApi } from '../api/courseDocumentApi';
 import { knowledgeApi } from '../api/knowledgeApi';
@@ -199,7 +200,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       showToast({
         type: 'success',
         title: 'Tải Lên Thành Công',
-        message: `Đã tiếp nhận tệp "${fileToUpload.name}" và bắt đầu Lập chỉ mục Vector Store (RAG Indexing)!`
+        message: `Đã tiếp nhận tệp "${fileToUpload.name}" và đang xử lý tài liệu.`
       });
 
       setIsUploadModalOpen(false);
@@ -264,19 +265,19 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 border border-pink-200 text-slate-700 text-[11px] font-medium mb-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
-            <span>Kho Tài Liệu RAG Giáo Trình (Group 1)</span>
+            <span>Tài liệu môn học</span>
           </div>
           <h1 className="font-heading font-extrabold text-lg sm:text-xl text-ink tracking-tight">
-            Kho Tài Liệu &amp; Lập Chỉ Mục RAG
+            Kho tài liệu
           </h1>
           <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
-            Tải lên tài liệu giáo trình, bóc tách phân đoạn Vector Store để AI Giám thị tham chiếu trực tiếp
+            Tải lên giáo trình để hệ thống dùng làm nguồn tham chiếu khi sinh câu hỏi và chấm bài.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           {/* Select Subject */}
-          <select
+          <Select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
             className="bg-white border border-pink-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer"
@@ -287,7 +288,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                 {s.subjectCode} - {s.subjectName}
               </option>
             ))}
-          </select>
+          </Select>
 
           <button
             type="button"
@@ -307,28 +308,28 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
         <div className="p-4 sm:px-6 bg-slate-50/70 border-b border-pink-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-green-700" />
-            <span className="font-heading font-semibold text-sm text-ink">Danh Mục Tài Liệu Huấn Luyện Ngữ Cảnh</span>
+            <span className="font-heading font-semibold text-sm text-ink">Danh sách tài liệu</span>
             <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 border border-pink-200 text-[11px] font-semibold font-mono">
               Tổng số: {documents.length}
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-white px-3 py-1 rounded-lg border border-pink-200 shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-            <span>Chỉ tài liệu <span className="font-semibold text-green-800 underline decoration-green-400">READY</span> mới được trích xuất ngữ cảnh RAG</span>
+            <span>Chỉ tài liệu <span className="font-semibold text-green-800 underline decoration-green-400">Sẵn sàng</span> mới được dùng để sinh câu hỏi</span>
           </div>
         </div>
 
         {isLoading ? (
           <div className="p-10 text-center bg-paper space-y-3">
             <Loader2 className="w-7 h-7 text-green-700 animate-spin mx-auto" />
-            <p className="text-xs text-on-surface-variant font-medium">Đang tải danh sách tài liệu RAG từ Backend...</p>
+            <p className="text-xs text-on-surface-variant font-medium">Đang tải danh sách tài liệu RAG ...</p>
           </div>
         ) : documents.length === 0 ? (
           <div className="p-10 text-center bg-paper space-y-3">
             <FolderPlus className="w-9 h-9 text-outline mx-auto" />
-            <p className="text-sm font-bold text-ink">Chưa Có Tài Liệu Giáo Trình Trực Tuyến</p>
+            <p className="text-sm font-bold text-ink">Chưa có tài liệu nào</p>
             <p className="text-xs text-on-surface-variant max-w-md mx-auto">
-              Chưa có tệp tài liệu nào được lập chỉ mục RAG trên Backend cho môn học này. Hãy tải lên file PDF, DOCX hoặc PPTX để tạo tri thức cho AI Examiner.
+              Tải lên file PDF, DOCX hoặc PPTX của môn học để bắt đầu.
             </p>
           </div>
         ) : (
@@ -399,7 +400,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <select
+                        <Select
                           value={doc.topicId || ''}
                           disabled={updatingDocId === docId}
                           onChange={(e) => handleAssignTopic(docId, e.target.value)}
@@ -408,7 +409,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                         >
                           <option value="">— Chưa gán —</option>
                           {topics.map(t => <option key={t.topicId} value={t.topicId}>{t.name}</option>)}
-                        </select>
+                        </Select>
                       </td>
                       <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap space-x-1.5">
                         <button
@@ -452,7 +453,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
         <div className="p-3.5 sm:px-6 bg-paper border-t-2 border-cream flex flex-col sm:flex-row items-center justify-between text-xs text-on-surface-variant gap-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-            <span className="font-semibold text-ink">Tổng số tài liệu giáo trình: {documents.length}</span>
+            <span className="font-semibold text-ink">Tổng số tài liệu: {documents.length}</span>
           </div>
         </div>
       </div>
@@ -461,7 +462,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
       {selectedSubjectId && (
         <div className="bg-white border border-pink-200 rounded-2xl shadow-2xs p-4 sm:p-6 space-y-4 text-xs">
           <div>
-            <h2 className="font-heading font-bold text-sm text-ink">Tra Cứu Kho Kiến Thức</h2>
+            <h2 className="font-heading font-bold text-sm text-ink">Tra cứu kiến thức</h2>
             <p className="text-on-surface-variant mt-0.5">Tìm các đoạn giáo trình đã lập chỉ mục mà AI dùng để sinh câu hỏi. Để trống để xem các đoạn mới nhất.</p>
           </div>
           <form onSubmit={handleSearchKnowledge} className="flex gap-2">
@@ -523,7 +524,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                 <div className="w-8 h-8 rounded-lg bg-slate-100 border border-pink-200 flex items-center justify-center text-slate-700 shadow-2xs">
                   <UploadCloud className="w-4 h-4 text-pink-700" />
                 </div>
-                <h3 className="font-heading font-bold text-base text-ink">Tải Lên Tài Liệu Giáo Trình</h3>
+                <h3 className="font-heading font-bold text-base text-ink">Tải lên tài liệu</h3>
               </div>
               <button 
                 type="button" 
@@ -566,7 +567,7 @@ export function LecturerDocsRagPage({ onNavigate, showToast }) {
                   className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   {isUploading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Tải Lên &amp; Lập Chỉ Mục ↗</span>
+                  <span>Tải lên</span>
                 </button>
               </div>
             </form>

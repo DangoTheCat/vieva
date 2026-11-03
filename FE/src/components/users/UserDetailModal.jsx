@@ -225,7 +225,7 @@ export function UserDetailModal({ isOpen, user, onClose, onEdit }) {
           {/* Primary Key UUID */}
           <div className="p-3 rounded-xl border border-pink-200/80 bg-slate-50/50 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-500 font-medium">Mã Định Danh UUID (Database Primary Key)</span>
+              <span className="text-[11px] text-slate-500 font-medium">Mã định danh</span>
               <button
                 type="button"
                 onClick={() => handleCopy('userId', user.userId)}

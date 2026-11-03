@@ -5,9 +5,9 @@ import { Loader2 } from 'lucide-react';
 export function FinalizingStage({ finalizingStep, transcript }) {
   return (
     <div className="fixed inset-0 z-50 bg-ink/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white border border-pink-200 rounded-3xl p-8 sm:p-10 max-w-xl w-full shadow-lg space-y-6 text-center text-ink">
+      <div className="bg-white border border-pink-200 rounded-2xl p-8 sm:p-10 max-w-xl w-full shadow-lg space-y-6 text-center text-ink">
         
-        <div className="w-20 h-20 rounded-3xl bg-slate-100 border border-pink-200 text-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm animate-pulse">
+        <div className="w-20 h-20 rounded-2xl bg-slate-100 border border-pink-200 text-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm animate-pulse">
           <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
         </div>
 
@@ -25,7 +25,7 @@ export function FinalizingStage({ finalizingStep, transcript }) {
 
         {/* Synchronizing 3 Steps Progress */}
         <div className="space-y-3 text-left">
-          <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
+          <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs transition ${
             finalizingStep >= 1 ? 'bg-white border-slate-900 text-ink font-semibold shadow-2xs' : 'bg-slate-50 border-pink-200 text-slate-400'
           }`}>
             <div className="flex items-center gap-2">
@@ -37,11 +37,11 @@ export function FinalizingStage({ finalizingStep, transcript }) {
               <span>1. Đóng gói transcript &amp; bản ghi âm các lượt vấn đáp</span>
             </div>
             <span className="text-xs text-green-700">
-              {finalizingStep > 1 ? 'Hoàn tất ✓' : 'Đang xử lý...'}
+              {finalizingStep > 1 ? 'Hoàn tất' : 'Đang xử lý...'}
             </span>
           </div>
 
-          <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
+          <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs transition ${
             finalizingStep >= 2 ? 'bg-white border-slate-900 font-semibold shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-500'
           }`}>
             <div className="flex items-center gap-2">
@@ -53,11 +53,11 @@ export function FinalizingStage({ finalizingStep, transcript }) {
               <span>2. Đồng bộ hóa dữ liệu với máy chủ khảo thí trung tâm</span>
             </div>
             <span className="text-xs text-green-700">
-              {finalizingStep > 2 ? 'Hoàn tất ✓' : finalizingStep === 2 ? 'Đang đồng bộ...' : 'Chờ...'}
+              {finalizingStep > 2 ? 'Hoàn tất' : finalizingStep === 2 ? 'Đang đồng bộ...' : 'Chờ...'}
             </span>
           </div>
 
-          <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-xs transition ${
+          <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs transition ${
             finalizingStep >= 3 ? 'bg-white border-slate-900 font-semibold shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-500'
           }`}>
             <div className="flex items-center gap-2">

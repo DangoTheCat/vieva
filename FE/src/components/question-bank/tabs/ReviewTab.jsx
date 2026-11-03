@@ -3,6 +3,7 @@ import { ALL_BLOOM_LEVELS } from '../bloomConstants';
 import { Pagination } from '../../common/Pagination';
 import { SkeletonCard } from '../../common/Skeleton';
 import { AlertCircle, BookOpen, Check, CheckCircle2, Edit3, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { questionStatusLabel } from '../../../utils/questionStatus';
 
 /** Question bank page — "review" tab. Extracted from LecturerQuestionBankPage (plan item 3.7). */
 export function ReviewTab({ handleApproveVersion, handleBatchApprove, handleConfirmBloom, handleOpenEditDraft, handleSubmitForReview, handleReviewPageChange, handleReviewPageSizeChange, isBatchApproving, isLoadingReview, loadReviewQueue, reviewPage, reviewPageSize, reviewStatusFilter, reviewTotalElements, reviewTotalPages, reviewVersions, selectedVersionIds, setDeleteDraftTarget, setIsAiGenModalOpen, setRegenFeedback, setRegenVersionTarget, setRejectReason, setRejectVersionTarget, setReviewPage, setReviewStatusFilter, setSelectedVersionIds }) {
@@ -176,7 +177,7 @@ export function ReviewTab({ handleApproveVersion, handleBatchApprove, handleConf
                           ? 'bg-rose-50 text-rose-700 border-error'
                           : 'bg-slate-100 text-slate-800 border-pink-400'
                     }`}>
-                      {v.status}
+                      {questionStatusLabel(v.status)}
                     </span>
                   </div>
                 </div>

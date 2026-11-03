@@ -67,9 +67,12 @@ export default {
         outline: '#837372',
         'outline-variant': '#d5c2c0',
       },
+      fontWeight: {
+        black: '800'
+      },
       fontFamily: {
-        sans: ['"Be Vietnam Pro"', '"Inter"', 'sans-serif'],
-        heading: ['"Be Vietnam Pro"', '"Plus Jakarta Sans"', 'sans-serif'],
+        sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
+        heading: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
         display: ['"Fraunces"', 'Georgia', 'serif'],
         fraunces: ['"Fraunces"', 'Georgia', 'serif'],
         body: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],

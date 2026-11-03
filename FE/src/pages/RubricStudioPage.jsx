@@ -1,9 +1,11 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Select } from '../components/common/Select';
 import { lecturerCatalogApi } from '../api/lecturerCatalogApi';
 import { questionBankApi } from '../api/questionBankApi';
 import { rubricApi } from '../api/rubricApi';
 import { getErrorMessage } from '../utils/errorCodes';
+import { questionStatusLabel } from '../utils/questionStatus';
 import { 
   Plus, 
   Trash2, 
@@ -268,11 +270,11 @@ export function RubricStudioPage({ showToast }) {
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-slate-100 border border-pink-200 rounded-full">
               <Award className="w-4 h-4 text-slate-600" />
               <span className="text-xs font-semibold text-slate-700 tracking-wide">
-                Quản Lý Ma Trận Rubric Đánh Giá
+                Rubric chấm điểm
               </span>
             </div>
             <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-ink tracking-tight">
-              Ma Trận Tiêu Chí Rubric Điểm Vấn Đáp
+              Ma trận rubric
             </h1>
             <p className="text-xs sm:text-sm text-on-surface-variant max-w-2xl">
               Tiêu chuẩn chấm điểm tự động. Bắt buộc tổng điểm tiêu chí chính xác 10.0 điểm theo quy chế khảo thí.
@@ -281,7 +283,7 @@ export function RubricStudioPage({ showToast }) {
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Select Subject */}
-            <select 
+            <Select 
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
               className="w-full sm:w-auto sm:max-w-xs truncate bg-white text-slate-800 font-semibold text-xs px-3.5 py-2 rounded-xl border border-pink-200 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer"
@@ -292,7 +294,7 @@ export function RubricStudioPage({ showToast }) {
                   [{s.subjectCode}] {s.subjectName}
                 </option>
               ))}
-            </select>
+            </Select>
 
             {/* Add Rubric Criterion Button */}
             <button 
@@ -308,7 +310,7 @@ export function RubricStudioPage({ showToast }) {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4 text-slate-700 font-bold" />
-              <span>Thêm Tiêu Chí Rubric</span>
+              <span>Thêm tiêu chí rubric</span>
             </button>
           </div>
         </div>
@@ -324,21 +326,21 @@ export function RubricStudioPage({ showToast }) {
                 Chọn câu hỏi cần cấu hình Rubric:
               </span>
             </div>
-            <select
+            <Select
               value={selectedVersionId}
               onChange={(e) => setSelectedVersionId(e.target.value)}
               className="w-full md:max-w-3xl bg-slate-50 text-slate-800 text-xs px-3.5 py-2 rounded-xl border border-pink-200 shadow-2xs focus:outline-none focus:border-pink-500 cursor-pointer truncate"
             >
               {questions.map((q) => (
                 <option key={q.questionId} value={q.currentVersion.versionId}>
-                  #{q.questionCode} v{q.currentVersion.versionNumber} [{q.currentVersion.status}] — {q.currentVersion.content} {q.currentVersion.bloomLevelLabel ? `(${q.currentVersion.bloomLevelLabel})` : ''}
+                  #{q.questionCode} v{q.currentVersion.versionNumber} [{questionStatusLabel(q.currentVersion.status)}] — {q.currentVersion.content} {q.currentVersion.bloomLevelLabel ? `(${q.currentVersion.bloomLevelLabel})` : ''}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           {selectedVersion && !isVersionEditable && (
             <p className="mt-3 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
-              Phiên bản này đang ở trạng thái {selectedVersion.status} — chỉ phiên bản DRAFT mới chỉnh sửa hoặc áp dụng mẫu rubric được.
+              Phiên bản này đang ở trạng thái “{questionStatusLabel(selectedVersion.status)}” — chỉ bản nháp mới chỉnh sửa hoặc áp dụng mẫu rubric được.
             </p>
           )}
         </div>
@@ -410,8 +412,8 @@ export function RubricStudioPage({ showToast }) {
         <div className="pl-2 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-green-800 uppercase tracking-widest font-bold">
-                [ RUBRIC BUDGET TRACKER ]
+              <span className="text-xs text-green-800 font-bold">
+                Tổng điểm tiêu chí
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold shadow-sm border-2 ${
                 isBudgetValid 
@@ -419,7 +421,7 @@ export function RubricStudioPage({ showToast }) {
                   : 'bg-pink-100 border-pink-400 text-slate-700'
               }`}>
                 <CheckCircle2 className={`w-3.5 h-3.5 ${isBudgetValid ? 'text-green-700' : 'text-slate-600'}`} />
-                <span>{isBudgetValid ? '[ ĐẠT CHUẨN 10.0 ]' : `[ CHƯA ĐẠT: ${currentTotalScore.toFixed(1)}/10.0 ]`}</span>
+                <span>{isBudgetValid ? 'Đủ 10 điểm' : `Chưa đủ: ${currentTotalScore.toFixed(1)}/10`}</span>
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -472,25 +474,25 @@ export function RubricStudioPage({ showToast }) {
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-slate-600" />
             <h2 className="font-heading font-semibold text-base sm:text-lg text-ink">
-              Danh Sách Tiêu Chí Đánh Giá Chi Tiết
+              Danh sách tiêu chí
             </h2>
           </div>
           <span className="text-xs text-slate-600 bg-slate-100 border border-pink-200 rounded-full px-2.5 py-0.5">
-            Phiên bản ban hành v1.0
+            Phiên bản 1.0
           </span>
         </div>
 
         {isLoading ? (
           <div className="p-10 text-center bg-paper space-y-3">
             <Loader2 className="w-7 h-7 text-green-700 animate-spin mx-auto" />
-            <p className="text-xs text-on-surface-variant font-medium">Đang tải ma trận Rubric từ Backend...</p>
+            <p className="text-xs text-on-surface-variant font-medium">Đang tải ma trận Rubric ...</p>
           </div>
         ) : rubricCriteria.length === 0 ? (
           <div className="p-10 text-center bg-paper space-y-3">
             <FolderPlus className="w-9 h-9 text-outline mx-auto" />
-            <p className="text-sm font-bold text-ink">Chưa Có Tiêu Chí Rubric Trực Tuyến</p>
+            <p className="text-sm font-bold text-ink">Chưa có tiêu chí nào</p>
             <p className="text-xs text-on-surface-variant max-w-md mx-auto">
-              Chưa có tiêu chí Rubric nào được khởi tạo trên Backend cho môn học/câu hỏi được chọn. Bấm nút "Thêm Tiêu Chí Rubric" để khởi tạo tiêu chí mới trên cơ sở dữ liệu.
+              Bấm "Thêm tiêu chí rubric" để tạo tiêu chí đầu tiên cho câu hỏi này.
             </p>
           </div>
         ) : (
@@ -592,7 +594,7 @@ export function RubricStudioPage({ showToast }) {
                   <Award className="w-4 h-4 text-slate-600" />
                 </div>
                 <h3 className="font-heading font-bold text-base text-ink">
-                  {editingCriterion ? 'Chỉnh Sửa Tiêu Chí Rubric' : 'Thêm Tiêu Chí Rubric Mới'}
+                  {editingCriterion ? 'Chỉnh Sửa Tiêu Chí Rubric' : 'Thêm tiêu chí rubric Mới'}
                 </h3>
               </div>
               <button 

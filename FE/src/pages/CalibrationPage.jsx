@@ -165,7 +165,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
         showToast({
           type: 'info',
           title: 'Hiệu Chuẩn Âm Thanh',
-          message: 'Đang phát âm thanh thử nghiệm giọng Giám thị ảo...'
+          message: 'Đang phát âm thanh thử nghiệm giọng đọc mẫu...'
         });
       }
     } else {
@@ -186,27 +186,14 @@ export function CalibrationPage({ onNavigate, showToast }) {
       {/* Top Header Card */}
       <div className="bg-white border border-pink-200/90 p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-2xs">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-sky-600 block">
-            Hiệu Chuẩn Thiết Bị Khảo Thí (AIVES Device Calibration)
-          </span>
-          <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-ink mt-0.5">
-            Kiểm Tra Microphone &amp; Loa Trước Khi Thi
+          <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-ink ">
+            Kiểm tra thiết bị
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Đảm bảo chất lượng đường truyền âm thanh 2 chiều trước khi kết nối trực tiếp với Giám thị AI.
+            Kiểm tra micro và loa để buổi thi vấn đáp diễn ra suôn sẻ.
           </p>
         </div>
 
-        {/* Enter exam room */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigate && onNavigate('exam-room')}
-            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-          >
-            <span>Vào Làm Bài Thi ↗</span>
-          </button>
-        </div>
       </div>
 
       {/* Stepper Tabs (Clickable navigation) */}
@@ -230,7 +217,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
             {micTestedSuccessfully ? '✓' : '1'}
           </div>
           <div>
-            <span className="block text-xs">1. Microphone (Micro)</span>
+            <span className="block text-xs">1. Micro</span>
             <span className="text-xs text-slate-400 font-normal">
               {micTestedSuccessfully ? 'Tín hiệu tốt (-12dB)' : 'Kiểm tra độ nhạy mic'}
             </span>
@@ -257,7 +244,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
           <div>
             <span className="block text-xs">2. Loa / Tai Nghe</span>
             <span className="text-xs text-slate-400 font-normal">
-              {hasPlayedSound ? 'Đã nghe rõ giọng mẫu' : 'Nghe thử giọng Giám thị'}
+              {hasPlayedSound ? 'Đã nghe rõ giọng mẫu' : 'Nghe thử giọng đọc mẫu'}
             </span>
           </div>
         </button>
@@ -270,13 +257,13 @@ export function CalibrationPage({ onNavigate, showToast }) {
         <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
-              Bước 1 / 2: Kiểm Tra Microphone
+              Bước 1/2 · Micro
             </span>
             <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
-              Kiểm Tra Tín Hiệu Thu Âm Giọng Nói
+              Kiểm tra micro
             </h2>
             <p className="text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
-              Nhấn nút thu âm và nói một câu ngắn vào microphone của bạn. Hệ thống sẽ bóc băng chữ và đo độ nhạy thời gian thực.
+              Nhấn nút thu âm và nói một câu ngắn vào microphone của bạn. Hệ thống sẽ hiển thị nội dung nghe được và mức âm lượng.
             </p>
           </div>
 
@@ -302,7 +289,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
                   className="bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Mic className="w-4 h-4 text-sky-400" />
-                  <span>🎙️ Bắt Đầu Nói Thử (Test Microphone)</span>
+                  <span>Bắt đầu nói thử</span>
                 </button>
               ) : (
                 <button
@@ -319,7 +306,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
             {/* Live VU Meter & Waveform */}
             <div className="max-w-md mx-auto space-y-2">
               <div className="flex justify-between text-xs font-bold text-slate-600">
-                <span>Mức Âm Lượng Thu (VU Meter):</span>
+                <span>Mức âm lượng</span>
                 <span className="font-mono text-ink">
                   {isMicListening ? `${micVolumeLevel}% (-${Math.max(0, 48 - Math.round(micVolumeLevel * 0.48))} dB)` : 'Chưa bật mic'}
                 </span>
@@ -344,7 +331,7 @@ export function CalibrationPage({ onNavigate, showToast }) {
                 ) : isMicListening ? (
                   <span className="text-slate-400">Đang lắng nghe... Hãy nói to một câu tiếng Việt vào micro...</span>
                 ) : (
-                  <span className="text-slate-400">Bấm "Bắt Đầu Nói Thử" để kiểm tra tính năng nhận diện giọng nói.</span>
+                  <span className="text-slate-400">Bấm "Bắt đầu nói thử" để kiểm tra tính năng nhận diện giọng nói.</span>
                 )}
               </p>
               {sttProblem && (
@@ -369,24 +356,16 @@ export function CalibrationPage({ onNavigate, showToast }) {
               onClick={() => onNavigate && onNavigate('discover')}
               className="text-xs font-bold text-slate-500 hover:text-slate-800 transition"
             >
-              ← Về Lịch Thi
+              ← Về lịch thi
             </button>
 
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => onNavigate && onNavigate('exam-room')}
-                className="px-5 py-2.5 rounded-xl border border-sky-600 text-sky-700 hover:bg-sky-50 font-bold text-xs transition cursor-pointer"
-              >
-                🚀 Vào Làm Bài Thi &amp; Nộp Bài Luôn ↗
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setCurrentStep(2)}
                 className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <span>Sang Bước 2 (Kiểm Tra Loa) →</span>
+                <span>Tiếp tục: kiểm tra loa →</span>
               </button>
             </div>
           </div>
@@ -398,19 +377,19 @@ export function CalibrationPage({ onNavigate, showToast }) {
         <div className="bg-white border border-pink-200/90 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xs">
           <div className="text-center space-y-1.5">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-block">
-              Bước 2 / 2: Kiểm Tra Loa / Tai Nghe
+              Bước 2/2 · Loa / tai nghe
             </span>
             <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-ink">
-              Bạn Có Nghe Rõ Giọng Đọc Của Giám Thị Ảo?
+              Bạn có nghe rõ giọng đọc mẫu không?
             </h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              Hệ thống sẽ phát một câu chào ngắn bằng giọng AI tiếng Việt tự nhiên để kiểm tra tai nghe của bạn.
+              Hệ thống sẽ phát một câu chào ngắn để kiểm tra tai nghe của bạn.
             </p>
           </div>
 
           <div className="bg-slate-50 border border-pink-200 rounded-2xl p-6 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-white border border-pink-200 mx-auto flex items-center justify-center text-3xl shadow-xs">
-              🔊
+              <Volume2 className="w-7 h-7 text-slate-700" />
             </div>
             
             <button 
@@ -419,12 +398,12 @@ export function CalibrationPage({ onNavigate, showToast }) {
               className="bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition inline-flex items-center gap-2 cursor-pointer active:scale-95"
             >
               <Volume2 className="w-4 h-4 text-sky-400" />
-              <span>{isPlayingTest ? '▶ Đang Phát Giọng Mẫu (1.0x)...' : '▶ Phát Giọng Đọc Mẫu (1.0x)'}</span>
+              <span>{isPlayingTest ? 'Đang phát...' : 'Phát giọng đọc mẫu'}</span>
             </button>
             
             {hasPlayedSound && (
               <p className="text-xs font-semibold text-emerald-600 animate-in fade-in duration-200">
-                ✓ Đã phát âm thanh thành công! Tai nghe sẵn sàng.
+                Đã phát âm thanh thử. Tai nghe hoạt động bình thường.
               </p>
             )}
           </div>
@@ -433,9 +412,9 @@ export function CalibrationPage({ onNavigate, showToast }) {
           <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span className="font-bold text-emerald-900">Microphone: Đã nhận diện tín hiệu tốt</span>
+              <span className="font-bold text-emerald-900">Micro: tín hiệu tốt</span>
             </div>
-            <span className="font-mono text-emerald-700 font-bold">-12 dB (Optimal)</span>
+            <span className="font-mono text-emerald-700 font-bold">Tốt</span>
           </div>
 
           <div className="pt-4 border-t border-pink-100 flex flex-wrap items-center justify-between gap-3">
@@ -444,18 +423,10 @@ export function CalibrationPage({ onNavigate, showToast }) {
               onClick={() => setCurrentStep(1)}
               className="text-xs font-bold text-slate-500 hover:text-slate-800 transition"
             >
-              ← Quay Lại Bước 1 (Micro)
+              ← Quay lại bước 1
             </button>
             
             <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate('exam-room')}
-                className="px-5 py-2.5 rounded-xl border border-sky-600 text-sky-700 hover:bg-sky-50 font-bold text-xs transition cursor-pointer"
-              >
-                🚀 Vào Làm Bài Thi Luôn ↗
-              </button>
-
               <button 
                 type="button"
                 onClick={() => onNavigate && onNavigate('exam-room')} 

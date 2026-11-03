@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Select } from '../common/Select';
 import React, { useState } from 'react';
 import { 
   X, 
@@ -204,7 +205,7 @@ export function BatchUserImportModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div>
             <label className="block font-bold text-ink mb-1">Vai Trò Mặc Định (nếu file không chỉ định):</label>
-            <select
+            <Select
               value={defaultRole}
               onChange={(e) => setDefaultRole(e.target.value)}
               disabled={isProcessing}
@@ -212,7 +213,7 @@ export function BatchUserImportModal({
             >
               <option value="STUDENT">Sinh Viên (STUDENT)</option>
               <option value="LECTURER">Giảng Viên (LECTURER)</option>
-            </select>
+            </Select>
           </div>
 
           <div>

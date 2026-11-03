@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Select } from '../common/Select';
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { BLOOM_LEVELS } from './bloomConstants';
@@ -53,7 +54,7 @@ export function ManualQuestionModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-ink mb-1">Chủ Đề (Topic)</label>
-              <select
+              <Select
                 value={topicId}
                 onChange={(e) => setTopicId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl text-xs bg-white border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
@@ -64,12 +65,12 @@ export function ManualQuestionModal({
                     {t.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-ink mb-1">Cấp Độ Nhận Thức (Bloom)</label>
-              <select
+              <Select
                 value={bloomLevel}
                 onChange={(e) => setBloomLevel(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl text-xs bg-white border border-pink-200 text-ink focus:outline-none focus:border-pink-500 shadow-sm font-medium cursor-pointer"
@@ -79,7 +80,7 @@ export function ManualQuestionModal({
                     {b.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
